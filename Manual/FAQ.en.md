@@ -1,4 +1,4 @@
-####Quick FAQ:
+#### Quick FAQ:
 - _When do I need WhateverGreen?_  
 If you run macOS 10.11 or newer (possibly latest 10.10 as well) with an ATI/AMD GPU 5xxx or newer, you most likely do.  
 Unfortunately it is not possible to test all the GPUs and their configurations, use at your own risk.
