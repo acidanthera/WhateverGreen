@@ -16,7 +16,7 @@ WhateverGreen
 - Allows tuning autodetected connector priority via device properties (HD 7xxx or newer)
 
 #### Documentation
-Read FAQs before and avoid asking any questions:  
+Read FAQs and avoid asking any questions:  
 - [English FAQ](https://github.com/vit9696/WhateverGreen/blob/master/Manual/FAQ.en.md)
 - [Русский FAQ](https://github.com/vit9696/WhateverGreen/blob/master/Manual/FAQ.ru.md)
 
