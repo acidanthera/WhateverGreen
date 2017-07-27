@@ -56,6 +56,7 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
 
                             // You could also put other properties like "connectors", "connector-priority",
                             // or "device-id" here in case this is required for your setup.
+                            // If you add or remove connectors do not forget to specify "connector-count".
                         }, Local0)
                     DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
                     Return (Local0)
@@ -102,51 +103,51 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                     })
                 }
             }
+        }
 
-            // Below goes an example for IGPU injection useful for enabling hardware video decoding and other stuff.
+        // Below goes an example for IGPU injection useful for enabling hardware video decoding and other stuff.
 
-            Device (IMEI)
+        Device (IMEI)
+        {
+            Name (_ADR, 0x00160000)  // _ADR: Address
+        }
+
+        Scope (GFX0)
+        {
+            Name (_STA, Zero)  // _STA: Status
+        }
+
+        Device (IGPU)
+        {
+            Name (_ADR, 0x00020000)  // _ADR: Address
+            Method (_DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
             {
-                Name (_ADR, 0x00160000)  // _ADR: Address
-            }
-
-            Scope (GFX0)
-            {
-                Name (_STA, Zero)  // _STA: Status
-            }
-
-            Device (IGPU)
-            {
-                Name (_ADR, 0x00020000)  // _ADR: Address
-                Method (_DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
-                {
-                    Store (Package ()
+                Store (Package ()
+                    {
+                        "name",
+                        Buffer ()
                         {
-                            "name",
-                            Buffer ()
-                            {
-                                "display"
-                            },
+                            "display"
+                        },
 
-                            // This is a connector-less frame for Azul HD 4600
+                        // This is a connector-less frame for Azul HD 4600
 
-                            "AAPL,ig-platform-id",
-                            Buffer (0x04)
-                            {
-                                 0x04, 0x00, 0x12, 0x04
-                            },
+                        "AAPL,ig-platform-id",
+                        Buffer (0x04)
+                        {
+                             0x04, 0x00, 0x12, 0x04
+                        },
 
-                            // This is an override for built-in device-id
+                        // This is an override for built-in device-id
 
-                            "device-id",
-                            Buffer (0x04)
-                            {
-                                 0x12, 0x04, 0x00, 0x00
-                            }
-                        }, Local0)
-                    DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
-                    Return (Local0)
-                }
+                        "device-id",
+                        Buffer (0x04)
+                        {
+                             0x12, 0x04, 0x00, 0x00
+                        }
+                    }, Local0)
+                DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
+                Return (Local0)
             }
         }
 
@@ -180,4 +181,3 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
         }
     }
 }
-
