@@ -602,6 +602,7 @@ static constexpr Model dev68d8[] {
 	{Model::DetectSub, 0x1028, 0x68e0, 0x0000, "ATI Radeon HD 5670"},
 	{Model::DetectSub, 0x174b, 0x5690, 0x0000, "ATI Radeon HD 5690"},
 	{Model::DetectSub, 0x174b, 0xe151, 0x0000, "ATI Radeon HD 5670"},
+	{Model::DetectSub, 0x174b, 0xe166, 0x0000, "ATI Radeon HD 5670"}
 	{Model::DetectSub, 0x1787, 0x200d, 0x0000, "ATI Radeon HD 5670"},
 	{Model::DetectSub, 0x17af, 0x3011, 0x0000, "ATI Radeon HD 5690"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 5730"}
