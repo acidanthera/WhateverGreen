@@ -174,6 +174,7 @@ static constexpr Model dev6758[] {
 	{Model::DetectSub, 0x103c, 0x6882, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x174b, 0xe181, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1787, 0x2309, 0x0000, "AMD Radeon HD 6670"},
+	{Model::DetectSub, 0x1458, 0x2205, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7670"}
 };
 
@@ -201,12 +202,12 @@ static constexpr Model dev6760[] {
 	{Model::DetectSub, 0x103c, 0x167d, 0x0000, "AMD Radeon HD 6490M"},
 	{Model::DetectSub, 0x103c, 0x167f, 0x0000, "AMD Radeon HD 6490M"},
 	{Model::DetectSub, 0x103c, 0x169c, 0x0000, "AMD Radeon HD 6490M"},
-	{Model::DetectSub, 0x103c, 0x1855, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x103c, 0x1859, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x103c, 0x185c, 0x0000, "AMD Radeon 7450M"},
+	{Model::DetectSub, 0x103c, 0x1855, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x103c, 0x1859, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x103c, 0x185c, 0x0000, "AMD Radeon HD 7450M"},
 	{Model::DetectSub, 0x103c, 0x185d, 0x0000, "AMD Radeon HD 7470M"},
 	{Model::DetectSub, 0x103c, 0x185f, 0x0000, "AMD Radeon HD 7470M"},
-	{Model::DetectSub, 0x103c, 0x1863, 0x0000, "AMD Radeon 7450M"},
+	{Model::DetectSub, 0x103c, 0x1863, 0x0000, "AMD Radeon HD 7450M"},
 	{Model::DetectSub, 0x103c, 0x355c, 0x0000, "AMD Radeon HD 6490M"},
 	{Model::DetectSub, 0x103c, 0x355f, 0x0000, "AMD Radeon HD 6490M"},
 	{Model::DetectSub, 0x103c, 0x3581, 0x0000, "AMD Radeon HD 6490M"},
@@ -216,7 +217,7 @@ static constexpr Model dev6760[] {
 	{Model::DetectSub, 0x103c, 0x3596, 0x0000, "AMD Radeon HD 6490M"},
 	{Model::DetectSub, 0x103c, 0x3671, 0x0000, "AMD FirePro M3900"},
 	{Model::DetectSub, 0x1043, 0x100a, 0x0000, "AMD Radeon HD 7470M"},
-	{Model::DetectSub, 0x1043, 0x102a, 0x0000, "AMD Radeon 7450M"},
+	{Model::DetectSub, 0x1043, 0x102a, 0x0000, "AMD Radeon HD 7450M"},
 	{Model::DetectSub, 0x1043, 0x104b, 0x0000, "AMD Radeon HD 7470M"},
 	{Model::DetectSub, 0x1043, 0x105d, 0x0000, "AMD Radeon HD 7470M"},
 	{Model::DetectSub, 0x1043, 0x106b, 0x0000, "AMD Radeon HD 7470M"},
@@ -261,14 +262,14 @@ static constexpr Model dev6760[] {
 	{Model::DetectSub, 0x144d, 0xc0b3, 0x0000, "AMD Radeon HD 6490M"},
 	{Model::DetectSub, 0x144d, 0xc609, 0x0000, "AMD Radeon HD 7470M"},
 	{Model::DetectSub, 0x144d, 0xc625, 0x0000, "AMD Radeon HD 7470M"},
-	{Model::DetectSub, 0x144d, 0xc636, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x17aa, 0x3900, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x17aa, 0x3902, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x17aa, 0x3970, 0x0000, "AMD Radeon 7450M"},
+	{Model::DetectSub, 0x144d, 0xc636, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x17aa, 0x3900, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x17aa, 0x3902, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x17aa, 0x3970, 0x0000, "AMD Radeon HD 7450M"},
 	{Model::DetectSub, 0x17aa, 0x5101, 0x0000, "AMD Radeon HD 7470M"},
-	{Model::DetectSub, 0x17aa, 0x5102, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x17aa, 0x5103, 0x0000, "AMD Radeon 7450M"},
-	{Model::DetectSub, 0x17aa, 0x5106, 0x0000, "AMD Radeon 7450M"},
+	{Model::DetectSub, 0x17aa, 0x5102, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x17aa, 0x5103, 0x0000, "AMD Radeon HD 7450M"},
+	{Model::DetectSub, 0x17aa, 0x5106, 0x0000, "AMD Radeon HD 7450M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 6470M"}
 };
 
@@ -427,7 +428,7 @@ static constexpr Model dev6818[] {
 };
 
 static constexpr Model dev6819[] {
-	{Model::DetectSub, 0x174b, 0xe221, 0x0000, "AMD Radeon 7850"},
+	{Model::DetectSub, 0x174b, 0xe221, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x1462, 0x3058, 0x0000, "AMD Radeon R7 265"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 270"}
 };
@@ -573,7 +574,7 @@ static constexpr Model dev68c0[] {
 };
 
 static constexpr Model dev68c1[] {
-	{Model::DetectSub, 0x1025, 0x0347, 0x0000, "ATI Mobility Radeon 5470"},
+	{Model::DetectSub, 0x1025, 0x0347, 0x0000, "ATI Mobility Radeon HD 5470"},
 	{Model::DetectSub, 0x1025, 0x0517, 0x0000, "AMD Radeon HD 6550M"},
 	{Model::DetectSub, 0x1025, 0x051a, 0x0000, "AMD Radeon HD 6550M"},
 	{Model::DetectSub, 0x1025, 0x051b, 0x0000, "AMD Radeon HD 6550M"},
