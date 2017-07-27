@@ -56,7 +56,7 @@ Generally hardware video decoding is performed by an IGPU, and thus you are requ
 Several screens may not support 30-bit video output, but the GPU may not detect this. The result will look as distorted blinking colours. To resolve the issue either buy a more powerful display or add `-rad24` boot argument.  
 
 - _How do I get HDMI audio to work?_  
-In general it should be enough to inject the devices and properties mentioned above. In some cases you may also need to add a supported `device-id` property to HDAU and patch the identifier in AppleHDAController. More details are available in this [SSDT sample](https://github.com/vit9696/WhateverGreen/blob/master/Docs/Sample.dsl). 
+In general it should be enough to inject the devices and properties mentioned above. In some cases you may also need to add a supported `device-id` property to HDAU and patch the identifier in AppleHDAController. More details are available in this [SSDT sample](https://github.com/vit9696/WhateverGreen/blob/master/Manual/Sample.dsl). 
 
 - _May I access the source code?_  
 Model detection code is [open](https://github.com/vit9696/WhateverGreen/blob/master/WhateverGreen/kern_model.cpp) as well as [Lilu](https://github.com/vit9696/Lilu). If you want to contribute a feature you have an implementation for please contact me. For example, getting better handling of AMD Switchable Graphics or providing more complete research on connector detection would be nice.
