@@ -419,6 +419,7 @@ static constexpr Model dev6808[] {
 
 static constexpr Model dev6810[] {
 	{Model::DetectSub, 0x1458, 0x2272, 0x0000, "AMD Radeon R9 270X"},
+	{Model::DetectSub, 0x1462, 0x3033, 0x0000, "AMD Radeon R9 270X"},
 	{Model::DetectSub, 0x148c, 0x0908, 0x0000, "AMD Radeon R9 370"},
 	{Model::DetectSub, 0x1682, 0x7370, 0x0000, "AMD Radeon R7 370"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 370X"}
@@ -603,7 +604,8 @@ static constexpr Model dev68d8[] {
 	{Model::DetectSub, 0x1028, 0x68e0, 0x0000, "ATI Radeon HD 5670"},
 	{Model::DetectSub, 0x174b, 0x5690, 0x0000, "ATI Radeon HD 5690"},
 	{Model::DetectSub, 0x174b, 0xe151, 0x0000, "ATI Radeon HD 5670"},
-	{Model::DetectSub, 0x174b, 0xe166, 0x0000, "ATI Radeon HD 5670"}
+	{Model::DetectSub, 0x174b, 0xe166, 0x0000, "ATI Radeon HD 5670"},
+	{Model::DetectSub, 0x1043, 0x0356, 0x0000, "ATI Radeon HD 5670"},
 	{Model::DetectSub, 0x1787, 0x200d, 0x0000, "ATI Radeon HD 5670"},
 	{Model::DetectSub, 0x17af, 0x3011, 0x0000, "ATI Radeon HD 5690"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 5730"}
