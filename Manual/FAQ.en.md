@@ -7,7 +7,8 @@ Unfortunately it is not possible to test all the GPUs and their configurations, 
 Install DEBUG versions of WhateverGreen and Lilu, then add `-raddbg -liludbg` to the boot arguments. Once you boot run the following command in terminal:  
 `log show --predicate 'process == "kernel" AND (eventMessage CONTAINS "WhateverGreen" OR eventMessage CONTAINS "Lilu")' --style syslog --source`  
 If you have macOS 10.11 or earlier, use this command:  
-`cat /var/log/system.log | egrep '(WhateverGreen|Lilu)'`
+`cat /var/log/system.log | egrep '(WhateverGreen|Lilu)'`  
+Please note that in the case you cannot boot if your problem is specific to the GPU you should be able to get the log via SSH. In this case also check the `kextstat` command output.
 
 - _What is the state of 10.13 support?_  
 At the time of the release 10.13 is still being tested, so no support could even be thought about. There exist cases of broken AMD graphics on pre-Nehalem CPU chipsets. If you have older hardware please stay away from using 10.13. For other systems WhateverGreen may work if no drastic changes happen in 10.13.
@@ -29,7 +30,7 @@ To do so there is no need to use custom connectors with 7xxx GPUs or newer. Add 
 
 - _What properties should I inject for my GPU?_  
 Very few! You should inject an `HDAU` device to your GPU controller, `hda-gfx` properties with a corresponding number to the amount of audio codecs you have, and that is basically all. If you need to mask to an unsupported GPU, additionally add `device-id`. It is also recommended to add some cosmetic properties: `AAPL,slot-name` (displayed slot name in system details), `@X,AAPL,boot-display` (boot logo drawing issues), `model` (GPU display name, if detection failed).  
-While not pretending to be perfect, there is a [SSDT sample](https://github.com/vit9696/WhateverGreen/blob/master/Docs/Sample.dsl) to get the general idea.
+While not pretending to be perfect, there is a [SSDT sample](https://github.com/vit9696/WhateverGreen/blob/master/Manual/Sample.dsl) to get the general idea.
 
 - _When do I need to use `radpg` boot argument?_  
 This argument is as a replacement for the original igork's AMDRadeonX4000 Info.plist patch required for some 7xxx GPUs to start. WhateverGreen is not compatible with Verde.kext, and it should be deleted. The argument allows to force-enable certain power-gating flags like CAIL_DisableGfxCGPowerGating. The value is a bit mask of CAIL_DisableDrmdmaPowerGating, CAIL_DisableGfxCGPowerGating, CAIL_DisableUVDPowerGating, CAIL_DisableVCEPowerGating, CAIL_DisableDynamicGfxMGPowerGating, CAIL_DisableGmcPowerGating, CAIL_DisableAcpPowerGating, CAIL_DisableSAMUPowerGating. Therefore `radpg=15` activates the first four keys.
@@ -44,7 +45,7 @@ If this bothers you, either wait a bit longer or try adding `darkwake=0` boot ar
 One of the easiest signs is boot time. If initialised improperly, your boot process will stall for 30 extra seconds to get your display ready.
 
 - _Is it normal to have `Prototype` in OpenGL/OpenCL engine names?_  
-Yes. It was discovered during the reverse-engineering that the displayed title has no effect on performance. Furthermore, it was discovered that certain attempts to patch this by modifying the identitiers in kexts (e.g. AMDRadeonX4000) may lead to overall system instability.
+Yes. It was discovered during the reverse-engineering that the displayed title has no effect on performance. Furthermore, it was discovered that certain attempts to patch this by modifying the identitiers in kexts (e.g. AMDRadeonX4000) may lead to overall system instability. For the improperly coded apps having issues with such naming use `libWhateverName.dylib`.
 
 - _How do I use my IGPU?_  
 In most cases IGPU should be used for hardware video decoding (with a connector-less frame). In case you need extra screens, IGPU may be fully enabled. You should not use `-radlogo` boot argument with IntelGraphicsFixup.
