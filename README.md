@@ -7,7 +7,7 @@ WhateverGreen
 - Fixes boot to black screen
 - Fixes sleep wake to black screen 
 - Fixes boot logo distortion in certain cases (`-radlogo`)
-- Fixes transmitter/encoder in autodetected connectors for multimonitor support
+- Fixes transmitter/encoder in autodetected connectors for multimonitor support (`-raddvi`)
 - Fixes certain HD 7xxx initialisation (`radpg=15`)
 - Allows enforcing 24-bit mode on unsupported displays (`-rad24`)
 - Allows booting without video acceleration (`-radvesa`)
@@ -26,10 +26,11 @@ No support is provided for the time being.
 Add `-raddbg` to enable debug printing (available in DEBUG binaries).  
 Add `-radvesa` to disable ATI/AMD video acceleration completely.  
 Add `-radoff` to disable WhateverGreen.  
-Add `-radbeta` to enable WhateverGreen on unsupported os versions.  
+Add `-radbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).  
 Add `-rad24` to enforce 24-bit display mode.  
 Add `-radlogo` to patch boot logo distortion.  
-Add `radpg=15` to disable several power-gating modes (read FAQ for more details).
+Add `radpg=15` to disable several power-gating modes (see FAQ, required for 7xxx GPUs).  
+Add `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.) 
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
