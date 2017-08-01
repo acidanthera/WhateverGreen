@@ -328,6 +328,7 @@ static constexpr Model dev6798[] {
 static constexpr Model dev679a[] {
 	{Model::DetectSub, 0x1002, 0x3000, 0x0000, "AMD Radeon HD 7950"},
 	{Model::DetectSub, 0x174b, 0x3000, 0x0000, "AMD Radeon HD 7950"},
+	{Model::DetectSub, 0x1043, 0x047e, 0x0000, "AMD Radeon HD 7950"},
 	{Model::DetectSub, 0x174b, 0xa003, 0x0000, "AMD Radeon R9 280"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 8950"}
 };
