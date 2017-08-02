@@ -758,8 +758,8 @@ static constexpr DevicePair devices[] {
 };
 
 const char *RAD::getModel(uint16_t ven, uint16_t dev, uint16_t rev, uint16_t subven, uint16_t sub) {
-	// Initially check vendor-id common to all ATI/AMD
-	if (ven != 0x1002)
+	// Initially check vendor-id common to all ATI/AMD (0x1002)
+	if (ven != VendorID::ATIAMD)
 		return nullptr;
 	
 	for (auto &device : devices) {

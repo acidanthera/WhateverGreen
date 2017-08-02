@@ -24,45 +24,81 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                 Method (_DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
                 {
                     Store (Package ()
+                    {
+                        // Write the preferred GPU index here (1-4)
+                        "AAPL,slot-name",
+                        Buffer ()
                         {
-                            // Write the preferred GPU index here (1-4)
+                            "Slot-1"
+                        },
 
-                            "AAPL,slot-name",
-                            Buffer ()
-                            {
-                                "Slot-1"
-                            },
+                        // Write the main main monitor index (currently 0) here, the value does not matter
+                        "@0,AAPL,boot-display",
+                        Buffer (Zero) {}
 
-                            // Make sure not to write the same onboard index for each installed GPU
+                        /*
 
-                            "hda-gfx",
-                            Buffer ()
-                            {
-                                "onboard-1"
-                            },
+                        // Only use this if your GPU device identifier is not natively supported in macOS kexts
+                        "device-id",
+                        Buffer (0x04)
+                        {
+                             0x12, 0x34, 0x00, 0x00
+                        },
 
-                            // Only use this if automatic detection fails or may not be used
+                        // Only use this if automatic detection fails or you are faking your GPU device-id
+                        "model",
+                        Buffer ()
+                        {
+                            "AMD Radeon HD 6450"
+                        },
 
-                            "model",
-                            Buffer ()
-                            {
-                                "AMD Radeon HD 6450"
-                            },
+                        // Only use this if you are not satisfied with automatic HDMI injection
+                        // Make sure not to write the same onboard index for each installed GPU
+                        "hda-gfx",
+                        Buffer ()
+                        {
+                            "onboard-1"
+                        },
 
-                            // Monitor at index 0 is used as main, the value does not matter
+                        // Only use this if you need special connectors that are incompatible with the automatic connector detection
+                        "connectors",
+                        Buffer ()
+                        {
+                            0x00, 0x04, 0x00, 0x00, 0x04, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x12, 0x04, 0x04, 0x01, 
+                            0x00, 0x08, 0x00, 0x00, 0x04, 0x02, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x22, 0x05, 0x01, 0x03, 
+                            0x04, 0x00, 0x00, 0x00, 0x14, 0x02, 0x00, 0x00, 0x00, 0x01, 0x03, 0x00, 0x10, 0x00, 0x05, 0x06, 
+                            0x04, 0x00, 0x00, 0x00, 0x14, 0x02, 0x00, 0x00, 0x00, 0x01, 0x04, 0x00, 0x11, 0x02, 0x06, 0x05
+                        },
 
-                            "@0,AAPL,boot-display",
-                            Buffer (Zero) {}
+                        // You may only specify this with connectors property when the amount of connectors differs from autodetected
+                        "connector-count",
+                        Buffer ()
+                        {
+                             0x04, 0x00, 0x00, 0x00
+                        },
 
-                            // You could also put other properties like "connectors", "connector-priority",
-                            // or "device-id" here in case this is required for your setup.
-                            // If you add or remove connectors do not forget to specify "connector-count".
-                        }, Local0)
+                        // Only use this with automatic connector detection when you need manual priority.
+                        // Each value is a sense id to get a higher priority.
+                        // Automatic ordering is done by type: LVDS, DVI, HDMI, DP, VGA.
+                        // You may leave this empty to order all the connectors by type.
+                        // Assume autodetected connectors: 0x03 DP, 0x02 DVI_D, 0x06 HDMI, 0x05 DVI_D, 0x04 VGA
+                        // With the value pri will become: 0x0005 , 0x0001    , 0x0004   , 0x0003    , 0x0002
+                        "connector-priority",
+                        Buffer ()
+                        {
+                            0x02, 0x04
+                        }
+
+                        */
+                    }, Local0)
                     DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
                     Return (Local0)
                 }
             }
 
+            /*
+
+            // Only use this if you are not satisfied with automatic HDMI injection
             Device (HDAU)
             {
                 Name (_ADR, One)  // _ADR: Address
@@ -91,18 +127,11 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                         {
                             "onboard-1"
                         }
-
-                        // You may need to put "device-id" here in case this is required for your setup.
-                        // Please be aware that that AppleHDAController reads the device-id directly.
-                        // This means that you may have to patch your device-id in AppleHDAController.
-                        // Assume your original device-id is <c8 aa 00 00> (R9 290X).
-                        // And the id you are faking to is <e0 aa 00 00> (Pro 460).
-                        // So here you add device-id <e0 aa 00 00>.
-                        // And AppleHDAController patch is <02 10 e0 aa> -> <02 10 c8 aa>.
-                        // Thanks to Pawel69 for this.
                     })
                 }
             }
+
+            */
         }
 
         // Below goes an example for IGPU injection useful for enabling hardware video decoding and other stuff.
