@@ -201,7 +201,7 @@ IOReturn AtiBiosParser2::getOutputInformation(AtiBiosParser2 *parser, AtomConnec
 IOReturn AtiBiosParser2::getConnectorFeatures(AtiBiosParser2 *parser, AtomConnectorInfo *atomcon, ModernConnector *applecon) {
   if (!atomcon->usConnObjectId) {
     kprintf("ATOM: %s: ASSERT(0 != objId.u16All)\n", "IOReturn AtiBiosParser2::getConnectorFeatures(AtiObjectInfoTableInterface_V2::AtomConnectorInfo &, ConnectorInfo &)");
-    result = kIOReturnBadArgument;
+    return kIOReturnBadArgument;
   }
 
   uint8_t connector = (uint8_t)atomcon->usGraphicObjIds;
