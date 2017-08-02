@@ -23,10 +23,11 @@ You could follow [this guide](https://www.techpowerup.com/forums/threads/amd-ati
 Named framebuffers (Baladi, Futomaki, Lotus, etc.), enabled by "Clover GPU injection" or any other methods should _never ever be used_. This way of GPU injection is a common mistake, preventing automatic configuration of various important GPU parameters. This will inavoidably lead to borked GPU functioning in quite a number of cases.
 
 - _When should I use custom connectors?_  
-In extremely rare cases VBIOS could (e.g. 290, 290X, 370 GPUs) be incompatible with automatic controller detection written in Apple kexts. WhateverGreen incorporates automatic connector correction for such cases. However, if you discovered that the automatically generated connectors are still wrong (you could find them in debug log), you may specify them as a GPU device property called `connects`, for example, via SSDT. You could pass your connectors in either 24-byte or 16-byte format, they will be automatically adapted to the running system. If you need to provide more or less connectors than it is detected automatically, you are to specify `connector-count` property as well.
+In extremely rare cases VBIOS could (e.g. 290, 290X, 370 GPUs) be incompatible with automatic controller detection written in Apple kexts. WhateverGreen incorporates automatic connector correction that can be enabled via `-raddvi` boot argument. However, if you discovered that the automatically generated connectors are still wrong (you could find them in debug log), you may specify them as a GPU device property called `connects`, for example, via SSDT. You could pass your connectors in either 24-byte or 16-byte format, they will be automatically adapted to the running system. If you need to provide more or less connectors than it is detected automatically, you are to specify `connector-count` property as well.
 
 - _How can I change display priority?_  
-To do so there is no need to use custom connectors with 7xxx GPUs or newer. Add `connector-priority` GPU controller property with sense ids (could be seen in debug log) in the order of their importance. This property may sometimes help with the multi-monitor configurations.
+With 7xxx GPUs or newer you could simply add `connector-priority` GPU controller property with sense ids (could be seen in debug log) in the order of their importance. This property may help with black screen issues especially with the multi-monitor configurations.  
+Without this property specified all the connectors will stay with 0 priority. If there are unspecified connectors they will be ordered by type: LVDS, DVI, HDMI, DP, VGA. Read [SSDT sample](https://github.com/vit9696/WhateverGreen/blob/master/Manual/Sample.dsl) for more details.
 
 - _What properties should I inject for my GPU?_  
 Very few! You should inject an `HDAU` device to your GPU controller, `hda-gfx` properties with a corresponding number to the amount of audio codecs you have, and that is basically all. If you need to mask to an unsupported GPU, additionally add `device-id`. It is also recommended to add some cosmetic properties: `AAPL,slot-name` (displayed slot name in system details), `@X,AAPL,boot-display` (boot logo drawing issues), `model` (GPU display name, if detection failed).  
@@ -37,6 +38,9 @@ This argument is as a replacement for the original igork's AMDRadeonX4000 Info.p
 
 - _How to change my GPU model?_  
 The controller kext (e.g. AMD6000Controller) replaces GPU model with a generic name (e.g. AMD Radeon HD 6xxx) if it performs the initialisation on its own. Injecting the properties and disabling this will break connector autodetect, and therefore is quite not recommended. WhateverGreen attempts to automatically detect the GPU model name if it is unspecified. If the autodetected model name is not valid (for example, in case of a fake device-id or a new GPU model) please provide a correct one via `model` property. All the questions about automatic GPU model detection correctness should be addressed to [The PCI ID Repository](http://pci-ids.ucw.cz). In special cases you may submit a [patch](https://github.com/vit9696/WhateverGreen/pulls) for [kern_model.cpp](https://github.com/vit9696/WhateverGreen/blob/master/WhateverGreen/kern_model.cpp). GPU model name is absolutely unimportant for GPU functioning.
+
+- _How should I read EFI driver version?_  
+This value is by WhateverGreen for debugging reasons. For example, WEAD-102-2017-08-03 stands for WhateverGreen with automatic frame (i.e. RadeonFramebuffer), debug version 1.0.2 compiled on 03.08.2017. Third letter can also be F for fake frame, and B for invalid data. Fourth letter could be R for release builds. 
 
 - _What to do when my GPU does not wake until I start typing on the keyboard?_  
 If this bothers you, either wait a bit longer or try adding `darkwake=0` boot argument.
@@ -57,7 +61,8 @@ Generally hardware video decoding is performed by an IGPU, and thus you are requ
 Several screens may not support 30-bit video output, but the GPU may not detect this. The result will look as distorted blinking colours. To resolve the issue either buy a more powerful display or add `-rad24` boot argument.  
 
 - _How do I get HDMI audio to work?_  
-In general it should be enough to inject the devices and properties mentioned above. In some cases you may also need to add a supported `device-id` property to HDAU and patch the identifier in AppleHDAController. More details are available in this [SSDT sample](https://github.com/vit9696/WhateverGreen/blob/master/Manual/Sample.dsl). 
+In general it should be enough to rely on WhateverGreen automatic HDAU correction. It renames the device to HDAU, and injects missing layout-id and hda-gfx (starting with onboard-2) properties. This will not work well with two or more cards of different vendors (e.g. NVIDIA and ATI/AMD), please manually inject the properties in such a case.  
+For identifiers not present in AppleHDAController and AppleHDA you have to add necessary kext patches, see AppleALC [example for 290X](https://github.com/vit9696/AppleALC/commit/cfb8bef310f31fd330aeb4e10623487a6bceb84d#diff-6246954ac288d4f6dd7eb780c006419d).
 
 - _May I access the source code?_  
 Model detection code is [open](https://github.com/vit9696/WhateverGreen/blob/master/WhateverGreen/kern_model.cpp) as well as [Lilu](https://github.com/vit9696/Lilu). If you want to contribute a feature you have an implementation for please contact me. For example, getting better handling of AMD Switchable Graphics or providing more complete research on connector detection would be nice.
