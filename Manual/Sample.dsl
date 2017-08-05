@@ -87,6 +87,27 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                         Buffer ()
                         {
                             0x02, 0x04
+                        },
+
+                        // The properties below allow you to configure aty_config, aty_properties, cail_properties
+
+                        // This will change CAIL_DisableDrmdmaPowerGating in cail_properties to false
+                        // Note: buffer of 1 byte long with 0x01 / 0x00 values is transormed into boolean
+                        "CAIL,CAIL_DisableDrmdmaPowerGating",
+                        Buffer ()
+                        {
+                            0x01
+                        },
+
+                        // This will change CFG_FB_LIMIT in aty_config to 6
+                        "CFG,CFG_FB_LIMIT",
+                        0x06,
+
+                        // This will change HELLO_WORLD in aty_properties to <01 02 03 04>
+                        "PP,HELLO_WORLD",
+                        Buffer ()
+                        {
+                            0x01, 0x02, 0x03, 0x04
                         }
 
                         */

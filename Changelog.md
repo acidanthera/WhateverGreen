@@ -1,6 +1,11 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.0.3
+- Fixed `radpg` bit mask working incorrectly
+- Added `-radprop` boot-arg to enable manual tuning of `aty_config`, `aty_properties`
+- Changed HDMI audio layout-id to match HDEF layout-id if available
+
 #### v1.0.2
 - Added more GPU models to automatic detection
 - Added basic automatic HDMI audio correction
