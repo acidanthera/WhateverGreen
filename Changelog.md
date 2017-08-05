@@ -3,7 +3,7 @@ WhateverGreen Changelog
 
 #### v1.0.3
 - Fixed `radpg` bit mask working incorrectly
-- Added `-radprop` boot-arg to enable manual tuning of `aty_config`, `aty_properties`
+- Added manual tuning of `aty_config`, `aty_properties`, and `cail_properties` via ACPI
 - Changed HDMI audio layout-id to match HDEF layout-id if available
 
 #### v1.0.2
