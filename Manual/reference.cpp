@@ -123,7 +123,7 @@ IOReturn AtiBiosParser2::translateAtomConnectorInfo(AtiBiosParser2 *parser, Atom
     kprintf("ATOM: %s: ASSERT(NULL != i2cRecord)\n", "uint8_t AtiBiosParser2::getAuxDdcLine(atom_i2c_record *)");
   }
 
-  uint8_t *hpdRecord = (uint8_t *)atomcon->hpdRecord;
+  uint8_t *hpdRecord = atomcon->hpdRecord;
   if (hpdRecord) {
     applecon->hotplug = hpdRecord[2];
   } else {
@@ -151,7 +151,7 @@ IOReturn AtiBiosParser2::getOutputInformation(AtiBiosParser2 *parser, AtomConnec
     return kIOReturnBadArgument;
   }
 
-  uint8_t encoder = (uint8_t)atomcon->usGraphicObjIds;
+  uint8_t encoder = atomcon->usGraphicObjIds;
   bool one = ((atomcon->usGraphicObjIds & ENUM_ID_MASK) >> ENUM_ID_SHIFT) == 1;
 
   switch (encoder) {
@@ -204,7 +204,7 @@ IOReturn AtiBiosParser2::getConnectorFeatures(AtiBiosParser2 *parser, AtomConnec
     return kIOReturnBadArgument;
   }
 
-  uint8_t connector = (uint8_t)atomcon->usGraphicObjIds;
+  uint8_t connector = atomcon->usGraphicObjIds;
 
   switch (connector) {
     case CONNECTOR_OBJECT_ID_DUAL_LINK_DVI_I:
