@@ -8,7 +8,7 @@ WhateverGreen
 - Fixes sleep wake to black screen 
 - Fixes boot logo distortion in certain cases (`-radlogo`)
 - Fixes transmitter/encoder in autodetected connectors for multimonitor support (`-raddvi`)
-- Fixes certain HD 7xxx initialisation (`radpg=15`)
+- Fixes HD 7730/7750/7770/R7 250/R7 250X initialisation (`radpg=15`)
 - Fixes HDMI audio for _natively supported_ devices if not injected manually
 - Allows tuning of aty_config, aty_properties, cail_properties via ACPI
 - Allows enforcing 24-bit mode on unsupported displays (`-rad24`)
