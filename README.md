@@ -32,7 +32,7 @@ Add `-radbeta` to enable WhateverGreen on unsupported os versions (10.13 and bel
 Add `-rad24` to enforce 24-bit display mode.  
 Add `-radlogo` to patch boot logo distortion.  
 Add `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.)  
-Add `radpg=15` to disable several power-gating modes (see FAQ, required for 7xxx GPUs).
+Add `radpg=15` to disable several power-gating modes (see FAQ, required for Cape Verde GPUs).
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
