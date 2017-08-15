@@ -540,6 +540,14 @@ static constexpr Model dev6841[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7650M"}
 };
 
+static constexpr Model dev6863[] {
+	{Model::DetectSub, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega FE"},
+};
+
+static constexpr Model dev687f[] {
+	{Model::DetectSub, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega 64"},
+};
+
 static constexpr Model dev6898[] {
 	{Model::DetectSub, 0x174b, 0x6870, 0x0000, "AMD Radeon HD 6870"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 5870"}
@@ -738,6 +746,8 @@ static constexpr DevicePair devices[] {
 	{0x683f, dev683f, arrsize(dev683f)},
 	{0x6840, dev6840, arrsize(dev6840)},
 	{0x6841, dev6841, arrsize(dev6841)},
+	{0x6863, dev6863, arrsize(dev6863)},
+	{0x687f, dev687f, arrsize(dev687f)},
 	{0x6898, dev6898, arrsize(dev6898)},
 	{0x6899, dev6899, arrsize(dev6899)},
 	{0x68a0, dev68a0, arrsize(dev68a0)},
