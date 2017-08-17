@@ -176,6 +176,7 @@ static constexpr Model dev6758[] {
 	{Model::DetectSub, 0x1787, 0x2309, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1043, 0x0443, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1458, 0x2205, 0x0000, "AMD Radeon HD 6670"},
+	{Model::DetectSub, 0x1043, 0x03ea, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7670"}
 };
 
