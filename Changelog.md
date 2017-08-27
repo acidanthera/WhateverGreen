@@ -1,6 +1,11 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.0.4
+- Added more GPU models to automatic detection
+- Initial Vega series support
+- Fixed minor issues in HDMI audio enabling code
+
 #### v1.0.3
 - Fixed `radpg` bit mask working incorrectly
 - Added manual tuning of `aty_config`, `aty_properties`, and `cail_properties` via ACPI
