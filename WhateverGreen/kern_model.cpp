@@ -321,6 +321,7 @@ static constexpr Model dev6798[] {
 	{Model::DetectSub, 0x1043, 0x3006, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1043, 0x3005, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1462, 0x2775, 0x0000, "AMD Radeon R9 280X"},
+	{Model::DetectSub, 0x1682, 0x3001, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1043, 0x9999, 0x0000, "ASUS ARES II"},
 	{Model::DetectSub, 0x1458, 0x3001, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1787, 0x2317, 0x0000, "AMD Radeon HD 7990"},
