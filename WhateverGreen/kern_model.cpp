@@ -447,6 +447,7 @@ static constexpr Model dev6820[] {
 	{Model::DetectSub, 0x103c, 0x1851, 0x0000, "AMD Radeon HD 7750M"},
 	{Model::DetectSub, 0x17aa, 0x3643, 0x0000, "AMD Radeon R9 A375"},
 	{Model::DetectSub, 0x17aa, 0x3801, 0x0000, "AMD Radeon R9 M275"},
+	{Model::DetectSub, 0x1028, 0x06da, 0x0000, "AMD FirePro W5170M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M375"}
 };
 
