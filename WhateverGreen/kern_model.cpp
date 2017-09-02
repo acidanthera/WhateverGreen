@@ -688,9 +688,9 @@ static constexpr Model dev6939[] {
 };
 
 static constexpr Model dev7300[] {
-	{Model::DetectSub, 0x1002, 0x0b36, 0x0000, "AMD Radeon NANO"},
 	{Model::DetectSub, 0x1002, 0x1b36, 0x0000, "AMD Radeon Pro Duo"},
 	{Model::DetectSub, 0x1043, 0x04a0, 0x0000, "AMD Radeon FURY X"},
+	{Model::DetectSub, 0x1002, 0x0b36, 0x0000, "AMD Radeon FURY X"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon FURY"}
 };
 
