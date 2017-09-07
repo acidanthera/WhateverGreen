@@ -429,6 +429,10 @@ static constexpr Model dev6810[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 370X"}
 };
 
+static constexpr Model dev6811[] {
+	{Model::DetectSub, 0x174b, 0x2015, 0x0000, "AMD Radeon R7 370"},
+};
+
 static constexpr Model dev6818[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7870"}
 };
@@ -721,6 +725,7 @@ static constexpr DevicePair devices[] {
 	{0x6806, dev6806, arrsize(dev6806)},
 	{0x6808, dev6808, arrsize(dev6808)},
 	{0x6810, dev6810, arrsize(dev6810)},
+	{0x6811, dev6811, arrsize(dev6811)},
 	{0x6818, dev6818, arrsize(dev6818)},
 	{0x6819, dev6819, arrsize(dev6819)},
 	{0x6820, dev6820, arrsize(dev6820)},
