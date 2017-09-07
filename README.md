@@ -8,7 +8,7 @@ WhateverGreen
 - Fixes sleep wake to black screen 
 - Fixes boot logo distortion in certain cases (`-radlogo`)
 - Fixes transmitter/encoder in autodetected connectors for multimonitor support (`-raddvi`)
-- Fixes certain HD 7xxx initialisation (`radpg=15`)
+- Fixes HD 7730/7750/7770/R7 250/R7 250X initialisation (`radpg=15`)
 - Fixes HDMI audio for _natively supported_ devices if not injected manually
 - Allows tuning of aty_config, aty_properties, cail_properties via ACPI
 - Allows enforcing 24-bit mode on unsupported displays (`-rad24`)
@@ -32,7 +32,7 @@ Add `-radbeta` to enable WhateverGreen on unsupported os versions (10.13 and bel
 Add `-rad24` to enforce 24-bit display mode.  
 Add `-radlogo` to patch boot logo distortion.  
 Add `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.)  
-Add `radpg=15` to disable several power-gating modes (see FAQ, required for 7xxx GPUs).
+Add `radpg=15` to disable several power-gating modes (see FAQ, required for Cape Verde GPUs).
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS

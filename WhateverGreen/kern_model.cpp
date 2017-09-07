@@ -176,6 +176,7 @@ static constexpr Model dev6758[] {
 	{Model::DetectSub, 0x1787, 0x2309, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1043, 0x0443, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1458, 0x2205, 0x0000, "AMD Radeon HD 6670"},
+	{Model::DetectSub, 0x1043, 0x03ea, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7670"}
 };
 
@@ -318,7 +319,9 @@ static constexpr Model dev6798[] {
 	{Model::DetectSub, 0x1002, 0x4000, 0x0000, "AMD Radeon HD 8970"},
 	{Model::DetectSub, 0x1043, 0x3001, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1043, 0x3006, 0x0000, "AMD Radeon R9 280X"},
+	{Model::DetectSub, 0x1043, 0x3005, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1462, 0x2775, 0x0000, "AMD Radeon R9 280X"},
+	{Model::DetectSub, 0x1682, 0x3001, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1043, 0x9999, 0x0000, "ASUS ARES II"},
 	{Model::DetectSub, 0x1458, 0x3001, 0x0000, "AMD Radeon R9 280X"},
 	{Model::DetectSub, 0x1787, 0x2317, 0x0000, "AMD Radeon HD 7990"},
@@ -439,6 +442,7 @@ static constexpr Model dev6818[] {
 
 static constexpr Model dev6819[] {
 	{Model::DetectSub, 0x174b, 0xe221, 0x0000, "AMD Radeon HD 7850"},
+	{Model::DetectSub, 0x1458, 0x255a, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x1462, 0x3058, 0x0000, "AMD Radeon R7 265"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 270"}
 };
@@ -447,6 +451,7 @@ static constexpr Model dev6820[] {
 	{Model::DetectSub, 0x103c, 0x1851, 0x0000, "AMD Radeon HD 7750M"},
 	{Model::DetectSub, 0x17aa, 0x3643, 0x0000, "AMD Radeon R9 A375"},
 	{Model::DetectSub, 0x17aa, 0x3801, 0x0000, "AMD Radeon R9 M275"},
+	{Model::DetectSub, 0x1028, 0x06da, 0x0000, "AMD FirePro W5170M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M375"}
 };
 
@@ -542,6 +547,16 @@ static constexpr Model dev6841[] {
 	{Model::DetectSub, 0x1179, 0xfba3, 0x0000, "AMD Radeon HD 7550M"},
 	{Model::DetectSub, 0x144d, 0xc0c7, 0x0000, "AMD Radeon HD 7550M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7650M"}
+};
+
+static constexpr Model dev6863[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega FE"}
+};
+
+static constexpr Model dev687f[] {
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "AMD Radeon Vega 64"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "AMD Radeon Vega 64"},
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega 64"}
 };
 
 static constexpr Model dev6898[] {
@@ -674,13 +689,14 @@ static constexpr Model dev6939[] {
 	{Model::DetectSub, 0x148c, 0x9380, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x174b, 0xe308, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x1043, 0x0498, 0x0000, "AMD Radeon R9 380"},
+	{Model::DetectSub, 0x1462, 0x2015, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 285"}
 };
 
 static constexpr Model dev7300[] {
-	{Model::DetectSub, 0x1002, 0x0b36, 0x0000, "AMD Radeon NANO"},
 	{Model::DetectSub, 0x1002, 0x1b36, 0x0000, "AMD Radeon Pro Duo"},
 	{Model::DetectSub, 0x1043, 0x04a0, 0x0000, "AMD Radeon FURY X"},
+	{Model::DetectSub, 0x1002, 0x0b36, 0x0000, "AMD Radeon FURY X"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon FURY"}
 };
 
@@ -743,6 +759,8 @@ static constexpr DevicePair devices[] {
 	{0x683f, dev683f, arrsize(dev683f)},
 	{0x6840, dev6840, arrsize(dev6840)},
 	{0x6841, dev6841, arrsize(dev6841)},
+	{0x6863, dev6863, arrsize(dev6863)},
+	{0x687f, dev687f, arrsize(dev687f)},
 	{0x6898, dev6898, arrsize(dev6898)},
 	{0x6899, dev6899, arrsize(dev6899)},
 	{0x68a0, dev68a0, arrsize(dev68a0)},
