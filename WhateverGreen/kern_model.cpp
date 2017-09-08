@@ -552,6 +552,7 @@ static constexpr Model dev6863[] {
 static constexpr Model dev687f[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "AMD Radeon Vega 64"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "AMD Radeon Vega 64"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "AMD Radeon Vega 56"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega 64"}
 };
 
