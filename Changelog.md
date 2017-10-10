@@ -1,6 +1,12 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.1.0
+- Requires Lilu 1.2.0 or newer
+- Added more GPU models to automatic detection
+- Fixed GPU controller name to GFX0 if not already changed
+- Fixed HDMI audio initialising even when the kext is disabled
+
 #### v1.0.4
 - Added more GPU models to automatic detection
 - Initial Vega series support
