@@ -68,7 +68,7 @@ Generally hardware video decoding is performed by an IGPU, and thus you are requ
 Several screens may not support 30-bit video output, but the GPU may not detect this. The result will look as distorted blinking colours. To resolve the issue either buy a more powerful display or add `-rad24` boot argument.  
 
 - _How do I get HDMI audio to work?_  
-In general it should be enough to rely on WhateverGreen automatic HDAU correction. It renames the device to HDAU, and injects missing layout-id and hda-gfx (starting with onboard-2) properties. This will not work well with two or more cards of different vendors (e.g. NVIDIA and ATI/AMD), please manually inject the properties in such a case.  
+In general it should be enough to rely on WhateverGreen automatic HDAU correction. It renames the device to HDAU, and injects missing layout-id and hda-gfx (starting with onboard-2) properties. This will not work well with two or more cards of different vendors (e.g. NVIDIA and ATI/AMD), please manually inject the properties in such a case. You may also use `-radnoaudio` boot argument or `no-audio-autofix` GPU controller property to explicitly disable any audio-related property changes.  
 For identifiers not present in AppleHDAController and AppleHDA you have to add necessary kext patches, see AppleALC [example for 290X](https://github.com/vit9696/AppleALC/commit/cfb8bef310f31fd330aeb4e10623487a6bceb84d#diff-6246954ac288d4f6dd7eb780c006419d).
 
 - _May I access the source code?_  
