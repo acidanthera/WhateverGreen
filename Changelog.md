@@ -1,6 +1,12 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.1.1
+- Added more GPU models to automatic detection
+- Rename GPU name to GFX0 only if it does not start with GFX prefix
+- Added `-radnoaudio` boot argument to avoid DP/HDMI audio autoenabling
+- Added `no-audio-autofix` gpu controller property to avoid DP/HDMI audio autoenabling
+
 #### v1.1.0
 - Requires Lilu 1.2.0 or newer
 - Added more GPU models to automatic detection
