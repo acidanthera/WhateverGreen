@@ -110,6 +110,64 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                             0x01, 0x02, 0x03, 0x04
                         }
 
+                        // The properties below are usually relevant to mobile ATI/AMD GPUs
+
+                        // Most mobile GPUs fail to provide their VBIOS
+                        // Dump it and inject it here.
+                        // You must cut or pad it by 64 KB (GOP is not relevant).
+                        "ATY,bin_image", 
+                        Buffer (0x00010000)
+                        {
+                            // Put your VBIOS here (you could extract it with Linux or Windows)
+                        },
+
+                        // Works as AAPL%02X,override-no-connect, where %02X is display index e.g. 00
+                        "AAPL00,override-no-connect",
+                        Buffer (0x80)
+                        {
+                            // Put your EDID here (you could extract it with Linux or Windows)
+                        },
+
+                        // Just like AAPL00, @0 represents your display index (from the connectors).
+                        // From there on only @X notation could be used for displays other than 0.
+                        // I.e. AAPL01,override-no-connect is OK but AAPL01,DualLink is NOT.
+
+                        // Equal to AAPL00,DualLink, only supported for LVDS displays.
+                        // Required bandwidth speed is calculated as follows:
+                        // BITS_PER_PIXEL * WIDTH * HEIGHT * FREQUENCY / (1024 * 1024) = N Mbps/s
+                        // It depends on hardware but you could commonly assume 800 Mbit/s per link
+                        // If calculated N is above this value, you may require the property below.
+                        "@0,display-dual-link",
+                        Buffer ()
+                        {
+                             0x01, 0x00, 0x00, 0x00                         
+                        },
+
+                        // Equal to AAPL00,LinkFormat
+                        // Most laptop displays do not support 24-bit (32) colour but only 18-bit.
+                        // This property must be used if you see "gradient" glitches. 
+                        "@0,display-link-component-bits",
+                        Buffer () {
+                            0x06, 0x00, 0x00, 0x00
+                        },
+
+                        // Equal to AAPL00,PixelFormat
+                        // Similar to display-link-component-bits
+                        "@0,display-pixel-component-bits",
+                        Buffer ()
+                        {
+                            0x06, 0x00, 0x00, 0x00
+                        },
+
+                        // Equal to AAPL00,Dither
+                        // If your display supports dithering you may get slightly better picture
+                        // with this property set to 1, otherwise use 0.
+                        "@0,display-dither-support",
+                        Buffer ()
+                        {
+                            0x01, 0x00, 0x00, 0x00
+                        }
+
                         */
                     }, Local0)
                     DTGP (Arg0, Arg1, Arg2, Arg3, RefOf (Local0))
