@@ -126,6 +126,10 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                         Buffer (0x80)
                         {
                             // Put your EDID here (you could extract it with Linux or Windows)
+                            // Note that in some cases the extracted EDID may not be compatible and 
+                            // as a result you may see visual glitches.
+                            // After you got at least something to show you could use edid-fix.sh script
+                            // (based on pokenguyen's work) to generate a compatible EDID.
                         },
 
                         // Just like AAPL00, @0 represents your display index (from the connectors).
