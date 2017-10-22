@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.2
+- Enabled the kext in installer and recovery by default
+- Improved controller start debugging
 
 #### v1.1.1
 - Added more GPU models to automatic detection

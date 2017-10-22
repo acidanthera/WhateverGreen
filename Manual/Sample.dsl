@@ -143,7 +143,7 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                              0x01, 0x00, 0x00, 0x00                         
                         },
 
-                        // Equal to AAPL00,LinkFormat
+                        // Equal to AAPL00,LinkFormat = 0 (0 - 6 bits, 1 - 8 bits)
                         // Most laptop displays do not support 24-bit (32) colour but only 18-bit.
                         // This property must be used if you see "gradient" glitches. 
                         "@0,display-link-component-bits",
@@ -151,7 +151,7 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                             0x06, 0x00, 0x00, 0x00
                         },
 
-                        // Equal to AAPL00,PixelFormat
+                        // Equal to AAPL00,PixelFormat = 0 (0 - 6 bits, 1 - 8 bits)
                         // Similar to display-link-component-bits
                         "@0,display-pixel-component-bits",
                         Buffer ()
