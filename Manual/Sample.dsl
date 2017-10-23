@@ -164,8 +164,9 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                         },
 
                         // Equal to AAPL00,Dither
-                        // If your display supports dithering you may get slightly better picture
-                        // with this property set to 1, otherwise use 0.
+                        // In general you should avoid this property, since it most likely will decrease
+                        // visual quality. However, on some displays you may get slightly better picture
+                        // with this property set to 1.
                         "@0,display-dither-support",
                         Buffer ()
                         {
