@@ -173,12 +173,12 @@ static constexpr Model dev6758[] {
 	{Model::DetectSub, 0x1028, 0x0b0e, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x103c, 0x6882, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x174b, 0xe181, 0x0000, "AMD Radeon HD 6670"},
-    {Model::DetectSub, 0x174b, 0xe198, 0x0000, "AMD Radeon HD 6670"},
+	{Model::DetectSub, 0x174b, 0xe198, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1787, 0x2309, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1043, 0x0443, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1458, 0x2205, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectSub, 0x1043, 0x03ea, 0x0000, "AMD Radeon HD 6670"},
-    {Model::DetectSub, 0x1458, 0x2545, 0x0000, "AMD Radeon HD 6670"},
+	{Model::DetectSub, 0x1458, 0x2545, 0x0000, "AMD Radeon HD 6670"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7670"}
 };
 
@@ -429,7 +429,7 @@ static constexpr Model dev6810[] {
 	{Model::DetectSub, 0x1458, 0x2272, 0x0000, "AMD Radeon R9 270X"},
 	{Model::DetectSub, 0x1462, 0x3033, 0x0000, "AMD Radeon R9 270X"},
 	{Model::DetectSub, 0x174b, 0xe271, 0x0000, "AMD Radeon R9 270X"},
-    {Model::DetectSub, 0x1787, 0x201c, 0x0000, "AMD Radeon R9 270X"},
+	{Model::DetectSub, 0x1787, 0x201c, 0x0000, "AMD Radeon R9 270X"},
 	{Model::DetectSub, 0x148c, 0x0908, 0x0000, "AMD Radeon R9 370"},
 	{Model::DetectSub, 0x1682, 0x7370, 0x0000, "AMD Radeon R7 370"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 370X"}

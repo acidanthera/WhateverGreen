@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.3
+- Added more GPU models to automatic detection
+- Added `-rad4200` option to fix freezes and possibly improve the performance of Radeon Pro 560 on 10.13
+
 #### v1.1.2
 - Enabled the kext in installer and recovery by default
 - Improved controller start debugging

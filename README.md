@@ -31,8 +31,9 @@ Add `-radoff` to disable WhateverGreen.
 Add `-radbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).  
 Add `-rad24` to enforce 24-bit display mode.  
 Add `-radlogo` to patch boot logo distortion.  
-Add `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.)  
-Add `-radnoaudio` to disable DP/HDMI audio autoenabling (you may also use `no-audio-autofix` GFX0 property)  
+Add `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).  
+Add `-radnoaudio` to disable DP/HDMI audio autoenabling (you may also use `no-audio-autofix` GFX0 property).  
+Add `-rad4200` to choose 4200 driver over 4250 for 0x67DF, 0x67EF, 0x67FF (you may also use `prefer-4200-driver` GFX0 property).  
 Add `radpg=15` to disable several power-gating modes (see FAQ, required for Cape Verde GPUs).
 
 #### Credits
