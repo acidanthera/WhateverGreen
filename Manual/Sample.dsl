@@ -100,6 +100,10 @@ DefinitionBlock ("", "SSDT", 2, "APPLE ", "SSDTAMDGPU", 0x00001000)
                         },
 
                         // This will change CFG_FB_LIMIT in aty_config to 6
+                        // Starting with 10.13.2 AAPL hardcodes framebuffer limit in certain kexts.
+                        // In particular, for AMD9500Controller the value is 6.
+                        // This is not correct for some GPUs (e.g. Radeon Pro, which has 3), so you are to specify
+                        // the correct value right here.
                         "CFG,CFG_FB_LIMIT",
                         0x06,
 
