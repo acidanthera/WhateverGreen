@@ -75,5 +75,8 @@ Several screens may not support 30-bit video output, but the GPU may not detect 
 In general it should be enough to rely on WhateverGreen automatic HDAU correction. It renames the device to HDAU, and injects missing layout-id and hda-gfx (starting with onboard-2) properties. This will not work well with two or more cards of different vendors (e.g. NVIDIA and ATI/AMD), please manually inject the properties in such a case. You may also use `-radnoaudio` boot argument or `no-audio-autofix` GPU controller property to explicitly disable any audio-related property changes.  
 For identifiers not present in AppleHDAController and AppleHDA you have to add necessary kext patches, see AppleALC [example for 290X](https://github.com/vit9696/AppleALC/commit/cfb8bef310f31fd330aeb4e10623487a6bceb84d#diff-6246954ac288d4f6dd7eb780c006419d).
 
+- _My framebuffer amount exceeds connector amount in IOReg (starting with 10.13.2)?_   
+This is a bug Apple added by fixing another bug of incorrect connector detection from VBIOS. In certain kexts (e.g. AMD9500Controller) they hardcoded 6 connectors as a total connector amount regardless of the number read from VBIOS. The consequences are black screen after wake and/or failure to sleep.  To fix this issue you should specify `CFG,CFG_FB_LIMIT` with a correct number, via SSDT for example.
+
 - _May I access the source code?_  
 Model detection code is [open](https://github.com/vit9696/WhateverGreen/blob/master/WhateverGreen/kern_model.cpp) as well as [Lilu](https://github.com/vit9696/Lilu). If you want to contribute a feature you have an implementation for please contact me. For example, getting better handling of AMD Switchable Graphics or providing more complete research on connector detection would be nice.
