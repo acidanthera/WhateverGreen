@@ -1,7 +1,7 @@
 WhateverGreen Changelog
 =======================
 #### v1.1.4
-- Added automatic screen boot artificates correction (`-radlogo` is no longer necessary and is removed)
+- Added automatic screen boot artifact correction (`-radlogo` is no longer necessary and is removed)
 - Added automatic `CFG_FB_LIMIT` correction to avoid issues on several Polaris GPUs on 10.13
 
 #### v1.1.3
