@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.4
+- Added automatic screen boot artificates correction (`-radlogo` is no longer necessary and is removed)
+- Added automatic `CFG_FB_LIMIT` correction to avoid issues on several Polaris GPUs on 10.13
+
 #### v1.1.3
 - Added more GPU models to automatic detection
 - Added `-rad4200` option to fix freezes and possibly improve the performance of Radeon Pro 560 on 10.13

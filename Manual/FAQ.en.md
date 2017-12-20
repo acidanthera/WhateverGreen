@@ -76,7 +76,7 @@ In general it should be enough to rely on WhateverGreen automatic HDAU correctio
 For identifiers not present in AppleHDAController and AppleHDA you have to add necessary kext patches, see AppleALC [example for 290X](https://github.com/vit9696/AppleALC/commit/cfb8bef310f31fd330aeb4e10623487a6bceb84d#diff-6246954ac288d4f6dd7eb780c006419d).
 
 - _My framebuffer amount exceeds connector amount in IOReg (starting with 10.13.2)?_   
-This is a bug Apple added by fixing another bug of incorrect connector detection from VBIOS. In certain kexts (e.g. AMD9500Controller) they hardcoded 6 connectors as a total connector amount regardless of the number read from VBIOS. The consequences are black screen after wake and/or failure to sleep.  To fix this issue you should specify `CFG,CFG_FB_LIMIT` with a correct number, via SSDT for example.
+This is a bug Apple added by fixing another bug of incorrect connector detection from VBIOS. In certain kexts (e.g. AMD9500Controller) they hardcoded 6 connectors as a total connector amount regardless of the number read from VBIOS. The consequences are black screen after wake and/or failure to sleep.  To fix this issue you should specify `CFG,CFG_FB_LIMIT` with a correct number, via SSDT for example. Starting with version 1.1.4 this problem is fixed automatically.
 
 - _Why can a highres DisplayPort-connected display fail to wake (e.g. some LG 4K models)?_  
 Sometimes AGDC configuration preference could be the case. For 4K and lower it makes sense to try disabling it by passing `CFG,CFG_USE_AGDC` — False (`00`) via SSDT or similar.
