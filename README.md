@@ -6,7 +6,7 @@ WhateverGreen
 #### Features
 - Fixes boot to black screen
 - Fixes sleep wake to black screen 
-- Fixes boot logo distortion in certain cases (`-radlogo`)
+- Fixes boot screen distortion in certain cases
 - Fixes transmitter/encoder in autodetected connectors for multimonitor support (`-raddvi`)
 - Fixes HD 7730/7750/7770/R7 250/R7 250X initialisation (`radpg=15`)
 - Fixes HDMI audio for _natively supported_ devices if not injected manually
