@@ -1,0 +1,74 @@
+#!/bin/bash
+
+RUNDIR=$(dirname "$0")
+pushd "$RUNDIR" >/dev/null
+RUNDIR=$(pwd)
+popd >/dev/null
+
+function msg() {
+    if [ "$2" != "" ]; then
+        icon="with icon $2"
+    fi
+
+    osascript <<EOT
+    tell app "System Events"
+      display dialog "$3" buttons {"OK"} default button 1 $icon with title "$1"
+      return  -- Suppress result
+    end tell
+EOT
+}
+
+function query() {
+    osascript <<EOT
+    set T to text returned of (display dialog "$2" buttons {"OK"} default button 1 default answer "$3" with title "$1")
+EOT
+}
+
+if [ ! -f "$RUNDIR/libWhateverName.dylib" ]; then
+    msg "WhateverName" "caution" "libWhateverName.dylib is missing!"
+    exit 1
+fi
+
+xattr -c "$RUNDIR/libWhateverName.dylib"
+
+GPU_NAME=$(query "WhateverName" "Choose an app or an executable to correct OpenGL/Compute/Metal engine names! Write your own GPU name below if you like:" "Automatic")
+
+APPPATH=$(osascript -e '  
+tell application "System Events"  
+    set p1 to process 1 whose frontmost is true  
+    activate  
+    set f to POSIX path of (choose file)  
+    set frontmost of p1 to true  
+    return f  
+end tell  
+')
+
+echo "Got $APPPATH"
+
+if [ "$APPPATH" != "" ]; then
+    if [ -f "$APPPATH/Contents/Info.plist" ]; then
+        APPEXE=$(defaults read "$APPPATH/Contents/Info.plist" CFBundleExecutable)
+        echo "Got $APPEXE"
+
+        if [ "$APPEXE" != "" ]; then
+            APPPATH="$APPPATH/Contents/MacOS/$APPEXE"
+        else
+            APPPATH=""
+        fi
+    elif [ ! -x "$APPPATH" ]; then
+        APPPATH=""
+    fi
+fi
+
+if [ "$APPPATH" == "" ]; then
+    msg "WhateverName" "caution" "This is not an app or an executable!"
+    exit 1
+fi
+
+if [ "$GPU_NAME" == "Automatic" ]; then
+  DYLD_INSERT_LIBRARIES="$RUNDIR/libWhateverName.dylib" "$APPPATH"
+else
+  WE_MODEL_OVERRIDE="$GPU_NAME" DYLD_INSERT_LIBRARIES="$RUNDIR/libWhateverName.dylib" "$APPPATH"
+fi
+
+exit 0

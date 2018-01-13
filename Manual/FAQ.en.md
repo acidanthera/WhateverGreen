@@ -80,6 +80,3 @@ This is a bug Apple added by fixing another bug of incorrect connector detection
 
 - _Why can a highres DisplayPort-connected display fail to wake (e.g. some LG 4K models)?_  
 Sometimes AGDC configuration preference could be the case. For 4K and lower it makes sense to try disabling it by passing `CFG,CFG_USE_AGDC` — False (`00`) via SSDT or similar.
-
-- _May I access the source code?_  
-Model detection code is [open](https://github.com/vit9696/WhateverGreen/blob/master/WhateverGreen/kern_model.cpp) as well as [Lilu](https://github.com/vit9696/Lilu). If you want to contribute a feature you have an implementation for please contact me. For example, getting better handling of AMD Switchable Graphics or providing more complete research on connector detection would be nice.
