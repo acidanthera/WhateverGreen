@@ -365,48 +365,61 @@ static constexpr Model dev67b0[] {
 
 static constexpr Model dev67c0[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x0080, "AMD Radeon E9550"},
-	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Pro WX 7100"} //Actually rev 0
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 7100"}
+};
+
+static constexpr Model dev67c4[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 7100"}
+};
+
+static constexpr Model dev67c7[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 5100"}
 };
 
 static constexpr Model dev67df[] {
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon Pro 580"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c2, "Radeon Pro 570"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "Radeon Pro 580"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c4, "Radeon Pro 480/575"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon Pro 470/570"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c6, "Radeon Pro 570"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon Pro 480/575"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon Pro 470/570"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00d7, "Radeon Pro 470/570"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon Pro 580"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00ef, "Radeon Pro 570"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon Pro 470"},
-	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro 480"}
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 580"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c2, "Radeon RX 570"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "Radeon RX 580"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c4, "Radeon RX 480"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c6, "Radeon RX 570"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon RX 480"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00d7, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00ef, "Radeon RX 570"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon RX 470"},
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon RX 480"}
 };
 
 static constexpr Model dev67e0[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Pro WX 7100"}
 };
 
+static constexpr Model dev67e3[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 4100"}
+};
+
 static constexpr Model dev67ef[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon Pro 460/560"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon Pro 460"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon Pro 460"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 460"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 460"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon Pro 455/555"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon Pro 460"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon Pro 560"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00e5, "Radeon Pro 560"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 460"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon RX 560"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e5, "Radeon RX 560"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00ef, "Radeon Pro 450/550"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon Pro 460"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon RX 460"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro 460"}
 };
 
 static constexpr Model dev67ff[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon Pro 465"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon Pro 560"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon Pro 560"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00ef, "Radeon Pro 560"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon Pro 550"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 560"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00ef, "Radeon RX 560"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon RX 550"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro 560"}
 };
 
@@ -549,15 +562,19 @@ static constexpr Model dev6841[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7650M"}
 };
 
+static constexpr Model dev6861[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 9100"}
+};
+
 static constexpr Model dev6863[] {
-	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega FE"}
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Vega Frontier Edition"}
 };
 
 static constexpr Model dev687f[] {
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "AMD Radeon Vega 64"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "AMD Radeon Vega 64"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "AMD Radeon Vega 56"},
-	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Vega 64"}
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon RX Vega 64"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX Vega 64"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "Radeon RX Vega 56"},
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon RX Vega 64"}
 };
 
 static constexpr Model dev6898[] {
@@ -733,8 +750,11 @@ static constexpr DevicePair devices[] {
 	{0x679e, dev679e, arrsize(dev679e)},
 	{0x67b0, dev67b0, arrsize(dev67b0)},
 	{0x67c0, dev67c0, arrsize(dev67c0)},
+	{0x67c4, dev67c4, arrsize(dev67c4)},
+	{0x67c7, dev67c7, arrsize(dev67c7)},
 	{0x67df, dev67df, arrsize(dev67df)},
 	{0x67e0, dev67e0, arrsize(dev67e0)},
+	{0x67e3, dev67e3, arrsize(dev67e3)},
 	{0x67ef, dev67ef, arrsize(dev67ef)},
 	{0x67ff, dev67ff, arrsize(dev67ff)},
 	{0x6800, dev6800, arrsize(dev6800)},
@@ -759,6 +779,7 @@ static constexpr DevicePair devices[] {
 	{0x683f, dev683f, arrsize(dev683f)},
 	{0x6840, dev6840, arrsize(dev6840)},
 	{0x6841, dev6841, arrsize(dev6841)},
+	{0x6861, dev6861, arrsize(dev6861)},
 	{0x6863, dev6863, arrsize(dev6863)},
 	{0x687f, dev687f, arrsize(dev687f)},
 	{0x6898, dev6898, arrsize(dev6898)},
