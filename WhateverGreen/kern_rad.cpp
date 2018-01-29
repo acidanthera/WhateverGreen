@@ -462,6 +462,32 @@ void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *pr
 	}
 }
 
+void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
+	if (service) {
+		// Starting with 10.13.2 this is important to fix sleep issues due to enforced 6 screens
+		if (!service->getProperty("CFG,CFG_FB_LIMIT") && getKernelVersion() >= KernelVersion::HighSierra) {
+			DBGLOG("rad", "setting fb limit to %d", consSize);
+			service->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(connectorNum, 32));
+		}
+
+		// This property may have an effect on 5K screens, but it is known to constantly break
+		// DP and HDMI outputs on various GPUs at least in 10.12 and 10.13.
+		if (!service->getProperty("CFG,CFG_USE_AGDC")) {
+			DBGLOG("rad", "disabling agdc");
+			service->setProperty("CFG_USE_AGDC", OSBoolean::withBoolean(false));
+		}
+
+		// It looks like Vega and Polaris (starting with 10.13.4) are forcing coolers
+		// for several mins during boot without PP_PhmUseDummyBackEnd=1.
+		uint32_t dev;
+		if (WIOKit::getOSDataValue(service, "device-id", dev) &&
+			(dev == 0x67ef || dev == 0x67ff || dev == 0x67df || dev == 0x687f) &&
+			!service->getProperty("PP,PP_PhmUseDummyBackEnd")) {
+			service->setProperty("PP_PhmUseDummyBackEnd", OSNumber::withNumber(1, 32));
+		}
+	}
+}
+
 void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gettable, IOService *ctrl, RADConnectors::Connector *connectors, uint8_t *sz) {
 	if (atomutils) {
 		DBGLOG("rad", "getConnectorsInfo found %d connectors", *sz);
@@ -485,10 +511,7 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 			if (consPtr && consSize > 0 && *sz > 0 && RADConnectors::valid(consSize, *sz)) {
 				RADConnectors::copy(connectors, *sz, static_cast<const RADConnectors::Connector *>(consPtr), consSize);
 				DBGLOG("rad", "getConnectorsInfo installed %d connectors", *sz);
-				if (ctrl && !ctrl->getProperty("CFG,CFG_FB_LIMIT") && getKernelVersion() >= KernelVersion::HighSierra) {
-					DBGLOG("rad", "setting fb limit to %d", consSize);
-					ctrl->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(consSize, 32));
-				}
+				applyPropertyFixes(ctrl, consSize);
 			} else {
 				DBGLOG("rad", "getConnectorsInfo conoverrides have invalid size %d for %d num", consSize, *sz);
 			}
@@ -508,10 +531,7 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 				DBGLOG("rad", "getConnectorsInfo found different displaypaths %d and connectors %d", displayPathNum, connectorObjectNum);
 		}
 
-		if (ctrl && !ctrl->getProperty("CFG,CFG_FB_LIMIT") && getKernelVersion() >= KernelVersion::HighSierra) {
-			DBGLOG("rad", "setting fb limit to %d", *sz);
-			ctrl->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(*sz, 32));
-		}
+		applyPropertyFixes(ctrl, *sz);
 
 		// Prioritise connectors, since it may cause black screen on e.g. R9 370
 		const uint8_t *senseList = nullptr;
