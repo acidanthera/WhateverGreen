@@ -466,7 +466,7 @@ void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
 	if (service) {
 		// Starting with 10.13.2 this is important to fix sleep issues due to enforced 6 screens
 		if (!service->getProperty("CFG,CFG_FB_LIMIT") && getKernelVersion() >= KernelVersion::HighSierra) {
-			DBGLOG("rad", "setting fb limit to %d", consSize);
+			DBGLOG("rad", "setting fb limit to %d", connectorNum);
 			service->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(connectorNum, 32));
 		}
 
