@@ -168,7 +168,15 @@ private:
 	 *  @param provider  property provider for merging
 	 */
 	static void mergeProperties(OSDictionary *props, const char *prefix, IOService *provider);
-	
+
+	/**
+	 *  Automatically add properties to fix various bugs
+	 *
+	 *  @param service       gpu controller
+	 *  @param connectorNum  number of connectors
+	 */
+	static void applyPropertyFixes(IOService *service, uint32_t connectorNum=0);
+
 	/**
 	 *  Refresh connectors with the provided ones if necessary
 	 *
