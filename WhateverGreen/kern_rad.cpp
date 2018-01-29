@@ -294,6 +294,11 @@ void RAD::osCompat() {
 			progressState |= ProcessingState::X4100Hardware | ProcessingState::X4150Hardware | ProcessingState::X4200Hardware;
 			kextList[HardwareIndex::X4100].pathNum = kextList[HardwareIndex::X4150].pathNum = kextList[HardwareIndex::X4200].pathNum = 0;
 		}
+	} else if (getKernelVersion() > KernelVersion::HighSierra ||
+			   (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)) {
+		// Versions after 10.13.4 do not support X4100~X4250
+		progressState |= ProcessingState::X4100Hardware | ProcessingState::X4150Hardware | ProcessingState::X4200Hardware | ProcessingState::X4250Hardware;
+		kextList[HardwareIndex::X4100].pathNum = kextList[HardwareIndex::X4150].pathNum = kextList[HardwareIndex::X4200].pathNum = kextList[HardwareIndex::X4250].pathNum = 0;
 	}
 }
 
@@ -463,15 +468,15 @@ void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *pr
 }
 
 void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
-	if (service) {
+	if (service && getKernelVersion() >= KernelVersion::HighSierra) {
 		// Starting with 10.13.2 this is important to fix sleep issues due to enforced 6 screens
-		if (!service->getProperty("CFG,CFG_FB_LIMIT") && getKernelVersion() >= KernelVersion::HighSierra) {
+		if (!service->getProperty("CFG,CFG_FB_LIMIT")) {
 			DBGLOG("rad", "setting fb limit to %d", connectorNum);
 			service->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(connectorNum, 32));
 		}
 
 		// This property may have an effect on 5K screens, but it is known to constantly break
-		// DP and HDMI outputs on various GPUs at least in 10.12 and 10.13.
+		// DP and HDMI outputs on various GPUs at least in 10.13.
 		if (!service->getProperty("CFG,CFG_USE_AGDC")) {
 			DBGLOG("rad", "disabling agdc");
 			service->setProperty("CFG_USE_AGDC", OSBoolean::withBoolean(false));
