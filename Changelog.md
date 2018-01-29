@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.5
+- Added more GPU models to automatic detection (including new names from 10.13.4)
+
 #### v1.1.4
 - Added automatic screen boot artifact correction (`-radlogo` is no longer necessary and is removed)
 - Added automatic `CFG_FB_LIMIT` correction to avoid issues on several Polaris GPUs on 10.13

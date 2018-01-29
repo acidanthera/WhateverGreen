@@ -386,7 +386,8 @@ static constexpr Model dev67df[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon RX 480"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00d7, "Radeon RX 470"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon RX 580"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00ef, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00ff, "Radeon RX 470"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon RX 480"}
