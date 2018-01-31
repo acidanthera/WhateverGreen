@@ -3,7 +3,6 @@ WhateverGreen Changelog
 #### v1.1.5
 - Added more GPU models to automatic detection (including new names from 10.13.4)
 - Added automatic `CFG_USE_AGDC` disabling to avoid constant issues with 4K display sleep and broken HDMI/DP ports
-- Added automatic `PP_PhmUseDummyBackEnd` enabling for Polaris and Vega GPUs to avoid boot cooler forcing
 
 #### v1.1.4
 - Added automatic screen boot artifact correction (`-radlogo` is no longer necessary and is removed)
