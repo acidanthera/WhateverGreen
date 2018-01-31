@@ -481,15 +481,6 @@ void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
 			DBGLOG("rad", "disabling agdc");
 			service->setProperty("CFG_USE_AGDC", OSBoolean::withBoolean(false));
 		}
-
-		// It looks like Vega and Polaris (starting with 10.13.4) are forcing coolers
-		// for several mins during boot without PP_PhmUseDummyBackEnd=1.
-		uint32_t dev;
-		if (WIOKit::getOSDataValue(service, "device-id", dev) &&
-			(dev == 0x67ef || dev == 0x67ff || dev == 0x67df || dev == 0x687f) &&
-			!service->getProperty("PP,PP_PhmUseDummyBackEnd")) {
-			service->setProperty("PP_PhmUseDummyBackEnd", OSNumber::withNumber(1, 32));
-		}
 	}
 }
 
