@@ -129,13 +129,13 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 	// Power management may cause issues for non GFX0
 	if (!gpuPlaneName || strncmp(gpuPlaneName, "GFX", strlen("GFX"))) {
 		DBGLOG("audio", "fixing gpu plane name to GFX0");
-		gpuService->setName("GFX0");
+		WIOKit::renameDevice(gpuService, "GFX0");
 	}
 
 	// AppleHDAController only recognises HDEF and HDAU
 	if (!hdaPlaneName || strcmp(hdaPlaneName, "HDAU")) {
 		DBGLOG("audio", "fixing audio plane name to HDAU");
-		hdaService->setName("HDAU");
+		WIOKit::renameDevice(hdaService, "HDAU");
 	}
 	
 	// hda-gfx allows to separate the devices, must be unique
@@ -190,39 +190,6 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 		gpuService->setProperty("built-in", OSData::withBytes(builtBytes, sizeof(builtBytes)));
 	} else {
 		DBGLOG("audio", "found existing built-in in gpu");
-	}
-	
-	// This may be required for device matching
-	
-	auto compatibleProp = OSDynamicCast(OSData, hdaService->getProperty("compatible"));
-	if (compatibleProp) {
-		uint32_t compatibleSz = compatibleProp->getLength();
-		auto compatibleStr = static_cast<const char *>(compatibleProp->getBytesNoCopy());
-		DBGLOG("rad", "compatible property starts with %s and is %u bytes", compatibleStr ? compatibleStr : "(null)", compatibleSz);
-		
-		if (compatibleStr) {
-			for (uint32_t i = 0; i < compatibleSz; i++) {
-				if (!strcmp(&compatibleStr[i], "HDAU")) {
-					DBGLOG("audio", "found HDAU in compatible, ignoring");
-					return nullptr;
-				}
-				
-				i += strlen(&compatibleStr[i]);
-			}
-			
-			uint32_t compatibleBufSz = compatibleSz + sizeof("HDAU");
-			uint8_t *compatibleBuf = Buffer::create<uint8_t>(compatibleBufSz);
-			if (compatibleBuf) {
-				DBGLOG("audio", "fixing compatible to have HDAU");
-				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
-				lilu_os_memcpy(&compatibleBuf[compatibleSz], "HDAU", sizeof("HDAU"));
-				hdaService->setProperty("compatible", OSData::withBytes(compatibleBuf, compatibleBufSz));
-			} else {
-				SYSLOG("audio", "compatible property memory alloc failure %u", compatibleBufSz);
-			}
-		}
-	} else {
-		SYSLOG("audio", "compatible property is missing");
 	}
 
 	return nullptr;
