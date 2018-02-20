@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.6
+- Ensure proper GFX0 and HDAU renaming
+
 #### v1.1.5
 - Added more GPU models to automatic detection (including new names from 10.13.4)
 - Added automatic `CFG_USE_AGDC` disabling to avoid constant issues with 4K display sleep and broken HDMI/DP ports
