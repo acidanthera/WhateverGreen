@@ -5,6 +5,8 @@
 //  Copyright © 2017 vit9696. All rights reserved.
 //
 
+#include <Headers/kern_iokit.hpp>
+
 #include "kern_rad.hpp"
 
 /**
@@ -806,7 +808,7 @@ static constexpr DevicePair devices[] {
 
 const char *RAD::getModel(uint16_t ven, uint16_t dev, uint16_t rev, uint16_t subven, uint16_t sub) {
 	// Initially check vendor-id common to all ATI/AMD (0x1002)
-	if (ven != VendorID::ATIAMD)
+	if (ven != WIOKit::VendorID::ATIAMD)
 		return nullptr;
 	
 	for (auto &device : devices) {

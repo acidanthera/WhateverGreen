@@ -61,7 +61,7 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 	DBGLOG("audio", "corrects digital audio for hdau at %s with %04X:%04X",
 		   hdaPlaneName ? hdaPlaneName : "(null)", hdaVen, hdaDev);
 	
-	if (hdaVen != RAD::VendorID::ATIAMD) {
+	if (hdaVen != WIOKit::VendorID::ATIAMD) {
 		DBGLOG("audio", "unsupported hdau vendor");
 		return nullptr;
 	}
@@ -115,7 +115,7 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 	if (!gpuPlaneName) gpuPlaneName = "(null)";
 	DBGLOG("audio", "corrects digital audio for gpu at %s with %04X:%04X", gpuPlaneName, gpuVen, gpuDev);
 	
-	if (gpuVen != RAD::VendorID::ATIAMD) {
+	if (gpuVen != WIOKit::VendorID::ATIAMD) {
 		DBGLOG("audio", "unsupported GPU vendor");
 		return nullptr;
 	}

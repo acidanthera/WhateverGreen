@@ -35,17 +35,6 @@ public:
 	};
 
 	/**
-	 *  PCI GPU Vendor identifiers
-	 */
-	struct VendorID {
-		enum : uint16_t {
-			ATIAMD = 0x1002,
-			NVIDIA = 0x10de,
-			Intel = 0x8086
-		};
-	};
-
-	/**
 	 *  Console info structure, taken from osfmk/console/video_console.h
 	 *  Last updated from XNU 4570.1.46.
 	 */
