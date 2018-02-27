@@ -77,8 +77,7 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 			while ((gpuService = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
 				uint32_t classCode;
 				if (WIOKit::getOSDataValue(gpuService, "class-code", classCode)) {
-					// https://pci-ids.ucw.cz/read/PD/03/00 PCI CLASS VGA COMPATIBLE CONTROLLER
-					if ((classCode & 0xFFFF00) == 0x030000)
+					if (classCode == WIOKit::ClassCode::VGAController || classCode == WIOKit::ClassCode::DisplayController)
 						break;
 					else
 						DBGLOG("audio", "found incompatible class-code %04X", classCode);
