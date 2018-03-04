@@ -68,7 +68,7 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 	
 	auto hdaPlaneName = hdaService->getName();
 	DBGLOG("audio", "corrects digital audio for hdau at %s with %04X:%04X",
-		   hdaPlaneName ? hdaPlaneName : "(null)", hdaVen, hdaDev);
+		   safeString(hdaPlaneName), hdaVen, hdaDev);
 	
 	if (hdaVen != WIOKit::VendorID::ATIAMD) {
 		DBGLOG("audio", "unsupported hdau vendor");
@@ -91,9 +91,7 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 					else
 						DBGLOG("audio", "found incompatible class-code %04X", classCode);
 				} else {
-					auto name = gpuService->getName();
-					if (!name) name = "null";
-					DBGLOG("audio", "failed to find class-code in %s", name);
+					DBGLOG("audio", "failed to find class-code in %s", safeString(gpuService->getName()));
 				}
 				
 				gpuService = nullptr;
@@ -120,8 +118,7 @@ IOService *WhateverAudio::probe(IOService *hdaService, SInt32 *score) {
 	}
 	
 	auto gpuPlaneName = gpuService->getName();
-	if (!gpuPlaneName) gpuPlaneName = "(null)";
-	DBGLOG("audio", "corrects digital audio for gpu at %s with %04X:%04X", gpuPlaneName, gpuVen, gpuDev);
+	DBGLOG("audio", "corrects digital audio for gpu at %s with %04X:%04X", safeString(gpuPlaneName), gpuVen, gpuDev);
 	
 	if (gpuVen != WIOKit::VendorID::ATIAMD) {
 		DBGLOG("audio", "unsupported GPU vendor");
