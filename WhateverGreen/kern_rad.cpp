@@ -394,7 +394,8 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 			}
 		} else if (aKey[0] == 'c' && !strcmp(aKey, "cail_properties")) {
 			provider = OSDynamicCast(IOService, that->getParentEntry(gIOServicePlane));
-			DBGLOG("rad", "GetProperty got cail_properties %d, merging from %s", provider != nullptr, provider ? provider->getName() : "(null)");
+			DBGLOG("rad", "GetProperty got cail_properties %d, merging from %s", provider != nullptr,
+				   provider ? safeString(provider->getName()) : "(null provider)");
 			if (provider) prefix = "CAIL,";
 		}
 		
@@ -445,7 +446,7 @@ void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *pr
 						DBGLOG("rad", "prop %s was not merged due to no value", name);
 					}
 				} else {
-					//DBGLOG("rad", "prop %s does not match %s prefix", name ? name : "(null)", prefix);
+					//DBGLOG("rad", "prop %s does not match %s prefix", safeString(name), prefix);
 				}
 			}
 
