@@ -55,6 +55,24 @@ static KernelPatcher::KextInfo kextList[] {
 	{ "com.apple.kext.AMDLegacySupport", kextLegacySupport, 1, {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
+enum KextIndex {
+	KextRadeonX3000Index,
+	KextRadeonX4000Index,
+	KextRadeonX4100Index,
+	KextRadeonX4150Index,
+	KextRadeonX4200Index,
+	KextRadeonX4250Index,
+	KextRadeonX5000Index,
+	KextIOGraphicsIndex,
+	KextAMDFramebufferIndex,
+	KextAMDLegacyFramebufferIndex,
+	KextAMDSupportIndex,
+	KextAMDLegacySupportIndex,
+	KextMaxIndex
+};
+
+static_assert(KextMaxIndex == arrsize(kextList), "Make sure kextList indexes are synchronised!");
+
 static size_t kextListSize {arrsize(kextList)};
 
 /**
@@ -299,6 +317,9 @@ void RAD::osCompat() {
 		// Versions after 10.13.4 do not support X4100~X4250
 		progressState |= ProcessingState::X4100Hardware | ProcessingState::X4150Hardware | ProcessingState::X4200Hardware | ProcessingState::X4250Hardware;
 		kextList[HardwareIndex::X4100].pathNum = kextList[HardwareIndex::X4150].pathNum = kextList[HardwareIndex::X4200].pathNum = kextList[HardwareIndex::X4250].pathNum = 0;
+		// They also do not need black screen patches
+		for (size_t i = 0; i < MaxGetFrameBufferProcs; i++)
+			getFrameBufferProcNames[RAD::HardwareIndex::X4200][i] = nullptr;
 	}
 }
 
@@ -973,8 +994,8 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 			if (kextList[i].loadIndex == index) {
 				DBGLOG("rad", "current kext is %s progressState %d", kextList[i].id, progressState);
 
-				bool newFB = !(progressState & ProcessingState::FramebufferNew) && !strcmp(kextList[i].id, "com.apple.kext.AMDFramebuffer");
-				if (newFB || (!(progressState & ProcessingState::FramebufferLegacy) && !strcmp(kextList[i].id, "com.apple.kext.AMDLegacyFramebuffer"))) {
+				bool newFB = !(progressState & ProcessingState::FramebufferNew) && i == KextAMDFramebufferIndex;
+				if (newFB || (!(progressState & ProcessingState::FramebufferLegacy) && i == KextAMDLegacyFramebufferIndex)) {
 					auto bitsPerComponent = reinterpret_cast<int *>(patcher.solveSymbol(index, "__ZL18BITS_PER_COMPONENT"));
 					if (bitsPerComponent) {
 						while (bitsPerComponent && *bitsPerComponent) {
@@ -1006,7 +1027,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 					patcher.applyLookupPatch(&pixelPatch);
 
 					progressState |= newFB ? ProcessingState::FramebufferNew : ProcessingState::FramebufferLegacy;
-				} else if (!(progressState & ProcessingState::BootLogo) && !strcmp(kextList[i].id, "com.apple.iokit.IOGraphicsFamily")) {
+				} else if (!(progressState & ProcessingState::BootLogo) && i == KextIOGraphicsIndex) {
 					gIOFBVerboseBootPtr = reinterpret_cast<uint8_t *>(patcher.solveSymbol(index, "__ZL16gIOFBVerboseBoot"));
 					if (gIOFBVerboseBootPtr) {
 						DBGLOG("rad", "obtained __ZL16gIOFBVerboseBoot");
@@ -1025,7 +1046,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 					}
 
 					progressState |= ProcessingState::BootLogo;
-				} else if (!(progressState & ProcessingState::PatchConnectors) && !strcmp(kextList[i].id, "com.apple.kext.AMDSupport")) {
+				} else if (!(progressState & ProcessingState::PatchConnectors) && i == KextAMDSupportIndex) {
 					if (getKernelVersion() >= KernelVersion::HighSierra) {
 						auto getConnectorsInfoV1 = patcher.solveSymbol(index, "__ZN14AtiBiosParser116getConnectorInfoEP13ConnectorInfoRh");
 						if (getConnectorsInfoV1) {
@@ -1054,7 +1075,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 						auto translateAtomConnectorInfoV1 = patcher.solveSymbol(index, "__ZN14AtiBiosParser126translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V117AtomConnectorInfoER13ConnectorInfo");
 						if (translateAtomConnectorInfoV1) {
 							orgTranslateAtomConnectorInfoV1 = reinterpret_cast<t_translateAtomConnectorInfo>(patcher.routeFunction(translateAtomConnectorInfoV1,
-															reinterpret_cast<mach_vm_address_t>(wrapTranslateAtomConnectorInfoV1), true));
+								reinterpret_cast<mach_vm_address_t>(wrapTranslateAtomConnectorInfoV1), true));
 							if (patcher.getError() == KernelPatcher::Error::NoError) {
 								DBGLOG("rad", "routed __ZN14AtiBiosParser126translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V117AtomConnectorInfoER13ConnectorInfo");
 							} else {
@@ -1067,7 +1088,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 						auto translateAtomConnectorInfoV2 = patcher.solveSymbol(index, "__ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo");
 						if (translateAtomConnectorInfoV2) {
 							orgTranslateAtomConnectorInfoV2 = reinterpret_cast<t_translateAtomConnectorInfo>(patcher.routeFunction(translateAtomConnectorInfoV2,
-																																   reinterpret_cast<mach_vm_address_t>(wrapTranslateAtomConnectorInfoV2), true));
+								reinterpret_cast<mach_vm_address_t>(wrapTranslateAtomConnectorInfoV2), true));
 							if (patcher.getError() == KernelPatcher::Error::NoError) {
 								DBGLOG("rad", "routed __ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo");
 							} else {
@@ -1108,7 +1129,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 					}
 
 					progressState |= ProcessingState::PatchConnectors;
-				} else if (!(progressState & ProcessingState::PatchLegacyConnectors) && !strcmp(kextList[i].id, "com.apple.kext.AMDLegacySupport")) {
+				} else if (!(progressState & ProcessingState::PatchLegacyConnectors) && i == KextAMDLegacySupportIndex) {
 					auto getConnectorsInfo = patcher.solveSymbol(index, "__ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh");
 					if (getConnectorsInfo) {
 						orgLegacyGetConnectorsInfo = reinterpret_cast<t_getConnectorsInfo>(patcher.routeFunction(getConnectorsInfo, reinterpret_cast<mach_vm_address_t>(wrapLegacyGetConnectorsInfo), true));
@@ -1162,32 +1183,32 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 								} else {
 									SYSLOG("rad", "failed to find %s", getFrameBufferProcNames[j][k]);
 								}
+							}
 
-								// On 10.13 and newer X4250 driver is problematic for some GPUs
-								if (j == HardwareIndex::X4200 && getKernelVersion() >= KernelVersion::HighSierra) {
-									auto getDeviceType = patcher.solveSymbol(index, "__ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
-									if (getDeviceType) {
-										orgGetDeviceTypeBaffin = reinterpret_cast<t_getDeviceType>(patcher.routeFunction(getDeviceType, reinterpret_cast<mach_vm_address_t>(wrapGetDeviceTypeBaffin), true));
-										if (patcher.getError() == KernelPatcher::Error::NoError) {
-											DBGLOG("rad", "routed __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
-										} else {
-											SYSLOG("rad", "failed to route __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
-										}
+							// On 10.13~10.13.3(?) and newer X4250 driver is problematic for some GPUs
+							if (j == HardwareIndex::X4200 && getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5) {
+								auto getDeviceType = patcher.solveSymbol(index, "__ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+								if (getDeviceType) {
+									orgGetDeviceTypeBaffin = reinterpret_cast<t_getDeviceType>(patcher.routeFunction(getDeviceType, reinterpret_cast<mach_vm_address_t>(wrapGetDeviceTypeBaffin), true));
+									if (patcher.getError() == KernelPatcher::Error::NoError) {
+										DBGLOG("rad", "routed __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
 									} else {
-										SYSLOG("rad", "failed to find __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+										SYSLOG("rad", "failed to route __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
 									}
+								} else {
+									SYSLOG("rad", "failed to find __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+								}
 
-									getDeviceType = patcher.solveSymbol(index, "__ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
-									if (getDeviceType) {
-										orgGetDeviceTypeEllesmere = reinterpret_cast<t_getDeviceType>(patcher.routeFunction(getDeviceType, reinterpret_cast<mach_vm_address_t>(wrapGetDeviceTypeEllesmere), true));
-										if (patcher.getError() == KernelPatcher::Error::NoError) {
-											DBGLOG("rad", "routed __ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
-										} else {
-											SYSLOG("rad", "failed to route __ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
-										}
+								getDeviceType = patcher.solveSymbol(index, "__ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+								if (getDeviceType) {
+									orgGetDeviceTypeEllesmere = reinterpret_cast<t_getDeviceType>(patcher.routeFunction(getDeviceType, reinterpret_cast<mach_vm_address_t>(wrapGetDeviceTypeEllesmere), true));
+									if (patcher.getError() == KernelPatcher::Error::NoError) {
+										DBGLOG("rad", "routed __ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
 									} else {
-										SYSLOG("rad", "failed to find __ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+										SYSLOG("rad", "failed to route __ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
 									}
+								} else {
+									SYSLOG("rad", "failed to find __ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
 								}
 							}
 
@@ -1203,6 +1224,25 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 								SYSLOG("rad", "failed to find %s", populateAccelConfigProcNames[j]);
 							}
 
+							int tmp;
+							if (PE_parse_boot_argn("-radgl", &tmp, sizeof(tmp))) {
+								DBGLOG("rad", "disabling Metal support");
+								uint8_t find1[] {0x4D, 0x65, 0x74, 0x61, 0x6C, 0x53, 0x74, 0x61};
+								uint8_t find2[] {0x4D, 0x65, 0x74, 0x61, 0x6C, 0x50, 0x6C, 0x75};
+								uint8_t repl1[] {0x50, 0x65, 0x74, 0x61, 0x6C, 0x53, 0x74, 0x61};
+								uint8_t repl2[] {0x50, 0x65, 0x74, 0x61, 0x6C, 0x50, 0x6C, 0x75};
+
+								KernelPatcher::LookupPatch antimetal[] {
+									{&kextList[i], find1, repl1, sizeof(find1), 2},
+									{&kextList[i], find2, repl2, sizeof(find1), 2}
+								};
+
+								for (auto &p : antimetal) {
+									patcher.applyLookupPatch(&p);
+									patcher.clearError();
+								}
+							}
+							
 							progressState |= indexToMask(j);
 						}
 					}

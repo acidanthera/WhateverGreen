@@ -1,5 +1,15 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.7
+- Added `-radgl` boot argument to disable Metal support
+- Disabled a few more unnecessary patches for 10.13.4
+
+In order to boot with `-radgl` you may need to set the defaults:
+```
+sudo defaults write /Library/Preferences/com.apple.CoreDisplay useMetal -boolean no
+sudo defaults write /Library/Preferences/com.apple.CoreDisplay useIOP -boolean no
+```
+
 #### v1.1.6
 - Ensure proper GFX0 and HDAU renaming
 
