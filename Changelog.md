@@ -1,5 +1,7 @@
 WhateverGreen Changelog
 =======================
+#### v1.1.8
+
 #### v1.1.7
 - Added `-radgl` boot argument to disable Metal support
 - Disabled a few more unnecessary patches for 10.13.4
