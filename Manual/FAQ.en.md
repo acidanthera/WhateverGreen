@@ -66,7 +66,7 @@ Yes. It was discovered during the reverse-engineering that the displayed title h
 In most cases IGPU should be used for hardware video decoding (with a connector-less frame). In case you need extra screens, IGPU may be fully enabled. You should not use `-radlogo` boot argument with IntelGraphicsFixup.
 
 - _How do I get hardware video decoding to work?_  
-Generally hardware video decoding is performed by an IGPU, and thus you are required to inject a connector-less frame. For some GPUs (e.g. HD 7870, HD 6670, HD 7970) it is still possible to get AMD hardware video decoding to work. Please refer to [Shiki's FAQ](https://github.com/vit9696/Shiki/blob/master/FAQ.en.md) for further details. You may need `-shikigva` on mac models that have forceOfflineRenderer on.
+Generally hardware video decoding is performed by an IGPU, and thus you are required to inject a connector-less frame. For some GPUs (e.g. HD 7870, HD 6670, HD 7970) it is still possible to get AMD hardware video decoding to work. Please refer to [Shiki's FAQ](https://github.com/vit9696/Shiki/blob/master/Manual/FAQ.en.md) for further details. You may need `shikigva=1` on mac models that have forceOfflineRenderer on.
 
 - _Why would I need to force 24-bit video output?_  
 Several screens may not support 30-bit video output, but the GPU may not detect this. The result will look as distorted blinking colours. To resolve the issue either buy a more powerful display or add `-rad24` boot argument.  
