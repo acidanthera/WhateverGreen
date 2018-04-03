@@ -1,6 +1,8 @@
 WhateverGreen Changelog
 =======================
+
 #### v1.1.8
+- Hardened solved symbol verification to avoid panics with broken kext cache
 
 #### v1.1.7
 - Added `-radgl` boot argument to disable Metal support
