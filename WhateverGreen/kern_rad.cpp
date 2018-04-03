@@ -996,7 +996,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 				bool newFB = !(progressState & ProcessingState::FramebufferNew) && i == KextAMDFramebufferIndex;
 				if (newFB || (!(progressState & ProcessingState::FramebufferLegacy) && i == KextAMDLegacyFramebufferIndex)) {
-					auto bitsPerComponent = reinterpret_cast<int *>(patcher.solveSymbol(index, "__ZL18BITS_PER_COMPONENT"));
+					auto bitsPerComponent = patcher.solveSymbol<int *>(index, "__ZL18BITS_PER_COMPONENT", address, size);
 					if (bitsPerComponent) {
 						while (bitsPerComponent && *bitsPerComponent) {
 							if (*bitsPerComponent == 10) {
@@ -1028,10 +1028,10 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 					progressState |= newFB ? ProcessingState::FramebufferNew : ProcessingState::FramebufferLegacy;
 				} else if (!(progressState & ProcessingState::BootLogo) && i == KextIOGraphicsIndex) {
-					gIOFBVerboseBootPtr = reinterpret_cast<uint8_t *>(patcher.solveSymbol(index, "__ZL16gIOFBVerboseBoot"));
+					gIOFBVerboseBootPtr = patcher.solveSymbol<uint8_t *>(index, "__ZL16gIOFBVerboseBoot", address, size);
 					if (gIOFBVerboseBootPtr) {
 						DBGLOG("rad", "obtained __ZL16gIOFBVerboseBoot");
-						auto ioFramebufferinit = patcher.solveSymbol(index, "__ZN13IOFramebuffer6initFBEv");
+						auto ioFramebufferinit = patcher.solveSymbol(index, "__ZN13IOFramebuffer6initFBEv", address, size);
 						if (ioFramebufferinit) {
 							DBGLOG("rad", "obtained __ZN13IOFramebuffer6initFBEv");
 							orgFramebufferInit = reinterpret_cast<t_framebufferInit>(patcher.routeFunction(ioFramebufferinit, reinterpret_cast<mach_vm_address_t>(wrapFramebufferInit), true));
@@ -1048,7 +1048,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 					progressState |= ProcessingState::BootLogo;
 				} else if (!(progressState & ProcessingState::PatchConnectors) && i == KextAMDSupportIndex) {
 					if (getKernelVersion() >= KernelVersion::HighSierra) {
-						auto getConnectorsInfoV1 = patcher.solveSymbol(index, "__ZN14AtiBiosParser116getConnectorInfoEP13ConnectorInfoRh");
+						auto getConnectorsInfoV1 = patcher.solveSymbol(index, "__ZN14AtiBiosParser116getConnectorInfoEP13ConnectorInfoRh", address, size);
 						if (getConnectorsInfoV1) {
 							orgGetConnectorsInfoV1 = reinterpret_cast<t_getConnectorsInfo>(patcher.routeFunction(getConnectorsInfoV1, reinterpret_cast<mach_vm_address_t>(wrapGetConnectorsInfoV1), true));
 							if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1060,7 +1060,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 							SYSLOG("rad", "failed to find __ZN14AtiBiosParser116getConnectorInfoEP13ConnectorInfoRh");
 						}
 
-						auto getConnectorsInfoV2 = patcher.solveSymbol(index, "__ZN14AtiBiosParser216getConnectorInfoEP13ConnectorInfoRh");
+						auto getConnectorsInfoV2 = patcher.solveSymbol(index, "__ZN14AtiBiosParser216getConnectorInfoEP13ConnectorInfoRh", address, size);
 						if (getConnectorsInfoV2) {
 							orgGetConnectorsInfoV2 = reinterpret_cast<t_getConnectorsInfo>(patcher.routeFunction(getConnectorsInfoV2, reinterpret_cast<mach_vm_address_t>(wrapGetConnectorsInfoV2), true));
 							if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1072,7 +1072,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 							SYSLOG("rad", "failed to find __ZN14AtiBiosParser216getConnectorInfoEP13ConnectorInfoRh");
 						}
 
-						auto translateAtomConnectorInfoV1 = patcher.solveSymbol(index, "__ZN14AtiBiosParser126translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V117AtomConnectorInfoER13ConnectorInfo");
+						auto translateAtomConnectorInfoV1 = patcher.solveSymbol(index, "__ZN14AtiBiosParser126translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V117AtomConnectorInfoER13ConnectorInfo", address, size);
 						if (translateAtomConnectorInfoV1) {
 							orgTranslateAtomConnectorInfoV1 = reinterpret_cast<t_translateAtomConnectorInfo>(patcher.routeFunction(translateAtomConnectorInfoV1,
 								reinterpret_cast<mach_vm_address_t>(wrapTranslateAtomConnectorInfoV1), true));
@@ -1085,7 +1085,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 							SYSLOG("rad", "failed to find __ZN14AtiBiosParser126translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V117AtomConnectorInfoER13ConnectorInfo");
 						}
 
-						auto translateAtomConnectorInfoV2 = patcher.solveSymbol(index, "__ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo");
+						auto translateAtomConnectorInfoV2 = patcher.solveSymbol(index, "__ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo", address, size);
 						if (translateAtomConnectorInfoV2) {
 							orgTranslateAtomConnectorInfoV2 = reinterpret_cast<t_translateAtomConnectorInfo>(patcher.routeFunction(translateAtomConnectorInfoV2,
 								reinterpret_cast<mach_vm_address_t>(wrapTranslateAtomConnectorInfoV2), true));
@@ -1098,7 +1098,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 							SYSLOG("rad", "failed to find __ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo");
 						}
 					} else {
-						auto getConnectorsInfoV1 = patcher.solveSymbol(index, "__ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh");
+						auto getConnectorsInfoV1 = patcher.solveSymbol(index, "__ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh", address, size);
 						if (getConnectorsInfoV1) {
 							orgGetConnectorsInfoV1 = reinterpret_cast<t_getConnectorsInfo>(patcher.routeFunction(getConnectorsInfoV1, reinterpret_cast<mach_vm_address_t>(wrapGetConnectorsInfoV1), true));
 							if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1110,13 +1110,13 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 							SYSLOG("rad", "failed to find __ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh");
 						}
 
-						orgGetAtomObjectTableForType = reinterpret_cast<t_getAtomObjectTableForType>(patcher.solveSymbol(index, "__ZN20AtiAtomBiosUtilities25getAtomObjectTableForTypeEhRh"));
+						orgGetAtomObjectTableForType = reinterpret_cast<t_getAtomObjectTableForType>(patcher.solveSymbol(index, "__ZN20AtiAtomBiosUtilities25getAtomObjectTableForTypeEhRh", address, size));
 						if (!orgGetAtomObjectTableForType) {
 							SYSLOG("rad", "failed to find __ZN20AtiAtomBiosUtilities25getAtomObjectTableForTypeEhRh");
 						}
 					}
 
-					auto controllerStart = patcher.solveSymbol(index, "__ZN13ATIController5startEP9IOService");
+					auto controllerStart = patcher.solveSymbol(index, "__ZN13ATIController5startEP9IOService", address, size);
 					if (controllerStart) {
 						orgATIControllerStart = reinterpret_cast<t_controllerStart>(patcher.routeFunction(controllerStart, reinterpret_cast<mach_vm_address_t>(wrapATIControllerStart), true));
 						if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1130,7 +1130,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 					progressState |= ProcessingState::PatchConnectors;
 				} else if (!(progressState & ProcessingState::PatchLegacyConnectors) && i == KextAMDLegacySupportIndex) {
-					auto getConnectorsInfo = patcher.solveSymbol(index, "__ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh");
+					auto getConnectorsInfo = patcher.solveSymbol(index, "__ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh", address, size);
 					if (getConnectorsInfo) {
 						orgLegacyGetConnectorsInfo = reinterpret_cast<t_getConnectorsInfo>(patcher.routeFunction(getConnectorsInfo, reinterpret_cast<mach_vm_address_t>(wrapLegacyGetConnectorsInfo), true));
 						if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1142,7 +1142,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 						SYSLOG("rad", "failed to find __ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh");
 					}
 
-					auto controllerStart = patcher.solveSymbol(index, "__ZN19AMDLegacyController5startEP9IOService");
+					auto controllerStart = patcher.solveSymbol(index, "__ZN19AMDLegacyController5startEP9IOService", address, size);
 					if (controllerStart) {
 						orgLegacyATIControllerStart = reinterpret_cast<t_controllerStart>(patcher.routeFunction(controllerStart, reinterpret_cast<mach_vm_address_t>(wrapLegacyATIControllerStart), true));
 						if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1154,7 +1154,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 						SYSLOG("rad", "failed to find __ZN19AMDLegacyController5startEP9IOService");
 					}
 
-					orgLegacyGetAtomObjectTableForType = reinterpret_cast<t_getAtomObjectTableForType>(patcher.solveSymbol(index, "__ZN20AtiAtomBiosUtilities25getAtomObjectTableForTypeEhRh"));
+					orgLegacyGetAtomObjectTableForType = patcher.solveSymbol<t_getAtomObjectTableForType>(index, "__ZN20AtiAtomBiosUtilities25getAtomObjectTableForTypeEhRh", address, size);
 					if (!orgLegacyGetAtomObjectTableForType) {
 						SYSLOG("rad", "failed to find __ZN20AtiAtomBiosUtilities25getAtomObjectTableForTypeEhRh");
 					}
@@ -1164,7 +1164,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 					for (uint32_t j = 0; j < HardwareIndex::Total; j++) {
 						if (i == j && !(progressState & indexToMask(j))) {
 							for (size_t k = 0; k < MaxGetFrameBufferProcs && getFrameBufferProcNames[j][k] != nullptr; k++) {
-								auto getFB = patcher.solveSymbol(index, getFrameBufferProcNames[j][k]);
+								auto getFB = patcher.solveSymbol(index, getFrameBufferProcNames[j][k], address, size);
 								if (getFB) {
 									// Initially it was discovered that the only problematic register is PRIMARY_SURFACE_ADDRESS_HIGH (0x1A07).
 									// This register must be nulled to solve most of the issues.
@@ -1187,7 +1187,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 							// On 10.13~10.13.3(?) and newer X4250 driver is problematic for some GPUs
 							if (j == HardwareIndex::X4200 && getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5) {
-								auto getDeviceType = patcher.solveSymbol(index, "__ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+								auto getDeviceType = patcher.solveSymbol(index, "__ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice", address, size);
 								if (getDeviceType) {
 									orgGetDeviceTypeBaffin = reinterpret_cast<t_getDeviceType>(patcher.routeFunction(getDeviceType, reinterpret_cast<mach_vm_address_t>(wrapGetDeviceTypeBaffin), true));
 									if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1199,7 +1199,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 									SYSLOG("rad", "failed to find __ZN43AMDRadeonX4200_AMDBaffinGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
 								}
 
-								getDeviceType = patcher.solveSymbol(index, "__ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice");
+								getDeviceType = patcher.solveSymbol(index, "__ZN46AMDRadeonX4200_AMDEllesmereGraphicsAccelerator13getDeviceTypeEP11IOPCIDevice", address, size);
 								if (getDeviceType) {
 									orgGetDeviceTypeEllesmere = reinterpret_cast<t_getDeviceType>(patcher.routeFunction(getDeviceType, reinterpret_cast<mach_vm_address_t>(wrapGetDeviceTypeEllesmere), true));
 									if (patcher.getError() == KernelPatcher::Error::NoError) {
@@ -1212,7 +1212,7 @@ void RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 								}
 							}
 
-							auto populate = patcher.solveSymbol(index, populateAccelConfigProcNames[j]);
+							auto populate = patcher.solveSymbol(index, populateAccelConfigProcNames[j], address, size);
 							if (populate) {
 								orgPopulateAccelConfig[j] = reinterpret_cast<t_populateAccelConfig>(patcher.routeFunction(populate, reinterpret_cast<mach_vm_address_t>(wrapPopulateAccelConfig[j]), true));
 								if (patcher.getError() == KernelPatcher::Error::NoError) {
