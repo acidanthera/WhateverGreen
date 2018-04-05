@@ -682,56 +682,6 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 	}
 }
 
-// Slightly non-standard helpers to get the date in a YYYY-MM-DD format.
-
-template <size_t i>
-constexpr char getYear() {
-	static_assert(i < 4, "Year consists of four digits");
-	return __DATE__[7+i];
-}
-
-template <size_t i>
-constexpr char getMonth() {
-	static_assert(i < 2, "Month consists of two digits");
-	auto mon = *reinterpret_cast<const uint32_t *>(__DATE__);
-	switch (mon) {
-		case ' naJ':
-			return "01"[i];
-		case ' beF':
-			return "02"[i];
-		case ' raM':
-			return "03"[i];
-		case ' rpA':
-			return "04"[i];
-		case ' yaM':
-			return "05"[i];
-		case ' nuJ':
-			return "06"[i];
-		case ' luJ':
-			return "07"[i];
-		case ' guA':
-			return "08"[i];
-		case ' peS':
-			return "09"[i];
-		case ' tcO':
-			return "10"[i];
-		case ' voN':
-			return "11"[i];
-		case ' ceD':
-			return "12"[i];
-	}
-	
-	return '0';
-}
-
-template <size_t i>
-constexpr char getDay() {
-	static_assert(i < 2, "Day consists of two digits");
-	if (i == 0 && __DATE__[4+i] == ' ')
-		return '0';
-	return __DATE__[4+i];
-}
-
 static char kextVersion[] {
 #ifdef DEBUG
 	'W', 'E', 'A', 'D', '-',
@@ -739,8 +689,8 @@ static char kextVersion[] {
 	'W', 'E', 'A', 'R', '-',
 #endif
 	xStringify(MODULE_VERSION)[0], xStringify(MODULE_VERSION)[2], xStringify(MODULE_VERSION)[4], '-',
-	getYear<0>(), getYear<1>(), getYear<2>(), getYear<3>(), '-',
-	getMonth<0>(), getMonth<1>(), '-', getDay<0>(), getDay<1>(), '\0'
+	getBuildYear<0>(), getBuildYear<1>(), getBuildYear<2>(), getBuildYear<3>(), '-',
+	getBuildMonth<0>(), getBuildMonth<1>(), '-', getBuildDay<0>(), getBuildDay<1>(), '\0'
 };
 
 void RAD::reportVersion(IOService *controller) {
