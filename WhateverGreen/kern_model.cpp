@@ -458,6 +458,7 @@ static constexpr Model dev6818[] {
 };
 
 static constexpr Model dev6819[] {
+	{Model::DetectSub, 0x174b, 0xe218, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x174b, 0xe221, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x1458, 0x255a, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x1462, 0x3058, 0x0000, "AMD Radeon R7 265"},
