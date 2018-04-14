@@ -9,10 +9,15 @@
 #include <Headers/kern_iokit.hpp>
 #include <Library/LegacyIOService.h>
 
+#include <Availability.h>
 #include <IOKit/IOPlatformExpert.h>
 #define protected public
 #include <IOKit/graphics/IOFramebuffer.h>
 #undef protected
+
+#ifndef __MAC_10_13
+#define fVramMap vramMap
+#endif
 
 #include "kern_rad.hpp"
 
@@ -647,7 +652,7 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 		RADConnectors::ConnectorDP,
 		RADConnectors::ConnectorVGA
 	};
-	static constexpr auto typeNum {static_cast<uint8_t>(arrsize(typeList))};
+	static constexpr uint8_t typeNum {static_cast<uint8_t>(arrsize(typeList))};
 	
 	bool isModern = RADConnectors::modern();
 	uint16_t priCount = 1;

@@ -2,7 +2,9 @@ WhateverGreen Changelog
 =======================
 
 #### v1.1.8
+- Added more GPU models to automatic detection
 - Hardened solved symbol verification to avoid panics with broken kext cache
+- Fixed compiling with older Xcode
 
 #### v1.1.7
 - Added `-radgl` boot argument to disable Metal support
