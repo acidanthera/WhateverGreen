@@ -10,11 +10,21 @@
 		1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C748C2C1C21952C0024EED2 /* kern_start.cpp */; };
 		1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C9CB7AE1C789FF500231E41 /* kern_rad.cpp */; };
 		1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1C9CB7AF1C789FF500231E41 /* kern_rad.hpp */; };
-		CE271B4A1F300B6200D2BC1C /* kern_audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE271B481F300B6200D2BC1C /* kern_audio.cpp */; };
-		CE271B4B1F300B6200D2BC1C /* kern_audio.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE271B491F300B6200D2BC1C /* kern_audio.hpp */; };
 		CE405EC91E49DD9700AA0B3D /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE405EC71E49DD7100AA0B3D /* libkmod.a */; };
 		CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
+		CE7FC0AA20F55E7400138088 /* kern_ngfx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */; };
+		CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */; };
+		CE7FC0AE20F5622700138088 /* kern_igfx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0AC20F5622700138088 /* kern_igfx.cpp */; };
+		CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE7FC0AD20F5622700138088 /* kern_igfx.hpp */; };
+		CE7FC0B120F563CA00138088 /* kern_ngfx_asm.S in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0B020F563CA00138088 /* kern_ngfx_asm.S */; };
+		CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0B220F6809600138088 /* kern_shiki.cpp */; };
+		CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE7FC0B320F6809600138088 /* kern_shiki.hpp */; };
+		CE7FC0C420F6823100138088 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0B820F681D600138088 /* main.mm */; };
+		CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE7FC0C820F682A200138088 /* kern_resources.hpp */; };
+		CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0C920F682A200138088 /* kern_resources.cpp */; };
 		CE8190A21F1E3ECE00DE95F4 /* kern_model.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE8190A11F1E3ECE00DE95F4 /* kern_model.cpp */; };
+		CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5C20EE825A00BA842F /* kern_weg.cpp */; };
+		CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEA03B5D20EE825A00BA842F /* kern_weg.hpp */; };
 		CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB402A41F17F5C400716912 /* kern_con.hpp */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +38,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CE7FC0BB20F6821600138088 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -39,8 +58,6 @@
 		1CF01C901C8CF97F002DCEA3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
-		CE271B481F300B6200D2BC1C /* kern_audio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_audio.cpp; sourceTree = "<group>"; };
-		CE271B491F300B6200D2BC1C /* kern_audio.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_audio.hpp; sourceTree = "<group>"; };
 		CE271B4C1F319BD000D2BC1C /* reference.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = reference.cpp; sourceTree = "<group>"; };
 		CE405EBA1E49DD7100AA0B3D /* kern_compression.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE405EBB1E49DD7100AA0B3D /* kern_disasm.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
@@ -62,9 +79,28 @@
 		CE41E4FB1F2C4B5700AA5944 /* rd_route.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rd_route.h; sourceTree = "<group>"; };
 		CE41E4FC1F2C4B5700AA5944 /* WhateverName.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WhateverName.mm; sourceTree = "<group>"; };
 		CE41E4FE1F2C547200AA5944 /* WhateverName.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = WhateverName.app; sourceTree = "<group>"; };
+		CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_ngfx.cpp; sourceTree = "<group>"; };
+		CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_ngfx.hpp; sourceTree = "<group>"; };
+		CE7FC0AC20F5622700138088 /* kern_igfx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx.cpp; sourceTree = "<group>"; };
+		CE7FC0AD20F5622700138088 /* kern_igfx.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_igfx.hpp; sourceTree = "<group>"; };
+		CE7FC0B020F563CA00138088 /* kern_ngfx_asm.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = kern_ngfx_asm.S; sourceTree = "<group>"; };
+		CE7FC0B220F6809600138088 /* kern_shiki.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_shiki.cpp; sourceTree = "<group>"; };
+		CE7FC0B320F6809600138088 /* kern_shiki.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_shiki.hpp; sourceTree = "<group>"; };
+		CE7FC0B720F681D600138088 /* generate.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = generate.sh; sourceTree = "<group>"; };
+		CE7FC0B820F681D600138088 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		CE7FC0BD20F6821600138088 /* ResourceConverter */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ResourceConverter; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE7FC0C720F6829500138088 /* Patches.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Patches.plist; sourceTree = "<group>"; };
+		CE7FC0C820F682A200138088 /* kern_resources.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_resources.hpp; sourceTree = "<group>"; };
+		CE7FC0C920F682A200138088 /* kern_resources.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_resources.cpp; sourceTree = "<group>"; };
+		CE7FC0CD20F687F500138088 /* FAQ.GeForce.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.GeForce.en.md; sourceTree = "<group>"; };
+		CE7FC0CE20F6882400138088 /* FAQ.Shiki.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Shiki.en.md; sourceTree = "<group>"; };
+		CE7FC0CF20F6882400138088 /* FAQ.Shiki.ru.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Shiki.ru.md; sourceTree = "<group>"; };
+		CE7FC0D020F6882400138088 /* FAQ.Shiki.zh_CN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Shiki.zh_CN.md; sourceTree = "<group>"; };
 		CE8190A11F1E3ECE00DE95F4 /* kern_model.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_model.cpp; sourceTree = "<group>"; };
-		CEAEA1171F26905A00918651 /* FAQ.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.en.md; sourceTree = "<group>"; };
-		CEAEA1181F26905A00918651 /* FAQ.ru.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.ru.md; sourceTree = "<group>"; };
+		CEA03B5C20EE825A00BA842F /* kern_weg.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_weg.cpp; sourceTree = "<group>"; };
+		CEA03B5D20EE825A00BA842F /* kern_weg.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_weg.hpp; sourceTree = "<group>"; };
+		CEAEA1171F26905A00918651 /* FAQ.Radeon.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Radeon.en.md; sourceTree = "<group>"; };
+		CEAEA1181F26905A00918651 /* FAQ.Radeon.ru.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Radeon.ru.md; sourceTree = "<group>"; };
 		CEAEA1191F26905A00918651 /* Sample.dsl */ = {isa = PBXFileReference; lastKnownFileType = text; path = Sample.dsl; sourceTree = "<group>"; };
 		CEB402A41F17F5C400716912 /* kern_con.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_con.hpp; sourceTree = "<group>"; };
 		CEB402A71F181D8300716912 /* kern_atom.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atom.hpp; sourceTree = "<group>"; };
@@ -79,6 +115,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CE7FC0BA20F6821600138088 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -86,8 +129,10 @@
 			isa = PBXGroup;
 			children = (
 				1CF01C911C8CF982002DCEA3 /* Docs */,
+				CE7FC0C620F6829500138088 /* Resources */,
 				1C748C291C21952C0024EED2 /* WhateverGreen */,
 				CE41E4F81F2C4B5700AA5944 /* WhateverName */,
+				CE7FC0B620F681D600138088 /* ResourceConverter */,
 				CE405EC81E49DD7B00AA0B3D /* SDK */,
 				1C748C281C21952C0024EED2 /* Products */,
 			);
@@ -97,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				1C748C271C21952C0024EED2 /* WhateverGreen.kext */,
+				CE7FC0BD20F6821600138088 /* ResourceConverter */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -106,12 +152,21 @@
 			children = (
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
 				CEB402A71F181D8300716912 /* kern_atom.hpp */,
-				CE271B481F300B6200D2BC1C /* kern_audio.cpp */,
-				CE271B491F300B6200D2BC1C /* kern_audio.hpp */,
 				CEB402A41F17F5C400716912 /* kern_con.hpp */,
+				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
+				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
+				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
+				CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */,
+				CE7FC0B020F563CA00138088 /* kern_ngfx_asm.S */,
 				1C9CB7AE1C789FF500231E41 /* kern_rad.cpp */,
 				1C9CB7AF1C789FF500231E41 /* kern_rad.hpp */,
+				CEA03B5C20EE825A00BA842F /* kern_weg.cpp */,
+				CEA03B5D20EE825A00BA842F /* kern_weg.hpp */,
+				CE7FC0B220F6809600138088 /* kern_shiki.cpp */,
+				CE7FC0B320F6809600138088 /* kern_shiki.hpp */,
 				CE8190A11F1E3ECE00DE95F4 /* kern_model.cpp */,
+				CE7FC0C920F682A200138088 /* kern_resources.cpp */,
+				CE7FC0C820F682A200138088 /* kern_resources.hpp */,
 				1C748C2E1C21952C0024EED2 /* Info.plist */,
 			);
 			path = WhateverGreen;
@@ -180,11 +235,32 @@
 			path = WhateverName;
 			sourceTree = "<group>";
 		};
+		CE7FC0B620F681D600138088 /* ResourceConverter */ = {
+			isa = PBXGroup;
+			children = (
+				CE7FC0B720F681D600138088 /* generate.sh */,
+				CE7FC0B820F681D600138088 /* main.mm */,
+			);
+			path = ResourceConverter;
+			sourceTree = "<group>";
+		};
+		CE7FC0C620F6829500138088 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				CE7FC0C720F6829500138088 /* Patches.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		CEAEA1151F26905A00918651 /* Manual */ = {
 			isa = PBXGroup;
 			children = (
-				CEAEA1171F26905A00918651 /* FAQ.en.md */,
-				CEAEA1181F26905A00918651 /* FAQ.ru.md */,
+				CE7FC0CD20F687F500138088 /* FAQ.GeForce.en.md */,
+				CEAEA1171F26905A00918651 /* FAQ.Radeon.en.md */,
+				CEAEA1181F26905A00918651 /* FAQ.Radeon.ru.md */,
+				CE7FC0CE20F6882400138088 /* FAQ.Shiki.en.md */,
+				CE7FC0CF20F6882400138088 /* FAQ.Shiki.ru.md */,
+				CE7FC0D020F6882400138088 /* FAQ.Shiki.zh_CN.md */,
 				CE271B4C1F319BD000D2BC1C /* reference.cpp */,
 				CEAEA1191F26905A00918651 /* Sample.dsl */,
 			);
@@ -198,8 +274,12 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */,
+				CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */,
+				CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */,
+				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
+				CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */,
 				1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */,
-				CE271B4B1F300B6200D2BC1C /* kern_audio.hpp in Headers */,
 				CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -226,6 +306,24 @@
 			productReference = 1C748C271C21952C0024EED2 /* WhateverGreen.kext */;
 			productType = "com.apple.product-type.kernel-extension";
 		};
+		CE7FC0BC20F6821600138088 /* ResourceConverter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE7FC0C120F6821600138088 /* Build configuration list for PBXNativeTarget "ResourceConverter" */;
+			buildPhases = (
+				CE7FC0B920F6821600138088 /* Sources */,
+				CE7FC0BA20F6821600138088 /* Frameworks */,
+				CE7FC0BB20F6821600138088 /* CopyFiles */,
+				CE7FC0C520F6825100138088 /* Generate Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ResourceConverter;
+			productName = ResourceConverter;
+			productReference = CE7FC0BD20F6821600138088 /* ResourceConverter */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -237,6 +335,9 @@
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
 						CreatedOnToolsVersion = 7.2;
+					};
+					CE7FC0BC20F6821600138088 = {
+						CreatedOnToolsVersion = 9.4.1;
 					};
 				};
 			};
@@ -253,6 +354,7 @@
 			projectRoot = "";
 			targets = (
 				1C748C261C21952C0024EED2 /* WhateverGreen */,
+				CE7FC0BC20F6821600138088 /* ResourceConverter */,
 			);
 		};
 /* End PBXProject section */
@@ -272,6 +374,23 @@
 			shellPath = /bin/bash;
 			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\nif [ -d \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" ]; then\n  rm -rf \"WhateverName.app\"\n  cp -a \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" \"WhateverName.app\"\n  dist+=(\"WhateverName.app\");\nfi\n\narchive=\"${MODULE_VERSION} ($(echo $CONFIGURATION | tr /a-z/ /A-Z/)).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry \"${archive}\" \"${dist[@]}\"\nrm -rf \"WhateverName.app\"\n";
 		};
+		CE7FC0C520F6825100138088 /* Generate Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Resources/Patches.plist",
+			);
+			name = "Generate Resources";
+			outputPaths = (
+				"$(SRCROOT)/WhateverGreen/kern_resources.cpp",
+				"$(SRCROOT)/WhateverGreen/kern_resources.hpp",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"${PROJECT_DIR}/ResourceConverter/generate.sh\"";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -279,11 +398,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE7FC0AE20F5622700138088 /* kern_igfx.cpp in Sources */,
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
-				CE271B4A1F300B6200D2BC1C /* kern_audio.cpp in Sources */,
+				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
+				CE7FC0B120F563CA00138088 /* kern_ngfx_asm.S in Sources */,
+				CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */,
 				CE8190A21F1E3ECE00DE95F4 /* kern_model.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
+				CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */,
+				CE7FC0AA20F55E7400138088 /* kern_ngfx.cpp in Sources */,
 				1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE7FC0B920F6821600138088 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CE7FC0C420F6823100138088 /* main.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,7 +536,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.1.8;
+				MODULE_VERSION = 1.2.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -449,7 +581,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.1.8;
+				MODULE_VERSION = 1.2.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -470,6 +602,44 @@
 			};
 			name = Release;
 		};
+		CE7FC0C220F6821600138088 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		CE7FC0C320F6821600138088 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -487,6 +657,15 @@
 			buildConfigurations = (
 				1C748C321C21952C0024EED2 /* Debug */,
 				1C748C331C21952C0024EED2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE7FC0C120F6821600138088 /* Build configuration list for PBXNativeTarget "ResourceConverter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE7FC0C220F6821600138088 /* Debug */,
+				CE7FC0C320F6821600138088 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

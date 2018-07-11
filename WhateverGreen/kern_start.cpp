@@ -8,20 +8,20 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_api.hpp>
 
-#include "kern_rad.hpp"
+#include "kern_weg.hpp"
 
-static RAD rad;
+static WEG weg;
 
 static const char *bootargOff[] {
-	"-radoff"
+	"-wegoff"
 };
 
 static const char *bootargDebug[] {
-	"-raddbg"
+	"-wegdbg"
 };
 
 static const char *bootargBeta[] {
-	"-radbeta"
+	"-wegbeta"
 };
 
 PluginConfiguration ADDPR(config) {
@@ -35,8 +35,8 @@ PluginConfiguration ADDPR(config) {
 	bootargBeta,
 	arrsize(bootargBeta),
 	KernelVersion::Yosemite,
-	KernelVersion::HighSierra,
+	KernelVersion::Mojave,
 	[]() {
-		rad.init();
+		weg.init();
 	}
 };

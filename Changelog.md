@@ -1,6 +1,11 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.2.0
+- Merged GPU kexts into one (AMD, Intel, NVIDIA) including H/W acceleration (Shiki)
+- Fixed certain AMD multimonitor issues
+- Enabled 10.14 support by default
+
 #### v1.1.8
 - Added more GPU models to automatic detection
 - Hardened solved symbol verification to avoid panics with broken kext cache
