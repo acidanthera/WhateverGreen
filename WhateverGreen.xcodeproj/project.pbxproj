@@ -26,6 +26,8 @@
 		CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5C20EE825A00BA842F /* kern_weg.cpp */; };
 		CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEA03B5D20EE825A00BA842F /* kern_weg.hpp */; };
 		CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB402A41F17F5C400716912 /* kern_con.hpp */; };
+		CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */; };
+		CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +116,8 @@
 		CEAEA1191F26905A00918651 /* Sample.dsl */ = {isa = PBXFileReference; lastKnownFileType = text; path = Sample.dsl; sourceTree = "<group>"; };
 		CEB402A41F17F5C400716912 /* kern_con.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_con.hpp; sourceTree = "<group>"; };
 		CEB402A71F181D8300716912 /* kern_atom.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atom.hpp; sourceTree = "<group>"; };
+		CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_cdf.cpp; sourceTree = "<group>"; };
+		CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cdf.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +166,8 @@
 			children = (
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
 				CEB402A71F181D8300716912 /* kern_atom.hpp */,
+				CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */,
+				CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */,
 				CEB402A41F17F5C400716912 /* kern_con.hpp */,
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
@@ -290,6 +296,7 @@
 				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
 				CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */,
 				1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */,
+				CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */,
 				CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -410,6 +417,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CE7FC0AE20F5622700138088 /* kern_igfx.cpp in Sources */,
+				CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */,
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
 				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
 				CE7FC0B120F563CA00138088 /* kern_ngfx_asm.S in Sources */,

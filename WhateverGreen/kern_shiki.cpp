@@ -102,6 +102,11 @@ void SHIKI::deinit() {
 }
 
 void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
+		// DRMI is just fine on Apple hardware
+		disableSection(SectionNDRMI);
+	}
+
 	if (autodetectGFX) {
 		bool hasExternalNVIDIA = false;
 		bool hasExternalAMD = false;

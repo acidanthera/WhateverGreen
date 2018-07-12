@@ -87,6 +87,7 @@ void WEG::init() {
 	ngfx.init();
 	rad.init();
 	shiki.init();
+	cdf.init();
 }
 
 void WEG::deinit() {
@@ -94,40 +95,45 @@ void WEG::deinit() {
 	ngfx.deinit();
 	rad.deinit();
 	shiki.deinit();
+	cdf.deinit();
 }
 
 void WEG::processKernel(KernelPatcher &patcher) {
 	// Correct GPU properties
 	auto devInfo = DeviceInfo::create();
 	if (devInfo) {
-		if (devInfo->videoBuiltin) {
-			processBuiltinProperties(devInfo->videoBuiltin, devInfo);
+		// Do not inject properties unless non-Apple
+		if (devInfo->firmwareVendor != DeviceInfo::FirmwareVendor::Apple) {
+			if (devInfo->videoBuiltin) {
+				processBuiltinProperties(devInfo->videoBuiltin, devInfo);
 
-			// Assume that enabled IGPU with connectors is the boot display.
-			if (resetFramebuffer == FB_DETECT && !devInfo->reportedFramebufferIsConnectorLess)
-				resetFramebuffer = FB_COPY;
+				// Assume that enabled IGPU with connectors is the boot display.
+				if (resetFramebuffer == FB_DETECT && !devInfo->reportedFramebufferIsConnectorLess)
+					resetFramebuffer = FB_COPY;
+			}
+
+			size_t extNum = devInfo->videoExternal.size();
+			for (size_t i = 0; i < extNum; i++) {
+				auto &v = devInfo->videoExternal[i];
+				processExternalProperties(v.video, devInfo, v.vendor);
+
+				// Assume that AMD GPU is the boot display.
+				if (v.vendor == WIOKit::VendorID::ATIAMD && resetFramebuffer == FB_DETECT)
+					resetFramebuffer = FB_ZEROFILL;
+			}
+
+			if (graphicsDisplayPolicyMod == AGDP_DETECT && isGraphicsPolicyModRequired(devInfo))
+				graphicsDisplayPolicyMod = AGDP_VIT9696;
+
+			if (devInfo->managementEngine)
+				processManagementEngineProperties(devInfo->managementEngine);
 		}
-
-		size_t extNum = devInfo->videoExternal.size();
-		for (size_t i = 0; i < extNum; i++) {
-			auto &v = devInfo->videoExternal[i];
-			processExternalProperties(v.video, devInfo, v.vendor);
-
-			// Assume that AMD GPU is the boot display.
-			if (v.vendor == WIOKit::VendorID::ATIAMD && resetFramebuffer == FB_DETECT)
-				resetFramebuffer = FB_ZEROFILL;
-		}
-
-		if (graphicsDisplayPolicyMod == AGDP_DETECT && isGraphicsPolicyModRequired(devInfo))
-			graphicsDisplayPolicyMod = AGDP_VIT9696;
-
-		if (devInfo->managementEngine)
-			processManagementEngineProperties(devInfo->managementEngine);
 
 		igfx.processKernel(patcher, devInfo);
 		ngfx.processKernel(patcher, devInfo);
 		rad.processKernel(patcher, devInfo);
 		shiki.processKernel(patcher, devInfo);
+		cdf.processKernel(patcher, devInfo);
 
 		DeviceInfo::deleter(devInfo);
 	}
@@ -186,6 +192,9 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		return;
 
 	if (rad.processKext(patcher, index, address, size))
+		return;
+
+	if (cdf.processKext(patcher, index, address, size))
 		return;
 }
 

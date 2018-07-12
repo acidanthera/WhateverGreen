@@ -92,11 +92,15 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (!connectorLessFrame && ((getKernelVersion() == KernelVersion::Sierra && getKernelMinorVersion() >= 5) ||
 									(getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5)) &&
 			(cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)) {
-			blackScreenPatch = true;
+			blackScreenPatch = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 		}
 
+		// GuC firmware is just fine on Apple hardware
+		if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+			avoidFirmwareLoading = false;
+
 		// PAVP patch is only necessary when we have no discrete GPU
-		pavpDisablePatch = !connectorLessFrame;
+		pavpDisablePatch = !connectorLessFrame && info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));

@@ -11,6 +11,7 @@
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_devinfo.hpp>
 
+#include "kern_cdf.hpp"
 #include "kern_igfx.hpp"
 #include "kern_ngfx.hpp"
 #include "kern_rad.hpp"
@@ -28,6 +29,11 @@ private:
 	 *  Private self instance for callbacks
 	 */
 	static WEG *callbackWEG;
+
+	/**
+	 *  High resolution unlocker instances
+	 */
+	CDF cdf;
 
 	/**
 	 *  Intel GPU fixes instances
@@ -109,7 +115,7 @@ private:
 	/**
 	 *  Verbose boot global variable pointer
 	 */
-	uint8_t *gIOFBVerboseBootPtr;
+	uint8_t *gIOFBVerboseBootPtr {nullptr};
 
 	/**
 	 *  Original IGPU PCI Config readers
@@ -120,7 +126,7 @@ private:
 	/**
 	 *  Original AppleGraphicsDevicePolicy start handler
 	 */
-	mach_vm_address_t orgGraphicsPolicyStart;
+	mach_vm_address_t orgGraphicsPolicyStart {0};
 
 	/**
 	 *  vinfo presence status

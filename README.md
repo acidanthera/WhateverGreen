@@ -51,10 +51,12 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
+- [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [igork](https://applelife.ru/members/igork.564/) for power-gating patch discovery
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for continuous implementation of Intel and NVIDIA fixing code
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries
+- [PMheart](https://github.com/PMheart) for CoreDisplay patching code and Intel fix backporting
 - [RemB](https://applelife.ru/members/remb.8064/) for continuing sleep-wake research and finding the right register for AMD issues
 - [Vandroiy](https://applelife.ru/members/vandroiy.83653/) for maintaining the GPU model detection database
-- [YungRaj](https://github.com/YungRaj), [PMheart](https://github.com/PMheart), [syscl](https://github.com/syscl) for Intel fix backporting
+- [YungRaj](https://github.com/YungRaj) and [syscl](https://github.com/syscl) for Intel fix backporting
 - [vit9696](https://github.com/vit9696) for writing the software and maintaining it
