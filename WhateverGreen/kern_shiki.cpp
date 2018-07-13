@@ -18,6 +18,9 @@
 #include "kern_resources.hpp"
 
 void SHIKI::init() {
+	if (!(lilu.getRunMode() & LiluAPI::RunningNormal))
+		return;
+
 	bool forceOnlineRenderer     = false;
 	bool allowNonBGRA            = false;
 	bool forceCompatibleRenderer = false;
@@ -102,6 +105,9 @@ void SHIKI::deinit() {
 }
 
 void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	if (!(lilu.getRunMode() & LiluAPI::RunningNormal))
+		return;
+
 	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
 		// DRMI is just fine on Apple hardware
 		disableSection(SectionNDRMI);
