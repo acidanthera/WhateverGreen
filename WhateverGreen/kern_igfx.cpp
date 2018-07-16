@@ -87,10 +87,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	if (info->videoBuiltin) {
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
-		// Black screen (ComputeLaneCount) happened from 10.12.4 till 10.13.4 inclusive
+		// Black screen (ComputeLaneCount) happened from 10.12.4
 		// It only affects SKL and KBL drivers with a frame with connectors.
 		if (!connectorLessFrame && ((getKernelVersion() == KernelVersion::Sierra && getKernelMinorVersion() >= 5) ||
-									(getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5)) &&
+									getKernelVersion() >= KernelVersion::HighSierra) &&
 			(cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)) {
 			blackScreenPatch = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 		}
@@ -184,7 +184,8 @@ bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t 
 	// Since the only problematic function is AppleIntelFramebuffer::validateDetailedTiming, there are
 	// multiple ways to workaround it.
 	// 1. In 10.13.4 Apple added an additional extended timing validation call, which happened to be
-	// guardded by a HDMI 2.0 enable boot-arg, which resulted in one bug fixing the other.
+	// guardded by a HDMI 2.0 enable boot-arg, which resulted in one bug fixing the other, and 10.13.5
+	// broke it again.
 	// 2. Another good way is to intercept AppleIntelFramebufferController::RegisterAGDCCallback and
 	// make sure AppleGraphicsDevicePolicy::_VendorEventHandler returns mode 2 (not 0) for event 10.
 	// 3. Disabling AGDC by nopping AppleIntelFramebufferController::RegisterAGDCCallback is also fine.
