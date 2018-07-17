@@ -314,15 +314,16 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebufferId) {
 	bool hasFramebufferPatch = false;
 
-	uint32_t framebufferPatchEnable = 0;
+	uint8_t framebufferPatchEnable = 0;
 	if (WIOKit::getOSDataValue(igpu, "framebuffer-patch-enable", framebufferPatchEnable) && framebufferPatchEnable) {
 		DBGLOG("igfx", "framebuffer-patch-enable %d", framebufferPatchEnable);
 
+		// Note, the casts to uint32_t here and below are required due to device properties always injecting 32-bit types.
 		framebufferPatchFlags.bits.FPFFramebufferId = WIOKit::getOSDataValue(igpu, "framebuffer-framebufferid", framebufferPatch.framebufferId);
-		framebufferPatchFlags.bits.FPFMobile = WIOKit::getOSDataValue(igpu, "framebuffer-mobile", framebufferPatch.fMobile);
-		framebufferPatchFlags.bits.FPFPipeCount = WIOKit::getOSDataValue(igpu, "framebuffer-pipecount", framebufferPatch.fPipeCount);
-		framebufferPatchFlags.bits.FPFPortCount = WIOKit::getOSDataValue(igpu, "framebuffer-portcount", framebufferPatch.fPortCount);
-		framebufferPatchFlags.bits.FPFFBMemoryCount = WIOKit::getOSDataValue(igpu, "framebuffer-memorycount", framebufferPatch.fFBMemoryCount);
+		framebufferPatchFlags.bits.FPFMobile = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-mobile", framebufferPatch.fMobile);
+		framebufferPatchFlags.bits.FPFPipeCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-pipecount", framebufferPatch.fPipeCount);
+		framebufferPatchFlags.bits.FPFPortCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-portcount", framebufferPatch.fPortCount);
+		framebufferPatchFlags.bits.FPFFBMemoryCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-memorycount", framebufferPatch.fFBMemoryCount);
 		framebufferPatchFlags.bits.FPFStolenMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-stolenmem", framebufferPatch.fStolenMemorySize);
 		framebufferPatchFlags.bits.FPFFramebufferMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-fbmem", framebufferPatch.fFramebufferMemorySize);
 		framebufferPatchFlags.bits.FPFUnifiedMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-unifiedmem", framebufferPatch.fUnifiedMemorySize);
@@ -340,11 +341,11 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 			DBGLOG("igfx", "framebuffer-con%ld-enable %d", i, framebufferConnectorPatchEnable);
 
 			snprintf(name, sizeof(name), "framebuffer-con%ld-index", i);
-			connectorPatchFlags[i].bits.CPFIndex = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].index);
+			connectorPatchFlags[i].bits.CPFIndex = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].index);
 			snprintf(name, sizeof(name), "framebuffer-con%ld-busid", i);
-			connectorPatchFlags[i].bits.CPFBusId = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].busId);
+			connectorPatchFlags[i].bits.CPFBusId = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].busId);
 			snprintf(name, sizeof(name), "framebuffer-con%ld-pipe", i);
-			connectorPatchFlags[i].bits.CPFPipe = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].pipe);
+			connectorPatchFlags[i].bits.CPFPipe = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].pipe);
 			snprintf(name, sizeof(name), "framebuffer-con%ld-type", i);
 			connectorPatchFlags[i].bits.CPFType = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].type);
 			snprintf(name, sizeof(name), "framebuffer-con%ld-flags", i);
@@ -372,7 +373,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		size_t framebufferPatchCount = 0;
 
 		snprintf(name, sizeof(name), "framebuffer-patch%ld-framebufferid", i);
-		WIOKit::getOSDataValue(igpu, name, framebufferId);
+		bool passedFramebufferId = WIOKit::getOSDataValue(igpu, name, framebufferId);
 		snprintf(name, sizeof(name), "framebuffer-patch%ld-find", i);
 		auto framebufferPatchFind = OSDynamicCast(OSData, igpu->getProperty(name));
 		snprintf(name, sizeof(name), "framebuffer-patch%ld-replace", i);
@@ -383,7 +384,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		if (!framebufferPatchFind || !framebufferPatchReplace)
 			continue;
 
-		framebufferPatches[patchIndex].framebufferId = (framebufferId ? framebufferId : currentFramebufferId);
+		framebufferPatches[patchIndex].framebufferId = (passedFramebufferId ? framebufferId : currentFramebufferId);
 		framebufferPatches[patchIndex].find = framebufferPatchFind;
 		framebufferPatches[patchIndex].replace = framebufferPatchReplace;
 		framebufferPatches[patchIndex].count = (framebufferPatchCount ? framebufferPatchCount : 1);
@@ -446,154 +447,68 @@ bool IGFX::applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *starting
 	return r;
 }
 
-void IGFX::applyFramebufferPatches() {
-	uint32_t framebufferId = framebufferPatch.framebufferId;
-	size_t platformInformationCount = 0, platformInformationSize = 0;
+template <>
+bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, FramebufferSNB *platformInformationList) {
+	uint32_t framebufferPlatformId[] = { 0x00010000, 0x00020000, 0x00030010, 0x00030030, 0x00040000, 0xFFFFFFFF, 0xFFFFFFFF, 0x00030020, 0x00050000 };
+	size_t platformInformationCount = arrsize(framebufferPlatformId);
+	bool framebufferFound = false;
 
-	if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge) {
-		FramebufferSNB *platformInformationList = static_cast<FramebufferSNB *>(gPlatformInformationList);
-		uint32_t framebufferPlatformId[] = { 0x00010000, 0x00020000, 0x00030010, 0x00030030, 0x00040000, 0xFFFFFFFF, 0xFFFFFFFF, 0x00030020, 0x00050000 };
-		platformInformationCount = sizeof(framebufferPlatformId) / sizeof(uint32_t);
-		platformInformationSize = sizeof(FramebufferSNB) * platformInformationCount;
-		bool framebufferFound = false;
+	for (size_t i = 0; i < platformInformationCount; i++) {
+		if (framebufferPlatformId[i] == framebufferId) {
+			if (framebufferPatchFlags.bits.FPFMobile)
+				platformInformationList[i].fMobile = framebufferPatch.fMobile;
 
-		for (size_t i = 0; i < platformInformationCount; i++) {
-			if (framebufferPlatformId[i] == framebufferId) {
-				if (framebufferPatchFlags.bits.FPFMobile)
-					platformInformationList[i].fMobile = framebufferPatch.fMobile;
+			if (framebufferPatchFlags.bits.FPFPipeCount)
+				platformInformationList[i].fPipeCount = framebufferPatch.fPipeCount;
 
-				if (framebufferPatchFlags.bits.FPFPipeCount)
-					platformInformationList[i].fPipeCount = framebufferPatch.fPipeCount;
+			if (framebufferPatchFlags.bits.FPFPortCount)
+				platformInformationList[i].fPortCount = framebufferPatch.fPortCount;
 
-				if (framebufferPatchFlags.bits.FPFPortCount)
-					platformInformationList[i].fPortCount = framebufferPatch.fPortCount;
+			if (framebufferPatchFlags.bits.FPFFBMemoryCount)
+				platformInformationList[i].fFBMemoryCount = framebufferPatch.fFBMemoryCount;
 
-				if (framebufferPatchFlags.bits.FPFFBMemoryCount)
-					platformInformationList[i].fFBMemoryCount = framebufferPatch.fFBMemoryCount;
+			for (size_t j = 0; j < MaxFramebufferConnectorCount; j++) {
+				if (connectorPatchFlags[j].bits.CPFIndex)
+					platformInformationList[i].connectors[j].index = framebufferPatch.connectors[j].index;
 
-				for (size_t j = 0; j < MaxFramebufferConnectorCount; j++) {
-					if (connectorPatchFlags[j].bits.CPFIndex)
-						platformInformationList[i].connectors[j].index = framebufferPatch.connectors[j].index;
+				if (connectorPatchFlags[j].bits.CPFBusId)
+					platformInformationList[i].connectors[j].busId = framebufferPatch.connectors[j].busId;
 
-					if (connectorPatchFlags[j].bits.CPFBusId)
-						platformInformationList[i].connectors[j].busId = framebufferPatch.connectors[j].busId;
+				if (connectorPatchFlags[j].bits.CPFPipe)
+					platformInformationList[i].connectors[j].pipe = framebufferPatch.connectors[j].pipe;
 
-					if (connectorPatchFlags[j].bits.CPFPipe)
-						platformInformationList[i].connectors[j].pipe = framebufferPatch.connectors[j].pipe;
+				if (connectorPatchFlags[j].bits.CPFType)
+					platformInformationList[i].connectors[j].type = framebufferPatch.connectors[j].type;
 
-					if (connectorPatchFlags[j].bits.CPFType)
-						platformInformationList[i].connectors[j].type = framebufferPatch.connectors[j].type;
+				if (connectorPatchFlags[j].bits.CPFFlags)
+					platformInformationList[i].connectors[j].flags = framebufferPatch.connectors[j].flags;
 
-					if (connectorPatchFlags[j].bits.CPFFlags)
-						platformInformationList[i].connectors[j].flags = framebufferPatch.connectors[j].flags;
-
-					if (connectorPatchFlags[j].value) {
-						DBGLOG("igfx", "Patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", framebufferId, platformInformationList[i].connectors[j].index, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe, platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags.value);
-
-						framebufferFound = true;
-					}
-				}
-
-				if (framebufferPatchFlags.value) {
-					DBGLOG("igfx", "Patching framebufferId 0x%08X", framebufferId);
-					DBGLOG("igfx", "Mobile: 0x%08X", platformInformationList[i].fMobile);
-					DBGLOG("igfx", "PipeCount: %d", platformInformationList[i].fPipeCount);
-					DBGLOG("igfx", "PortCount: %d", platformInformationList[i].fPortCount);
-					DBGLOG("igfx", "FBMemoryCount: %d", platformInformationList[i].fFBMemoryCount);
-					DBGLOG("igfx", "BacklightFrequency: %d", platformInformationList[i].fBacklightFrequency);
-					DBGLOG("igfx", "BacklightMax: %d", platformInformationList[i].fBacklightMax);
+				if (connectorPatchFlags[j].value) {
+					DBGLOG("igfx", "Patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", framebufferId, platformInformationList[i].connectors[j].index, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe, platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags.value);
 
 					framebufferFound = true;
 				}
 			}
-		}
 
-		if (framebufferFound)
-			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
-		else
-			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
-	} else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge) {
-		FramebufferIVB *platformInformationList = static_cast<FramebufferIVB *>(gPlatformInformationList);
-		platformInformationCount = PAGE_SIZE / sizeof(FramebufferIVB);
-		platformInformationSize = sizeof(FramebufferIVB) * platformInformationCount;
+			if (framebufferPatchFlags.value) {
+				DBGLOG("igfx", "Patching framebufferId 0x%08X", framebufferId);
+				DBGLOG("igfx", "Mobile: 0x%08X", platformInformationList[i].fMobile);
+				DBGLOG("igfx", "PipeCount: %d", platformInformationList[i].fPipeCount);
+				DBGLOG("igfx", "PortCount: %d", platformInformationList[i].fPortCount);
+				DBGLOG("igfx", "FBMemoryCount: %d", platformInformationList[i].fFBMemoryCount);
+				DBGLOG("igfx", "BacklightFrequency: %d", platformInformationList[i].fBacklightFrequency);
+				DBGLOG("igfx", "BacklightMax: %d", platformInformationList[i].fBacklightMax);
 
-		if (applyPlatformInformationListPatch(framebufferId, platformInformationList, PAGE_SIZE))
-			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
-		else
-			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
-	} else if (cpuGeneration == CPUInfo::CpuGeneration::Haswell) {
-		FramebufferHSW *platformInformationList = static_cast<FramebufferHSW *>(gPlatformInformationList);
-		platformInformationCount = PAGE_SIZE / sizeof(FramebufferHSW);
-		platformInformationSize = sizeof(FramebufferHSW) * platformInformationCount;
-
-		if (applyPlatformInformationListPatch(framebufferId, platformInformationList, platformInformationCount))
-			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
-		else
-			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
-	} else if (cpuGeneration == CPUInfo::CpuGeneration::Broadwell) {
-		FramebufferBDW *platformInformationList = static_cast<FramebufferBDW *>(gPlatformInformationList);
-		platformInformationCount = PAGE_SIZE / sizeof(FramebufferBDW);
-		platformInformationSize = sizeof(FramebufferBDW) * platformInformationCount;
-
-		if (applyPlatformInformationListPatch(framebufferId, platformInformationList, platformInformationCount))
-			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
-		else
-			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
-	} else if (cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake) {
-		FramebufferSKL *platformInformationList = static_cast<FramebufferSKL *>(gPlatformInformationList);
-		platformInformationCount = PAGE_SIZE / sizeof(FramebufferSKL);
-		platformInformationSize = sizeof(FramebufferSKL) * platformInformationCount;
-
-		if (applyPlatformInformationListPatch(framebufferId, platformInformationList, platformInformationCount))
-			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
-		else
-			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
-	}
-
-	uint8_t *platformInformationAddress = findFramebufferId(framebufferId, static_cast<uint8_t *>(gPlatformInformationList), platformInformationSize);
-
-	if (platformInformationAddress) {
-		for (size_t i = 0; i < MaxFramebufferPatchCount; i++) {
-			if (!framebufferPatches[i].find || !framebufferPatches[i].replace)
-				continue;
-
-			if (framebufferPatches[i].framebufferId != framebufferId)    {
-				framebufferId = framebufferPatches[i].framebufferId;
-				platformInformationAddress = findFramebufferId(framebufferId, static_cast<uint8_t *>(gPlatformInformationList), platformInformationSize);
+				framebufferFound = true;
 			}
-
-			if (!platformInformationAddress) {
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X not found", i, framebufferId);
-				continue;
-			}
-
-			if (framebufferPatches[i].find->getLength() != framebufferPatches[i].replace->getLength()) {
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X length mistmatch", i, framebufferId);
-				continue;
-			}
-
-			KernelPatcher::LookupPatch patch {};
-			patch.kext = currentFramebuffer;
-			patch.find = static_cast<const uint8_t *>(framebufferPatches[i].find->getBytesNoCopy());
-			patch.replace = static_cast<const uint8_t *>(framebufferPatches[i].replace->getBytesNoCopy());
-			patch.size = framebufferPatches[i].find->getLength();
-			patch.count = framebufferPatches[i].count;
-
-			if (applyPatch(patch, platformInformationAddress, platformInformationSize))
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X successful", i, framebufferId);
-			else
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X failed", i, framebufferId);
-
-			framebufferPatches[i].find->release();
-			framebufferPatches[i].find = nullptr;
-			framebufferPatches[i].replace->release();
-			framebufferPatches[i].replace = nullptr;
 		}
 	}
+
+	return framebufferFound;
 }
 
 template <typename T>
-bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList, size_t platformInformationCount) {
+bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList) {
 	auto frame = reinterpret_cast<T *>(findFramebufferId(framebufferId, reinterpret_cast<uint8_t *>(platformInformationList), PAGE_SIZE));
 	if (!frame)
 		return false;
@@ -657,4 +572,68 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 	}
 
 	return true;
+}
+
+void IGFX::applyFramebufferPatches() {
+	uint32_t framebufferId = framebufferPatch.framebufferId;
+
+	bool success = false;
+
+	if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
+		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSNB *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
+		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferIVB *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::Haswell)
+		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferHSW *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::Broadwell)
+		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferBDW *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)
+		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
+		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
+
+	if (success)
+		DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
+	else
+		DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
+
+	uint8_t *platformInformationAddress = findFramebufferId(framebufferId, static_cast<uint8_t *>(gPlatformInformationList), PAGE_SIZE);
+	if (platformInformationAddress) {
+		for (size_t i = 0; i < MaxFramebufferPatchCount; i++) {
+			if (!framebufferPatches[i].find || !framebufferPatches[i].replace)
+				continue;
+
+			if (framebufferPatches[i].framebufferId != framebufferId)    {
+				framebufferId = framebufferPatches[i].framebufferId;
+				platformInformationAddress = findFramebufferId(framebufferId, static_cast<uint8_t *>(gPlatformInformationList), PAGE_SIZE);
+			}
+
+			if (!platformInformationAddress) {
+				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X not found", i, framebufferId);
+				continue;
+			}
+
+			if (framebufferPatches[i].find->getLength() != framebufferPatches[i].replace->getLength()) {
+				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X length mistmatch", i, framebufferId);
+				continue;
+			}
+
+			KernelPatcher::LookupPatch patch {};
+			patch.kext = currentFramebuffer;
+			patch.find = static_cast<const uint8_t *>(framebufferPatches[i].find->getBytesNoCopy());
+			patch.replace = static_cast<const uint8_t *>(framebufferPatches[i].replace->getBytesNoCopy());
+			patch.size = framebufferPatches[i].find->getLength();
+			patch.count = framebufferPatches[i].count;
+
+			if (applyPatch(patch, platformInformationAddress, PAGE_SIZE))
+				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X successful", i, framebufferId);
+			else
+				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X failed", i, framebufferId);
+
+			framebufferPatches[i].find->release();
+			framebufferPatches[i].find = nullptr;
+			framebufferPatches[i].replace->release();
+			framebufferPatches[i].replace = nullptr;
+		}
+	}
 }

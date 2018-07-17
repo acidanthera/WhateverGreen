@@ -274,21 +274,20 @@ private:
 	bool applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize);
 
 	/**
-	 *  Apply framebuffer patches
-	 */
-	void applyFramebufferPatches();
-
-	/**
 	 *  Patch platformInformationList
 	 *
 	 *  @param framebufferId               Framebuffer id
 	 *  @param platformInformationList     PlatformInformationList pointer
-	 *  @param platformInformationCount    Number of entries to in PlatformInformationList
 	 *
 	 *  @return true if patched anything
 	 */
 	template <typename T>
-	bool applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList, size_t platformInformationCount);
+	bool applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList);
+
+	/**
+	 *  Apply framebuffer patches
+	 */
+	void applyFramebufferPatches();
 };
 
 #endif /* kern_igfx_hpp */
