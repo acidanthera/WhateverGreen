@@ -322,4 +322,44 @@ struct PACKED FramebufferSKL {
 	uint32_t unk6[2];
 };
 
+struct PACKED FramebufferCFL {
+	uint32_t framebufferId;
+	uint32_t pad;
+	uint64_t fModelNameAddr;
+	/* While it is hard to be sure, because having 0 here results in online=true returned by
+	 * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+	 * so-called mobile framebufers are simply set to fail-safe defaults.
+	 * For some reason it is often called fDisabled...
+	 */
+	uint8_t  fMobile;
+	uint8_t  fPipeCount;
+	uint8_t  fPortCount;
+	uint8_t  fFBMemoryCount;
+	/* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+	uint32_t fStolenMemorySize;
+	/* This is for boot framebuffer from what I can understand */
+	uint32_t fFramebufferMemorySize;
+	uint32_t fUnifiedMemorySize;
+	uint32_t pad2[2];
+	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	FramebufferFlags flags;
+	/* Check DDI Buffer Translations in Linux driver for details. */
+	uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
+	uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
+	uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
+	uint8_t pad3;
+	uint32_t cameliaVersion;
+	uint64_t unk3[3];
+	uint32_t fNumTransactionsThreshold;
+	/* Defaults to 14, used when UseVideoTurbo bit is set */
+	uint32_t fVideoTurboFreq;
+	uint32_t pad4;
+	uint64_t fBTTArraySliceAddr;
+	uint64_t fBTTArrayNormalAddr;
+	uint64_t fBTTArrayHDMIAddr;
+	uint32_t fSliceCount;
+	uint32_t fEuCount;
+	uint32_t unk6[2];
+};
+
 #endif /* kern_fb_hpp */

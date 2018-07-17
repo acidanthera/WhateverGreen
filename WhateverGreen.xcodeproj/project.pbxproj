@@ -72,6 +72,7 @@
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CE271B4C1F319BD000D2BC1C /* reference.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = reference.cpp; sourceTree = "<group>"; };
+		CE363A7D20FE4EEC00ED7DC0 /* IntelFramebuffer.bt */ = {isa = PBXFileReference; lastKnownFileType = text; name = IntelFramebuffer.bt; path = Manual/IntelFramebuffer.bt; sourceTree = "<group>"; };
 		CE405EBA1E49DD7100AA0B3D /* kern_compression.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE405EBB1E49DD7100AA0B3D /* kern_disasm.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
 		CE405EBC1E49DD7100AA0B3D /* kern_file.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_file.hpp; sourceTree = "<group>"; };
@@ -166,12 +167,12 @@
 		1C748C291C21952C0024EED2 /* WhateverGreen */ = {
 			isa = PBXGroup;
 			children = (
-				E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */,
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
 				CEB402A71F181D8300716912 /* kern_atom.hpp */,
 				CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */,
 				CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */,
 				CEB402A41F17F5C400716912 /* kern_con.hpp */,
+				E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */,
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
@@ -198,6 +199,7 @@
 				1CF01C921C8CF997002DCEA3 /* Changelog.md */,
 				1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */,
 				1CF01C901C8CF97F002DCEA3 /* README.md */,
+				CE363A7D20FE4EEC00ED7DC0 /* IntelFramebuffer.bt */,
 			);
 			name = Docs;
 			sourceTree = "<group>";

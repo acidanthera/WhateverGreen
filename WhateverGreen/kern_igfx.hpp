@@ -56,8 +56,6 @@ private:
 			uint8_t FPFStolenMemorySize         :1;
 			uint8_t FPFFramebufferMemorySize    :1;
 			uint8_t FPFUnifiedMemorySize        :1;
-			uint8_t FPFBacklightFrequency       :1;
-			uint8_t FPFBacklightMax             :1;
 			uint8_t FPFFlags                    :1;
 			uint8_t FPFBTTableOffsetIndexSlice  :1;
 			uint8_t FPFBTTableOffsetIndexNormal :1;
@@ -111,7 +109,7 @@ private:
 	/**
 	 *  Framebuffer hard-code patch
 	 */
-	FramebufferSKL framebufferPatch {};
+	FramebufferCFL framebufferPatch {};
 
 	/**
 	 *  Maximum find / replace patches
@@ -189,11 +187,6 @@ private:
 	bool forceOpenGL {false};
 
 	/**
-	 *  Set to true to disable acceleration
-	 */
-	bool forceVesaMode {false};
-
-	/**
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};
@@ -207,6 +200,21 @@ private:
 	 *  Requires framebuffer modifications
 	 */
 	bool applyFramebufferPatch {false};
+
+	/**
+	 *  Perform framebuffer dump to /AppleIntelFramebufferNUM
+	 */
+	bool dumpFramebufferToDisk {false};
+
+	/**
+	 *  Framebuffer address space start
+	 */
+	uint8_t *framebufferStart {nullptr};
+
+	/**
+	 *  Framebuffer address space size
+	 */
+	size_t framebufferSize {0};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -255,7 +263,7 @@ private:
 	uint8_t *findFramebufferId(uint32_t framebufferId, uint8_t *startingAddress, size_t maxSize);
 
 	/**
-	 *  Patch data
+	 *  Patch data without changing kernel protection
 	 *
 	 *  @param patch            KernelPatcher instance
 	 *  @param startingAddress  Start address of data to search
@@ -264,6 +272,11 @@ private:
 	 *  @return true if patched anything
 	 */
 	bool applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize);
+
+	/**
+	 *  Apply framebuffer patches
+	 */
+	void applyFramebufferPatches();
 
 	/**
 	 *  Patch platformInformationList
