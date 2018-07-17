@@ -59,7 +59,7 @@ void SHIKI::init() {
 			}
 		}
 
-		DBGLOG("shiki", "will autodetect autodetect GFX %d whitelist %d", autodetectGFX, addExecutableWhitelist);
+		DBGLOG("shiki", "will autodetect autodetect GPU %d whitelist %d", autodetectGFX, addExecutableWhitelist);
 	}
 
 	if (PE_parse_boot_argn("-shikifps", &bootarg, sizeof(bootarg))) {

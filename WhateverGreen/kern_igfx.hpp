@@ -8,6 +8,8 @@
 #ifndef kern_igfx_hpp
 #define kern_igfx_hpp
 
+#include "kern_fb.hpp"
+
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
@@ -39,6 +41,93 @@ public:
 	bool processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 private:
+
+	/**
+	 *  Framebuffer patch flags
+	 */
+	union FramebufferPatchFlags {
+		struct FramebufferPatchFlagBits {
+			uint8_t FPFFramebufferId            :1;
+			uint8_t FPFModelNameAddr            :1;
+			uint8_t FPFMobile                   :1;
+			uint8_t FPFPipeCount                :1;
+			uint8_t FPFPortCount                :1;
+			uint8_t FPFFBMemoryCount            :1;
+			uint8_t FPFStolenMemorySize         :1;
+			uint8_t FPFFramebufferMemorySize    :1;
+			uint8_t FPFUnifiedMemorySize        :1;
+			uint8_t FPFBacklightFrequency       :1;
+			uint8_t FPFBacklightMax             :1;
+			uint8_t FPFFlags                    :1;
+			uint8_t FPFBTTableOffsetIndexSlice  :1;
+			uint8_t FPFBTTableOffsetIndexNormal :1;
+			uint8_t FPFBTTableOffsetIndexHDMI   :1;
+			uint8_t FPFCameliaVersion           :1;
+			uint8_t FPFNumTransactionsThreshold :1;
+			uint8_t FPFVideoTurboFreq           :1;
+			uint8_t FPFBTTArraySliceAddr        :1;
+			uint8_t FPFBTTArrayNormalAddr       :1;
+			uint8_t FPFBTTArrayHDMIAddr         :1;
+			uint8_t FPFSliceCount               :1;
+			uint8_t FPFEuCount                  :1;
+		} bits;
+		uint32_t value;
+	};
+
+	/**
+	 *  Connector patch flags
+	 */
+	union ConnectorPatchFlags {
+		struct ConnectorPatchFlagBits {
+			uint8_t CPFIndex        :1;
+			uint8_t CPFBusId        :1;
+			uint8_t CPFPipe         :1;
+			uint8_t CPFType         :1;
+			uint8_t CPFFlags        :1;
+		} bits;
+		uint32_t value;
+	};
+
+	/**
+	 *  Framebuffer find / replace patch struct
+	 */
+	struct FramebufferPatch {
+		uint32_t framebufferId;
+		OSData *find;
+		OSData *replace;
+		size_t count;
+	};
+
+	/**
+	 *  Framebuffer patching flags
+	 */
+	FramebufferPatchFlags framebufferPatchFlags {};
+
+	/**
+	 *  Connector patching flags
+	 */
+	ConnectorPatchFlags connectorPatchFlags[MaxFramebufferConnectorCount] {};
+
+	/**
+	 *  Framebuffer hard-code patch
+	 */
+	FramebufferSKL framebufferPatch {};
+
+	/**
+	 *  Maximum find / replace patches
+	 */
+	static constexpr size_t MaxFramebufferPatchCount = 10;
+
+	/**
+	 *  Framebuffer find / replace patches
+	 */
+	FramebufferPatch framebufferPatches[MaxFramebufferPatchCount] {};
+
+	/**
+	 *  External global variables
+	 */
+	void *gPlatformInformationList {nullptr};
+
 	/**
 	 *  Private self instance for callbacks
 	 */
@@ -73,6 +162,11 @@ private:
 	 *  Original IntelAccelerator::start function
 	 */
 	mach_vm_address_t orgAcceleratorStart {};
+
+	/**
+	 *  Original AppleIntelFramebufferController::getOSInformation function
+	 */
+	mach_vm_address_t orgGetOSInformation {};
 
 	/**
 	 *  Detected CPU generation of the host system
@@ -110,6 +204,11 @@ private:
 	bool avoidFirmwareLoading {false};
 
 	/**
+	 *  Requires framebuffer modifications
+	 */
+	bool applyFramebufferPatch {false};
+
+	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
 	 */
 	static IOReturn wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag);
@@ -128,6 +227,55 @@ private:
 	 *  IntelAccelerator::start wrapper to support vesa mode, force OpenGL, prevent fw loading, etc.
 	 */
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
+
+	/**
+	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
+	 */
+	static uint64_t wrapGetOSInformation(void *that);
+
+	/**
+	 *  Load user-specified arguments from IGPU device
+	 *
+	 *  @param igpu                IGPU device handle
+	 *  @param currentFramebuffer  current framebuffer id number
+	 *
+	 *  @return true if there is anything to do
+	 */
+	bool loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuffer);
+
+	/**
+	 *  Find the framebuffer id in data
+	 *
+	 *  @param framebufferId    Framebuffer id to search
+	 *  @param startingAddress  Start address of data to search
+	 *  @param maxSize          Maximum size of data to search
+	 *
+	 *  @return pointer to address in data or nullptr
+	 */
+	uint8_t *findFramebufferId(uint32_t framebufferId, uint8_t *startingAddress, size_t maxSize);
+
+	/**
+	 *  Patch data
+	 *
+	 *  @param patch            KernelPatcher instance
+	 *  @param startingAddress  Start address of data to search
+	 *  @param maxSize          Maximum size of data to search
+	 *
+	 *  @return true if patched anything
+	 */
+	bool applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize);
+
+	/**
+	 *  Patch platformInformationList
+	 *
+	 *  @param framebufferId               Framebuffer id
+	 *  @param platformInformationList     PlatformInformationList pointer
+	 *  @param platformInformationCount    Number of entries to in PlatformInformationList
+	 *
+	 *  @return true if patched anything
+	 */
+	template <typename T>
+	bool applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList, size_t platformInformationCount);
 };
 
 #endif /* kern_igfx_hpp */

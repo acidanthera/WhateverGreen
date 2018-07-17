@@ -28,6 +28,7 @@
 		CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB402A41F17F5C400716912 /* kern_con.hpp */; };
 		CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */; };
 		CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */; };
+		E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,6 +119,7 @@
 		CEB402A71F181D8300716912 /* kern_atom.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atom.hpp; sourceTree = "<group>"; };
 		CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_cdf.cpp; sourceTree = "<group>"; };
 		CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cdf.hpp; sourceTree = "<group>"; };
+		E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_fb.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,6 +166,7 @@
 		1C748C291C21952C0024EED2 /* WhateverGreen */ = {
 			isa = PBXGroup;
 			children = (
+				E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */,
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
 				CEB402A71F181D8300716912 /* kern_atom.hpp */,
 				CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */,
@@ -291,6 +294,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */,
+				E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */,
 				CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */,
 				CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */,
 				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
