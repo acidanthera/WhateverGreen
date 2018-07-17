@@ -314,7 +314,7 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebufferId) {
 	bool hasFramebufferPatch = false;
 
-	uint8_t framebufferPatchEnable = 0;
+	uint32_t framebufferPatchEnable = 0;
 	if (WIOKit::getOSDataValue(igpu, "framebuffer-patch-enable", framebufferPatchEnable) && framebufferPatchEnable) {
 		DBGLOG("igfx", "framebuffer-patch-enable %d", framebufferPatchEnable);
 

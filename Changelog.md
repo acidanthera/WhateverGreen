@@ -3,6 +3,8 @@ WhateverGreen Changelog
 
 #### v1.2.0
 - Merged GPU kexts into one (AMD, Intel, NVIDIA) including H/W acceleration (Shiki)
+- Added binary and structural Intel framebuffer patches (thx to headkaze)
+- Added Intel CFL support
 - Fixed certain AMD multimonitor issues
 - Enabled 10.14 support by default
 
