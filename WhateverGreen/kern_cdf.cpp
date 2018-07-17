@@ -151,6 +151,12 @@ static UserPatcher::ProcInfo procInfoSieHS { procWindowServerNew, procWindowServ
 CDF *CDF::callbackCDF;
 
 void CDF::init() {
+	disableHDMI20 = checkKernelArgument("-cdfoff");
+	if (disableHDMI20) {
+		SYSLOG("cdf", "disabling HDMI 2.0 unlock patches by argument");
+		return;
+	}
+
 	callbackCDF = this;
 	lilu.onKextLoadForce(kextList, arrsize(kextList));
 
@@ -177,6 +183,9 @@ void CDF::deinit() {
 }
 
 void CDF::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	if (disableHDMI20)
+		return;
+
 	bool hasNVIDIA = false;
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::NVIDIA) {
@@ -198,6 +207,9 @@ void CDF::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 }
 
 bool CDF::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	if (disableHDMI20)
+		return false;
+
 	if (kextList[KextGK100HalSys].loadIndex == index) {
 		KernelPatcher::LookupPatch patch {&kextList[KextGK100HalSys], gk100Find, gk100Repl, sizeof(gk100Find), 1};
 		patcher.applyLookupPatch(&patch);

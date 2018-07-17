@@ -132,8 +132,11 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
 
+		// Automatically enable HDMI -> DP patches
+		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
+
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !hdmiAutopatch;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -182,7 +185,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (applyFramebufferPatch || dumpFramebufferToDisk) {
+		if (applyFramebufferPatch || dumpFramebufferToDisk || hdmiAutopatch) {
 			gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
 			if (gPlatformInformationList) {
 				framebufferStart = reinterpret_cast<uint8_t *>(address);
@@ -307,6 +310,8 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 
 	if (callbackIGFX->applyFramebufferPatch)
 		callbackIGFX->applyFramebufferPatches();
+	else if (callbackIGFX->hdmiAutopatch)
+		callbackIGFX->applyHdmiAutopatch();
 
 	return FunctionCast(wrapGetOSInformation, callbackIGFX->orgGetOSInformation)(that);
 }
@@ -484,20 +489,18 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 					platformInformationList[i].connectors[j].flags = framebufferPatch.connectors[j].flags;
 
 				if (connectorPatchFlags[j].value) {
-					DBGLOG("igfx", "Patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", framebufferId, platformInformationList[i].connectors[j].index, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe, platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags.value);
+					DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", framebufferId, platformInformationList[i].connectors[j].index, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe, platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags.value);
 
 					framebufferFound = true;
 				}
 			}
 
 			if (framebufferPatchFlags.value) {
-				DBGLOG("igfx", "Patching framebufferId 0x%08X", framebufferId);
-				DBGLOG("igfx", "Mobile: 0x%08X", platformInformationList[i].fMobile);
-				DBGLOG("igfx", "PipeCount: %d", platformInformationList[i].fPipeCount);
-				DBGLOG("igfx", "PortCount: %d", platformInformationList[i].fPortCount);
-				DBGLOG("igfx", "FBMemoryCount: %d", platformInformationList[i].fFBMemoryCount);
-				DBGLOG("igfx", "BacklightFrequency: %d", platformInformationList[i].fBacklightFrequency);
-				DBGLOG("igfx", "BacklightMax: %d", platformInformationList[i].fBacklightMax);
+				DBGLOG("igfx", "patching framebufferId 0x%08X", framebufferId);
+				DBGLOG("igfx", "mobile: 0x%08X", platformInformationList[i].fMobile);
+				DBGLOG("igfx", "pipeCount: %d", platformInformationList[i].fPipeCount);
+				DBGLOG("igfx", "portCount: %d", platformInformationList[i].fPortCount);
+				DBGLOG("igfx", "fbMemoryCount: %d", platformInformationList[i].fFBMemoryCount);
 
 				framebufferFound = true;
 			}
@@ -537,14 +540,14 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 		frame->fUnifiedMemorySize = framebufferPatch.fUnifiedMemorySize;
 
 	if (framebufferPatchFlags.value) {
-		DBGLOG("igfx", "Patching framebufferId 0x%08X", frame->framebufferId);
-		DBGLOG("igfx", "Mobile: 0x%08X", frame->fMobile);
-		DBGLOG("igfx", "PipeCount: %d", frame->fPipeCount);
-		DBGLOG("igfx", "PortCount: %d", frame->fPortCount);
-		DBGLOG("igfx", "FBMemoryCount: %d", frame->fFBMemoryCount);
-		DBGLOG("igfx", "StolenMemorySize: 0x%08X", frame->fStolenMemorySize);
-		DBGLOG("igfx", "FramebufferMemorySize: 0x%08X", frame->fFramebufferMemorySize);
-		DBGLOG("igfx", "UnifiedMemorySize: 0x%08X", frame->fUnifiedMemorySize);
+		DBGLOG("igfx", "patching framebufferId 0x%08X", frame->framebufferId);
+		DBGLOG("igfx", "mobile: 0x%08X", frame->fMobile);
+		DBGLOG("igfx", "pipeCount: %d", frame->fPipeCount);
+		DBGLOG("igfx", "portCount: %d", frame->fPortCount);
+		DBGLOG("igfx", "fbMemoryCount: %d", frame->fFBMemoryCount);
+		DBGLOG("igfx", "stolenMemorySize: 0x%08X", frame->fStolenMemorySize);
+		DBGLOG("igfx", "framebufferMemorySize: 0x%08X", frame->fFramebufferMemorySize);
+		DBGLOG("igfx", "unifiedMemorySize: 0x%08X", frame->fUnifiedMemorySize);
 		r = true;
 	}
 
@@ -565,9 +568,27 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 			frame->connectors[j].flags = framebufferPatch.connectors[j].flags;
 
 		if (connectorPatchFlags[j].value) {
-			DBGLOG("igfx", "Patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", frame->framebufferId, frame->connectors[j].index, frame->connectors[j].busId, frame->connectors[j].pipe, frame->connectors[j].type, frame->connectors[j].flags.value);
+			DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", frame->framebufferId, frame->connectors[j].index, frame->connectors[j].busId, frame->connectors[j].pipe, frame->connectors[j].type, frame->connectors[j].flags.value);
 
 			r = true;
+		}
+	}
+
+	return true;
+}
+
+template <typename T>
+bool IGFX::applyDPtoHDMIPatch(uint32_t framebufferId, T *platformInformationList) {
+	auto frame = reinterpret_cast<T *>(findFramebufferId(framebufferId, reinterpret_cast<uint8_t *>(platformInformationList), PAGE_SIZE));
+	if (!frame)
+		return false;
+
+	bool found = false;
+	for (size_t i = 0; i < MaxFramebufferConnectorCount; i++) {
+		if (frame->connectors[i].type == ConnectorDP) {
+			frame->connectors[i].type = ConnectorHDMI;
+			DBGLOG("igfx", "replaced connector %ld type from DP to HDMI", i);
+			found = true;
 		}
 	}
 
@@ -577,25 +598,27 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 void IGFX::applyFramebufferPatches() {
 	uint32_t framebufferId = framebufferPatch.framebufferId;
 
-	bool success = false;
+	// Not tested prior to 10.10.5, and definitely different on 10.9.5 at least.
+	if (getKernelVersion() >= KernelVersion::Yosemite) {
+		bool success = false;
+		if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSNB *>(gPlatformInformationList));
+		else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferIVB *>(gPlatformInformationList));
+		else if (cpuGeneration == CPUInfo::CpuGeneration::Haswell)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferHSW *>(gPlatformInformationList));
+		else if (cpuGeneration == CPUInfo::CpuGeneration::Broadwell)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferBDW *>(gPlatformInformationList));
+		else if (cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
+		else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
 
-	if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
-		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSNB *>(gPlatformInformationList));
-	else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
-		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferIVB *>(gPlatformInformationList));
-	else if (cpuGeneration == CPUInfo::CpuGeneration::Haswell)
-		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferHSW *>(gPlatformInformationList));
-	else if (cpuGeneration == CPUInfo::CpuGeneration::Broadwell)
-		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferBDW *>(gPlatformInformationList));
-	else if (cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)
-		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
-	else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
-		success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
-
-	if (success)
-		DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
-	else
-		DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
+		if (success)
+			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
+		else
+			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
+	}
 
 	uint8_t *platformInformationAddress = findFramebufferId(framebufferId, static_cast<uint8_t *>(gPlatformInformationList), PAGE_SIZE);
 	if (platformInformationAddress) {
@@ -636,4 +659,27 @@ void IGFX::applyFramebufferPatches() {
 			framebufferPatches[i].replace = nullptr;
 		}
 	}
+}
+
+void IGFX::applyHdmiAutopatch() {
+	uint32_t framebufferId = framebufferPatch.framebufferId;
+
+	bool success = false;
+	if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferSNB *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferIVB *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::Haswell)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferHSW *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::Broadwell)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferBDW *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
+
+	if (success)
+		DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
+	else
+		DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
 }

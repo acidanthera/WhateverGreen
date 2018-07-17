@@ -44,8 +44,10 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `ngfxsubmit=0` boot argument to disable interface stuttering fix on 10.13
 - `igfxrst=1` to prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying.  
 - `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).  
-- `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs  
-- `igfxgl=0` to disable Metal support on Intel
+- `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.  
+- `igfxgl=0` to disable Metal support on Intel.  
+`-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.  
+- `-cdfoff` to disable HDMI 2.0 patches.  
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS

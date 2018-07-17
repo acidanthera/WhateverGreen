@@ -207,6 +207,11 @@ private:
 	bool dumpFramebufferToDisk {false};
 
 	/**
+	 *  Perform automatic DP -> HDMI replacement
+	 */
+	bool hdmiAutopatch {false};
+
+	/**
 	 *  Framebuffer address space start
 	 */
 	uint8_t *framebufferStart {nullptr};
@@ -288,6 +293,22 @@ private:
 	 *  Apply framebuffer patches
 	 */
 	void applyFramebufferPatches();
+
+	/**
+	 *  Patch platformInformationList with DP to HDMI connector type replacements
+	 *
+	 *  @param framebufferId               Framebuffer id
+	 *  @param platformInformationList     PlatformInformationList pointer
+	 *
+	 *  @return true if patched anything
+	 */
+	template <typename T>
+	bool applyDPtoHDMIPatch(uint32_t framebufferId, T *platformInformationList);
+
+	/**
+	 *  Apply DP to HDMI automatic connector type changes
+	 */
+	void applyHdmiAutopatch();
 };
 
 #endif /* kern_igfx_hpp */

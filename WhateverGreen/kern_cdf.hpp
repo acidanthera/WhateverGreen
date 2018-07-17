@@ -52,6 +52,11 @@ private:
 	 *  Current binary modification containing the right framework mod
 	 */
 	UserPatcher::BinaryModInfo *currentModInfo {nullptr};
+
+	/**
+	 *  Disable the patches based on -cdfoff boot-arg
+	 */
+	bool disableHDMI20 = false;
 };
 
 #endif /* kern_cdf_hpp */
