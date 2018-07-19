@@ -142,6 +142,11 @@ private:
 	KernelPatcher::KextInfo *currentFramebuffer {nullptr};
 
 	/**
+	 *  Current framebuffer optional kext used for modification
+	 */
+	KernelPatcher::KextInfo *currentFramebufferOpt {nullptr};
+
+	/**
 	 *  Original PAVP session callback function used for PAVP command handling
 	 */
 	mach_vm_address_t orgPavpSessionCallback {};

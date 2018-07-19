@@ -82,6 +82,8 @@ void IGFX::init() {
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelCFLFb;
+			// Allow faking ask KBL
+			currentFramebufferOpt = &kextIntelKBLFb;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -93,6 +95,9 @@ void IGFX::init() {
 
 	if (currentFramebuffer)
 		lilu.onKextLoadForce(currentFramebuffer);
+
+	if (currentFramebufferOpt)
+		lilu.onKextLoadForce(currentFramebufferOpt);
 }
 
 void IGFX::deinit() {
@@ -145,8 +150,12 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	if (switchOffGraphics && currentGraphics)
 		currentGraphics->switchOff();
 
-	if (switchOffFramebuffer && currentFramebuffer)
-		currentFramebuffer->switchOff();
+	if (switchOffFramebuffer) {
+		if (currentFramebuffer)
+			currentFramebuffer->switchOff();
+		if (currentFramebufferOpt)
+			currentFramebufferOpt->switchOff();
+	}
 
 	if (moderniseAccelerator) {
 		KernelPatcher::RouteRequest request("__ZN9IOService20copyExistingServicesEP12OSDictionaryjj", wrapCopyExistingServices, orgCopyExistingServices);
@@ -179,7 +188,8 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		return true;
 	}
 
-	if (currentFramebuffer && currentFramebuffer->loadIndex == index) {
+	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
+		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
 		if (blackScreenPatch) {
 			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj", wrapComputeLaneCount, orgComputeLaneCount);
 			patcher.routeMultiple(index, &request, 1, address, size);
@@ -208,10 +218,8 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				patcher.clearError();
 			}
 		}
-
 		return true;
 	}
-
 
 	return false;
 }
