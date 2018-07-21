@@ -5,3 +5,8 @@ xcuserdata
 project.xcworkspace
 WhateverGreen/kern_resources.cpp
 WhateverGreen/kern_resources.hpp
+Tools/BoardHash/BoardHash
+Tools/GPUInfo/gpuinfo
+Tools/HookMac/libHookMac.dylib
+Tools/WhateverName/WhateverName.app/Contents/MacOS/libWhateverName.dylib
+
