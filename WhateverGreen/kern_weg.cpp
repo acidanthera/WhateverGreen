@@ -202,7 +202,7 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 	auto name = device->getName();
 
 	// There could be only one IGPU, and it must be named IGPU for AppleGVA to function properly.
-	if (!name || strcmp(name, "IGPU"))
+	if (!name || strcmp(name, "IGPU") != 0)
 		WIOKit::renameDevice(device, "IGPU");
 
 	// Obtain the real device info, should we cast to IOPCIDevice here?
@@ -269,7 +269,7 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 
 	// It is unclear how to properly name the GPUs, and supposedly it does not really matter.
 	// However, we will try to at least name them in a unique manner (GFX0, GFX1, ...)
-	if (currentExternalGfxIndex <= MaxExternalGfxIndex && (!name || strncmp(name, "GFX", strlen("GFX")))) {
+	if (currentExternalGfxIndex <= MaxExternalGfxIndex && (!name || strncmp(name, "GFX", strlen("GFX")) != 0)) {
 		char name[16];
 		snprintf(name, sizeof(name), "GFX%d", currentExternalGfxIndex++);
 		WIOKit::renameDevice(device, name);
@@ -314,7 +314,7 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 void WEG::processManagementEngineProperties(IORegistryEntry *imei) {
 	auto name = imei->getName();
 	// Rename mislabeled IMEI device
-	if (!name || strcmp(name, "IMEI"))
+	if (!name || strcmp(name, "IMEI") != 0)
 		WIOKit::renameDevice(imei, "IMEI");
 
 	uint32_t device = 0;

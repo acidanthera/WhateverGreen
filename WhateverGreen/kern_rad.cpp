@@ -674,7 +674,7 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 			if (provider) prefix = "CAIL,";
 		}
 
-		if (prefix) {
+		if (prefix && provider) {
 			DBGLOG("rad", "GetProperty discovered property merge request for %s", aKey);
 			auto newProps = OSDynamicCast(OSDictionary, props->copyCollection());
 			callbackRAD->mergeProperties(newProps, prefix, provider);

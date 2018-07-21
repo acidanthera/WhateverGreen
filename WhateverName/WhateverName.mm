@@ -160,7 +160,7 @@ static uint32_t initialiseDeviceInfo(uint8_t *device, mach_port_t port) {
 		
 		// Intel is special, don't mess with it
 		// Fix two spaces for "Compute Engine" on NVIDIA and the complete mess on ATI/AMD
-		if (strncmp(modelName, "Intel", strlen("Intel"))) {
+		if (strncmp(modelName, "Intel", strlen("Intel")) != 0) {
 			char *engines[NumEngines] {};
 			const char *vendorName = nullptr;
 			lookupOffsets(device, engines, vendorName);
@@ -335,7 +335,7 @@ id productName(id that, SEL sel) {
 		DBGLOG("Got NVMTLDevice deviceRef %p at %td with %p", var, offset, accelDevice);
 		
 		char modelName[EngineLength] {};
-		if (getGPUModel(accelDevice, MACH_PORT_NULL, modelName) && strncmp(modelName, "Intel", strlen("Intel"))) {
+		if (getGPUModel(accelDevice, MACH_PORT_NULL, modelName) && strncmp(modelName, "Intel", strlen("Intel")) != 0) {
 			int num {0};
 			auto product = getGPUModelSubsr(modelName, ModelSubstr::Product, num);
 			DBGLOG("Found GPU name %s its product is %.*s", modelName, num, product);
@@ -357,7 +357,7 @@ id familyName(id that, SEL sel) {
 		DBGLOG("Got NVMTLDevice deviceRef %p at %td with %p", var, offset, accelDevice);
 		
 		char modelName[EngineLength] {};
-		if (getGPUModel(accelDevice, MACH_PORT_NULL, modelName) && strncmp(modelName, "Intel", strlen("Intel"))) {
+		if (getGPUModel(accelDevice, MACH_PORT_NULL, modelName) && strncmp(modelName, "Intel", strlen("Intel")) != 0) {
 			int num {0};
 			auto family = getGPUModelSubsr(modelName, ModelSubstr::Family, num);
 			DBGLOG("Found GPU name %s its family is %.*s", modelName, num, family);

@@ -3,7 +3,7 @@
  *
  *      File: Intel Framebuffer kexts from 10.13.3
  *   Authors: vit9696
- *   Version: 0.5
+ *   Version: 0.6
  *   Purpose: Intel Framebuffer decoding
  *
  * Copyright (c) 2018 vit9696
@@ -18,6 +18,10 @@ LittleEndian();
  * https://github.com/Piker-Alpha/AppleIntelFramebufferAzul.sh/blob/master/AppleIntelFramebufferAzul.sh
  * https://www.tonymacx86.com/threads/skylake-intel-hd-530-integrated-graphics-working-as-of-10-11-4.188891/page-29#post-1297155
  * https://pikeralpha.wordpress.com/2013/08/02/appleintelframebufferazul-kext-part-ii/
+ */
+
+/**
+ * Please note, that CFL and onwards are in a very draft state, and may contain partially invalid data!!!
  */
 
 typedef unsigned char uint8_t;
@@ -37,7 +41,9 @@ enum <uint32_t> FirstFramebuffer {
     FirstBroadwellId   = 0x16060000,
     FirstSkylakeId     = 0x191e0000,
     FirstKabyLakeId    = 0x591e0000,
-    FirstCoffeeLakeId  = 0x3ea50009
+    FirstCoffeeLakeId  = 0x3ea50009,
+    FirstCannonLakeId  = 0x5a510009,
+    FirstIceLakeId     = 0xff050000, /* LP and HP share the table */
 };
 
 enum <uint32_t> CameliaVersion {
@@ -244,6 +250,16 @@ struct ConnectorInfo {
     ConnectorFlags flags <read=connectorFlagsToPrintable>;
 };
 
+/* Wide connector type format */
+struct ConnectorInfoICL {
+    uint32_t index;
+    uint32_t busId;
+    uint32_t pipe;
+    uint32_t pad;
+    ConnectorType type <read=connectorTypeToPrintable>;
+    ConnectorFlags flags <read=connectorFlagsToPrintable>;
+};
+
 /* It should be noted that some displays use more than 1 pipe, so maxPipes != maxDisplays. */
 
 struct FramebufferSNB {
@@ -362,8 +378,11 @@ struct FramebufferBDW {
 
 struct FramebufferSKL {
     uint32_t framebufferId;
-    uint32_t pad;
-    Assert(pad == 0, "Non-zero sequence");
+    /* Unclear what values really are, yet 4 stands for non-LP chipset.
+     * See AppleIntelFramebufferController::start.
+     */
+    uint32_t fPchType;
+    Assert(fPchType == 0, "Non-zero PCH type");
     uint64_t fModelNameAddr <read=modelNameAddrToPrintable>;
     /* While it is hard to be sure, because having 0 here results in online=true returned by
      * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
@@ -381,23 +400,23 @@ struct FramebufferSKL {
     uint32_t fUnifiedMemorySize <read=bytesToPrintable>;
     uint32_t fBacklightFrequency <read=frequencyToPrintable>;
     uint32_t fBacklightMax <read=frequencyToPrintable>;
-    uint32_t pad2[2];
-    Assert(pad2[0] == 0 && pad2[1] == 0, "Non-zero sequence");
+    uint32_t pad1[2];
+    Assert(pad1[0] == 0 && pad1[1] == 0, "Non-zero sequence");
     ConnectorInfo connectors[4] <read=connectorToPrintable, optimize=false>;
     FramebufferFlags flags <read=framebufferFlagsToPrintable>;
     /* Check DDI Buffer Translations in Linux driver for details. */
     uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
     uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
     uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
-    uint8_t pad3;
-    Assert(pad3 == 0, "Non-zero sequence");
+    uint8_t pad2;
+    Assert(pad2 == 0, "Non-zero sequence");
     uint32_t cameliaVersion <read=cameliaToPrintable>;
     uint64_t unk3[3];
     uint32_t fNumTransactionsThreshold;
     /* Defaults to 14, used when UseVideoTurbo bit is set */
     uint32_t fVideoTurboFreq;
-    uint32_t pad4;
-    Assert(pad4 == 0, "Non-zero sequence");
+    uint32_t pad3;
+    Assert(pad3 == 0, "Non-zero sequence");
     uint64_t fBTTArraySliceAddr;
     uint64_t fBTTArrayNormalAddr;
     uint64_t fBTTArrayHDMIAddr;
@@ -408,8 +427,11 @@ struct FramebufferSKL {
 
 struct FramebufferCFL {
     uint32_t framebufferId;
-    uint32_t pad;
-    Assert(pad == 0, "Non-zero sequence");
+    /* Unclear what values really are, yet 4 stands for non-LP chipset.
+     * See AppleIntelFramebufferController::start.
+     */
+    uint32_t fPchType;
+    Assert(fPchType == 0, "Non-zero PCH type");
     uint64_t fModelNameAddr <read=modelNameAddrToPrintable>;
     /* While it is hard to be sure, because having 0 here results in online=true returned by
      * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
@@ -425,29 +447,163 @@ struct FramebufferCFL {
     /* This is for boot framebuffer from what I can understand */
     uint32_t fFramebufferMemorySize <read=bytesToPrintable>;
     uint32_t fUnifiedMemorySize <read=bytesToPrintable>;
-    uint32_t pad2[2];
-    Assert(pad2[0] == 0 && pad2[1] == 0, "Non-zero sequence");
+    uint32_t pad1[2];
+    Assert(pad1[0] == 0 && pad1[1] == 0, "Non-zero sequence");
     ConnectorInfo connectors[4] <read=connectorToPrintable, optimize=false>;
     FramebufferFlags flags <read=framebufferFlagsToPrintable>;
     /* Check DDI Buffer Translations in Linux driver for details. */
     uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
     uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
     uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
-    uint8_t pad3;
-    Assert(pad3 == 0, "Non-zero sequence");
+    uint8_t pad2;
+    Assert(pad2 == 0, "Non-zero sequence");
     uint32_t cameliaVersion <read=cameliaToPrintable>;
     uint64_t unk3[3];
     uint32_t fNumTransactionsThreshold;
     /* Defaults to 14, used when UseVideoTurbo bit is set */
     uint32_t fVideoTurboFreq;
-    uint32_t pad4;
-    Assert(pad4 == 0, "Non-zero sequence");
+    uint32_t pad3;
+    Assert(pad3 == 0, "Non-zero sequence");
     uint64_t fBTTArraySliceAddr;
     uint64_t fBTTArrayNormalAddr;
     uint64_t fBTTArrayHDMIAddr;
     uint32_t fSliceCount;
     uint32_t fEuCount;
     uint32_t unk6[2];
+    local uint32_t fBacklightFrequency <read=frequencyToPrintable> = 0 ;
+    local uint32_t fBacklightMax <read=frequencyToPrintable> = 0;
+};
+
+/* Not sure what it is, in CNL value2 is a pointer, and value1 could be size.  */
+struct FramebufferCNLCurrents {
+    uint64_t value1;
+    uint64_t valu2;
+};
+
+struct FramebufferCNL {
+    uint32_t framebufferId;
+    /* Unclear what values really are, yet 4 stands for non-LP chipset.
+     * See AppleIntelFramebufferController::start.
+     */
+    uint32_t fPchType;
+    Assert(fPchType == 0, "Non-zero fPchType");
+    uint64_t fModelNameAddr <read=modelNameAddrToPrintable>;
+    /* While it is hard to be sure, because having 0 here results in online=true returned by
+     * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+     * so-called mobile framebufers are simply set to fail-safe defaults.
+     * For some reason it is often called fDisabled...
+     */
+    uint8_t  fMobile;
+    uint8_t  fPipeCount;
+    uint8_t  fPortCount;
+    uint8_t  fFBMemoryCount;
+    /* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+    uint32_t fStolenMemorySize <read=bytesToPrintable>;
+    /* This is for boot framebuffer from what I can understand */
+    uint32_t fFramebufferMemorySize <read=bytesToPrintable>;
+    uint32_t fUnifiedMemorySize <read=bytesToPrintable>;
+    uint32_t pad1[2];
+    Assert(pad1[0] == 0 && pad1[1] == 0, "Non-zero sequence");
+    ConnectorInfo connectors[4] <read=connectorToPrintable, optimize=false>;
+    FramebufferFlags flags <read=framebufferFlagsToPrintable>;
+    /* Check DDI Buffer Translations in Linux driver for details. */
+    uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
+    uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
+    uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
+    uint8_t pad2;
+    Assert(pad2 == 0, "Non-zero sequence");
+    uint64_t unk1[5];
+    uint64_t fBTTArraySliceAddr;
+    uint64_t fBTTArrayNormalAddr;
+    uint64_t fBTTArrayHDMIAddr;
+    FramebufferCNLCurrents currents[8];
+    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint64_t unk2[3];
+    uint32_t fNumTransactionsThreshold;
+    /* Defaults to 14, used when UseVideoTurbo bit is set */
+    uint32_t fVideoTurboFreq;
+    uint32_t fSliceCount;
+    uint32_t fEuCount;
+    uint32_t unk4;
+    uint32_t unk5[2];
+    local uint32_t fBacklightFrequency <read=frequencyToPrintable> = 0 ;
+    local uint32_t fBacklightMax <read=frequencyToPrintable> = 0;
+};
+
+struct FramebufferICLHP {
+    uint32_t framebufferId;
+    /* Unclear what values really are, yet 4 stands for non-LP chipset.
+     * See AppleIntelFramebufferController::start.
+     */
+    uint32_t fPchType;
+    uint64_t fModelNameAddr <read=modelNameAddrToPrintable>;
+    /* While it is hard to be sure, because having 0 here results in online=true returned by
+     * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+     * so-called mobile framebufers are simply set to fail-safe defaults.
+     * For some reason it is often called fDisabled...
+     */
+    uint8_t  fMobile;
+    uint8_t  fPipeCount;
+    uint8_t  fPortCount;
+    uint8_t  fFBMemoryCount;
+    /* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+    uint32_t fStolenMemorySize <read=bytesToPrintable>;
+    /* This is for boot framebuffer from what I can understand */
+    uint32_t fFramebufferMemorySize <read=bytesToPrintable>;
+    uint32_t fUnifiedMemorySize <read=bytesToPrintable>;
+    uint32_t fBacklightFrequency <read=frequencyToPrintable>;
+    uint32_t fBacklightMax <read=frequencyToPrintable>;
+    uint32_t pad1[2];
+    Assert(pad1[0] == 0 && pad1[1] == 0, "Non-zero sequence");
+    ConnectorInfoICL connectors[3] <read=wideConnectorToPrintable, optimize=false>;
+    FramebufferFlags flags <read=framebufferFlagsToPrintable>;
+    FramebufferCNLCurrents currents[8];
+    uint32_t unk2[5];
+    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t unk3[6];
+    /* Defaults to 14, used when UseVideoTurbo bit is set */
+    uint32_t fNumTransactionsThreshold;
+    uint32_t fVideoTurboFreq;
+    uint32_t fSliceCount;
+    uint32_t fEuCount;
+    uint32_t unk4;
+};
+
+struct FramebufferICLLP {
+    uint32_t framebufferId;
+    /* Unclear what values really are, yet 4 stands for non-LP chipset.
+     * See AppleIntelFramebufferController::start.
+     */
+    uint32_t fPchType;
+    uint64_t fModelNameAddr <read=modelNameAddrToPrintable>;
+    /* While it is hard to be sure, because having 0 here results in online=true returned by
+     * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+     * so-called mobile framebufers are simply set to fail-safe defaults.
+     * For some reason it is often called fDisabled...
+     */
+    uint8_t  fMobile;
+    uint8_t  fPipeCount;
+    uint8_t  fPortCount;
+    uint8_t  fFBMemoryCount;
+    /* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+    uint32_t fStolenMemorySize <read=bytesToPrintable>;
+    /* This is for boot framebuffer from what I can understand */
+    uint32_t fFramebufferMemorySize <read=bytesToPrintable>;
+    uint32_t fUnifiedMemorySize <read=bytesToPrintable>;
+    uint32_t pad1[2];
+    Assert(pad1[0] == 0 && pad1[1] == 0, "Non-zero sequence");
+    ConnectorInfoICL connectors[3] <read=wideConnectorToPrintable, optimize=false>;
+    FramebufferFlags flags <read=framebufferFlagsToPrintable>;
+    FramebufferCNLCurrents currents[8];
+    uint32_t unk2[5];
+    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t unk3[6];
+    /* Defaults to 14, used when UseVideoTurbo bit is set */
+    uint32_t fNumTransactionsThreshold;
+    uint32_t fVideoTurboFreq;
+    uint32_t fSliceCount;
+    uint32_t fEuCount;
+    uint32_t unk4;
     local uint32_t fBacklightFrequency <read=frequencyToPrintable> = 0 ;
     local uint32_t fBacklightMax <read=frequencyToPrintable> = 0;
 };
@@ -498,9 +654,27 @@ string connectorToPrintable(ConnectorInfo &con) {
     return out;
 }
 
+string wideConnectorToPrintable(ConnectorInfoICL &con) {
+    local string out;
+    SPrintf(out, "[%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X - %s", con.index, con.busId, con.pipe, con.type, con.flags.value, EnumToString(con.type));
+    return out;
+}
+
 string connectorToHex(ConnectorInfo &c) {
     local string out;
     SPrintf(out, "%02X%02X%02X%02X %08X %08X", c.index, c.busId, c.pipe, c.pad, 
+        ((c.type>>24)&0xff) | ((c.type<<8)&0xff0000) | ((c.type>>8)&0xff00) | ((c.type<<24)&0xff000000),
+        ((c.flags.value>>24)&0xff) | ((c.flags.value<<8)&0xff0000) | ((c.flags.value>>8)&0xff00) | ((c.flags.value<<24)&0xff000000));
+    return out;
+}
+
+string wideConnectorToHex(ConnectorInfoICL &c) {
+    local string out;
+    SPrintf(out, "%08X %08X %08X %08X %08X %08X",
+        ((c.index>>24)&0xff) | ((c.index<<8)&0xff0000) | ((c.index>>8)&0xff00) | ((c.index<<24)&0xff000000),
+        ((c.busId>>24)&0xff) | ((c.busId<<8)&0xff0000) | ((c.busId>>8)&0xff00) | ((c.busId<<24)&0xff000000),
+        ((c.pipe>>24)&0xff) | ((c.pipe<<8)&0xff0000) | ((c.pipe>>8)&0xff00) | ((c.pipe<<24)&0xff000000),
+        ((c.pad>>24)&0xff) | ((c.pad<<8)&0xff0000) | ((c.pad>>8)&0xff00) | ((c.pad<<24)&0xff000000),
         ((c.type>>24)&0xff) | ((c.type<<8)&0xff0000) | ((c.type>>8)&0xff00) | ((c.type<<24)&0xff000000),
         ((c.flags.value>>24)&0xff) | ((c.flags.value<<8)&0xff0000) | ((c.flags.value>>8)&0xff00) | ((c.flags.value<<24)&0xff000000));
     return out;
@@ -564,6 +738,27 @@ string framebufferCFLToPrintable(FramebufferCFL &fb) {
     return out;
 }
 
+string framebufferCNLToPrintable(FramebufferCNL &fb) {
+    local string out;
+    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    return out;
+}
+
+string framebufferICLHPToPrintable(FramebufferICLHP &fb) {
+    local string out;
+    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    return out;
+}
+
+string framebufferICLLPToPrintable(FramebufferICLLP &fb) {
+    local string out;
+    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    return out;
+}
+
 /* Skip a little data to speedup the search. */
 local int64_t pos = 0x20000, size = FileSize();
 local uint32_t i = 0, j = 0;
@@ -579,6 +774,7 @@ if (magic != 0xFEEDFACF) {
 }
 
 local uint64_t textSlide = ReadUInt64(0x38);
+local uint32_t isLowProfile = FindFirst("ICLLP") > 0;
 
 while (pos < size) {
     /* Skip to platforms... */
@@ -586,7 +782,8 @@ while (pos < size) {
     if (firstId != FirstSandyBridgeId && firstId != FirstIvyBridgeId &&
         firstId != FirstHaswellId && firstId != FirstBroadwellId &&
         firstId != FirstSkylakeId && firstId != FirstKabyLakeId &&
-        firstId != FirstCoffeeLakeId) {
+        firstId != FirstCoffeeLakeId && firstId != FirstCannonLakeId &&
+        firstId != FirstIceLakeId) {
         pos += sizeof(uint32_t);
         continue;
     }
@@ -606,6 +803,12 @@ while (pos < size) {
             FramebufferSKL frames <optimize=false, read=framebufferSKLToPrintable>;
         else if (firstId == FirstCoffeeLakeId)
             FramebufferCFL frames <optimize=false, read=framebufferCFLToPrintable>;
+        else if (firstId == FirstCannonLakeId)
+            FramebufferCNL frames <optimize=false, read=framebufferCNLToPrintable>;
+        else if (firstId == FirstIceLakeId && isLowProfile)
+            FramebufferICLLP frames <optimize=false, read=framebufferICLLPToPrintable>;
+        else if (firstId == FirstIceLakeId)
+            FramebufferICLHP frames <optimize=false, read=framebufferICLHPToPrintable>;
         Printf("ID: %s, STOLEN: %s, FBMEM: %s, VRAM: %s, Flags: 0x%08X\n", frameIdFromIndex(frames[i].framebufferId, i),
             bytesToPrintable(frames[i].fStolenMemorySize), bytesToPrintable(frames[i].fFramebufferMemorySize), 
             bytesToPrintable(frames[i].fUnifiedMemorySize), firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId ? 0 : frames[i].flags.value);
@@ -620,10 +823,17 @@ while (pos < size) {
             frequencyToPrintable(frames[i].fBacklightFrequency), frequencyToPrintable(frames[i].fBacklightMax));
         Printf("Mobile: %d, PipeCount: %d, PortCount: %d, FBMemoryCount: %d\n", frames[i].fMobile, frames[i].fPipeCount,
             frames[i].fPortCount, frames[i].fFBMemoryCount);
-        for (j = 0; j < frames[i].fPortCount; j++)
-            Printf("%s\n", connectorToPrintable(frames[i].connectors[j]));
-        for (j = 0; j < frames[i].fPortCount; j++)
-            Printf("%s\n", connectorToHex(frames[i].connectors[j]));
+        if (firstId == FirstIceLakeId) {
+            for (j = 0; j < frames[i].fPortCount; j++)
+                Printf("%s\n", wideConnectorToPrintable(frames[i].connectors[j]));
+            for (j = 0; j < frames[i].fPortCount; j++)
+                Printf("%s\n", wideConnectorToHex(frames[i].connectors[j]));
+        } else {
+            for (j = 0; j < frames[i].fPortCount; j++)
+                Printf("%s\n", connectorToPrintable(frames[i].connectors[j]));
+            for (j = 0; j < frames[i].fPortCount; j++)
+                Printf("%s\n", connectorToHex(frames[i].connectors[j]));
+        }
         Printf("\n");
         /* There is no -1 termination on Sandy */
         if (firstId == FirstSandyBridgeId && i == 7) break;
@@ -676,4 +886,9 @@ if (firstId == FirstSandyBridgeId) {
     Printf("Note, that without AAPL,ig-platform-id the following ID is assumed: 59160000\n");
 } else if (firstId == FirstCoffeeLakeId) {
     Printf("Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000\n");
+} else if (firstId == FirstCannonLakeId) {
+    Printf("Note, that without AAPL,ig-platform-id the following ID is assumed: 5A520000\n");
+} else if (firstId == FirstIceLakeId) {
+    Printf("Note, that without AAPL,ig-platform-id the following REAL ID is assumed: 8A520000\n");
+    Printf("Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF050000\n");
 }
