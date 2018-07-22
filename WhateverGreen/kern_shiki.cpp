@@ -18,7 +18,10 @@
 #include "kern_resources.hpp"
 
 void SHIKI::init() {
-	if (!(lilu.getRunMode() & LiluAPI::RunningNormal))
+	disableShiki = !(lilu.getRunMode() & LiluAPI::RunningNormal);
+	disableShiki |= checkKernelArgument("-shikioff");
+
+	if (disableShiki)
 		return;
 
 	bool forceOnlineRenderer     = false;
@@ -105,7 +108,7 @@ void SHIKI::deinit() {
 }
 
 void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
-	if (!(lilu.getRunMode() & LiluAPI::RunningNormal))
+	if (disableShiki)
 		return;
 
 	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {

@@ -134,6 +134,11 @@ private:
 	bool gotConsoleVinfo {false};
 
 	/**
+	 *  Disable optimus and friends
+	 */
+	bool disableOptimus {false};
+
+	/**
 	 *  Maximum GFX naming index (due to ACPI name restrictions)
 	 */
 	static constexpr uint8_t MaxExternalGfxIndex {9};

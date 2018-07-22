@@ -85,6 +85,11 @@ private:
 	bool autodetectGFX {false};
 
 	/**
+	 *  Disable Shiki, based on mode
+	 */
+	bool disableShiki {false};
+
+	/**
 	 *  Custom board-id set to /shiki-id IOReg to be used by AppleGVA
 	 */
 	char customBoardID[64] {};

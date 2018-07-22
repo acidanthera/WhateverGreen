@@ -48,6 +48,9 @@ void WEG::init() {
 		resetFramebuffer = FB_NONE;
 	}
 
+	// Kill optimus and amd dynamic switchable on request
+	disableOptimus = checkKernelArgument("-wegnoegpu");
+
 	// Black screen fix is needed everywhere, but the form depends on the boot-arg.
 	// Former boot-arg name is ngfxpatch.
 	char agdp[128];
@@ -102,6 +105,36 @@ void WEG::processKernel(KernelPatcher &patcher) {
 	// Correct GPU properties
 	auto devInfo = DeviceInfo::create();
 	if (devInfo) {
+		if (devInfo->videoBuiltin)
+			disableOptimus |= devInfo->videoBuiltin->getProperty("disable-external-gpu") != nullptr;
+
+		if (disableOptimus) {
+			DBGLOG("weg", "disabling all external GPUs");
+			size_t extNum = devInfo->videoExternal.size();
+			for (size_t i = 0; i < extNum; i++) {
+				auto &v = devInfo->videoExternal[i];
+
+				auto gpu = OSDynamicCast(IOService, v.video);
+				auto hda = OSDynamicCast(IOService, v.audio);
+				auto pci = OSDynamicCast(IOService, v.video->getParentEntry(gIOServicePlane));
+				if (gpu && pci) {
+					if (gpu->requestTerminate(pci, 0) && gpu->terminate())
+						gpu->stop(pci);
+					else
+						SYSLOG("weg", "failed to terminate external gpu %ld", i);
+					if (hda && hda->requestTerminate(pci, 0) && hda->terminate())
+						hda->stop(pci);
+					else if (hda)
+						SYSLOG("weg", "failed to terminate external hdau %ld", i);
+				} else {
+					SYSLOG("weg", "incompatible external gpu %ld discovered", i);
+				}
+			}
+
+			devInfo->videoExternal.deinit();
+		}
+
+
 		// Do not inject properties unless non-Apple
 		if (devInfo->firmwareVendor != DeviceInfo::FirmwareVendor::Apple) {
 			if (devInfo->videoBuiltin) {

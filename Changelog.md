@@ -1,6 +1,11 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.2.1
+- Added `-wegnoegpu` boot-arg and `disable-external-gpu` IGPU property to kill external GPU
+- Fixed IGPU framebuffer patches (requires Lilu 1.2.6)
+- Fixed `-shikioff` not working (note, `-liluuseroff` may be more handy)
+
 #### v1.2.0
 - Merged GPU kexts into one (AMD, Intel, NVIDIA) including H/W acceleration (Shiki)
 - Added binary and structural Intel framebuffer patches (thx to headkaze)

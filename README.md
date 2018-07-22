@@ -31,14 +31,15 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-wegdbg` to enable debug printing (available in DEBUG binaries).  
 - `-wegoff` to disable WhateverGreen.  
 - `-wegbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).  
+- `-wegnoegpu` to disable external GPU (or add `disable-external-gpu` property to IGPU)
 - `-radvesa` to disable ATI/AMD video acceleration completely.  
 - `-igfxvesa` to boot Intel graphics without hardware acceleration (VESA mode).  
 - `-rad24` to enforce 24-bit display mode.  
 - `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).  
 - `radpg=15` to disable several power-gating modes (see FAQ, required for Cape Verde GPUs).
-- `ngfxpatch=cfgmap` enforcing `none` into ConfigMap dictionary for system board-id
-- `ngfxpatch=vit9696` disables check for board-id , enabled by default
-- `ngfxpatch=pikera` replaces `board-id` with `board-ix`
+- `agdpmod=cfgmap` enforcing `none` into ConfigMap dictionary for system board-id
+- `agdpmod=vit9696` disables check for board-id , enabled by default
+- `agdpmod=pikera` replaces `board-id` with `board-ix`
 - `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support on NVIDIA
 - `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
 - `ngfxsubmit=0` boot argument to disable interface stuttering fix on 10.13

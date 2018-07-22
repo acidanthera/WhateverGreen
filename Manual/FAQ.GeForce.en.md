@@ -25,9 +25,9 @@ Scope (GFX0) {
 
 - _What patches do I need for mac models other than iMac13,2 and iMac14,2?_  
 AppleGraphicsDisplayPolicy.kext contains a check against its Info.plist and determines which mode should be used for a specific board-id. It is dependent on the GPU which mode is suitable and is normally determined experimentally. NvidiaGraphicsFixup contains several ways to configure to set power management modes:
-  - kext patch enforcing `none` into ConfigMap dictionary for system board-id (ngfxpatch=cfgmap)
-  - kext patch disabling string comparison `` (ngfxpatch=vit9696, enabled by default)
-  - kext patch replacing `board-id` with `board-ix` (ngfxpatch=pikera)
+  - kext patch enforcing `none` into ConfigMap dictionary for system board-id (agdpmod=cfgmap)
+  - kext patch disabling string comparison (`agdpmod=vit9696`, enabled by default)
+  - kext patch replacing `board-id` with `board-ix` (`agdpmod=pikera`)
 
 - _What patches do I need for Maxwell or Pascal GPUs?_  
 Maxwell GPUs (normally 9xx and some 7xx) no longer supply a correct IOVARendererID to enable hardware video decoder. See more details: [here](https://github.com/vit9696/Shiki/issues/5). You no longer need any changes (e.g. iMac.kext) but NvidiaGraphicsFixup. This fix was added in 1.2.0 branch. Can be switched off by using boot-arg "-ngfxnovarenderer".
