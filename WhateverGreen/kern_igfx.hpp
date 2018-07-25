@@ -172,6 +172,31 @@ private:
 	mach_vm_address_t orgGetOSInformation {};
 
 	/**
+	 *  Original IGHardwareGuC::loadGuCBinary function
+	 */
+	mach_vm_address_t orgLoadGuCBinary {};
+
+	/**
+	 *  Original IGScheduler4::loadFirmware function
+	 */
+	mach_vm_address_t orgLoadFirmware {};
+
+	/**
+	 *  Original IGHardwareGuC::initSchedControl function
+	 */
+	mach_vm_address_t orgInitSchedControl {};
+
+	/**
+	 *  Original IGSharedMappedBuffer::withOptions function
+	 */
+	mach_vm_address_t orgIgBufferWithOptions {};
+
+	/**
+	 *  Original IGMappedBuffer::getGPUVirtualAddress function
+	 */
+	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
+
+	/**
 	 *  Detected CPU generation of the host system
 	 */
 	CPUInfo::CpuGeneration cpuGeneration {};
@@ -217,6 +242,16 @@ private:
 	bool hdmiAutopatch {false};
 
 	/**
+	 *  Load GuC firmware
+	 */
+	bool loadGuCFirmware {false};
+
+	/**
+	 *  Currently loading GuC firmware
+	 */
+	bool performingFirmwareLoad {false};
+
+	/**
 	 *  Framebuffer address space start
 	 */
 	uint8_t *framebufferStart {nullptr};
@@ -225,6 +260,36 @@ private:
 	 *  Framebuffer address space size
 	 */
 	size_t framebufferSize {0};
+
+	/**
+	 *  Pointer to the original GuC firmware
+	 */
+	uint8_t *gKmGen9GuCBinary {nullptr};
+
+	/**
+	 *  Pointer to the original GuC firmware signature
+	 */
+	uint8_t *signaturePointer {nullptr};
+
+	/**
+	 *  Pointer to GuC firmware upload size assignment
+	 */
+	uint32_t *firmwareSizePointer {nullptr};
+
+	/**
+	 *  Dummy firmware buffer to store unused old firmware in
+	 */
+	uint8_t *dummyFirmwareBuffer {nullptr};
+
+	/**
+	 *  Actual firmware buffer we store our new firmware in
+	 */
+	uint8_t *realFirmwareBuffer {nullptr};
+
+	/**
+	 *  Actual intercepted binary sizes
+	 */
+	uint32_t realBinarySize {};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -250,6 +315,59 @@ private:
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
 	static uint64_t wrapGetOSInformation(void *that);
+
+	/**
+	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
+	 */
+	static bool wrapLoadGuCBinary(void *that, bool flag);
+
+	/**
+	 *  Actual firmware loader
+	 *
+	 *  @param that  IGScheduler4 instance
+	 *
+	 *  @return true on success
+	 */
+	static bool wrapLoadFirmware(IOService *that);
+
+	/**
+	 *  Handle sleep event
+	 *
+	 *  @param that  IGScheduler4 instance
+	 */
+	static void wrapSystemWillSleep(IOService *that);
+
+	/**
+	 *  Handle wake event
+	 *
+	 *  @param that  IGScheduler4 instance
+	 */
+	static void wrapSystemDidWake(IOService *that);
+
+	/**
+	 *  IGHardwareGuC::initSchedControl wrapper to avoid incompatibilities during GuC load
+	 */
+	static bool wrapInitSchedControl(void *that, void *ctrl);
+
+	/**
+	 *  IGSharedMappedBuffer::withOptions wrapper to prepare for GuC firmware loading
+	 */
+	static void *wrapIgBufferWithOptions(void *accelTask, unsigned long size, unsigned int type, unsigned int flags);
+
+	/**
+	 *  IGMappedBuffer::getGPUVirtualAddress wrapper to trick GuC firmware virtual addresses
+	 */
+	static uint64_t wrapIgBufferGetGpuVirtualAddress(void *that);
+
+	/**
+	 *  Load GuC-specific patches and hooks
+	 *
+	 *  @param patcher KernelPatcher instance
+	 *  @param index   kinfo handle for graphics driver
+	 *  @param address kinfo load address
+	 *  @param size    kinfo memory size
+	 */
+	void loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 	/**
 	 *  Load user-specified arguments from IGPU device

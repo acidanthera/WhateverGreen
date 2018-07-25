@@ -7,6 +7,7 @@
 
 #include "kern_igfx.hpp"
 #include "kern_fb.hpp"
+#include "kern_guc.hpp"
 
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_cpu.hpp>
@@ -45,6 +46,10 @@ IGFX *IGFX::callbackIGFX;
 void IGFX::init() {
 	callbackIGFX = this;
 
+	int canLoadGuC = 0;
+	if (getKernelVersion() >= KernelVersion::HighSierra)
+		PE_parse_boot_argn("igfxfw", &canLoadGuC, sizeof(canLoadGuC));
+
 	uint32_t family = 0, model = 0;
 	cpuGeneration = CPUInfo::getGeneration(&family, &model);
 	switch (cpuGeneration) {
@@ -70,16 +75,19 @@ void IGFX::init() {
 			break;
 		case CPUInfo::CpuGeneration::Skylake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
+			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
+			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
+			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelCFLFb;
 			// Allow faking ask KBL
@@ -183,6 +191,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 			KernelPatcher::RouteRequest request(startSym, wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
+
+			if (loadGuCFirmware)
+				loadIGScheduler4Patches(patcher, index, address, size);
 		}
 
 		return true;
@@ -286,8 +297,11 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		if (dev && dev->getObject("GraphicsSchedulerSelect")) {
 			auto newDev = OSDynamicCast(OSDictionary, dev->copyCollection());
 			if (newDev) {
-				// force disable via plist
-				newDev->setObject("GraphicsSchedulerSelect", OSNumber::withNumber(2, 32));
+				// 1 - Automatic scheduler (Apple -> fallback to disabled)
+				// 2 - Force disable via plist
+				// 3 - Apple Scheduler
+				// 4 - Reference Scheduler
+				newDev->setObject("GraphicsSchedulerSelect", OSNumber::withNumber(callbackIGFX->loadGuCFirmware ? 4 : 2, 32));
 				that->setProperty("Development", newDev);
 			}
 		}
@@ -322,6 +336,208 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 		callbackIGFX->applyHdmiAutopatch();
 
 	return FunctionCast(wrapGetOSInformation, callbackIGFX->orgGetOSInformation)(that);
+}
+
+bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
+	bool r = false;
+	DBGLOG("igfx", "attempting to load firmware for %d scheduler for cpu gen %d",
+		   callbackIGFX->loadGuCFirmware, callbackIGFX->cpuGeneration);
+
+	if (callbackIGFX->firmwareSizePointer)
+		callbackIGFX->performingFirmwareLoad = true;
+
+	r = FunctionCast(wrapLoadGuCBinary, callbackIGFX->orgLoadGuCBinary)(that, flag);
+	DBGLOG("igfx", "loadGuCBinary returned %d", r);
+
+	callbackIGFX->performingFirmwareLoad = false;
+
+	return r;
+}
+
+bool IGFX::wrapLoadFirmware(IOService *that) {
+	DBGLOG("igfx", "load firmware setting sleep overrides %d", callbackIGFX->cpuGeneration);
+
+	// We have to patch the virtual table, because the original methods are very short.
+	// See __ZN12IGScheduler415systemWillSleepEv and __ZN12IGScheduler413systemDidWakeEv
+	// Note, that other methods are also not really implemented, so we may have to implement them ourselves sooner or later.
+	(*reinterpret_cast<uintptr_t **>(that))[52] = reinterpret_cast<uintptr_t>(wrapSystemWillSleep);
+	(*reinterpret_cast<uintptr_t **>(that))[53] = reinterpret_cast<uintptr_t>(wrapSystemDidWake);
+	return FunctionCast(wrapLoadFirmware, callbackIGFX->orgLoadFirmware)(that);
+}
+
+void IGFX::wrapSystemWillSleep(IOService *that) {
+	DBGLOG("igfx", "systemWillSleep GuC callback");
+	// Perhaps we want to send a message to GuC firmware like Apple does for its own implementation?
+}
+
+void IGFX::wrapSystemDidWake(IOService *that) {
+	DBGLOG("igfx", "systemDidWake GuC callback");
+
+	// This is IGHardwareGuC class instance.
+	auto &GuC = (reinterpret_cast<OSObject **>(that))[76];
+	DBGLOG("igfx", "reloading firmware on wake discovered IGHardwareGuC %d", GuC ? 1 : 0);
+	if (GuC) {
+		GuC->release();
+		GuC = nullptr;
+	}
+
+	FunctionCast(wrapLoadFirmware, callbackIGFX->orgLoadFirmware)(that);
+}
+
+bool IGFX::wrapInitSchedControl(void *that, void *ctrl) {
+	// This function is caled within loadGuCBinary, and it also uses shared buffers.
+	// To avoid any issues here we ensure that the filtering is off.
+	DBGLOG("igfx", "attempting to init sched control with load %d", callbackIGFX->performingFirmwareLoad);
+	bool perfLoad = callbackIGFX->performingFirmwareLoad;
+	callbackIGFX->performingFirmwareLoad = false;
+	bool r = FunctionCast(wrapInitSchedControl, callbackIGFX->orgInitSchedControl)(that, ctrl);
+
+#ifdef DEBUG
+	if (callbackIGFX->loadGuCFirmware) {
+		struct ParamRegs {
+			uint32_t bak[35];
+			uint32_t params[10];
+		};
+
+		auto v = &static_cast<ParamRegs *>(that)->params[0];
+		DBGLOG("igfx", "fw params1 %08X %08X %08X %08X %08X", v[0], v[1], v[2], v[3], v[4]);
+		DBGLOG("igfx", "fw params2 %08X %08X %08X %08X %08X", v[5], v[6], v[7], v[8], v[9]);
+	}
+#endif
+
+	callbackIGFX->performingFirmwareLoad = perfLoad;
+	return r;
+}
+
+void *IGFX::wrapIgBufferWithOptions(void *accelTask, unsigned long size, unsigned int type, unsigned int flags) {
+	void *r = nullptr;
+
+	if (callbackIGFX->performingFirmwareLoad) {
+		// Allocate a dummy buffer
+		callbackIGFX->dummyFirmwareBuffer = Buffer::create<uint8_t>(size);
+		// Select the latest firmware to upload
+		DBGLOG("igfx", "preparing firmware for cpu gen %d with range 0x%lX", callbackIGFX->cpuGeneration, size);
+
+		const void *fw = nullptr;
+		const void *fwsig = nullptr;
+		size_t fwsize = 0;
+		size_t fwsigsize = 0;
+
+		if (callbackIGFX->cpuGeneration == CPUInfo::CpuGeneration::Skylake) {
+			fw = GuCFirmwareSKL;
+			fwsig = GuCFirmwareSKLSignature;
+			fwsize = GuCFirmwareSKLSize;
+			fwsigsize = GuCFirmwareSignatureSize;
+		} else {
+			fw = GuCFirmwareKBL;
+			fwsig = GuCFirmwareKBLSignature;
+			fwsize = GuCFirmwareKBLSize;
+			fwsigsize = GuCFirmwareSignatureSize;
+		}
+
+		// Allocate enough memory for the new firmware (should be 64K-aligned)
+		unsigned long newsize = fwsize > size ? ((fwsize + 0xFFFF) & (~0xFFFF)) : size;
+		r = FunctionCast(wrapIgBufferWithOptions, callbackIGFX->orgIgBufferWithOptions)(accelTask, newsize, type, flags);
+		// Replace the real buffer with a dummy buffer
+		if (r && callbackIGFX->dummyFirmwareBuffer) {
+			// Copy firmware contents, update the sizes and signature
+			auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
+			if (status == KERN_SUCCESS) {
+				// Upload the firmware ourselves
+				callbackIGFX->realFirmwareBuffer = static_cast<uint8_t **>(r)[7];
+				static_cast<uint8_t **>(r)[7] = callbackIGFX->dummyFirmwareBuffer;
+				lilu_os_memcpy(callbackIGFX->realFirmwareBuffer, fw, fwsize);
+				lilu_os_memcpy(callbackIGFX->signaturePointer, fwsig, fwsigsize);
+				callbackIGFX->realBinarySize = static_cast<uint32_t>(fwsize);
+				// Update the firmware size for IGScheduler4
+				*callbackIGFX->firmwareSizePointer = static_cast<uint32_t>(fwsize);
+				MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
+			} else {
+				SYSLOG("igfx", "ig buffer protection upgrade failure %d", status);
+			}
+		} else if (callbackIGFX->dummyFirmwareBuffer) {
+			SYSLOG("igfx", "ig shared buffer allocation failure");
+			Buffer::deleter(callbackIGFX->dummyFirmwareBuffer);
+			callbackIGFX->dummyFirmwareBuffer = nullptr;
+		} else {
+			SYSLOG("igfx", "dummy buffer allocation failure");
+		}
+	} else {
+		r = FunctionCast(wrapIgBufferWithOptions, callbackIGFX->orgIgBufferWithOptions)(accelTask, size, type, flags);
+	}
+
+	return r;
+}
+
+uint64_t IGFX::wrapIgBufferGetGpuVirtualAddress(void *that) {
+	if (callbackIGFX->performingFirmwareLoad && callbackIGFX->realFirmwareBuffer) {
+		// Restore the original firmware buffer
+		static_cast<uint8_t **>(that)[7] = callbackIGFX->realFirmwareBuffer;
+		callbackIGFX->realFirmwareBuffer = nullptr;
+		// Free the dummy framebuffer which is no longer used
+		Buffer::deleter(callbackIGFX->dummyFirmwareBuffer);
+		callbackIGFX->dummyFirmwareBuffer = nullptr;
+	}
+
+	return FunctionCast(wrapIgBufferGetGpuVirtualAddress, callbackIGFX->orgIgBufferGetGpuVirtualAddress)(that);
+}
+
+void IGFX::loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	gKmGen9GuCBinary = patcher.solveSymbol<uint8_t *>(index, "__ZL17__KmGen9GuCBinary", address, size);
+	if (gKmGen9GuCBinary) {
+		DBGLOG("igfx", "obtained __KmGen9GuCBinary");
+
+		auto loadGuC = patcher.solveSymbol(index, "__ZN13IGHardwareGuC13loadGuCBinaryEv", address, size);
+		if (loadGuC) {
+			DBGLOG("igfx", "obtained IGHardwareGuC::loadGuCBinary");
+
+			// Lookup the assignment to the size register.
+			uint8_t sizeReg[] {0x10, 0xC3, 0x00, 0x00};
+			auto pos    = reinterpret_cast<uint8_t *>(loadGuC);
+			auto endPos = pos + PAGE_SIZE;
+			while (memcmp(pos, sizeReg, sizeof(sizeReg)) && pos < endPos)
+				pos++;
+
+			// Verify and store the size pointer
+			if (pos != endPos) {
+				pos += sizeof(uint32_t);
+				firmwareSizePointer = reinterpret_cast<uint32_t *>(pos);
+				DBGLOG("igfx", "discovered firmware size: %d bytes", *firmwareSizePointer);
+				// Firmware size must not be bigger than 1 MB
+				if ((*firmwareSizePointer & 0xFFFFF) == *firmwareSizePointer)
+					// Firmware follows the signature
+					signaturePointer = gKmGen9GuCBinary + *firmwareSizePointer;
+				else
+					firmwareSizePointer = nullptr;
+			}
+
+			if (firmwareSizePointer) {
+				orgLoadGuCBinary = patcher.routeFunction(loadGuC, reinterpret_cast<mach_vm_address_t>(wrapLoadGuCBinary), true);
+				if (patcher.getError() == KernelPatcher::Error::NoError) {
+					DBGLOG("igfx", "routed IGHardwareGuC::loadGuCBinary");
+
+					KernelPatcher::RouteRequest requests[] {
+						{"__ZN12IGScheduler412loadFirmwareEv", wrapLoadFirmware, orgLoadFirmware},
+						{"__ZN13IGHardwareGuC16initSchedControlEv", wrapInitSchedControl, orgInitSchedControl},
+						{"__ZN20IGSharedMappedBuffer11withOptionsEP11IGAccelTaskmjj", wrapIgBufferWithOptions, orgIgBufferWithOptions},
+						{"__ZNK14IGMappedBuffer20getGPUVirtualAddressEv", wrapIgBufferGetGpuVirtualAddress, orgIgBufferGetGpuVirtualAddress},
+					};
+					patcher.routeMultiple(index, requests, address, size);
+				} else {
+					SYSLOG("igfx", "failed to route IGHardwareGuC::loadGuCBinary %d", patcher.getError());
+					patcher.clearError();
+				}
+			} else {
+				SYSLOG("igfx", "failed to find GuC firmware size assignment");
+			}
+		} else {
+			SYSLOG("igfx", "failed to resolve IGHardwareGuC::loadGuCBinary %d", patcher.getError());
+			patcher.clearError();
+		}
+	} else {
+		SYSLOG("igfx", "failed to resoolve __KmGen9GuCBinary %d", patcher.getError());
+		patcher.clearError();
+	}
 }
 
 bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebufferId) {

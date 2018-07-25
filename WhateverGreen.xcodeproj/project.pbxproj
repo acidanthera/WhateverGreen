@@ -12,6 +12,8 @@
 		1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1C9CB7AF1C789FF500231E41 /* kern_rad.hpp */; };
 		CE405EC91E49DD9700AA0B3D /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE405EC71E49DD7100AA0B3D /* libkmod.a */; };
 		CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
+		CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE766ED4210763B200A84567 /* kern_guc.cpp */; };
+		CE766ED7210763B200A84567 /* kern_guc.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE766ED5210763B200A84567 /* kern_guc.hpp */; };
 		CE7FC0AA20F55E7400138088 /* kern_ngfx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */; };
 		CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */; };
 		CE7FC0AE20F5622700138088 /* kern_igfx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE7FC0AC20F5622700138088 /* kern_igfx.cpp */; };
@@ -93,6 +95,8 @@
 		CE41E4FB1F2C4B5700AA5944 /* rd_route.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rd_route.h; sourceTree = "<group>"; };
 		CE41E4FC1F2C4B5700AA5944 /* WhateverName.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WhateverName.mm; sourceTree = "<group>"; };
 		CE41E4FE1F2C547200AA5944 /* WhateverName.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = WhateverName.app; sourceTree = "<group>"; };
+		CE766ED4210763B200A84567 /* kern_guc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_guc.cpp; sourceTree = "<group>"; };
+		CE766ED5210763B200A84567 /* kern_guc.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_guc.hpp; sourceTree = "<group>"; };
 		CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_ngfx.cpp; sourceTree = "<group>"; };
 		CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_ngfx.hpp; sourceTree = "<group>"; };
 		CE7FC0AC20F5622700138088 /* kern_igfx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx.cpp; sourceTree = "<group>"; };
@@ -173,6 +177,8 @@
 				CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */,
 				CEB402A41F17F5C400716912 /* kern_con.hpp */,
 				E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */,
+				CE766ED4210763B200A84567 /* kern_guc.cpp */,
+				CE766ED5210763B200A84567 /* kern_guc.hpp */,
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
@@ -303,6 +309,7 @@
 				CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */,
 				1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */,
 				CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */,
+				CE766ED7210763B200A84567 /* kern_guc.hpp in Headers */,
 				CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -425,6 +432,7 @@
 				CE7FC0AE20F5622700138088 /* kern_igfx.cpp in Sources */,
 				CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */,
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
+				CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */,
 				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
 				CE7FC0B120F563CA00138088 /* kern_ngfx_asm.S in Sources */,
 				CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */,
