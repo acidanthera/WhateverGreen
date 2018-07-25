@@ -930,6 +930,8 @@ void IGFX::applyHdmiAutopatch() {
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferBDW *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::Skylake || cpuGeneration == CPUInfo::CpuGeneration::KabyLake)
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::CannonLake)
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
