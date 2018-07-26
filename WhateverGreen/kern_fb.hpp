@@ -205,6 +205,16 @@ struct PACKED ConnectorInfo {
 	ConnectorFlags flags;
 };
 
+/* Wide connector type format */
+struct PACKED ConnectorInfoICL {
+	uint32_t index;
+	uint32_t busId;
+	uint32_t pipe;
+	uint32_t pad;
+	ConnectorType type;
+	ConnectorFlags flags;
+};
+
 struct PACKED FramebufferSNB {
 	uint8_t  fMobile;
 	uint8_t  fPipeCount;
@@ -360,6 +370,131 @@ struct PACKED FramebufferCFL {
 	uint32_t fSliceCount;
 	uint32_t fEuCount;
 	uint32_t unk6[2];
+};
+
+/* Not sure what it is, in CNL value2 is a pointer, and value1 could be size.  */
+struct PACKED FramebufferCNLCurrents {
+	uint64_t value1;
+	uint64_t valu2;
+};
+
+struct PACKED FramebufferCNL {
+	uint32_t framebufferId;
+	/* Unclear what values really are, yet 4 stands for non-LP chipset.
+	 * See AppleIntelFramebufferController::start.
+	 */
+	uint32_t fPchType;
+	uint64_t fModelNameAddr;
+	/* While it is hard to be sure, because having 0 here results in online=true returned by
+	 * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+	 * so-called mobile framebufers are simply set to fail-safe defaults.
+	 * For some reason it is often called fDisabled...
+	 */
+	uint8_t  fMobile;
+	uint8_t  fPipeCount;
+	uint8_t  fPortCount;
+	uint8_t  fFBMemoryCount;
+	/* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+	uint32_t fStolenMemorySize;
+	/* This is for boot framebuffer from what I can understand */
+	uint32_t fFramebufferMemorySize;
+	uint32_t fUnifiedMemorySize;
+	uint32_t pad1[2];
+	ConnectorInfo connectors[4];
+	FramebufferFlags flags;
+	/* Check DDI Buffer Translations in Linux driver for details. */
+	uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
+	uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
+	uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
+	uint8_t pad2;
+	uint64_t unk1[5];
+	uint64_t fBTTArraySliceAddr;
+	uint64_t fBTTArrayNormalAddr;
+	uint64_t fBTTArrayHDMIAddr;
+	FramebufferCNLCurrents currents[8];
+	uint32_t cameliaVersion;
+	uint64_t unk2[3];
+	uint32_t fNumTransactionsThreshold;
+	/* Defaults to 14, used when UseVideoTurbo bit is set */
+	uint32_t fVideoTurboFreq;
+	uint32_t fSliceCount;
+	uint32_t fEuCount;
+	uint32_t unk4;
+	uint32_t unk5[2];
+};
+
+struct PACKED FramebufferICLLP {
+	uint32_t framebufferId;
+	/* Unclear what values really are, yet 4 stands for non-LP chipset.
+	 * See AppleIntelFramebufferController::start.
+	 */
+	uint32_t fPchType;
+	uint64_t fModelNameAddr;
+	/* While it is hard to be sure, because having 0 here results in online=true returned by
+	 * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+	 * so-called mobile framebufers are simply set to fail-safe defaults.
+	 * For some reason it is often called fDisabled...
+	 */
+	uint8_t  fMobile;
+	uint8_t  fPipeCount;
+	uint8_t  fPortCount;
+	uint8_t  fFBMemoryCount;
+	/* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+	uint32_t fStolenMemorySize;
+	/* This is for boot framebuffer from what I can understand */
+	uint32_t fFramebufferMemorySize;
+	uint32_t fUnifiedMemorySize;
+	uint32_t pad1[2];
+	ConnectorInfoICL connectors[3];
+	FramebufferFlags flags;
+	FramebufferCNLCurrents currents[8];
+	uint32_t unk2[5];
+	uint32_t cameliaVersion;
+	uint32_t unk3[6];
+	/* Defaults to 14, used when UseVideoTurbo bit is set */
+	uint32_t fNumTransactionsThreshold;
+	uint32_t fVideoTurboFreq;
+	uint32_t fSliceCount;
+	uint32_t fEuCount;
+	uint32_t unk4;
+};
+
+struct PACKED FramebufferICLHP {
+	uint32_t framebufferId;
+	/* Unclear what values really are, yet 4 stands for non-LP chipset.
+	 * See AppleIntelFramebufferController::start.
+	 */
+	uint32_t fPchType;
+	uint64_t fModelNameAddr;
+	/* While it is hard to be sure, because having 0 here results in online=true returned by
+	 * AppleIntelFramebuffer::GetOnlineInfo, after all it appears to be the case, and the unused
+	 * so-called mobile framebufers are simply set to fail-safe defaults.
+	 * For some reason it is often called fDisabled...
+	 */
+	uint8_t  fMobile;
+	uint8_t  fPipeCount;
+	uint8_t  fPortCount;
+	uint8_t  fFBMemoryCount;
+	/* This one is per framebuffer fStolenMemorySize * fFBMemoryCount */
+	uint32_t fStolenMemorySize;
+	/* This is for boot framebuffer from what I can understand */
+	uint32_t fFramebufferMemorySize;
+	uint32_t fUnifiedMemorySize;
+	uint32_t fBacklightFrequency;
+	uint32_t fBacklightMax;
+	uint32_t pad1[2];
+	ConnectorInfoICL connectors[3];
+	FramebufferFlags flags;
+	FramebufferCNLCurrents currents[8];
+	uint32_t unk2[5];
+	uint32_t cameliaVersion;
+	uint32_t unk3[6];
+	/* Defaults to 14, used when UseVideoTurbo bit is set */
+	uint32_t fNumTransactionsThreshold;
+	uint32_t fVideoTurboFreq;
+	uint32_t fSliceCount;
+	uint32_t fEuCount;
+	uint32_t unk4;
 };
 
 #endif /* kern_fb_hpp */
