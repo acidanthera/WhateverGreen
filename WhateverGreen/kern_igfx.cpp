@@ -583,7 +583,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		if (framebufferPatchFlags.value != 0)
 			hasFramebufferPatch = true;
 
-		for (size_t i = 0; i < MaxFramebufferConnectorCount; i++) {
+		for (size_t i = 0; i < arrsize(framebufferPatch.connectors); i++) {
 			char name[48];
 			snprintf(name, sizeof(name), "framebuffer-con%ld-enable", i);
 			uint32_t framebufferConnectorPatchEnable = 0;
@@ -719,7 +719,7 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 			if (framebufferPatchFlags.bits.FPFFBMemoryCount)
 				platformInformationList[i].fFBMemoryCount = framebufferPatch.fFBMemoryCount;
 
-			for (size_t j = 0; j < MaxFramebufferConnectorCount; j++) {
+			for (size_t j = 0; j < arrsize(platformInformationList[i].connectors); j++) {
 				if (connectorPatchFlags[j].bits.CPFIndex)
 					platformInformationList[i].connectors[j].index = framebufferPatch.connectors[j].index;
 
@@ -798,7 +798,7 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 		r = true;
 	}
 
-	for (size_t j=0; j<MaxFramebufferConnectorCount; j++) {
+	for (size_t j = 0; j < arrsize(frame->connectors); j++) {
 		if (connectorPatchFlags[j].bits.CPFIndex)
 			frame->connectors[j].index = framebufferPatch.connectors[j].index;
 
@@ -831,7 +831,7 @@ bool IGFX::applyDPtoHDMIPatch(uint32_t framebufferId, T *platformInformationList
 		return false;
 
 	bool found = false;
-	for (size_t i = 0; i < MaxFramebufferConnectorCount; i++) {
+	for (size_t i = 0; i < arrsize(frame->connectors); i++) {
 		if (frame->connectors[i].type == ConnectorDP) {
 			frame->connectors[i].type = ConnectorHDMI;
 			DBGLOG("igfx", "replaced connector %ld type from DP to HDMI", i);
