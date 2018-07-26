@@ -863,6 +863,7 @@ void IGFX::applyFramebufferPatches() {
 		else if (cpuGeneration == CPUInfo::CpuGeneration::CannonLake)
 			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
 		else if (cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
+			// FIXME: Need to address possible circumstance of both ICL kexts loaded at the same time
 			if (callbackIGFX->currentFramebuffer->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
 				success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferICLLP *>(gPlatformInformationList));
 			else if (callbackIGFX->currentFramebufferOpt->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
@@ -935,6 +936,7 @@ void IGFX::applyHdmiAutopatch() {
 	else if (cpuGeneration == CPUInfo::CpuGeneration::CannonLake)
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
+		// FIXME: Need to address possible circumstance of both ICL kexts loaded at the same time
 		if (callbackIGFX->currentFramebuffer->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
 			success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferICLLP *>(gPlatformInformationList));
 		else if (callbackIGFX->currentFramebufferOpt->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
