@@ -59,9 +59,14 @@ union FramebufferFlags {
         /* Discovered in AppleIntelFBController::LinkTraining. Disables the use of FastLinkTraining.
          * According to joevt with zero SKL link training happens at 450 MHz else at 540 MHz */
         uint8_t FBAvoidFastLinkTraining      :1;  /* 0x1 */
-        uint8_t FBUnknownFlag_2              :1;  /* 0x2 */
+        /* Sets the logic of minStolenMem calculation, when set fStolenMemorySize is not multiplied
+         * by fFBMemoryCount, assuming fStolenMemorySize counts all framebuffers at once.
+         */
+        uint8_t FBFramebufferCommonMemory    :1;  /* 0x2 */
         /* Discovered in AppleIntelFramebufferController::getFeatureControl.
-         * This is equivalent to setting FBC=1 in the plist FeatureControl section. */
+         * This is equivalent to setting FBC=1 in the plist FeatureControl section.
+         * Compression causes fFramebufferMemorySize to be added to minStolenMem.
+         */
         uint8_t FBFramebufferCompression     :1;  /* 0x4 */
         /* Discovered in AppleIntelFramebufferController::getFeatureControl.
          * This is equivalent to setting SliceSDEnable=1, EUSDEnable=1, DynamicSliceSwitch=1 in the plist FeatureControl section.
@@ -608,6 +613,17 @@ struct FramebufferICLLP {
     local uint32_t fBacklightMax <read=frequencyToPrintable> = 0;
 };
 
+uint32_t calculateStolen(FramebufferFlags &flags, uint32_t fStolenMemorySize, uint32_t fFBMemoryCount, uint32_t fFramebufferMemorySize) {
+    local uint32_t fTotalStolen = 0x100000; /* a constant */
+    if (flags.bits.FBFramebufferCommonMemory) /* formerly FBUnknownFlag_2 */
+        fTotalStolen += fStolenMemorySize;
+    else
+        fTotalStolen += fStolenMemorySize * fFBMemoryCount;
+    if (flags.bits.FBFramebufferCompression)
+        fTotalStolen += fFramebufferMemorySize;
+    return fTotalStolen;
+}
+
 string bytesToPrintable(uint32_t bytes) {
     local string out;
     if (bytes >= 1024*1024) {
@@ -698,64 +714,64 @@ string modelNameAddrToPrintable(uint64_t addr) {
 
 string framebufferSNBToPrintable(FramebufferSNB &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferIVBToPrintable(FramebufferIVB &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferHSWToPrintable(FramebufferHSW &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferBDWToPrintable(FramebufferBDW &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferSKLToPrintable(FramebufferSKL &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferCFLToPrintable(FramebufferCFL &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferCNLToPrintable(FramebufferCNL &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferICLHPToPrintable(FramebufferICLHP &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferICLLPToPrintable(FramebufferICLLP &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
@@ -763,9 +779,19 @@ string framebufferICLLPToPrintable(FramebufferICLLP &fb) {
 local int64_t pos = 0x20000, size = FileSize();
 local uint32_t i = 0, j = 0;
 local uint32_t firstId = 0;
+/* This value is a total maximum of preallocated memory that can be used with all flag combinations.
+ * I.e. if you want to change FBFramebufferCompression or FBFramebufferCommonMemory you may need
+ * as much memory as fMaxStolen. With the flags untouched refer to fTotalStolen. */
+local uint32_t fMaxStolen = 0;
+/* This value is a total maximum of preallocated memory that is necessary for current flag combinations.
+ * This value must be <= preallocated memory in BIOS settings, Apple also calls it minStolenSize.
+ * I.e. this is what the assertion panic checks during boot, it is compared against the BIOS value
+ * obtained via PCI Config 16-bit read from GMCH Control #0 (0x50): ((val << 17) & 0xFE000000) - 0x1000 */
 local uint32_t fTotalStolen = 0;
+/* This value is used for hardware cursor allocation, but is not checked. Bug? */
 local uint32_t fTotalCursor = 0;
-local uint32_t fOverall = 0;
+/* The absolute maximum with all flag combinations including cursor and framebuffer memory. */
+local uint32_t fMaxOverall = 0;
 
 local uint32_t magic = ReadUInt(0);
 if (magic != 0xFEEDFACF) {
@@ -812,11 +838,11 @@ while (pos < size) {
         Printf("ID: %s, STOLEN: %s, FBMEM: %s, VRAM: %s, Flags: 0x%08X\n", frameIdFromIndex(frames[i].framebufferId, i),
             bytesToPrintable(frames[i].fStolenMemorySize), bytesToPrintable(frames[i].fFramebufferMemorySize), 
             bytesToPrintable(frames[i].fUnifiedMemorySize), firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId ? 0 : frames[i].flags.value);
-        /* Compared to PCI Config 16-bit read from GMCH Control #0 (0x50): ((val << 17) & 0xFE000000) - 0x1000 */
-        fTotalStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
+        fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
         fTotalCursor = frames[i].fPipeCount * 0x80000;
-        fOverall = fTotalCursor + fTotalStolen + frames[i].fPortCount * 0x1000;
-        Printf("TOTAL STOLEN: %s, TOTAL CURSOR: %s, OVERALL: %s\n", bytesToPrintable(fTotalStolen), bytesToPrintable(fTotalCursor), bytesToPrintable(fOverall));
+        fMaxOverall = fTotalCursor + fMaxStolen + frames[i].fPortCount * 0x1000;
+        fTotalStolen = calculateStolen(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
+        Printf("TOTAL STOLEN: %s, TOTAL CURSOR: %s, MAX STOLEN: %s, MAX OVERALL: %s\n", bytesToPrintable(fTotalStolen), bytesToPrintable(fTotalCursor), bytesToPrintable(fMaxStolen), bytesToPrintable(fMaxOverall));
         if (frames[i].fModelNameAddr != 0)
             Printf("Model name: %s\n", modelNameAddrToPrintable(frames[i].fModelNameAddr));
         Printf("Camelia: %s, Freq: %s, FreqMax: %s\n", cameliaToPrintable(frames[i].cameliaVersion), 
