@@ -269,6 +269,7 @@ struct ConnectorInfoICL {
 
 struct FramebufferSNB {
     local uint32_t framebufferId = 0;
+    local string framebufferStr = "";
     uint8_t  fMobile;
     uint8_t  fPipeCount;
     uint8_t  fPortCount; /* also fNumFramebuffer */
@@ -714,15 +715,15 @@ string modelNameAddrToPrintable(uint64_t addr) {
 
 string framebufferSNBToPrintable(FramebufferSNB &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+    SPrintf(out, "%s (%s, %d connectors%s)", fb.framebufferStr, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "");
     return out;
 }
 
 string framebufferIVBToPrintable(FramebufferIVB &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(fb.fFramebufferMemorySize));
     return out;
 }
 
@@ -816,32 +817,39 @@ while (pos < size) {
     /* Read platforms from here... */
     FSeek(pos);
     while (ReadUInt() != 0xFFFFFFFF) {
-        if (firstId == FirstSandyBridgeId)
+        if (firstId == FirstSandyBridgeId) {
             FramebufferSNB frames <optimize=false, read=framebufferSNBToPrintable>;
-        else if (firstId == FirstIvyBridgeId)
+            frames[i].framebufferStr = frameIdFromIndex(frames[i].framebufferId, i);
+        } else if (firstId == FirstIvyBridgeId) {
             FramebufferIVB frames <optimize=false, read=framebufferIVBToPrintable>;
-        else if (firstId == FirstHaswellId)
+        } else if (firstId == FirstHaswellId) {
             FramebufferHSW frames <optimize=false, read=framebufferHSWToPrintable>;
-        else if (firstId == FirstBroadwellId)
+        } else if (firstId == FirstBroadwellId) {
             FramebufferBDW frames <optimize=false, read=framebufferBDWToPrintable>;
         /* Skylake and Kaby Lake share the struct as of 10.13.3 */
-        else if (firstId == FirstSkylakeId || firstId == FirstKabyLakeId)
+        } else if (firstId == FirstSkylakeId || firstId == FirstKabyLakeId) {
             FramebufferSKL frames <optimize=false, read=framebufferSKLToPrintable>;
-        else if (firstId == FirstCoffeeLakeId)
+        } else if (firstId == FirstCoffeeLakeId) {
             FramebufferCFL frames <optimize=false, read=framebufferCFLToPrintable>;
-        else if (firstId == FirstCannonLakeId)
+        } else if (firstId == FirstCannonLakeId) {
             FramebufferCNL frames <optimize=false, read=framebufferCNLToPrintable>;
-        else if (firstId == FirstIceLakeId && isLowProfile)
+        } else if (firstId == FirstIceLakeId && isLowProfile) {
             FramebufferICLLP frames <optimize=false, read=framebufferICLLPToPrintable>;
-        else if (firstId == FirstIceLakeId)
+        } else if (firstId == FirstIceLakeId) {
             FramebufferICLHP frames <optimize=false, read=framebufferICLHPToPrintable>;
+        }
         Printf("ID: %s, STOLEN: %s, FBMEM: %s, VRAM: %s, Flags: 0x%08X\n", frameIdFromIndex(frames[i].framebufferId, i),
             bytesToPrintable(frames[i].fStolenMemorySize), bytesToPrintable(frames[i].fFramebufferMemorySize), 
             bytesToPrintable(frames[i].fUnifiedMemorySize), firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId ? 0 : frames[i].flags.value);
-        fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
+        if (firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId) {
+            fMaxStolen = frames[i].fFramebufferMemorySize * frames[i].fFBMemoryCount;
+            fTotalStolen = frames[i].fFramebufferMemorySize; /* the assert here does not multiply, why? */
+        } else {
+            fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
+            fTotalStolen = calculateStolen(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
+        }
         fTotalCursor = frames[i].fPipeCount * 0x80000;
         fMaxOverall = fTotalCursor + fMaxStolen + frames[i].fPortCount * 0x1000;
-        fTotalStolen = calculateStolen(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
         Printf("TOTAL STOLEN: %s, TOTAL CURSOR: %s, MAX STOLEN: %s, MAX OVERALL: %s\n", bytesToPrintable(fTotalStolen), bytesToPrintable(fTotalCursor), bytesToPrintable(fMaxStolen), bytesToPrintable(fMaxOverall));
         if (frames[i].fModelNameAddr != 0)
             Printf("Model name: %s\n", modelNameAddrToPrintable(frames[i].fModelNameAddr));
@@ -876,6 +884,7 @@ if (firstId == FirstSandyBridgeId) {
         if (firstId == DefSandyBridgeId) {
             FSeek(pos);
             FramebufferSNB frames <optimize=false, read=framebufferSNBToPrintable>;
+            frames.framebufferStr = "Default";
             Printf("Default SNB, DVMT: %s, FBMEM: %s, VRAM: %s, Flags: 0x00000000\n",
                 bytesToPrintable(frames[i].fStolenMemorySize), bytesToPrintable(frames[i].fFramebufferMemorySize), bytesToPrintable(frames[i].fUnifiedMemorySize));
             Printf("Camelia: %s, Freq: %s, FreqMax: %s\n", cameliaToPrintable(frames[i].cameliaVersion), 

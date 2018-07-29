@@ -157,7 +157,7 @@ namespace RADConnectors {
 #ifdef DEBUG
 		for (uint8_t i = 0; con && i < num; i++) {
 			char tmp[192];
-			DBGLOG("con", "%d is %s", i, modern() ?
+			DBGLOG("con", "%u is %s", i, modern() ?
 				   printConnector(tmp, (&con->modern)[i]) : printConnector(tmp, (&con->legacy)[i]));
 		}
 #endif

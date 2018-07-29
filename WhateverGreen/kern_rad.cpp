@@ -421,7 +421,7 @@ void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
 	if (service && getKernelVersion() >= KernelVersion::HighSierra) {
 		// Starting with 10.13.2 this is important to fix sleep issues due to enforced 6 screens
 		if (!service->getProperty("CFG,CFG_FB_LIMIT")) {
-			DBGLOG("rad", "setting fb limit to %d", connectorNum);
+			DBGLOG("rad", "setting fb limit to %u", connectorNum);
 			service->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(connectorNum, 32));
 		}
 
@@ -432,7 +432,7 @@ void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
 
 void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gettable, IOService *ctrl, RADConnectors::Connector *connectors, uint8_t *sz) {
 	if (atomutils) {
-		DBGLOG("rad", "getConnectorsInfo found %d connectors", *sz);
+		DBGLOG("rad", "getConnectorsInfo found %u connectors", *sz);
 		RADConnectors::print(connectors, *sz);
 	}
 
@@ -447,15 +447,15 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 			uint32_t consCount;
 			if (WIOKit::getOSDataValue(ctrl, "connector-count", consCount)) {
 				*sz = consCount;
-				DBGLOG("rad", "getConnectorsInfo got size override to %d", *sz);
+				DBGLOG("rad", "getConnectorsInfo got size override to %u", *sz);
 			}
 
 			if (consPtr && consSize > 0 && *sz > 0 && RADConnectors::valid(consSize, *sz)) {
 				RADConnectors::copy(connectors, *sz, static_cast<const RADConnectors::Connector *>(consPtr), consSize);
-				DBGLOG("rad", "getConnectorsInfo installed %d connectors", *sz);
+				DBGLOG("rad", "getConnectorsInfo installed %u connectors", *sz);
 				applyPropertyFixes(ctrl, consSize);
 			} else {
-				DBGLOG("rad", "getConnectorsInfo conoverrides have invalid size %d for %d num", consSize, *sz);
+				DBGLOG("rad", "getConnectorsInfo conoverrides have invalid size %u for %u num", consSize, *sz);
 			}
 		} else {
 			DBGLOG("rad", "getConnectorsInfo conoverrides have invalid type");
@@ -470,7 +470,7 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 			if (displayPathNum == connectorObjectNum)
 				autocorrectConnectors(baseAddr, displayPaths, displayPathNum, connectorObjects, connectorObjectNum, connectors, *sz);
 			else
-				DBGLOG("rad", "getConnectorsInfo found different displaypaths %d and connectors %d", displayPathNum, connectorObjectNum);
+				DBGLOG("rad", "getConnectorsInfo found different displaypaths %u and connectors %u", displayPathNum, connectorObjectNum);
 		}
 
 		applyPropertyFixes(ctrl, *sz);
@@ -482,14 +482,14 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 		if (priData) {
 			senseList = static_cast<const uint8_t *>(priData->getBytesNoCopy());
 			senseNum = static_cast<uint8_t>(priData->getLength());
-			DBGLOG("rad", "getConnectorInfo found %d senses in connector-priority", senseNum);
+			DBGLOG("rad", "getConnectorInfo found %u senses in connector-priority", senseNum);
 			reprioritiseConnectors(senseList, senseNum, connectors, *sz);
 		} else {
 			DBGLOG("rad", "getConnectorInfo leaving unchaged priority");
 		}
 	}
 
-	DBGLOG("rad", "getConnectorsInfo resulting %d connectors follow", *sz);
+	DBGLOG("rad", "getConnectorsInfo resulting %u connectors follow", *sz);
 	RADConnectors::print(connectors, *sz);
 }
 
@@ -497,7 +497,7 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 								uint8_t connectorObjectNum, RADConnectors::Connector *connectors, uint8_t sz) {
 	for (uint8_t i = 0; i < displayPathNum; i++) {
 		if (!isEncoder(displayPaths[i].usGraphicObjIds)) {
-			DBGLOG("rad", "autocorrectConnectors not encoder %X at %d", displayPaths[i].usGraphicObjIds, i);
+			DBGLOG("rad", "autocorrectConnectors not encoder %X at %u", displayPaths[i].usGraphicObjIds, i);
 			continue;
 		}
 		
@@ -507,11 +507,11 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 		
 		uint8_t sense = getSenseID(baseAddr + connectorObjects[i].usRecordOffset);
 		if (!sense) {
-			DBGLOG("rad", "autocorrectConnectors failed to detect sense for %d connector", i);
+			DBGLOG("rad", "autocorrectConnectors failed to detect sense for %u connector", i);
 			continue;
 		}
 		
-		DBGLOG("rad", "autocorrectConnectors found txmit %02X enc %02X sense %02X for %d connector", txmit, enc, sense, i);
+		DBGLOG("rad", "autocorrectConnectors found txmit %02X enc %02X sense %02X for %u connector", txmit, enc, sense, i);
 
 		autocorrectConnector(getConnectorID(displayPaths[i].usConnObjectId), sense, txmit, enc, connectors, sz);
 	}
@@ -537,7 +537,7 @@ void RAD::autocorrectConnector(uint8_t connector, uint8_t sense, uint8_t txmit, 
 		auto fixTransmit = [](auto &con, uint8_t idx, uint8_t sense, uint8_t txmit) {
 			if (con.sense == sense) {
 				if (con.transmitter != txmit && (con.transmitter & 0xCF) == con.transmitter) {
-					DBGLOG("rad", "autocorrectConnector replacing txmit %02X with %02X for %d connector sense %02X",
+					DBGLOG("rad", "autocorrectConnector replacing txmit %02X with %02X for %u connector sense %02X",
 						   con.transmitter, txmit, idx, sense);
 					con.transmitter = txmit;
 				}
@@ -586,13 +586,13 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 						con.priority = priCount++;
 				} else if (i < senseNum) {
 					if (con.sense == senseList[i]) {
-						DBGLOG("rad", "reprioritiseConnectors setting priority of sense %02X to %d by sense", con.sense, priCount);
+						DBGLOG("rad", "reprioritiseConnectors setting priority of sense %02X to %u by sense", con.sense, priCount);
 						con.priority = priCount++;
 						return true;
 					}
 				} else {
 					if (con.priority == 0 && con.type == typeList[i-senseNum]) {
-						DBGLOG("rad", "reprioritiseConnectors setting priority of sense %02X to %d by type", con.sense, priCount);
+						DBGLOG("rad", "reprioritiseConnectors setting priority of sense %02X to %u by type", con.sense, priCount);
 						con.priority = priCount++;
 					}
 				}
@@ -638,7 +638,7 @@ void RAD::updateAccelConfig(IOService *accelService, const char **accelConfig) {
 
 bool RAD::wrapSetProperty(IORegistryEntry *that, const char *aKey, void *bytes, unsigned length) {
 	if (length > 10 && aKey && reinterpret_cast<const uint32_t *>(aKey)[0] == 'edom' && reinterpret_cast<const uint16_t *>(aKey)[2] == 'l') {
-		DBGLOG("rad", "SetProperty caught model %d (%.*s)", length, length, static_cast<char *>(bytes));
+		DBGLOG("rad", "SetProperty caught model %u (%.*s)", length, length, static_cast<char *>(bytes));
 		if (*static_cast<uint32_t *>(bytes) == ' DMA' || *static_cast<uint32_t *>(bytes) == ' ITA') {
 			if (FunctionCast(wrapGetProperty, callbackRAD->orgGetProperty)(that, aKey)) {
 				DBGLOG("rad", "SetProperty ignored setting %s to %s", aKey, static_cast<char *>(bytes));

@@ -89,6 +89,9 @@ static const uint8_t gmp100Repl[] = { 0x40, 0x42, 0x0F, 0x00 };
 //
 // Modified by PMheart (jmpq adress optimisations)
 //
+// Patches int CheckTimingWithRange(IOFBConnectRef, IODisplayTimingRange *, IODetailedTimingInformation *)
+// to always return 0 and thus effectively allow the use of any resolution regardless of connection
+// capability. May cause blackscreen with several configurations.
 static const uint8_t frameworkOldFind[] {
 	0xB8, 0x01, 0x00, 0x00, 0x00,                   // mov  eax, 0x1
 	0xF6, 0xC1, 0x01,                               // test cl, 0x1
@@ -151,12 +154,6 @@ static UserPatcher::ProcInfo procInfoSieHS { procWindowServerNew, procWindowServ
 CDF *CDF::callbackCDF;
 
 void CDF::init() {
-	disableHDMI20 = checkKernelArgument("-cdfoff");
-	if (disableHDMI20) {
-		SYSLOG("cdf", "disabling HDMI 2.0 unlock patches by argument");
-		return;
-	}
-
 	callbackCDF = this;
 	lilu.onKextLoadForce(kextList, arrsize(kextList));
 
@@ -183,23 +180,35 @@ void CDF::deinit() {
 }
 
 void CDF::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
-	if (disableHDMI20)
-		return;
+	// -cdfon -> force enable
+	// -cdfoff -> force disable
+	// enable-hdmi20 -> enable nvidia/intel
+	disableHDMI20 = checkKernelArgument("-cdfoff");
 
-	bool hasNVIDIA = false;
-	for (size_t i = 0; i < info->videoExternal.size(); i++) {
-		if (info->videoExternal[i].vendor == WIOKit::VendorID::NVIDIA) {
-			hasNVIDIA = true;
-			break;
+	bool patchNVIDIA = false;
+	bool patchCommon = false;
+
+	if (!disableHDMI20) {
+		if (checkKernelArgument("-cdfon")) {
+			patchNVIDIA = patchCommon = true;
+		} else {
+			for (size_t i = 0; i < info->videoExternal.size(); i++) {
+				if (info->videoExternal[i].vendor == WIOKit::VendorID::NVIDIA)
+					patchNVIDIA |= info->videoExternal[i].video->getProperty("enable-hdmi20") != nullptr;
+			}
+
+			if (patchNVIDIA || (info->videoBuiltin && info->videoBuiltin->getProperty("enable-hdmi20")))
+				patchCommon = true;
 		}
 	}
 
-	if (!hasNVIDIA) {
+	if (!patchNVIDIA) {
 		for (size_t i = 0; i < arrsize(kextList); i++)
 			kextList[i].switchOff();
+		disableHDMI20 = true;
 	}
 
-	if (!hasNVIDIA && !info->videoBuiltin && currentProcInfo && currentModInfo) {
+	if (!patchCommon && currentProcInfo && currentModInfo) {
 		currentProcInfo->section = UserPatcher::ProcInfo::SectionDisabled;
 		for (size_t i = 0; i < currentModInfo->count; i++)
 			currentModInfo->patches[i].section = UserPatcher::ProcInfo::SectionDisabled;

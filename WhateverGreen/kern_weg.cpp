@@ -137,6 +137,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 
 		// Do not inject properties unless non-Apple
 		if (devInfo->firmwareVendor != DeviceInfo::FirmwareVendor::Apple) {
+			DBGLOG("weg", "non-apple-fw proceeding with devprops %d", graphicsDisplayPolicyMod);
 			if (devInfo->videoBuiltin) {
 				processBuiltinProperties(devInfo->videoBuiltin, devInfo);
 
@@ -187,9 +188,9 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		auto info = reinterpret_cast<vc_info *>(patcher.solveSymbol(KernelPatcher::KernelID, "_vinfo"));
 		if (info) {
 			consoleVinfo = *info;
-			DBGLOG("weg", "vinfo 1: %d:%d %d:%d:%d",
+			DBGLOG("weg", "vinfo 1: %u:%u %u:%u:%u",
 				   consoleVinfo.v_height, consoleVinfo.v_width, consoleVinfo.v_depth, consoleVinfo.v_rowbytes, consoleVinfo.v_type);
-			DBGLOG("weg", "vinfo 2: %s %d:%d %d:%d:%d",
+			DBGLOG("weg", "vinfo 2: %s %u:%u %u:%u:%u",
 				   consoleVinfo.v_name, consoleVinfo.v_rows, consoleVinfo.v_columns, consoleVinfo.v_rowscanbytes, consoleVinfo.v_scale, consoleVinfo.v_rotate);
 			gotConsoleVinfo = true;
 		} else {
@@ -304,7 +305,7 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 	// However, we will try to at least name them in a unique manner (GFX0, GFX1, ...)
 	if (currentExternalGfxIndex <= MaxExternalGfxIndex && (!name || strncmp(name, "GFX", strlen("GFX")) != 0)) {
 		char name[16];
-		snprintf(name, sizeof(name), "GFX%d", currentExternalGfxIndex++);
+		snprintf(name, sizeof(name), "GFX%u", currentExternalGfxIndex++);
 		WIOKit::renameDevice(device, name);
 	}
 
@@ -316,7 +317,7 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 	bool wantSlot = info->videoExternal.size() > 1 || vendor == WIOKit::VendorID::NVIDIA;
 	if (wantSlot && currentExternalSlotIndex <= MaxExternalSlotIndex && !device->getProperty("AAPL,slot-name")) {
 		char name[16];
-		snprintf(name, sizeof(name), "Slot-%d", currentExternalSlotIndex++);
+		snprintf(name, sizeof(name), "Slot-%u", currentExternalSlotIndex++);
 		device->setProperty("AAPL,slot-name", name, sizeof("Slot-1"));
 	}
 
@@ -411,18 +412,24 @@ void WEG::processGraphicsPolicyMods(KernelPatcher &patcher, mach_vm_address_t ad
 }
 
 bool WEG::isGraphicsPolicyModRequired(DeviceInfo *info) {
+	DBGLOG("weg", "detecting policy");
 	// Graphics policy patches are only applicable to discrete GPUs.
-	if (info->videoExternal.size() == 0)
+	if (info->videoExternal.size() == 0) {
+		DBGLOG("weg", "no external gpus");
 		return false;
+	}
 
 	// Graphics policy patches do harm on Apple MacBooks, see:
 	// https://github.com/acidanthera/bugtracker/issues/260
-	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
+		DBGLOG("weg", "apple firmware");
 		return false;
+	}
 
 	// We do not need AGDC patches on compatible devices.
 	char boardIdentifier[64];
 	if (WIOKit::getComputerInfo(nullptr, 0, boardIdentifier, sizeof(boardIdentifier)) && boardIdentifier[0] != '\0') {
+		DBGLOG("weg", "board is %s", boardIdentifier);
 		const char *compatibleBoards[] {
 			"Mac-00BE6ED71E35EB86", // iMac13,1
 			"Mac-27ADBB7B4CEE8E61", // iMac14,2
@@ -477,9 +484,9 @@ void WEG::wrapFramebufferInit(IOFramebuffer *fb) {
 
 		if (fb->getCurrentDisplayMode(&mode, &depth) == kIOReturnSuccess &&
 			fb->getPixelInformation(mode, depth, kIOFBSystemAperture, &pixelInfo) == kIOReturnSuccess) {
-			DBGLOG("weg", "fb info 1: %d:%d %d:%d:%d",
+			DBGLOG("weg", "fb info 1: %d:%d %u:%u:%u",
 				   mode, depth, pixelInfo.bytesPerRow, pixelInfo.bytesPerPlane, pixelInfo.bitsPerPixel);
-			DBGLOG("weg", "fb info 2: %d:%d %s %d:%d:%d",
+			DBGLOG("weg", "fb info 2: %u:%u %s %u:%u:%u",
 				   pixelInfo.componentCount, pixelInfo.bitsPerComponent, pixelInfo.pixelFormat, pixelInfo.flags, pixelInfo.activeWidth, pixelInfo.activeHeight);
 
 			if (info.v_rowbytes != pixelInfo.bytesPerRow || info.v_width != pixelInfo.activeWidth ||

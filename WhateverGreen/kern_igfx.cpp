@@ -102,6 +102,9 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelCFLFb;
 			// Allow faking ask KBL
 			currentFramebufferOpt = &kextIntelKBLFb;
+			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
+			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
+			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -259,7 +262,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 }
 
 IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
-	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %d, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
+	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
 
 	if (sessionCommand == 4) {
 		DBGLOG("igfx", "pavpSessionCallback: enforcing error on cmd 4 (send to ring?)!");
@@ -270,7 +273,7 @@ IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCo
 }
 
 bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t availableLanes, int32_t *laneCount) {
-	DBGLOG("igfx", "computeLaneCount: bpp = %d, available = %d", bpp, availableLanes);
+	DBGLOG("igfx", "computeLaneCount: bpp = %u, available = %d", bpp, availableLanes);
 
 	// It seems that AGDP fails to properly detect external boot monitors. As a result computeLaneCount
 	// is mistakengly called for any boot monitor (e.g. HDMI/DVI), while it is only meant to be used for
@@ -398,7 +401,7 @@ void IGFX::wrapSystemDidWake(IOService *that) {
 
 	// This is IGHardwareGuC class instance.
 	auto &GuC = (reinterpret_cast<OSObject **>(that))[76];
-	DBGLOG("igfx", "reloading firmware on wake discovered IGHardwareGuC %d", GuC ? 1 : 0);
+	DBGLOG("igfx", "reloading firmware on wake discovered IGHardwareGuC %d", GuC != nullptr);
 	if (GuC) {
 		GuC->release();
 		GuC = nullptr;
@@ -518,14 +521,14 @@ void IGFX::loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm
 			uint8_t sizeReg[] {0x10, 0xC3, 0x00, 0x00};
 			auto pos    = reinterpret_cast<uint8_t *>(loadGuC);
 			auto endPos = pos + PAGE_SIZE;
-			while (memcmp(pos, sizeReg, sizeof(sizeReg)) && pos < endPos)
+			while (memcmp(pos, sizeReg, sizeof(sizeReg)) != 0 && pos < endPos)
 				pos++;
 
 			// Verify and store the size pointer
 			if (pos != endPos) {
 				pos += sizeof(uint32_t);
 				firmwareSizePointer = reinterpret_cast<uint32_t *>(pos);
-				DBGLOG("igfx", "discovered firmware size: %d bytes", *firmwareSizePointer);
+				DBGLOG("igfx", "discovered firmware size: %u bytes", *firmwareSizePointer);
 				// Firmware size must not be bigger than 1 MB
 				if ((*firmwareSizePointer & 0xFFFFF) == *firmwareSizePointer)
 					// Firmware follows the signature
@@ -585,22 +588,22 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 
 		for (size_t i = 0; i < arrsize(framebufferPatch.connectors); i++) {
 			char name[48];
-			snprintf(name, sizeof(name), "framebuffer-con%ld-enable", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-enable", i);
 			uint32_t framebufferConnectorPatchEnable = 0;
 			if (!WIOKit::getOSDataValue(igpu, name, framebufferConnectorPatchEnable) || !framebufferConnectorPatchEnable)
 				continue;
 
-			DBGLOG("igfx", "framebuffer-con%ld-enable %d", i, framebufferConnectorPatchEnable);
+			DBGLOG("igfx", "framebuffer-con%lu-enable %d", i, framebufferConnectorPatchEnable);
 
-			snprintf(name, sizeof(name), "framebuffer-con%ld-index", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-index", i);
 			connectorPatchFlags[i].bits.CPFIndex = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].index);
-			snprintf(name, sizeof(name), "framebuffer-con%ld-busid", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-busid", i);
 			connectorPatchFlags[i].bits.CPFBusId = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].busId);
-			snprintf(name, sizeof(name), "framebuffer-con%ld-pipe", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-pipe", i);
 			connectorPatchFlags[i].bits.CPFPipe = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].pipe);
-			snprintf(name, sizeof(name), "framebuffer-con%ld-type", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-type", i);
 			connectorPatchFlags[i].bits.CPFType = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].type);
-			snprintf(name, sizeof(name), "framebuffer-con%ld-flags", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-flags", i);
 			connectorPatchFlags[i].bits.CPFFlags = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].flags.value);
 
 			if (connectorPatchFlags[i].value != 0)
@@ -611,7 +614,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 	size_t patchIndex = 0;
 	for (size_t i = 0; i < MaxFramebufferPatchCount; i++) {
 		char name[48];
-		snprintf(name, sizeof(name), "framebuffer-patch%ld-enable", i);
+		snprintf(name, sizeof(name), "framebuffer-patch%lu-enable", i);
 		// Missing status means no patches at all.
 		uint32_t framebufferPatchEnable = 0;
 		if (!WIOKit::getOSDataValue(igpu, name, framebufferPatchEnable))
@@ -624,13 +627,13 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		uint32_t framebufferId = 0;
 		size_t framebufferPatchCount = 0;
 
-		snprintf(name, sizeof(name), "framebuffer-patch%ld-framebufferid", i);
+		snprintf(name, sizeof(name), "framebuffer-patch%lu-framebufferid", i);
 		bool passedFramebufferId = WIOKit::getOSDataValue(igpu, name, framebufferId);
-		snprintf(name, sizeof(name), "framebuffer-patch%ld-find", i);
+		snprintf(name, sizeof(name), "framebuffer-patch%lu-find", i);
 		auto framebufferPatchFind = OSDynamicCast(OSData, igpu->getProperty(name));
-		snprintf(name, sizeof(name), "framebuffer-patch%ld-replace", i);
+		snprintf(name, sizeof(name), "framebuffer-patch%lu-replace", i);
 		auto framebufferPatchReplace = OSDynamicCast(OSData, igpu->getProperty(name));
-		snprintf(name, sizeof(name), "framebuffer-patch%ld-count", i);
+		snprintf(name, sizeof(name), "framebuffer-patch%lu-count", i);
 		WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
 
 		if (!framebufferPatchFind || !framebufferPatchReplace)
@@ -736,7 +739,7 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 					platformInformationList[i].connectors[j].flags = framebufferPatch.connectors[j].flags;
 
 				if (connectorPatchFlags[j].value) {
-					DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", framebufferId, platformInformationList[i].connectors[j].index, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe, platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags.value);
+					DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %u, type: 0x%08X, flags: 0x%08X", framebufferId, platformInformationList[i].connectors[j].index, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe, platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags.value);
 
 					framebufferFound = true;
 				}
@@ -745,9 +748,9 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 			if (framebufferPatchFlags.value) {
 				DBGLOG("igfx", "patching framebufferId 0x%08X", framebufferId);
 				DBGLOG("igfx", "mobile: 0x%08X", platformInformationList[i].fMobile);
-				DBGLOG("igfx", "pipeCount: %d", platformInformationList[i].fPipeCount);
-				DBGLOG("igfx", "portCount: %d", platformInformationList[i].fPortCount);
-				DBGLOG("igfx", "fbMemoryCount: %d", platformInformationList[i].fFBMemoryCount);
+				DBGLOG("igfx", "pipeCount: %u", platformInformationList[i].fPipeCount);
+				DBGLOG("igfx", "portCount: %u", platformInformationList[i].fPortCount);
+				DBGLOG("igfx", "fbMemoryCount: %u", platformInformationList[i].fFBMemoryCount);
 
 				framebufferFound = true;
 			}
@@ -789,9 +792,9 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 	if (framebufferPatchFlags.value) {
 		DBGLOG("igfx", "patching framebufferId 0x%08X", frame->framebufferId);
 		DBGLOG("igfx", "mobile: 0x%08X", frame->fMobile);
-		DBGLOG("igfx", "pipeCount: %d", frame->fPipeCount);
-		DBGLOG("igfx", "portCount: %d", frame->fPortCount);
-		DBGLOG("igfx", "fbMemoryCount: %d", frame->fFBMemoryCount);
+		DBGLOG("igfx", "pipeCount: %u", frame->fPipeCount);
+		DBGLOG("igfx", "portCount: %u", frame->fPortCount);
+		DBGLOG("igfx", "fbMemoryCount: %u", frame->fFBMemoryCount);
 		DBGLOG("igfx", "stolenMemorySize: 0x%08X", frame->fStolenMemorySize);
 		DBGLOG("igfx", "framebufferMemorySize: 0x%08X", frame->fFramebufferMemorySize);
 		DBGLOG("igfx", "unifiedMemorySize: 0x%08X", frame->fUnifiedMemorySize);
@@ -815,7 +818,7 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 			frame->connectors[j].flags = framebufferPatch.connectors[j].flags;
 
 		if (connectorPatchFlags[j].value) {
-			DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", frame->framebufferId, frame->connectors[j].index, frame->connectors[j].busId, frame->connectors[j].pipe, frame->connectors[j].type, frame->connectors[j].flags.value);
+			DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %u, type: 0x%08X, flags: 0x%08X", frame->framebufferId, frame->connectors[j].index, frame->connectors[j].busId, frame->connectors[j].pipe, frame->connectors[j].type, frame->connectors[j].flags.value);
 
 			r = true;
 		}

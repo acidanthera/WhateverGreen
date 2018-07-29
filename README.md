@@ -28,14 +28,14 @@ WhateverGreen
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
 
 #### Boot arguments
-- `-wegdbg` to enable debug printing (available in DEBUG binaries).  
-- `-wegoff` to disable WhateverGreen.  
-- `-wegbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).  
+- `-wegdbg` to enable debug printing (available in DEBUG binaries).
+- `-wegoff` to disable WhateverGreen.
+- `-wegbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).
 - `-wegnoegpu` to disable external GPU (or add `disable-external-gpu` property to IGPU)
-- `-radvesa` to disable ATI/AMD video acceleration completely.  
-- `-igfxvesa` to boot Intel graphics without hardware acceleration (VESA mode).  
-- `-rad24` to enforce 24-bit display mode.  
-- `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).  
+- `-radvesa` to disable ATI/AMD video acceleration completely.
+- `-igfxvesa` to boot Intel graphics without hardware acceleration (VESA mode).
+- `-rad24` to enforce 24-bit display mode.
+- `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).
 - `radpg=15` to disable several power-gating modes (see FAQ, required for Cape Verde GPUs).
 - `agdpmod=cfgmap` enforcing `none` into ConfigMap dictionary for system board-id
 - `agdpmod=vit9696` disables check for board-id , enabled by default
@@ -43,12 +43,12 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support on NVIDIA
 - `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
 - `ngfxsubmit=0` boot argument to disable interface stuttering fix on 10.13
-- `igfxrst=1` to prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying.  
-- `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).  
-- `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.  
-- `igfxgl=0` to disable Metal support on Intel.  
-`-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.  
-- `-cdfoff` to disable HDMI 2.0 patches.  
+- `igfxrst=1` to prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying.
+- `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).
+- `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.
+- `igfxgl=0` to disable Metal support on Intel.
+- `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
+- `-cdfon`  (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS

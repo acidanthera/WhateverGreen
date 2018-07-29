@@ -5,6 +5,8 @@ WhateverGreen Changelog
 - Added `-wegnoegpu` boot-arg and `disable-external-gpu` IGPU property to kill external GPU
 - Fixed IGPU framebuffer patches (requires Lilu 1.2.6)
 - Fixed `-shikioff` not working (note, `-liluuseroff` may be more handy)
+- Recovered GuC loading for internal usage (do NOT use, causes freezes and crashes)
+- Disabled HDMI 2.0 by default, use `-cdfon` boot-arg or `enable-hdmi20` IGPU/GFX0 property to enable
 
 #### v1.2.0
 - Merged GPU kexts into one (AMD, Intel, NVIDIA) including H/W acceleration (Shiki)
