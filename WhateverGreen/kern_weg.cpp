@@ -11,7 +11,10 @@
 #include <Headers/kern_cpu.hpp>
 #include "kern_weg.hpp"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
 #include <IOKit/graphics/IOFramebuffer.h>
+#pragma clang diagnostic pop
 
 // This is a hack to let us access protected properties.
 struct FramebufferViewer : public IOFramebuffer {

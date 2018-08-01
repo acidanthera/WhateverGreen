@@ -34,7 +34,7 @@ PluginConfiguration ADDPR(config) {
 	arrsize(bootargDebug),
 	bootargBeta,
 	arrsize(bootargBeta),
-	KernelVersion::Yosemite,
+	KernelVersion::MountainLion,
 	KernelVersion::Mojave,
 	[]() {
 		weg.init();
