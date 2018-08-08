@@ -383,7 +383,7 @@ void RAD::mergeProperty(OSDictionary *props, const char *name, OSObject *value) 
 
 		// Consult the original value to make a decision
 		auto orgValue = props->getObject(name);
-		if (orgValue) {
+		if (val && orgValue) {
 			DBGLOG("rad", "prop %s has original value", name);
 			if (len == sizeof(uint32_t) && OSDynamicCast(OSNumber, orgValue)) {
 				auto num = *reinterpret_cast<const uint32_t *>(val);
