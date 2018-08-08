@@ -205,6 +205,15 @@ private:
 	void initHardwareKextMods();
 
 	/**
+	 *  Merge property with a correct type from ioreg
+	 *
+	 *  @param props  target dictionary with original properties
+	 *  @param name   property name
+	 *  @param value  property value
+	 */
+	void mergeProperty(OSDictionary *props, const char *name, OSObject *value);
+
+	/**
 	 *  Merge configuration properties from ioreg
 	 *
 	 *  @param props     target dictionary with original properties

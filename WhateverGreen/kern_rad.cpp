@@ -360,6 +360,52 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 	}
 }
 
+void RAD::mergeProperty(OSDictionary *props, const char *name, OSObject *value) {
+	// The only type we could make from device properties is data.
+	// To be able to override other types we do a conversion here.
+	auto data = OSDynamicCast(OSData, value);
+	if (data) {
+		// It is hard to make a boolean even from ACPI, so we make a hack here:
+		// 1-byte OSData with 0x01 / 0x00 values becomes boolean.
+		auto val = static_cast<const uint8_t *>(data->getBytesNoCopy());
+		auto len = data->getLength();
+		if (val && len == sizeof(uint8_t)) {
+			if (val[0] == 1) {
+				props->setObject(name, kOSBooleanTrue);
+				DBGLOG("rad", "prop %s was merged as kOSBooleanTrue", name);
+				return;
+			} else if (val[0] == 0) {
+				props->setObject(name, kOSBooleanFalse);
+				DBGLOG("rad", "prop %s was merged as kOSBooleanFalse", name);
+				return;
+			}
+		}
+
+		// Consult the original value to make a decision
+		auto orgValue = props->getObject(name);
+		if (orgValue) {
+			DBGLOG("rad", "prop %s has original value", name);
+			if (len == sizeof(uint32_t) && OSDynamicCast(OSNumber, orgValue)) {
+				auto num = *reinterpret_cast<const uint32_t *>(val);
+				props->setObject(name, OSNumber::withNumber(num, 32));
+				DBGLOG("rad", "prop %s was merged as number %u", name, num);
+				return;
+			} else if (len > 0 && val[len-1] == '\0' && OSDynamicCast(OSString, orgValue)) {
+				auto str = reinterpret_cast<const char *>(val);
+				props->setObject(name, OSString::withCString(str));
+				DBGLOG("rad", "prop %s was merged as string %s", name, str);
+				return;
+			}
+		} else {
+			DBGLOG("rad", "prop %s has no original value", name);
+		}
+	}
+
+	// Default merge as is
+	props->setObject(name, value);
+	DBGLOG("rad", "prop %s was merged", name);
+}
+
 void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *provider) {
 	// Should be ok, but in case there are issues switch to dictionaryWithProperties();
 	auto dict = provider->getPropertyTable();
@@ -372,28 +418,10 @@ void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *pr
 				auto name = propname->getCStringNoCopy();
 				if (name && propname->getLength() > prefixlen && !strncmp(name, prefix, prefixlen)) {
 					auto prop = dict->getObject(propname);
-					if (prop) {
-						// It is hard to make a boolean from ACPI, so we make a hack here:
-						// 1-byte OSData with 0x01 / 0x00 values becomes boolean.
-						auto data = OSDynamicCast(OSData, prop);
-						if (data && data->getLength() == 1) {
-							auto val = static_cast<const uint8_t *>(data->getBytesNoCopy());
-							if (val && val[0] == 1) {
-								props->setObject(name+prefixlen, kOSBooleanTrue);
-								DBGLOG("rad", "prop %s was merged as kOSBooleanTrue", name);
-								continue;
-							} else if (val && val[0] == 0) {
-								props->setObject(name+prefixlen, kOSBooleanFalse);
-								DBGLOG("rad", "prop %s was merged as kOSBooleanFalse", name);
-								continue;
-							}
-						}
-						
-						props->setObject(name+prefixlen, prop);
-						DBGLOG("rad", "prop %s was merged", name);
-					} else {
+					if (prop)
+						mergeProperty(props, name + prefixlen, prop);
+					else
 						DBGLOG("rad", "prop %s was not merged due to no value", name);
-					}
 				} else {
 					//DBGLOG("rad", "prop %s does not match %s prefix", safeString(name), prefix);
 				}
