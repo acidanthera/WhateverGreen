@@ -614,7 +614,18 @@ struct FramebufferICLLP {
     local uint32_t fBacklightMax <read=frequencyToPrintable> = 0;
 };
 
-uint32_t calculateStolen(FramebufferFlags &flags, uint32_t fStolenMemorySize, uint32_t fFBMemoryCount, uint32_t fFramebufferMemorySize) {
+uint32_t calculateStolenHaswell(FramebufferFlags &flags, uint32_t fStolenMemorySize, uint32_t fFBMemoryCount, uint32_t fFramebufferMemorySize) {
+    local uint32_t fTotalStolen = 0x100000; /* a constant */
+    if (flags.bits.FBFramebufferCommonMemory) /* formerly FBUnknownFlag_2 */
+        fTotalStolen += fStolenMemorySize;
+    else
+        fTotalStolen += fStolenMemorySize * fFBMemoryCount;
+    /* Prior to Skylake fFramebufferMemorySize is taken into account unconditionally */
+    fTotalStolen += fFramebufferMemorySize;
+    return fTotalStolen;
+}
+
+uint32_t calculateStolenSkylake(FramebufferFlags &flags, uint32_t fStolenMemorySize, uint32_t fFBMemoryCount, uint32_t fFramebufferMemorySize) {
     local uint32_t fTotalStolen = 0x100000; /* a constant */
     if (flags.bits.FBFramebufferCommonMemory) /* formerly FBUnknownFlag_2 */
         fTotalStolen += fStolenMemorySize;
@@ -730,49 +741,49 @@ string framebufferIVBToPrintable(FramebufferIVB &fb) {
 string framebufferHSWToPrintable(FramebufferHSW &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenHaswell(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferBDWToPrintable(FramebufferBDW &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenHaswell(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferSKLToPrintable(FramebufferSKL &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenSkylake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferCFLToPrintable(FramebufferCFL &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenSkylake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferCNLToPrintable(FramebufferCNL &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenSkylake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferICLHPToPrintable(FramebufferICLHP &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenSkylake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
 string framebufferICLLPToPrintable(FramebufferICLLP &fb) {
     local string out;
     SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolen(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenSkylake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
@@ -844,9 +855,12 @@ while (pos < size) {
         if (firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId) {
             fMaxStolen = frames[i].fFramebufferMemorySize * frames[i].fFBMemoryCount;
             fTotalStolen = frames[i].fFramebufferMemorySize; /* the assert here does not multiply, why? */
+        } else if (firstId == FirstHaswellId || firstId == FirstBroadwellId) {
+            fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
+            fTotalStolen = calculateStolenHaswell(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
         } else {
             fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
-            fTotalStolen = calculateStolen(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
+            fTotalStolen = calculateStolenSkylake(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
         }
         fTotalCursor = frames[i].fPipeCount * 0x80000;
         fMaxOverall = fTotalCursor + fMaxStolen + frames[i].fPortCount * 0x1000;
