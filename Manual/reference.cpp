@@ -1,12 +1,10 @@
 //
-//  reference.c
+//  reference.cpp
 //  WhateverGreen
 //  Explanation of how RadeonFramebuffer connectors are created
+//  Reverse-engineered from AMDSupport.kext
 //
 //  Copyright © 2017 vit9696. All rights reserved.
-//
-//  Reverse-engineered from AMDSupport.kext
-//  Copyright © 2017 Apple Inc. All rights reserved.
 //
 
 /**
