@@ -1,6 +1,9 @@
 WhateverGreen Changelog
 =======================
 
+#### v1.2.2
+- Fixed automatic frame selection with `-wegnoegpu` boot-arg or `disable-external-gpu` IGPU property (Lilu 1.2.7 or newer)
+
 #### v1.2.1
 - Added `-wegnoegpu` boot-arg and `disable-external-gpu` IGPU property to kill external GPU
 - Fixed IGPU framebuffer patches (requires Lilu 1.2.6)

@@ -51,9 +51,6 @@ void WEG::init() {
 		resetFramebuffer = FB_NONE;
 	}
 
-	// Kill optimus and amd dynamic switchable on request
-	disableOptimus = checkKernelArgument("-wegnoegpu");
-
 	// Black screen fix is needed everywhere, but the form depends on the boot-arg.
 	// Former boot-arg name is ngfxpatch.
 	char agdp[128];
@@ -108,10 +105,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 	// Correct GPU properties
 	auto devInfo = DeviceInfo::create();
 	if (devInfo) {
-		if (devInfo->videoBuiltin)
-			disableOptimus |= devInfo->videoBuiltin->getProperty("disable-external-gpu") != nullptr;
-
-		if (disableOptimus) {
+		if (devInfo->requestedExternalSwitchOff) {
 			DBGLOG("weg", "disabling all external GPUs");
 			size_t extNum = devInfo->videoExternal.size();
 			for (size_t i = 0; i < extNum; i++) {
