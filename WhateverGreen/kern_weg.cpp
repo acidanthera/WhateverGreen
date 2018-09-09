@@ -154,7 +154,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			}
 
 			if (graphicsDisplayPolicyMod == AGDP_DETECT && isGraphicsPolicyModRequired(devInfo))
-				graphicsDisplayPolicyMod = AGDP_VIT9696;
+				graphicsDisplayPolicyMod = AGDP_VIT9696 | AGDP_PIKERA;
 
 			if (devInfo->managementEngine)
 				processManagementEngineProperties(devInfo->managementEngine);
@@ -403,6 +403,8 @@ void WEG::processGraphicsPolicyMods(KernelPatcher &patcher, mach_vm_address_t ad
 	}
 
 	if (graphicsDisplayPolicyMod & AGDP_CFGMAP) {
+		//FIXME: Does not function in 10.13.x, as the symbols have been stripped.
+		// Should not be needed really, remove it?
 		KernelPatcher::RouteRequest request("__ZN25AppleGraphicsDevicePolicy5startEP9IOService", wrapGraphicsPolicyStart, orgGraphicsPolicyStart);
 		patcher.routeMultiple(kextAGDPolicy.loadIndex, &request, 1, address, size);
 	}
