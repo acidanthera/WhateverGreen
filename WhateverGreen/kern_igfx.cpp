@@ -595,8 +595,12 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 
 			DBGLOG("igfx", "framebuffer-con%lu-enable %d", i, framebufferConnectorPatchEnable);
 
-			snprintf(name, sizeof(name), "framebuffer-con%lu-alldata", i);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-%08x-alldata", i, currentFramebufferId);
 			auto allData = OSDynamicCast(OSData, igpu->getProperty(name));
+			if (!allData) {
+				snprintf(name, sizeof(name), "framebuffer-con%lu-alldata", i);
+				allData = OSDynamicCast(OSData, igpu->getProperty(name));
+			}
 			if (allData) {
 				auto allDataSize = allData->getLength();
 				auto replaceCount = allDataSize / sizeof(framebufferPatch.connectors[0]);

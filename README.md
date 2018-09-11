@@ -60,6 +60,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for continuous implementation of Intel and NVIDIA fixing code
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries
 - [PMheart](https://github.com/PMheart) for CoreDisplay patching code and Intel fix backporting
+- [RehabMan](https://github.com/RehabMan) for various enhancements
 - [RemB](https://applelife.ru/members/remb.8064/) for continuing sleep-wake research and finding the right register for AMD issues
 - [Vandroiy](https://applelife.ru/members/vandroiy.83653/) for maintaining the GPU model detection database
 - [YungRaj](https://github.com/YungRaj) and [syscl](https://github.com/syscl) for Intel fix backporting
