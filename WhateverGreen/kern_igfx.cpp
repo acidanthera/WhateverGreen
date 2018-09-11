@@ -595,16 +595,34 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 
 			DBGLOG("igfx", "framebuffer-con%lu-enable %d", i, framebufferConnectorPatchEnable);
 
+			snprintf(name, sizeof(name), "framebuffer-con%lu-alldata", i);
+			auto allData = OSDynamicCast(OSData, igpu->getProperty(name));
+			if (allData) {
+				auto allDataSize = allData->getLength();
+				auto replaceCount = allDataSize / sizeof(framebufferPatch.connectors[0]);
+				if (0 == allDataSize % sizeof(framebufferPatch.connectors[0]) && i + replaceCount <= arrsize(framebufferPatch.connectors)) {
+					auto replacementConnectors = reinterpret_cast<const ConnectorInfo*>(allData->getBytesNoCopy());
+					for (size_t j = 0; j < replaceCount; j++) {
+						framebufferPatch.connectors[i+j] = replacementConnectors[j];
+						connectorPatchFlags[i+j].bits.CPFIndex = true;
+						connectorPatchFlags[i+j].bits.CPFBusId = true;
+						connectorPatchFlags[i+j].bits.CPFPipe = true;
+						connectorPatchFlags[i+j].bits.CPFType = true;
+						connectorPatchFlags[i+j].bits.CPFFlags = true;
+					}
+				}
+			}
+
 			snprintf(name, sizeof(name), "framebuffer-con%lu-index", i);
-			connectorPatchFlags[i].bits.CPFIndex = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].index);
+			connectorPatchFlags[i].bits.CPFIndex |= WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].index);
 			snprintf(name, sizeof(name), "framebuffer-con%lu-busid", i);
-			connectorPatchFlags[i].bits.CPFBusId = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].busId);
+			connectorPatchFlags[i].bits.CPFBusId |= WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].busId);
 			snprintf(name, sizeof(name), "framebuffer-con%lu-pipe", i);
-			connectorPatchFlags[i].bits.CPFPipe = WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].pipe);
+			connectorPatchFlags[i].bits.CPFPipe |= WIOKit::getOSDataValue<uint32_t>(igpu, name, framebufferPatch.connectors[i].pipe);
 			snprintf(name, sizeof(name), "framebuffer-con%lu-type", i);
-			connectorPatchFlags[i].bits.CPFType = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].type);
+			connectorPatchFlags[i].bits.CPFType |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].type);
 			snprintf(name, sizeof(name), "framebuffer-con%lu-flags", i);
-			connectorPatchFlags[i].bits.CPFFlags = WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].flags.value);
+			connectorPatchFlags[i].bits.CPFFlags |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].flags.value);
 
 			if (connectorPatchFlags[i].value != 0)
 				hasFramebufferPatch = true;
