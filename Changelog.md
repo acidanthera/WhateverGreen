@@ -1,5 +1,7 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.3
+- Added `framebuffer-conX-XXXXXXXX-alldata` IGPU patch support (platform-id specific conX-alldata)
 
 #### v1.2.2
 - Added `framebuffer-conX-alldata` IGPU patch support
