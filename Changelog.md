@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 
 #### v1.2.2
+- Added `framebuffer-conX-alldata` IGPU patch support
 - Fixed automatic frame selection with `-wegnoegpu` boot-arg or `disable-external-gpu` IGPU property (Lilu 1.2.7 or newer)
 
 #### v1.2.1
