@@ -2,6 +2,8 @@ WhateverGreen Changelog
 =======================
 #### v1.2.3
 - Added `framebuffer-conX-XXXXXXXX-alldata` IGPU patch support (platform-id specific conX-alldata)
+- Changed AGDP patch defaults to vit+pikera patch
+- Fixed semantic patches for Coffee Lake when it pretends to be Kaby
 
 #### v1.2.2
 - Added `framebuffer-conX-alldata` IGPU patch support
