@@ -1,9 +1,7 @@
 WhateverGreen Changelog
 =======================
-#### v1.2.4
-- Added `framebuffer-cursormem` IGPU patch support (Haswell specific)
-
 #### v1.2.3
+- Added `framebuffer-cursormem` IGPU patch support (Haswell specific)
 - Added `framebuffer-conX-XXXXXXXX-alldata` IGPU patch support (platform-id specific conX-alldata)
 - Changed AGDP patch defaults to vit+pikera patch
 - Fixed semantic patches for Coffee Lake when it pretends to be Kaby

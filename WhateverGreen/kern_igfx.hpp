@@ -111,7 +111,7 @@ private:
 	 *  Framebuffer hard-code patch
 	 */
 	FramebufferCFL framebufferPatch {};
-	uint32_t fPatchCursorMemorySize;	//REVIEW_REHABMAN: Haswell only... problem of using CFL as holder for patch data
+	uint32_t fPatchCursorMemorySize;	// Haswell only... and therefore not present in FramebufferCFL
 
 	/**
 	 *  Maximum find / replace patches
@@ -413,6 +413,14 @@ private:
 	 */
 	template <typename T>
 	bool applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList);
+
+	/**
+	 *  Extended patching called from applyPlatformInformationListPatch
+	 *
+	 *  @param frame               pointer to Framebuffer data
+	 *
+	 */	template <typename T>
+	void applyPlatformInformationPatchEx(T* frame) { }
 
 	/**
 	 *  Apply framebuffer patches
