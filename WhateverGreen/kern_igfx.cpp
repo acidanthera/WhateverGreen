@@ -582,6 +582,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		framebufferPatchFlags.bits.FPFStolenMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-stolenmem", framebufferPatch.fStolenMemorySize);
 		framebufferPatchFlags.bits.FPFFramebufferMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-fbmem", framebufferPatch.fFramebufferMemorySize);
 		framebufferPatchFlags.bits.FPFUnifiedMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-unifiedmem", framebufferPatch.fUnifiedMemorySize);
+		framebufferPatchFlags.bits.FPFFramebufferCursorSize = WIOKit::getOSDataValue(igpu, "framebuffer-cursormem", fPatchCursorMemorySize);
 
 		if (framebufferPatchFlags.value != 0)
 			hasFramebufferPatch = true;
@@ -780,6 +781,78 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 	}
 
 	return framebufferFound;
+}
+
+template <>
+bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, FramebufferHSW *platformInformationList) {
+	auto frame = reinterpret_cast<FramebufferHSW *>(findFramebufferId(framebufferId, reinterpret_cast<uint8_t *>(platformInformationList), PAGE_SIZE));
+	if (!frame)
+		return false;
+
+	bool r = false;
+
+	if (framebufferPatchFlags.bits.FPFMobile)
+		frame->fMobile = framebufferPatch.fMobile;
+
+	if (framebufferPatchFlags.bits.FPFPipeCount)
+		frame->fPipeCount = framebufferPatch.fPipeCount;
+
+	if (framebufferPatchFlags.bits.FPFPortCount)
+		frame->fPortCount = framebufferPatch.fPortCount;
+
+	if (framebufferPatchFlags.bits.FPFFBMemoryCount)
+		frame->fFBMemoryCount = framebufferPatch.fFBMemoryCount;
+
+	if (framebufferPatchFlags.bits.FPFStolenMemorySize)
+		frame->fStolenMemorySize = framebufferPatch.fStolenMemorySize;
+
+	if (framebufferPatchFlags.bits.FPFFramebufferMemorySize)
+		frame->fFramebufferMemorySize = framebufferPatch.fFramebufferMemorySize;
+
+	// fCursorMemorySize is Haswell specific
+	if (framebufferPatchFlags.bits.FPFFramebufferCursorSize)
+		frame->fCursorMemorySize = fPatchCursorMemorySize;
+
+	if (framebufferPatchFlags.bits.FPFUnifiedMemorySize)
+		frame->fUnifiedMemorySize = framebufferPatch.fUnifiedMemorySize;
+
+	if (framebufferPatchFlags.value) {
+		DBGLOG("igfx", "patching framebufferId 0x%08X", frame->framebufferId);
+		DBGLOG("igfx", "mobile: 0x%08X", frame->fMobile);
+		DBGLOG("igfx", "pipeCount: %u", frame->fPipeCount);
+		DBGLOG("igfx", "portCount: %u", frame->fPortCount);
+		DBGLOG("igfx", "fbMemoryCount: %u", frame->fFBMemoryCount);
+		DBGLOG("igfx", "stolenMemorySize: 0x%08X", frame->fStolenMemorySize);
+		DBGLOG("igfx", "framebufferMemorySize: 0x%08X", frame->fFramebufferMemorySize);
+		DBGLOG("igfx", "fCursorMemorySize: 0x%08X", frame->fCursorMemorySize);
+		DBGLOG("igfx", "unifiedMemorySize: 0x%08X", frame->fUnifiedMemorySize);
+		r = true;
+	}
+
+	for (size_t j = 0; j < arrsize(frame->connectors); j++) {
+		if (connectorPatchFlags[j].bits.CPFIndex)
+			frame->connectors[j].index = framebufferPatch.connectors[j].index;
+
+		if (connectorPatchFlags[j].bits.CPFBusId)
+			frame->connectors[j].busId = framebufferPatch.connectors[j].busId;
+
+		if (connectorPatchFlags[j].bits.CPFPipe)
+			frame->connectors[j].pipe = framebufferPatch.connectors[j].pipe;
+
+		if (connectorPatchFlags[j].bits.CPFType)
+			frame->connectors[j].type = framebufferPatch.connectors[j].type;
+
+		if (connectorPatchFlags[j].bits.CPFFlags)
+			frame->connectors[j].flags = framebufferPatch.connectors[j].flags;
+
+		if (connectorPatchFlags[j].value) {
+			DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %u, type: 0x%08X, flags: 0x%08X", frame->framebufferId, frame->connectors[j].index, frame->connectors[j].busId, frame->connectors[j].pipe, frame->connectors[j].type, frame->connectors[j].flags.value);
+
+			r = true;
+		}
+	}
+
+	return true;
 }
 
 template <typename T>

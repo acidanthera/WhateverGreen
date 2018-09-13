@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.4
+- Added `framebuffer-cursormem` IGPU patch support (Haswell specific)
+
 #### v1.2.3
 - Added `framebuffer-conX-XXXXXXXX-alldata` IGPU patch support (platform-id specific conX-alldata)
 

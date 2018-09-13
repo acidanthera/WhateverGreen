@@ -56,6 +56,7 @@ private:
 			uint8_t FPFStolenMemorySize         :1;
 			uint8_t FPFFramebufferMemorySize    :1;
 			uint8_t FPFUnifiedMemorySize        :1;
+			uint8_t FPFFramebufferCursorSize    :1; // Haswell only
 			uint8_t FPFFlags                    :1;
 			uint8_t FPFBTTableOffsetIndexSlice  :1;
 			uint8_t FPFBTTableOffsetIndexNormal :1;
@@ -110,6 +111,7 @@ private:
 	 *  Framebuffer hard-code patch
 	 */
 	FramebufferCFL framebufferPatch {};
+	uint32_t fPatchCursorMemorySize;	//REVIEW_REHABMAN: Haswell only... problem of using CFL as holder for patch data
 
 	/**
 	 *  Maximum find / replace patches
