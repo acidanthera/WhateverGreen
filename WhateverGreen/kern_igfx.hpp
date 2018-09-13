@@ -56,6 +56,7 @@ private:
 			uint8_t FPFStolenMemorySize         :1;
 			uint8_t FPFFramebufferMemorySize    :1;
 			uint8_t FPFUnifiedMemorySize        :1;
+			uint8_t FPFFramebufferCursorSize    :1; // Haswell only
 			uint8_t FPFFlags                    :1;
 			uint8_t FPFBTTableOffsetIndexSlice  :1;
 			uint8_t FPFBTTableOffsetIndexNormal :1;
@@ -110,6 +111,12 @@ private:
 	 *  Framebuffer hard-code patch
 	 */
 	FramebufferCFL framebufferPatch {};
+
+	/**
+	 *  Patch value for fCursorMemorySize in Haswell framebuffer
+	 *  This member is not present in FramebufferCFL, hence its addition here.
+	 */
+	uint32_t fPatchCursorMemorySize;
 
 	/**
 	 *  Maximum find / replace patches
@@ -411,6 +418,15 @@ private:
 	 */
 	template <typename T>
 	bool applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList);
+
+	/**
+	 *  Extended patching called from applyPlatformInformationListPatch
+	 *
+	 *  @param frame               pointer to Framebuffer data
+	 *
+	 */
+	template <typename T>
+	void applyPlatformInformationPatchEx(T* frame) { }
 
 	/**
 	 *  Apply framebuffer patches

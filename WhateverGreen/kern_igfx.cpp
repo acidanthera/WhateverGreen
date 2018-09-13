@@ -582,6 +582,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		framebufferPatchFlags.bits.FPFStolenMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-stolenmem", framebufferPatch.fStolenMemorySize);
 		framebufferPatchFlags.bits.FPFFramebufferMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-fbmem", framebufferPatch.fFramebufferMemorySize);
 		framebufferPatchFlags.bits.FPFUnifiedMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-unifiedmem", framebufferPatch.fUnifiedMemorySize);
+		framebufferPatchFlags.bits.FPFFramebufferCursorSize = WIOKit::getOSDataValue(igpu, "framebuffer-cursormem", fPatchCursorMemorySize);
 
 		if (framebufferPatchFlags.value != 0)
 			hasFramebufferPatch = true;
@@ -782,6 +783,15 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 	return framebufferFound;
 }
 
+template <>
+void IGFX::applyPlatformInformationPatchEx(FramebufferHSW *frame) {
+	// fCursorMemorySize is Haswell specific
+	if (framebufferPatchFlags.bits.FPFFramebufferCursorSize) {
+		frame->fCursorMemorySize = fPatchCursorMemorySize;
+		DBGLOG("igfx", "fCursorMemorySize: 0x%08X", frame->fCursorMemorySize);
+	}
+}
+
 template <typename T>
 bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platformInformationList) {
 	auto frame = reinterpret_cast<T *>(findFramebufferId(framebufferId, reinterpret_cast<uint8_t *>(platformInformationList), PAGE_SIZE));
@@ -820,8 +830,11 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 		DBGLOG("igfx", "stolenMemorySize: 0x%08X", frame->fStolenMemorySize);
 		DBGLOG("igfx", "framebufferMemorySize: 0x%08X", frame->fFramebufferMemorySize);
 		DBGLOG("igfx", "unifiedMemorySize: 0x%08X", frame->fUnifiedMemorySize);
+
 		r = true;
 	}
+
+	applyPlatformInformationPatchEx(frame);
 
 	for (size_t j = 0; j < arrsize(frame->connectors); j++) {
 		if (connectorPatchFlags[j].bits.CPFIndex)
@@ -846,7 +859,7 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 		}
 	}
 
-	return true;
+	return r;
 }
 
 template <typename T>
