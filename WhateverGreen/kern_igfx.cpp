@@ -798,6 +798,8 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 	if (!frame)
 		return false;
 
+	bool r = false;
+
 	if (framebufferPatchFlags.bits.FPFMobile)
 		frame->fMobile = framebufferPatch.fMobile;
 
@@ -828,6 +830,8 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 		DBGLOG("igfx", "stolenMemorySize: 0x%08X", frame->fStolenMemorySize);
 		DBGLOG("igfx", "framebufferMemorySize: 0x%08X", frame->fFramebufferMemorySize);
 		DBGLOG("igfx", "unifiedMemorySize: 0x%08X", frame->fUnifiedMemorySize);
+
+		r = true;
 	}
 
 	applyPlatformInformationPatchEx(frame);
@@ -850,10 +854,12 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 
 		if (connectorPatchFlags[j].value) {
 			DBGLOG("igfx", "patching framebufferId 0x%08X connector [%d] busId: 0x%02X, pipe: %u, type: 0x%08X, flags: 0x%08X", frame->framebufferId, frame->connectors[j].index, frame->connectors[j].busId, frame->connectors[j].pipe, frame->connectors[j].type, frame->connectors[j].flags.value);
+
+			r = true;
 		}
 	}
 
-	return true;
+	return r;
 }
 
 template <typename T>
