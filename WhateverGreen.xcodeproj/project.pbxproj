@@ -90,11 +90,6 @@
 		CE405ED21E49F9FC00AA0B3D /* kern_api.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_api.hpp; sourceTree = "<group>"; };
 		CE405ED81E4A080700AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDA1E4A080F00AA0B3D /* plugin_start.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin_start.hpp; sourceTree = "<group>"; };
-		CE41E4F91F2C4B5700AA5944 /* build.tool */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build.tool; sourceTree = "<group>"; };
-		CE41E4FA1F2C4B5700AA5944 /* rd_route.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = rd_route.c; sourceTree = "<group>"; };
-		CE41E4FB1F2C4B5700AA5944 /* rd_route.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rd_route.h; sourceTree = "<group>"; };
-		CE41E4FC1F2C4B5700AA5944 /* WhateverName.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WhateverName.mm; sourceTree = "<group>"; };
-		CE41E4FE1F2C547200AA5944 /* WhateverName.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = WhateverName.app; sourceTree = "<group>"; };
 		CE766ED4210763B200A84567 /* kern_guc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_guc.cpp; sourceTree = "<group>"; };
 		CE766ED5210763B200A84567 /* kern_guc.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_guc.hpp; sourceTree = "<group>"; };
 		CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_ngfx.cpp; sourceTree = "<group>"; };
@@ -152,7 +147,6 @@
 				1CF01C911C8CF982002DCEA3 /* Docs */,
 				CE7FC0C620F6829500138088 /* Resources */,
 				1C748C291C21952C0024EED2 /* WhateverGreen */,
-				CE41E4F81F2C4B5700AA5944 /* WhateverName */,
 				CE7FC0B620F681D600138088 /* ResourceConverter */,
 				CE405EC81E49DD7B00AA0B3D /* SDK */,
 				1C748C281C21952C0024EED2 /* Products */,
@@ -249,18 +243,6 @@
 				CE405EC51E49DD7100AA0B3D /* Library */,
 			);
 			name = SDK;
-			sourceTree = "<group>";
-		};
-		CE41E4F81F2C4B5700AA5944 /* WhateverName */ = {
-			isa = PBXGroup;
-			children = (
-				CE41E4F91F2C4B5700AA5944 /* build.tool */,
-				CE41E4FA1F2C4B5700AA5944 /* rd_route.c */,
-				CE41E4FB1F2C4B5700AA5944 /* rd_route.h */,
-				CE41E4FC1F2C4B5700AA5944 /* WhateverName.mm */,
-				CE41E4FE1F2C547200AA5944 /* WhateverName.app */,
-			);
-			path = WhateverName;
 			sourceTree = "<group>";
 		};
 		CE7FC0B620F681D600138088 /* ResourceConverter */ = {
