@@ -233,7 +233,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || hdmiAutopatch) {
-			gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
+			gPlatformInformationList = patcher.solveSymbol<void *>(index, cpuGeneration != CPUInfo::CpuGeneration::SandyBridge ? "_gPlatformInformationList" : "_PlatformInformationList", address, size);
 			if (gPlatformInformationList) {
 				framebufferStart = reinterpret_cast<uint8_t *>(address);
 				framebufferSize = size;
