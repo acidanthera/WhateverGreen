@@ -132,6 +132,7 @@ private:
 	 *  External global variables
 	 */
 	void *gPlatformInformationList {nullptr};
+	bool gPlatformListIsSNB {false};
 
 	/**
 	 *  Private self instance for callbacks
@@ -405,12 +406,11 @@ private:
 	/**
 	 * Calculate total size of platform table list, including termination entry (FFFFFFFF 00000000)
 	 *
-	 * @param startingAddress	Start address of data to search
 	 * @param maxSize			Maximum size of data to search
 	 *
 	 * @return size of data
 	 */
-	static size_t calculatePlatformListSize(uint8_t *startingAddress, size_t maxSize);
+	size_t calculatePlatformListSize(size_t maxSize);
 
 	/**
 	 * Write platform table data to ioreg
@@ -418,7 +418,7 @@ private:
 	 * @param subKeyName		ioreg subkey (under IOService://IOResources/WhateverGreen)
 	 *
 	 */
-	static void writePlatformListData(const char* subKeyName);
+	void writePlatformListData(const char* subKeyName);
 
 	/**
 	 *  Patch data without changing kernel protection

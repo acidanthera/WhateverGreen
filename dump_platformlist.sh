@@ -27,7 +27,7 @@ fi
 
 for x in preinit native patched; do
     extract_bin_property $plist :0:platform-table-$x $x.bin
-    xxd <$x.bin >$x.txt
+    xxd -groupsize 4 <$x.bin >$x.txt
 done
 
 #EOF

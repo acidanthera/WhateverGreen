@@ -235,13 +235,20 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || hdmiAutopatch) {
+			if (cpuGeneration != CPUInfo::CpuGeneration::SandyBridge) {
+				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
+				gPlatformListIsSNB = false;
+			} else {
+				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_PlatformInformationList", address, size);
+				gPlatformListIsSNB = true;
+			}
 			gPlatformInformationList = patcher.solveSymbol<void *>(index, cpuGeneration != CPUInfo::CpuGeneration::SandyBridge ? "_gPlatformInformationList" : "_PlatformInformationList", address, size);
 			if (gPlatformInformationList) {
 				framebufferStart = reinterpret_cast<uint8_t *>(address);
 				framebufferSize = size;
 
 				if (callbackIGFX->dumpPlatformTable)
-					writePlatformListData("platform-table-preinit");
+					callbackIGFX->writePlatformListData("platform-table-preinit");
 
 				auto fbGetOSInformation = "__ZN31AppleIntelFramebufferController16getOSInformationEv";
 				if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
@@ -365,7 +372,7 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 #endif
 
 	if (callbackIGFX->dumpPlatformTable)
-		writePlatformListData("platform-table-native");
+		callbackIGFX->writePlatformListData("platform-table-native");
 
 	if (callbackIGFX->applyFramebufferPatch)
 		callbackIGFX->applyFramebufferPatches();
@@ -373,7 +380,7 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 		callbackIGFX->applyHdmiAutopatch();
 
 	if (callbackIGFX->dumpPlatformTable)
-		writePlatformListData("platform-table-patched");
+		callbackIGFX->writePlatformListData("platform-table-patched");
 
 	return r;
 }
@@ -704,13 +711,15 @@ uint8_t *IGFX::findFramebufferId(uint32_t framebufferId, uint8_t *startingAddres
 	return nullptr;
 }
 
-size_t IGFX::calculatePlatformListSize(uint8_t *startingAddress, size_t maxSize) {
+size_t IGFX::calculatePlatformListSize(size_t maxSize) {
 	// ig-platform-id table ends with 0xFFFFF, but to avoid false positive
 	// look for FFFFFFFF 00000000
+	uint8_t * startingAddress = reinterpret_cast<uint8_t *>(gPlatformInformationList);
 	uint32_t *startAddress = reinterpret_cast<uint32_t *>(startingAddress);
 	uint32_t *endAddress = reinterpret_cast<uint32_t *>(startingAddress + maxSize);
 	while (startAddress < endAddress) {
-		if (0xFFFFFFFF == startAddress[0] && 0 == startAddress[1])
+		if ((!gPlatformListIsSNB && 0xffffffff == startAddress[0] && 0 == startAddress[1]) ||
+			(gPlatformListIsSNB && 0 == startAddress[0] && 0x0c0c0c00 == startAddress[1]))
 			return reinterpret_cast<uint8_t *>(startAddress) - startingAddress + sizeof(uint32_t)*2;
 		startAddress++;
 	}
@@ -720,7 +729,7 @@ size_t IGFX::calculatePlatformListSize(uint8_t *startingAddress, size_t maxSize)
 
 void IGFX::writePlatformListData(const char *subKeyName) {
 	auto wegEntry = IORegistryEntry::fromPath("IOService:/IOResources/WhateverGreen");
-	auto tableData = OSData::withBytes(callbackIGFX->gPlatformInformationList, (unsigned)calculatePlatformListSize(reinterpret_cast<uint8_t*>(callbackIGFX->gPlatformInformationList), PAGE_SIZE));
+	auto tableData = OSData::withBytes(gPlatformInformationList, (unsigned)calculatePlatformListSize(PAGE_SIZE));
 	wegEntry->setProperty(subKeyName, tableData);
 }
 
