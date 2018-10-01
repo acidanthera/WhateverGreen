@@ -241,7 +241,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				framebufferSize = size;
 
 				if (callbackIGFX->dumpPlatformTable)
-					writePlatformListData("platform-table-native");
+					writePlatformListData("platform-table-preinit");
 
 				auto fbGetOSInformation = "__ZN31AppleIntelFramebufferController16getOSInformationEv";
 				if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
@@ -352,6 +352,9 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 }
 
 uint64_t IGFX::wrapGetOSInformation(void *that) {
+	// call original first
+	uint64_t r = FunctionCast(wrapGetOSInformation, callbackIGFX->orgGetOSInformation)(that);
+
 #ifdef DEBUG
 	if (callbackIGFX->dumpFramebufferToDisk) {
 		char name[64];
@@ -361,6 +364,9 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 	}
 #endif
 
+	if (callbackIGFX->dumpPlatformTable)
+		writePlatformListData("platform-table-native");
+
 	if (callbackIGFX->applyFramebufferPatch)
 		callbackIGFX->applyFramebufferPatches();
 	else if (callbackIGFX->hdmiAutopatch)
@@ -369,7 +375,7 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 	if (callbackIGFX->dumpPlatformTable)
 		writePlatformListData("platform-table-patched");
 
-	return FunctionCast(wrapGetOSInformation, callbackIGFX->orgGetOSInformation)(that);
+	return r;
 }
 
 bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
