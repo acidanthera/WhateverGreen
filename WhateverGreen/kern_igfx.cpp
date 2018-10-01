@@ -150,6 +150,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (checkKernelArgument("-igfxdump"))
 			dumpFramebufferToDisk = true;
 #endif
+		if (checkKernelArgument("-igfxnoigdump"))
+			dumpPlatformTable = false;
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
@@ -237,6 +239,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (gPlatformInformationList) {
 				framebufferStart = reinterpret_cast<uint8_t *>(address);
 				framebufferSize = size;
+
+				if (callbackIGFX->dumpPlatformTable)
+					writePlatformListData("platform-table-native");
 
 				auto fbGetOSInformation = "__ZN31AppleIntelFramebufferController16getOSInformationEv";
 				if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
@@ -360,6 +365,9 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 		callbackIGFX->applyFramebufferPatches();
 	else if (callbackIGFX->hdmiAutopatch)
 		callbackIGFX->applyHdmiAutopatch();
+
+	if (callbackIGFX->dumpPlatformTable)
+		writePlatformListData("platform-table-patched");
 
 	return FunctionCast(wrapGetOSInformation, callbackIGFX->orgGetOSInformation)(that);
 }
@@ -679,15 +687,35 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 }
 
 uint8_t *IGFX::findFramebufferId(uint32_t framebufferId, uint8_t *startingAddress, size_t maxSize) {
-	uint8_t *startAddress = startingAddress;
-	uint8_t *endAddress = startingAddress + maxSize - sizeof(uint32_t);
+	uint32_t *startAddress = reinterpret_cast<uint32_t *>(startingAddress);
+	uint32_t *endAddress = reinterpret_cast<uint32_t *>(startingAddress + maxSize);
 	while (startAddress < endAddress) {
-		if (*(reinterpret_cast<uint32_t *>(startAddress)) == framebufferId)
-			return startAddress;
+		if (*startAddress == framebufferId)
+			return reinterpret_cast<uint8_t *>(startAddress);
 		startAddress++;
 	}
 
 	return nullptr;
+}
+
+size_t IGFX::calculatePlatformListSize(uint8_t *startingAddress, size_t maxSize) {
+	// ig-platform-id table ends with 0xFFFFF, but to avoid false positive
+	// look for FFFFFFFF 00000000
+	uint32_t *startAddress = reinterpret_cast<uint32_t *>(startingAddress);
+	uint32_t *endAddress = reinterpret_cast<uint32_t *>(startingAddress + maxSize);
+	while (startAddress < endAddress) {
+		if (0xFFFFFFFF == startAddress[0] && 0 == startAddress[1])
+			return reinterpret_cast<uint8_t *>(startAddress) - startingAddress + sizeof(uint32_t)*2;
+		startAddress++;
+	}
+
+	return maxSize; // in case of no termination, just return maxSize
+}
+
+void IGFX::writePlatformListData(const char *subKeyName) {
+	auto wegEntry = IORegistryEntry::fromPath("IOService:/IOResources/WhateverGreen");
+	auto tableData = OSData::withBytes(callbackIGFX->gPlatformInformationList, (unsigned)calculatePlatformListSize(reinterpret_cast<uint8_t*>(callbackIGFX->gPlatformInformationList), PAGE_SIZE));
+	wegEntry->setProperty(subKeyName, tableData);
 }
 
 bool IGFX::applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize) {
