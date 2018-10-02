@@ -48,7 +48,8 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.
 - `igfxgl=0` to disable Metal support on Intel.
 - `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
-- `-cdfon`  (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
+- `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
+- `-igfxdump` to dump IGPU framebuffer kext to `/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries). 
 - `-igfxnoigdump` to disable dump of native and patched ig-platform-id list to ioreg at IOService:/IOResources/WhateverGreen
 
 #### Credits
