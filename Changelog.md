@@ -1,8 +1,7 @@
 WhateverGreen Changelog
 =======================
 #### v1.2.4
-- Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen)
-- Added -igfxnoigdump to disable platform list dumping to iroeg
+- Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
 
 #### v1.2.3
 - Added `framebuffer-cursormem` IGPU patch support (Haswell specific)

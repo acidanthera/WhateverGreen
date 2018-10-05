@@ -244,10 +244,12 @@ private:
 	 */
 	bool dumpFramebufferToDisk {false};
 
+#ifdef DEBUG
 	/**
 	 *  Perform platform table dump to ioreg
 	 */
-	bool dumpPlatformTable {true};
+	bool dumpPlatformTable {false};
+#endif
 
 	/**
 	 *  Perform automatic DP -> HDMI replacement
@@ -403,6 +405,7 @@ private:
 	 */
 	uint8_t *findFramebufferId(uint32_t framebufferId, uint8_t *startingAddress, size_t maxSize);
 
+#ifdef DEBUG
 	/**
 	 * Calculate total size of platform table list, including termination entry (FFFFFFFF 00000000)
 	 *
@@ -416,10 +419,10 @@ private:
 	 * Write platform table data to ioreg
 	 *
 	 * @param subKeyName		ioreg subkey (under IOService://IOResources/WhateverGreen)
-	 *
 	 */
-	void writePlatformListData(const char* subKeyName);
-
+	void writePlatformListData(const char *subKeyName);
+#endif
+	
 	/**
 	 *  Patch data without changing kernel protection
 	 *
