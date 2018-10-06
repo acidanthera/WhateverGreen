@@ -251,7 +251,11 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 			   realDevice, acpiDevice, fakeDevice, safeString(model));
 		if (model && !obj->getProperty("model")) {
 			DBGLOG("weg", "adding missing model %s from autotodetect", model);
-			obj->setProperty("model", OSData::withBytes(model, static_cast<unsigned>(strlen(model)+1)));
+			auto data = OSData::withBytes(model, static_cast<unsigned>(strlen(model)+1));
+			if (data) {
+				obj->setProperty("model", data);
+				data->release();
+			}
 		}
 
 		// User may request to fake device-id even if it is supported.
@@ -327,8 +331,13 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 			WIOKit::getOSDataValue(device, "subsystem-vendor-id", subven) &&
 			WIOKit::getOSDataValue(device, "subsystem-id", sub)) {
 			auto model = getRadeonModel(dev, rev, subven, sub);
-			if (model)
-				device->setProperty("model", OSData::withBytes(model, static_cast<unsigned>(strlen(model)+1)));
+			if (model) {
+				auto data = OSData::withBytes(model, static_cast<unsigned>(strlen(model)+1));
+				if (data) {
+					device->setProperty("model", data);
+					data->release();
+				}
+			}
 		}
 	}
 

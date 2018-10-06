@@ -155,7 +155,11 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
 		if (entry) {
 			DBGLOG("shiki", "changing shiki-id to %s", customBoardID);
-			entry->setProperty("shiki-id", OSData::withBytes(customBoardID, static_cast<uint32_t>(strlen(customBoardID)+1)));
+			auto data = OSData::withBytes(customBoardID, static_cast<uint32_t>(strlen(customBoardID)+1));
+			if (data) {
+				entry->setProperty("shiki-id", data);
+				data->release();
+			}
 			entry->release();
 		} else {
 			SYSLOG("shiki", "failed to obtain iodt tree");

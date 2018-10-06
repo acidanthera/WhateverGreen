@@ -132,6 +132,7 @@ private:
 	 *  External global variables
 	 */
 	void *gPlatformInformationList {nullptr};
+	bool gPlatformListIsSNB {false};
 
 	/**
 	 *  Private self instance for callbacks
@@ -242,6 +243,11 @@ private:
 	 *  Perform framebuffer dump to /AppleIntelFramebufferNUM
 	 */
 	bool dumpFramebufferToDisk {false};
+
+	/**
+	 *  Perform platform table dump to ioreg
+	 */
+	bool dumpPlatformTable {false};
 
 	/**
 	 *  Perform automatic DP -> HDMI replacement
@@ -397,6 +403,24 @@ private:
 	 */
 	uint8_t *findFramebufferId(uint32_t framebufferId, uint8_t *startingAddress, size_t maxSize);
 
+#ifdef DEBUG
+	/**
+	 * Calculate total size of platform table list, including termination entry (FFFFFFFF 00000000)
+	 *
+	 * @param maxSize			Maximum size of data to search
+	 *
+	 * @return size of data
+	 */
+	size_t calculatePlatformListSize(size_t maxSize);
+
+	/**
+	 * Write platform table data to ioreg
+	 *
+	 * @param subKeyName		ioreg subkey (under IOService://IOResources/WhateverGreen)
+	 */
+	void writePlatformListData(const char *subKeyName);
+#endif
+	
 	/**
 	 *  Patch data without changing kernel protection
 	 *

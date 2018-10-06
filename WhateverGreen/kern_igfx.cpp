@@ -149,6 +149,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #ifdef DEBUG
 		if (checkKernelArgument("-igfxdump"))
 			dumpFramebufferToDisk = true;
+
+		if (checkKernelArgument("-igfxfbdump"))
+			dumpPlatformTable = true;
 #endif
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
@@ -175,7 +178,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !hdmiAutopatch;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -232,8 +235,15 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (applyFramebufferPatch || dumpFramebufferToDisk || hdmiAutopatch) {
-			gPlatformInformationList = patcher.solveSymbol<void *>(index, cpuGeneration != CPUInfo::CpuGeneration::SandyBridge ? "_gPlatformInformationList" : "_PlatformInformationList", address, size);
+		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
+			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge) {
+				gPlatformListIsSNB = true;
+				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_PlatformInformationList", address, size);
+			} else {
+				gPlatformListIsSNB = false;
+				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
+			}
+
 			if (gPlatformInformationList) {
 				framebufferStart = reinterpret_cast<uint8_t *>(address);
 				framebufferSize = size;
@@ -356,10 +366,20 @@ uint64_t IGFX::wrapGetOSInformation(void *that) {
 	}
 #endif
 
+#ifdef DEBUG
+	if (callbackIGFX->dumpPlatformTable)
+		callbackIGFX->writePlatformListData("platform-table-native");
+#endif
+
 	if (callbackIGFX->applyFramebufferPatch)
 		callbackIGFX->applyFramebufferPatches();
 	else if (callbackIGFX->hdmiAutopatch)
 		callbackIGFX->applyHdmiAutopatch();
+
+#ifdef DEBUG
+	if (callbackIGFX->dumpPlatformTable)
+		callbackIGFX->writePlatformListData("platform-table-patched");
+#endif
 
 	return FunctionCast(wrapGetOSInformation, callbackIGFX->orgGetOSInformation)(that);
 }
@@ -679,16 +699,50 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 }
 
 uint8_t *IGFX::findFramebufferId(uint32_t framebufferId, uint8_t *startingAddress, size_t maxSize) {
-	uint8_t *startAddress = startingAddress;
-	uint8_t *endAddress = startingAddress + maxSize - sizeof(uint32_t);
+	uint32_t *startAddress = reinterpret_cast<uint32_t *>(startingAddress);
+	uint32_t *endAddress = reinterpret_cast<uint32_t *>(startingAddress + maxSize);
 	while (startAddress < endAddress) {
-		if (*(reinterpret_cast<uint32_t *>(startAddress)) == framebufferId)
-			return startAddress;
+		if (*startAddress == framebufferId)
+			return reinterpret_cast<uint8_t *>(startAddress);
 		startAddress++;
 	}
 
 	return nullptr;
 }
+
+#ifdef DEBUG
+size_t IGFX::calculatePlatformListSize(size_t maxSize) {
+	// sanity check maxSize
+	if (maxSize < sizeof(uint32_t)*2)
+		return maxSize;
+	// ig-platform-id table ends with 0xFFFFF, but to avoid false positive
+	// look for FFFFFFFF 00000000
+	// and Sandy Bridge is special, ending in 00000000 000c0c0c
+	uint8_t * startingAddress = reinterpret_cast<uint8_t *>(gPlatformInformationList);
+	uint32_t *startAddress = reinterpret_cast<uint32_t *>(startingAddress);
+	uint32_t *endAddress = reinterpret_cast<uint32_t *>(startingAddress + maxSize - sizeof(uint32_t));
+	while (startAddress < endAddress) {
+		if ((!gPlatformListIsSNB && 0xffffffff == startAddress[0] && 0 == startAddress[1]) ||
+			(gPlatformListIsSNB && 0 == startAddress[0] && 0x0c0c0c00 == startAddress[1]))
+			return reinterpret_cast<uint8_t *>(startAddress) - startingAddress + sizeof(uint32_t)*2;
+		startAddress++;
+	}
+
+	return maxSize; // in case of no termination, just return maxSize
+}
+
+void IGFX::writePlatformListData(const char *subKeyName) {
+	auto entry = IORegistryEntry::fromPath("IOService:/IOResources/WhateverGreen");
+	if (entry) {
+		auto table = OSData::withBytes(gPlatformInformationList, static_cast<unsigned>(calculatePlatformListSize(PAGE_SIZE)));
+		if (table) {
+			entry->setProperty(subKeyName, table);
+			table->release();
+		}
+		entry->release();
+	}
+}
+#endif
 
 bool IGFX::applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize) {
 	bool r = false;

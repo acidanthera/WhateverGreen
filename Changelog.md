@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.4
+- Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
+
 #### v1.2.3
 - Added `framebuffer-cursormem` IGPU patch support (Haswell specific)
 - Added `framebuffer-conX-XXXXXXXX-alldata` IGPU patch support (platform-id specific conX-alldata)
