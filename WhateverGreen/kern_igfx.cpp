@@ -178,7 +178,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !hdmiAutopatch;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -235,7 +235,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (applyFramebufferPatch || dumpFramebufferToDisk || hdmiAutopatch) {
+		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
 			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge) {
 				gPlatformListIsSNB = true;
 				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_PlatformInformationList", address, size);

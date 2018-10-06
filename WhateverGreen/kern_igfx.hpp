@@ -244,12 +244,10 @@ private:
 	 */
 	bool dumpFramebufferToDisk {false};
 
-#ifdef DEBUG
 	/**
 	 *  Perform platform table dump to ioreg
 	 */
 	bool dumpPlatformTable {false};
-#endif
 
 	/**
 	 *  Perform automatic DP -> HDMI replacement
