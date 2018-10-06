@@ -387,13 +387,21 @@ void RAD::mergeProperty(OSDictionary *props, const char *name, OSObject *value) 
 			DBGLOG("rad", "prop %s has original value", name);
 			if (len == sizeof(uint32_t) && OSDynamicCast(OSNumber, orgValue)) {
 				auto num = *reinterpret_cast<const uint32_t *>(val);
-				props->setObject(name, OSNumber::withNumber(num, 32));
-				DBGLOG("rad", "prop %s was merged as number %u", name, num);
+				auto osnum = OSNumber::withNumber(num, 32);
+				if (osnum) {
+					DBGLOG("rad", "prop %s was merged as number %u", name, num);
+					props->setObject(name, osnum);
+					osnum->release();
+				}
 				return;
 			} else if (len > 0 && val[len-1] == '\0' && OSDynamicCast(OSString, orgValue)) {
 				auto str = reinterpret_cast<const char *>(val);
-				props->setObject(name, OSString::withCString(str));
-				DBGLOG("rad", "prop %s was merged as string %s", name, str);
+				auto osstr = OSString::withCString(str);
+				if (osstr) {
+					DBGLOG("rad", "prop %s was merged as string %s", name, str);
+					props->setObject(name, osstr);
+					osstr->release();
+				}
 				return;
 			}
 		} else {
@@ -439,7 +447,11 @@ void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *pr
 		for (size_t i = 0; i < arrsize(powerGatingFlags); i++) {
 			if (powerGatingFlags[i] && props->getObject(powerGatingFlags[i])) {
 				DBGLOG("rad", "cail prop merge found %s, replacing", powerGatingFlags[i]);
-				props->setObject(powerGatingFlags[i], OSNumber::withNumber(1, 32));
+				auto num = OSNumber::withNumber(1, 32);
+				if (num) {
+					props->setObject(powerGatingFlags[i], num);
+					num->release();
+				}
 			}
 		}
 	}
@@ -450,7 +462,7 @@ void RAD::applyPropertyFixes(IOService *service, uint32_t connectorNum) {
 		// Starting with 10.13.2 this is important to fix sleep issues due to enforced 6 screens
 		if (!service->getProperty("CFG,CFG_FB_LIMIT")) {
 			DBGLOG("rad", "setting fb limit to %u", connectorNum);
-			service->setProperty("CFG_FB_LIMIT", OSNumber::withNumber(connectorNum, 32));
+			service->setProperty("CFG_FB_LIMIT", connectorNum, 32);
 		}
 
 		// In the past we set CFG_USE_AGDC to false, which caused visual glitches and broken multimonitor support.
@@ -707,6 +719,7 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 			auto newProps = OSDynamicCast(OSDictionary, props->copyCollection());
 			callbackRAD->mergeProperties(newProps, prefix, provider);
 			that->setProperty(aKey, newProps);
+			newProps->release();
 			obj = newProps;
 		}
 	}

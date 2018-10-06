@@ -50,6 +50,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 - `-igfxdump` to dump IGPU framebuffer kext to `/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries). 
+- `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS

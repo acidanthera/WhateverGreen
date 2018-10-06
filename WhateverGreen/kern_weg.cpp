@@ -251,7 +251,7 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 			   realDevice, acpiDevice, fakeDevice, safeString(model));
 		if (model && !obj->getProperty("model")) {
 			DBGLOG("weg", "adding missing model %s from autotodetect", model);
-			obj->setProperty("model", OSData::withBytes(model, static_cast<unsigned>(strlen(model)+1)));
+			obj->setProperty("model", const_cast<char *>(model), static_cast<unsigned>(strlen(model)+1));
 		}
 
 		// User may request to fake device-id even if it is supported.
@@ -327,8 +327,9 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 			WIOKit::getOSDataValue(device, "subsystem-vendor-id", subven) &&
 			WIOKit::getOSDataValue(device, "subsystem-id", sub)) {
 			auto model = getRadeonModel(dev, rev, subven, sub);
-			if (model)
-				device->setProperty("model", OSData::withBytes(model, static_cast<unsigned>(strlen(model)+1)));
+			if (model) {
+				device->setProperty("model", const_cast<char *>(model), static_cast<unsigned>(strlen(model)+1));
+			}
 		}
 	}
 
@@ -565,8 +566,12 @@ bool WEG::wrapGraphicsPolicyStart(IOService *that, IOService *provider) {
 		if (oldConfigMap) {
 			auto newConfigMap = OSDynamicCast(OSDictionary, oldConfigMap->copyCollection());
 			if (newConfigMap) {
-				newConfigMap->setObject(boardIdentifier, OSString::withCString("none"));
-				that->setProperty("ConfigMap", newConfigMap);
+				auto none = OSString::withCString("none");
+				if (none) {
+					newConfigMap->setObject(boardIdentifier, none);
+					that->setProperty("ConfigMap", newConfigMap);
+					newConfigMap->release();
+				}
 			} else {
 				SYSLOG("weg", "agdp fix failed to clone ConfigMap");
 			}
