@@ -241,7 +241,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 			if (!foundSymbol) {
 				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj", wrapComputeLaneCount, orgComputeLaneCount);
-				foundSymbol = patcher.routeMultiple(index, &request, 1, address, size);
+				patcher.routeMultiple(index, &request, 1, address, size);
 			}
 		}
 
