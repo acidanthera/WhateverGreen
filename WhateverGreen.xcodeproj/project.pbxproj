@@ -403,7 +403,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "sh \"${PROJECT_DIR}/ResourceConverter/generate.sh\"";
+			shellScript = "sh \"${PROJECT_DIR}/ResourceConverter/generate.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

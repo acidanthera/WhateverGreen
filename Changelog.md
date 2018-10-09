@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.2.4
 - Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
+- Fixed 10.14.1 IGPU KBL/CFL support without external GPU 
 
 #### v1.2.3
 - Added `framebuffer-cursormem` IGPU patch support (Haswell specific)

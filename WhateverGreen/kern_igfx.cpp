@@ -231,8 +231,18 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
 		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
 		if (blackScreenPatch) {
-			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj", wrapComputeLaneCount, orgComputeLaneCount);
-			patcher.routeMultiple(index, &request, 1, address, size);
+			bool foundSymbol = false;
+
+			// Currently it is 10.14.1 and Kaby+...
+			if (getKernelVersion() >= KernelVersion::Mojave && cpuGeneration >= CPUInfo::CpuGeneration::KabyLake) {
+				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jPj", wrapComputeLaneCountNouveau, orgComputeLaneCount);
+				foundSymbol = patcher.routeMultiple(index, &request, 1, address, size);
+			}
+
+			if (!foundSymbol) {
+				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj", wrapComputeLaneCount, orgComputeLaneCount);
+				foundSymbol = patcher.routeMultiple(index, &request, 1, address, size);
+			}
 		}
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
@@ -301,7 +311,17 @@ bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t 
 	// least destructive and most reliable. Let's stick with it until we could solve more problems.
 	bool r = FunctionCast(wrapComputeLaneCount, callbackIGFX->orgComputeLaneCount)(that, timing, bpp, availableLanes, laneCount);
 	if (!r && *laneCount == 0) {
-		DBGLOG("igfx", "reporting worked lane count");
+		DBGLOG("igfx", "reporting worked lane count (legacy)");
+		r = true;
+	}
+
+	return r;
+}
+
+bool IGFX::wrapComputeLaneCountNouveau(void *that, void *timing, int32_t availableLanes, int32_t *laneCount) {
+	bool r = FunctionCast(wrapComputeLaneCountNouveau, callbackIGFX->orgComputeLaneCount)(that, timing, availableLanes, laneCount);
+	if (!r && *laneCount == 0) {
+		DBGLOG("igfx", "reporting worked lane count (nouveau)");
 		r = true;
 	}
 
