@@ -122,6 +122,13 @@ private:
 	 *  Maximum find / replace patches
 	 */
 	static constexpr size_t MaxFramebufferPatchCount = 10;
+	
+	/**
+	 *  Backlight registers
+	 */
+	static constexpr uint32_t BXT_BLC_PWM_CTRL1 = 0xC8250;
+	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
+	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 
 	/**
 	 *  Framebuffer find / replace patches

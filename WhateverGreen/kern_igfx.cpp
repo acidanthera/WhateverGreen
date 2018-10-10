@@ -242,14 +242,13 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			orgDisplayReadRegister32 = patcher.solveSymbol(index, "__ZN21AppleIntelFramebuffer21DisplayReadRegister32EPjm", address, size);
 			orgDisplayWriteRegister32 = patcher.solveSymbol(index, "__ZN21AppleIntelFramebuffer22DisplayWriteRegister32Emj", address, size);
 			
-			KernelPatcher::RouteRequest setPanelPowerRequest("__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig);
-			patcher.routeMultiple(index, &setPanelPowerRequest, 1, address, size);
+			KernelPatcher::RouteRequest requests[] {
+				{"__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig},
+				{"__ZN31AppleIntelFramebufferController14hwSetBacklightEj", wrapHwSetBacklight, orgHwSetBacklight},
+				{"__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", wrapSetAttributeForConnection, orgSetAttributeForConnection},
+			};
 			
-			KernelPatcher::RouteRequest hwSetBacklight("__ZN31AppleIntelFramebufferController14hwSetBacklightEj", wrapHwSetBacklight, orgHwSetBacklight);
-			patcher.routeMultiple(index, &hwSetBacklight, 1, address, size);
-			
-			KernelPatcher::RouteRequest setAttributeForConnectionRequest("__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", wrapSetAttributeForConnection, orgSetAttributeForConnection);
-			patcher.routeMultiple(index, &setAttributeForConnectionRequest, 1, address, size);
+			patcher.routeMultiple(index, requests, address, size);
 		}
 		
 		if (blackScreenPatch) {
@@ -408,9 +407,14 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 }
 
 size_t IGFX::wrapHwSetPanelPowerConfig(void *that, uint32_t arg0) {
-	uint64_t bxt_blc_pwm_ctrl1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, 0xC8250);
-	uint64_t bxt_blc_pwm_freq1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, 0xC8254);
-	uint64_t bxt_blc_pwm_duty1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, 0xC8258);
+	// hwSetPanelPowerConfig doesn't have anything to do with the backlight control but it's a
+	// convenient place (low frequency call, and called in AppleIntelFramebufferController::start
+	// before backlight adjustments) to grab the initial c8254 value and patch it into the controller
+	// object.
+	
+	uint64_t bxt_blc_pwm_ctrl1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, BXT_BLC_PWM_CTRL1);
+	uint64_t bxt_blc_pwm_freq1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, BXT_BLC_PWM_FREQ1);
+	uint64_t bxt_blc_pwm_duty1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, BXT_BLC_PWM_DUTY1);
 	
 	SYSLOG("igfx", "wrapHwSetPanelPowerConfig(): BXT_BLC_PWM_CTRL1=0x%X BXT_BLC_PWM_FREQ1=0x%X BXT_BLC_PWM_DUTY1=0x%X", bxt_blc_pwm_ctrl1, bxt_blc_pwm_freq1, bxt_blc_pwm_duty1);
 	
@@ -425,39 +429,42 @@ size_t IGFX::wrapHwSetPanelPowerConfig(void *that, uint32_t arg0) {
 }
 
 uint64_t IGFX::wrapHwSetBacklight(void *that, uint32_t arg0) {
-	uint64_t r = FunctionCast(wrapHwSetBacklight, callbackIGFX->orgHwSetBacklight)(that, arg0);
+	// hwSetBacklight we call our own routine here and skip calling the original function to avoid flicker
+	//uint64_t r = FunctionCast(wrapHwSetBacklight, callbackIGFX->orgHwSetBacklight)(that, arg0);
 
 	callbackIGFX->pwmValue = arg0;
 	
-	// uint64_t bxt_blc_pwm_ctrl1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, 0xC8250);
-	uint64_t bxt_blc_pwm_freq1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, 0xC8254);
-	uint64_t bxt_blc_pwm_duty1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, 0xC8258);
+	// uint64_t bxt_blc_pwm_ctrl1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, BXT_BLC_PWM_CTRL1);
+	uint64_t bxt_blc_pwm_freq1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, BXT_BLC_PWM_FREQ1);
+	uint64_t bxt_blc_pwm_duty1 = reinterpret_cast<uint64_t(*)(void*, uint64_t)>(callbackIGFX->orgReadRegister32)(that, BXT_BLC_PWM_DUTY1);
 	
 	bxt_blc_pwm_freq1 = callbackIGFX->pwmFrequency;
 	bxt_blc_pwm_duty1 = static_cast<uint64_t>(callbackIGFX->pwmValue) * bxt_blc_pwm_freq1 / 0xFFFFULL;
 	
-	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgWriteRegister32)(that, 0xC8254, static_cast<uint32_t>(bxt_blc_pwm_freq1));
-	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgWriteRegister32)(that, 0xC8258, static_cast<uint32_t>(bxt_blc_pwm_duty1));
+	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgWriteRegister32)(that, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(bxt_blc_pwm_freq1));
+	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgWriteRegister32)(that, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
 	
 	// SYSLOG("igfx", "wrapHwSetBacklight(): BXT_BLC_PWM_CTRL1=0x%X BXT_BLC_PWM_FREQ1=0x%X BXT_BLC_PWM_DUTY1=0x%X pwmValue=0x%X", bxt_blc_pwm_ctrl1, bxt_blc_pwm_freq1, bxt_blc_pwm_duty1, callbackIGFX->pwmValue);
 	
-	return r;
+	return 0LL;
 }
 
 uint64_t IGFX::wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2) {
+	// setAttributeForConnection appears to be called from several places
+	
 	uint64_t r = FunctionCast(wrapSetAttributeForConnection, callbackIGFX->orgSetAttributeForConnection)(that, arg0, arg1, arg2);
 	
 	uint64_t bxt_blc_pwm_ctrl1, bxt_blc_pwm_freq1, bxt_blc_pwm_duty1;
 	
-	reinterpret_cast<uint64_t(*)(void*, void*, uint64_t)>(callbackIGFX->orgDisplayReadRegister32)(that, &bxt_blc_pwm_ctrl1, 0xC8250);
-	reinterpret_cast<uint64_t(*)(void*, void*, uint64_t)>(callbackIGFX->orgDisplayReadRegister32)(that, &bxt_blc_pwm_freq1, 0xC8254);
-	reinterpret_cast<uint64_t(*)(void*, void*, uint64_t)>(callbackIGFX->orgDisplayReadRegister32)(that, &bxt_blc_pwm_duty1, 0xC8258);
+	reinterpret_cast<uint64_t(*)(void*, void*, uint64_t)>(callbackIGFX->orgDisplayReadRegister32)(that, &bxt_blc_pwm_ctrl1, BXT_BLC_PWM_CTRL1);
+	reinterpret_cast<uint64_t(*)(void*, void*, uint64_t)>(callbackIGFX->orgDisplayReadRegister32)(that, &bxt_blc_pwm_freq1, BXT_BLC_PWM_FREQ1);
+	reinterpret_cast<uint64_t(*)(void*, void*, uint64_t)>(callbackIGFX->orgDisplayReadRegister32)(that, &bxt_blc_pwm_duty1, BXT_BLC_PWM_DUTY1);
 	
 	bxt_blc_pwm_freq1 = callbackIGFX->pwmFrequency;
 	bxt_blc_pwm_duty1 = static_cast<uint64_t>(callbackIGFX->pwmValue) * bxt_blc_pwm_freq1 / 0xFFFFULL;
 	
-	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgDisplayWriteRegister32)(that, 0xC8254, static_cast<uint32_t>(bxt_blc_pwm_freq1));
-	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgDisplayWriteRegister32)(that, 0xC8258, static_cast<uint32_t>(bxt_blc_pwm_duty1));
+	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgDisplayWriteRegister32)(that, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(bxt_blc_pwm_freq1));
+	reinterpret_cast<uint64_t(*)(void*, uint64_t, uint32_t)>(callbackIGFX->orgDisplayWriteRegister32)(that, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
 
 	// SYSLOG("igfx", "wrapSetAttributeForConnection(): BXT_BLC_PWM_CTRL1=0x%X BXT_BLC_PWM_FREQ1=0x%X BXT_BLC_PWM_DUTY1=0x%X pwmValue=0x%X", bxt_blc_pwm_ctrl1, bxt_blc_pwm_freq1, bxt_blc_pwm_duty1, callbackIGFX->pwmValue);
 	
