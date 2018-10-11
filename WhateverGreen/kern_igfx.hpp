@@ -126,7 +126,7 @@ private:
 	/**
 	 *  Backlight registers
 	 */
-	static constexpr uint32_t BXT_BLC_PWM_CTRL1 = 0xC8250;
+	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
 	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
 	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 
@@ -366,14 +366,14 @@ private:
 	uint32_t realBinarySize {};
 	
 	/**
-	 *  Store backlight value
+	 *  Store backlight level
 	 */
-	uint32_t pwmValue { 0 };
+	uint32_t backlightLevel { 0 };
 	
 	/**
 	 *  Store backlight frequency
 	 */
-	uint32_t pwmFrequency { 0 };
+	uint32_t backlightFrequency { 0 };
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
