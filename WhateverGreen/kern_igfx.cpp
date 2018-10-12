@@ -63,6 +63,11 @@ void IGFX::init() {
 	uint32_t family = 0, model = 0;
 	cpuGeneration = CPUInfo::getGeneration(&family, &model);
 	switch (cpuGeneration) {
+		case CPUInfo::CpuGeneration::Penryn:
+		case CPUInfo::CpuGeneration::Nehalem:
+		case CPUInfo::CpuGeneration::Westmere:
+			// Do not warn about legacy processors (e.g. Xeon).
+			break;
 		case CPUInfo::CpuGeneration::SandyBridge: {
 			int tmp = 1;
 			PE_parse_boot_argn("igfxsnb", &tmp, sizeof(tmp));
