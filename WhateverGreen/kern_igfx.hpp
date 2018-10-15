@@ -216,54 +216,39 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *	Original AppleIntelFramebufferController::ReadRegister32 function
+	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
-	mach_vm_address_t orgReadRegister32 {};
+	uint64_t (*orgReadRegister32)(void*, uint64_t) {nullptr};
 	
 	/**
-	 *	Original AppleIntelFramebufferController::WriteRegister32 function
+	 *  Original AppleIntelFramebufferController::WriteRegister32 function
 	 */
-	mach_vm_address_t orgWriteRegister32 {};
+	uint64_t (*orgWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
 	
 	/**
-	 *	Original AppleIntelFramebuffer::ReadRegister32 function
+	 *  Original AppleIntelFramebuffer::DisplayReadRegister32 function
 	 */
-	mach_vm_address_t orgDisplayReadRegister32 {};
+	uint64_t (*orgDisplayReadRegister32)(void*, void*, uint64_t) {nullptr};
 	
 	/**
-	 *	Original AppleIntelFramebuffer::WriteRegister32 function
+	 *  Original AppleIntelFramebuffer::DisplayWriteRegister32 function
 	 */
-	mach_vm_address_t orgDisplayWriteRegister32 {};
+	uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
 	
 	/**
-	 *	Original AppleIntelFramebufferController::start function
-	 */
-	mach_vm_address_t orgFBStart {};
-	
-	/**
-	 *	Original AppleIntelFramebufferController::hwSetPanelPowerConfig function
+	 *  Original AppleIntelFramebufferController::hwSetPanelPowerConfig function
 	 */
 	mach_vm_address_t orgHwSetPanelPowerConfig {};
 	
 	/**
-	 *	Original AppleIntelFramebufferController::hwSetBacklight function
+	 *  Original AppleIntelFramebufferController::hwSetBacklight function
 	 */
 	mach_vm_address_t orgHwSetBacklight {};
 	
 	/**
-	 *	Original AppleIntelFramebufferController::hwSetMode function
-	 */
-	mach_vm_address_t orgHwSetMode {};
-	
-	/**
-	 *	Original AppleIntelFramebuffer::setAttributeForConnection function
+	 *  Original AppleIntelFramebuffer::setAttributeForConnection function
 	 */
 	mach_vm_address_t orgSetAttributeForConnection {};
-	
-	/**
-	 *	Original CamelliaTcon2::SetupTconWorkLoop function
-	 */
-	mach_vm_address_t orgSetupTconWorkLoop {};
 	
 	/**
 	 *  Detected CPU generation of the host system
@@ -406,24 +391,24 @@ private:
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
 
 	/**
-	 *	AppleIntelFramebufferController::hwSetPanelPowerConfig wrapper to fix backlight control on CFL platform
+	 *  AppleIntelFramebufferController::hwSetPanelPowerConfig wrapper to fix backlight control on CFL platform
 	 */
-	static size_t wrapHwSetPanelPowerConfig(void *that, uint32_t arg0);
+	static IOReturn wrapHwSetPanelPowerConfig(void *that, uint32_t arg0);
 	
 	/**
-	 *	AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
+	 *  AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
 	 */
-	static uint64_t wrapHwSetBacklight(void *that, uint32_t arg0);
+	static IOReturn wrapHwSetBacklight(void *that, uint32_t arg0);
 	
 	/**
-	 *	AppleIntelFramebuffer::setAttributeForConnection wrapper to fix backlight control on CFL platform
+	 *  AppleIntelFramebuffer::setAttributeForConnection wrapper to fix backlight control on CFL platform
 	 */
-	static uint64_t wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2);
+	static IOReturn wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2);
 	
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
-	static uint64_t wrapGetOSInformation(void *that);
+	static bool wrapGetOSInformation(void *that);
 
 	/**
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
