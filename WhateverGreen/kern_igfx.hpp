@@ -274,6 +274,11 @@ private:
 	 *  Set to true if a black screen ComputeLaneCount patch is required
 	 */
 	bool blackScreenPatch {false};
+	
+	/**
+	 *  Set to true if a Coffee Lake backlight patch is required
+	 */
+	bool cflBacklightPatch {false};
 
 	/**
 	 *  Set to true if PAVP code should be disabled
