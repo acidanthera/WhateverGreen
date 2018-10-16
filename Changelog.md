@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
 - Fixed 10.14.1 IGPU KBL/CFL support without external GPU
 - Fixed warning about legacy processors (e.g. Xeon)
+- Fixed the support for providing custom names on `Radeon RX` models
 
 #### v1.2.3
 - Added `framebuffer-cursormem` IGPU patch support (Haswell specific)
