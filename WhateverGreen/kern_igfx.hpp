@@ -260,10 +260,17 @@ private:
 	 */
 	bool blackScreenPatch {false};
 	
+	enum CFLBacklightPatchType {
+		CFLBKLTNone,
+		CFLBKLTOpcodeFix,
+		CFLBKLTWrapFix,
+		CFLBKLTFreqFix
+	};
+	
 	/**
-	 *  Set to true if a Coffee Lake backlight patch is required
+	 *  Set to the Coffee Lake backlight patch type required
 	 */
-	bool cflBacklightPatch {false};
+	CFLBacklightPatchType cflBacklightPatch {CFLBKLTNone};
 
 	/**
 	 *  Set to true if PAVP code should be disabled

@@ -52,7 +52,9 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-igfxdump` to dump IGPU framebuffer kext to `/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries). 
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 - `igfxcflbklt=none` to disable CFL backlight patch
-- `igfxcflbklt=force` (and `enable-cfl-backlight-fix` property) to force CFL backlight patch
+- `igfxcflbklt=opcode` to enable Fraxul's CFL backlight patch
+- `igfxcflbklt=wrap` (and `enable-cfl-backlight-fix` property) to enable headkaze's CFL backlight patch
+- `igfxcflbklt=freq` to enable RehabMan's CFL backlight patch
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS

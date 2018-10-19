@@ -206,12 +206,23 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	}
 	
 	// Enable CFL backlight patch if CPU gen is CFL and model is laptop
-	cflBacklightPatch = (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake && WIOKit::getComputerModel() == WIOKit::ComputerModel::ComputerLaptop);
-	cflBacklightPatch = cflBacklightPatch || (info->videoBuiltin && info->videoBuiltin->getProperty("enable-cfl-backlight-fix"));
+	if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake && WIOKit::getComputerModel() == WIOKit::ComputerModel::ComputerLaptop)
+		cflBacklightPatch = CFLBKLTOpcodeFix;
+	
+	// Enable CFL backlight patch if IGPU propery enable-cfl-backlight-fix is set
+	if (info->videoBuiltin && info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
+		cflBacklightPatch = CFLBKLTOpcodeFix;
 	
 	char igfxcflbklt[128];
 	if (PE_parse_boot_argn("igfxcflbklt", igfxcflbklt, sizeof(igfxcflbklt))) {
-		cflBacklightPatch = strcmp(igfxcflbklt, "force") == 0;
+		if (strcmp(igfxcflbklt, "opcode") == 0)
+			cflBacklightPatch = CFLBKLTOpcodeFix;
+		else if (strcmp(igfxcflbklt, "wrap") == 0)
+			cflBacklightPatch = CFLBKLTWrapFix;
+		else if (strcmp(igfxcflbklt, "freq") == 0)
+			cflBacklightPatch = CFLBKLTFreqFix;
+		else
+			cflBacklightPatch = CFLBKLTNone;
 	}
 }
 
@@ -245,21 +256,159 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
 		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
-		if (currentFramebuffer == &kextIntelCFLFb && cflBacklightPatch) {
-			// The following function wrappers are required for the CFL backlight patch
-			orgReadRegister32 = patcher.solveSymbol<decltype(orgReadRegister32)>(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
-			orgWriteRegister32 = patcher.solveSymbol<decltype(orgWriteRegister32)>(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
+		if (currentFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CFLBKLTNone) {
+			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
+			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
+			// Singal-wise it looks as a cycle of signal levels on the timeline:
+			// 22111100221111002211110022111100 (4 cycles)
+			// 0 - no signal, 1 - no value (no pulse), 2 - pulse (light on)
+			// - Physical Cycle (0+1+2) defines maximum backlight frequency, limited by HW precision.
+			// - Base Cycle (1+2) defines [1/PWM Base Frequency], limited by physical cycle, see BXT_BLC_PWM_FREQ1.
+			// - Duty Cycle (2) defines [1/PWM Increment] - backlight level,
+			//   [PWM Frequency Divider] - backlight max, see BXT_BLC_PWM_DUTY1.
+			// - Duty Cycle position (first vs last) is [PWM Polarity]
+			//
+			// Duty cycle = PWM Base Frequeny * (1 / PWM Increment) / PWM Frequency Divider
+			//
+			// On macOS there are extra limitations:
+			// - All values and operations are u32 (32-bit unsigned)
+			// - [1/PWM Increment] has 0 to 0xFFFF range
+			// - [PWM Frequency Divider] is fixed to be 0xFFFF
+			// - [PWM Base Frequency] is capped by 0xFFFF (to avoid u32 wraparound), and is hardcoded
+			//   either in Framebuffer data (pre-CFL) or in the code (CFL: 7777 or 22222).
+			//
+			// On CFL the following patches have to be applied:
+			// - Hardcoded [PWM Base Frequency] should be patched or set after the hardcoded value is written by patching
+			//   hardcoded frequencies. 65535 is used by default.
+			// - If [PWM Base Frequency] is > 65535, to avoid a wraparound code calculating BXT_BLC_PWM_DUTY1
+			//   should be replaced to use 64-bit arithmetics.
+			// [PWM Base Frequency] can be specified via igfxbklt=1 boot-arg or backlight-base-frequency property.
 			
-			orgDisplayReadRegister32 = patcher.solveSymbol<decltype(orgDisplayReadRegister32)>(index, "__ZN21AppleIntelFramebuffer21DisplayReadRegister32EPjm", address, size);
-			orgDisplayWriteRegister32 = patcher.solveSymbol<decltype(orgDisplayWriteRegister32)>(index, "__ZN21AppleIntelFramebuffer22DisplayWriteRegister32Emj", address, size);
-			
-			KernelPatcher::RouteRequest requests[] {
-				{"__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig},
-				{"__ZN31AppleIntelFramebufferController14hwSetBacklightEj", wrapHwSetBacklight, orgHwSetBacklight},
-				{"__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", wrapSetAttributeForConnection, orgSetAttributeForConnection},
-			};
-			
-			patcher.routeMultiple(index, requests, address, size);
+			if (cflBacklightPatch == CFLBKLTOpcodeFix) {
+				// Workaround a hardware bug (?) that causes the backlight to turn off for a couple minutes after
+				// changing the PWM divisor (MMIO register 0xc8254).
+				//
+				// Relevant MMIO registers:
+				// c8254 (BXT_BLC_PWM_FREQ1): PWM divisor
+				// c8258 (BXT_BLC_PWM_DUTY1): HW backlight level
+				// Backlight brightness will be approximately (BXT_BLC_PWM_DUTY1 / BXT_BLC_PWM_FREQ1).
+				//
+				// Relevant AppleIntelFramebufferController fields:
+				// this+0x2b38: uint32_t saved sw backlight value
+				// this+0x2b40: uint32_t divisor for sw backlight value (always 0xffff, set in getOSInformation)
+				// this+0x2b44: uint32_t max hw backlight value, written to reg 0xc8254 (always 0x56ce?)
+				//
+				// The bug is triggered when c8254 is changed. This register will be programmed to a valid,
+				// reasonable value by the system firmware, so we'll just patch that into the framebuffer
+				// controller object instead. Writes of the same value will not trigger the bug, and the
+				// controller will correctly compute the hardware backlight value using the original PWM
+				// divisor/scale factor (after some math patches -- see below).
+				
+				// We will need to call the AppleIntelFramebufferController::ReadRegister32 function
+				orgReadRegister32 = patcher.solveSymbol<decltype(orgReadRegister32)>(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
+				
+				// Hook hwSetPanelPowerConfig. We'll get the initial c8254 value when this function is called.
+				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj" , wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig);
+				patcher.routeMultiple(index, &request, 1, address, size);
+				
+				// Patch the code to scale the software backlight value to the hardware value.
+				// Unfortunately, the math used to compute the brightness starts with a 32*32->32 multiply.
+				// The highest software brightness level is guaranteed to be 0xffff. If the existing PWM
+				// divisor is larger than 0xffff, this math will overflow and truncate the result when we
+				// patch that existing PWM divisor into the AppleIntelFramebufferController object.
+				//
+				// This is easier to fix than it looks, though. The current implementation of the 32*32->32
+				// multiply is to use the imul instruction (32*32->32 in eax) and then clear edx. The
+				// following div instruction reads edx:eax as the 64-bit numerator. All we have to do is
+				// switch to the (32*32->64 in edx:eax) form of imul and nop out the clearing of edx (with
+				// xor edx, edx) between the imul and div.
+				//
+				// There are 4 occurrences of this math code in the kext.
+				// AppleIntelFramebufferController::hwSetPanelPower
+				static const uint8_t divPatch1Find[] = {
+					0x41, 0x0F, 0xAF, 0x84, 0x24, 0x38, 0x2B, 0x00, 0x00, // imul eax, dword [r12 + 0x2b38] (32bit result version)
+					0x31, 0xD2,                                           // xor edx, edx
+				};
+				static const uint8_t divPatch1Repl[] = {
+					0x41, 0xF7, 0xAC, 0x24, 0x38, 0x2B, 0x00, 0x00,       // imul dword [r12 + 0x2b38] (64bit result version)
+					0x90, 0x90, 0x90,                                     // nop (3x)
+				};
+				// AppleIntelFramebufferController::hwSetBacklight
+				// (31 d2) xor edx, edx; (f7 b3 40 2b 00 00) div dword [rbx+0x2b40];
+				static const uint8_t divPatch2Find[] = {
+					0x41, 0x0F, 0xAF, 0xC6,                               // imul eax, r14d (32bit result version)
+					0x31, 0xD2,                                           // xor edx, edx
+				};
+				static const uint8_t divPatch2Repl[] = {
+					0x41, 0xf7, 0xee,                                     // imul r14d (64bit result version)
+					0x90, 0x90, 0x90,                                     // nop (3x)
+				};
+				// AppleIntelFramebufferController::LightUpEDP
+				static const uint8_t divPatch3Find[] = {
+					0x0F, 0xAF, 0x83, 0x38, 0x2B, 0x00, 0x00,             // imul eax, dword [rbx + 0x2b38] (32bit result version)
+					0x31, 0xD2,                                           // xor edx, edx
+				};
+				static const uint8_t divPatch3Repl[] = {
+					0xF7, 0xAB, 0x38, 0x2B, 0x00, 0x00,                   // imul dword [rbx + 0x2b38] (64bit result version)
+					0x90, 0x90, 0x90,                                     // nop (3x)
+				};
+				// CamelliaTcon2::DoRecoverFromTconResetTimer
+				static const uint8_t divPatch4Find[] = {
+					0x0F, 0xAF, 0x87, 0x38, 0x2B, 0x00, 0x00,             // imul eax, dword [rdi + 0x2b38] (32bit result version)
+					0x31, 0xD2,                                           // xor edx, edx
+				};
+				static const uint8_t divPatch4Repl[] = {
+					0xF7, 0xAF, 0x38, 0x2B, 0x00, 0x00,                   // imul dword [rdi + 0x2b38] (64bit result version)
+					0x90, 0x90, 0x90,                                     // nop (3x)
+				};
+				
+				static const KernelPatcher::LookupPatch divPatches[] = {
+					{&kextIntelCFLFb, divPatch1Find, divPatch1Repl, sizeof(divPatch1Find), 1},
+					{&kextIntelCFLFb, divPatch2Find, divPatch2Repl, sizeof(divPatch2Find), 1},
+					{&kextIntelCFLFb, divPatch3Find, divPatch3Repl, sizeof(divPatch3Find), 1},
+					{&kextIntelCFLFb, divPatch4Find, divPatch4Repl, sizeof(divPatch4Find), 1},
+				};
+				for (size_t i = 0; i < arrsize(divPatches); i++) {
+					patcher.applyLookupPatch(&divPatches[i]);
+				}
+			}
+			else if (cflBacklightPatch == CFLBKLTWrapFix) {
+				// This patch will wrap AppleIntelFramebufferController::hwSetBacklight and AppleIntelFramebuffer::setAttributeForConnection
+				// and then perform 64-bit calculations of BXT_BLC_PWM_FREQ1 manually to avoid trunction error
+				
+				orgReadRegister32 = patcher.solveSymbol<decltype(orgReadRegister32)>(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
+				orgWriteRegister32 = patcher.solveSymbol<decltype(orgWriteRegister32)>(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
+				
+				orgDisplayReadRegister32 = patcher.solveSymbol<decltype(orgDisplayReadRegister32)>(index, "__ZN21AppleIntelFramebuffer21DisplayReadRegister32EPjm", address, size);
+				orgDisplayWriteRegister32 = patcher.solveSymbol<decltype(orgDisplayWriteRegister32)>(index, "__ZN21AppleIntelFramebuffer22DisplayWriteRegister32Emj", address, size);
+				
+				KernelPatcher::RouteRequest requests[] {
+					{"__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig},
+					{"__ZN31AppleIntelFramebufferController14hwSetBacklightEj", wrapHwSetBacklight, orgHwSetBacklight},
+					{"__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", wrapSetAttributeForConnection, orgSetAttributeForConnection},
+				};
+				
+				patcher.routeMultiple(index, requests, address, size);
+			}
+			else if (cflBacklightPatch == CFLBKLTFreqFix) {
+				// This patch will overwrite hard-coded BXT_BLC_PWM_FREQ1 values for real Mac 22222 (0x56CE) and 17777 (0x4571) with 0xFFFF
+				// This will ensure no overflow when calculating BXT_BLC_PWM_DUTY1
+				
+				static const uint8_t freqPatch1Find[] = { 0xCE, 0x56, 0x00, 0x00 };
+				static const uint8_t freqPatch1Repl[] = { 0xFF, 0xFF, 0x00, 0x00 };
+				
+				static const uint8_t freqPatch2Find[] = { 0x71, 0x45, 0x00, 0x00 };
+				static const uint8_t freqPatch2Repl[] = { 0xFF, 0xFF, 0x00, 0x00 };
+				
+				static const KernelPatcher::LookupPatch freqPatches[] = {
+					{&kextIntelCFLFb, freqPatch1Find, freqPatch1Repl, sizeof(freqPatch1Find), 1},
+					{&kextIntelCFLFb, freqPatch2Find, freqPatch2Repl, sizeof(freqPatch2Find), 2}
+				};
+				
+				for (size_t i = 0; i < arrsize(freqPatches); i++) {
+					patcher.applyLookupPatch(&freqPatches[i]);
+				}
+			}
 		}
 		
 		if (blackScreenPatch) {
