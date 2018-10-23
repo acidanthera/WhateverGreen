@@ -7,3 +7,4 @@ For example, patch fCursorMemorySize=9MB:
 `framebuffer-patch-enable` = `01000000`  
 `framebuffer-cursormem` = `00009000`  
 Read FAQ in more detail.  
+[Full equivalent AzulPatcher4600.kext](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist)  
