@@ -684,7 +684,10 @@ IOReturn IGFX::wrapDoRecoverFromTconResetTimer(void *that) {
 	return r;
 }
 
-void IGFX::updateBacklight() {
+bool IGFX::updateBacklight() {
+	if (callbackIGFX->appleIntelFramebufferController == nullptr)
+		return false;
+	
 #ifdef DEBUG
 	uint64_t bxt_blc_pwm_ctl1 = callbackIGFX->orgReadRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_CTL1);
 #endif
@@ -699,6 +702,8 @@ void IGFX::updateBacklight() {
 	callbackIGFX->orgWriteRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
 	
 	DBGLOG("igfx", "setBacklight(): BXT_BLC_PWM_CTL1=0x%X BXT_BLC_PWM_FREQ1=0x%X BXT_BLC_PWM_DUTY1=0x%X backlightLevel=0x%X", bxt_blc_pwm_ctl1, bxt_blc_pwm_freq1, bxt_blc_pwm_duty1, callbackIGFX->backlightLevel);
+	
+	return true;
 }
 
 bool IGFX::wrapGetOSInformation(void *that) {

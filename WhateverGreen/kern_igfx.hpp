@@ -450,7 +450,7 @@ private:
 	/**
 	 *  Write backlight registers to fix backlight control on CFL platform
 	 */
-	static void updateBacklight();
+	static bool updateBacklight();
 	
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
