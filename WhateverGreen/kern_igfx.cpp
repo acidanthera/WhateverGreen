@@ -308,7 +308,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				orgReadRegister32 = patcher.solveSymbol<decltype(orgReadRegister32)>(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 				
 				// Hook hwSetPanelPowerConfig. We'll get the initial c8254 value when this function is called.
-				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj" , wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig);
+				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig_Opcode, orgHwSetPanelPowerConfig);
 				patcher.routeMultiple(index, &request, 1, address, size);
 				
 				// Patch the code to scale the software backlight value to the hardware value.
@@ -395,6 +395,8 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				// and then perform 64-bit calculations of BXT_BLC_PWM_FREQ1 manually to avoid trunction error
 				// Added more wrapped methods:
 				// AppleIntelFramebufferController::hwSetPanelPower, AppleIntelFramebufferController::LightUpEDP and CamelliaTcon2::doRecoverFromTconResetTimer
+				// Added two Camellia methods to bypass:
+				// CamelliaBase::SetBacklightControlMode and CamelliaBase::SetDPCDBacklight
 				
 				orgReadRegister32 = patcher.solveSymbol<decltype(orgReadRegister32)>(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 				orgWriteRegister32 = patcher.solveSymbol<decltype(orgWriteRegister32)>(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
@@ -403,13 +405,16 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				//orgDisplayWriteRegister32 = patcher.solveSymbol<decltype(orgDisplayWriteRegister32)>(index, "__ZN21AppleIntelFramebuffer22DisplayWriteRegister32Emj", address, size);
 				
 				KernelPatcher::RouteRequest requests[] {
-					{"__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig},
+					{"__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig_Wrap, orgHwSetPanelPowerConfig},
 					{"__ZN31AppleIntelFramebufferController14hwSetBacklightEj", wrapHwSetBacklight, orgHwSetBacklight},
 					{"__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", wrapSetAttributeForConnection, orgSetAttributeForConnection},
 					// Newly added below (needs testing):
 					{"__ZN31AppleIntelFramebufferController15hwSetPanelPowerEj", wrapHwSetPanelPower, orgHwSetPanelPower},
 					{"__ZN31AppleIntelFramebufferController10LightUpEDPEP21AppleIntelFramebufferP21AppleIntelDisplayPathPK29IODetailedTimingInformationV2", wrapLightUpEDP, orgLightUpEDP},
 					{"__ZN13CamelliaTcon227DoRecoverFromTconResetTimerEv", wrapDoRecoverFromTconResetTimer, orgDoRecoverFromTconResetTimer},
+					// Newly added Camillia methods to bypass:
+					{"__ZN12CamelliaBase23SetBacklightControlModeE16kBacklightMode_t", wrapSetBacklightControlMode, orgSetBacklightControlMode},
+					{"__ZN12CamelliaBase16SetDPCDBacklightEj", wrapSetDPCDBacklight, orgSetDPCDBacklight},
 				};
 				
 				patcher.routeMultiple(index, requests, address, size);
@@ -590,7 +595,25 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
 }
 
-IOReturn IGFX::wrapHwSetPanelPowerConfig(void *that, uint32_t arg0) {
+IOReturn IGFX::wrapHwSetPanelPowerConfig_Opcode(void *that, uint32_t arg0) {
+	// AppleIntelFramebufferController::hwSetPanelPowerConfig
+	// hwSetPanelPowerConfig doesn't have anything to do with the backlight control but it's a
+	// convenient place (low frequency call, and called in AppleIntelFramebufferController::start
+	// before backlight adjustments) to grab the initial BXT_BLC_PWM_FREQ1 value and patch it into
+	// the controller object.
+	
+	uint64_t bxt_blc_pwm_freq1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_FREQ1);
+	
+	// This is the location of the backlight frequency. We need to store the initial value here to avoid black screen in CFL
+	uint32_t *p_fbc_pwm_freq = reinterpret_cast<uint32_t*>(reinterpret_cast<uint8_t*>(that) + 0x2b44);
+	
+	if (bxt_blc_pwm_freq1)
+		*p_fbc_pwm_freq = static_cast<uint32_t>(bxt_blc_pwm_freq1);
+	
+	return FunctionCast(wrapHwSetPanelPowerConfig_Opcode, callbackIGFX->orgHwSetPanelPowerConfig)(that, arg0);
+}
+
+IOReturn IGFX::wrapHwSetPanelPowerConfig_Wrap(void *that, uint32_t arg0) {
 	// AppleIntelFramebufferController::hwSetPanelPowerConfig
 	// hwSetPanelPowerConfig doesn't have anything to do with the backlight control but it's a
 	// convenient place (low frequency call, and called in AppleIntelFramebufferController::start
@@ -598,6 +621,8 @@ IOReturn IGFX::wrapHwSetPanelPowerConfig(void *that, uint32_t arg0) {
 	// the controller object.
 	
 	callbackIGFX->appleIntelFramebufferController = that;
+	
+	initClockGating();
 	
 	uint64_t bxt_blc_pwm_freq1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_FREQ1);
 #ifdef DEBUG
@@ -615,7 +640,7 @@ IOReturn IGFX::wrapHwSetPanelPowerConfig(void *that, uint32_t arg0) {
 	//if (bxt_blc_pwm_freq1)
 	//	*p_fbc_pwm_freq = static_cast<uint32_t>(bxt_blc_pwm_freq1);
 	
-	return FunctionCast(wrapHwSetPanelPowerConfig, callbackIGFX->orgHwSetPanelPowerConfig)(that, arg0);
+	return FunctionCast(wrapHwSetPanelPowerConfig_Wrap, callbackIGFX->orgHwSetPanelPowerConfig)(that, arg0);
 }
 
 IOReturn IGFX::wrapHwSetBacklight(void *that, uint32_t arg0) {
@@ -682,6 +707,32 @@ IOReturn IGFX::wrapDoRecoverFromTconResetTimer(void *that) {
 	updateBacklight();
 	
 	return r;
+}
+
+IOReturn IGFX::wrapSetBacklightControlMode(void *that, uint64_t arg0, uint32_t arg1) {
+	// CamelliaBase::SetBacklightControlMode
+	//IOReturn r = FunctionCast(wrapSetBacklightControlMode, callbackIGFX->orgSetBacklightControlMode)(that, arg0, arg1);
+	
+	return kIOReturnSuccess;
+}
+
+IOReturn IGFX::wrapSetDPCDBacklight(void *that, uint32_t arg0) {
+	// CamelliaBase::SetDPCDBacklight
+	//IOReturn r = FunctionCast(wrapSetDPCDBacklight, callbackIGFX->orgSetDPCDBacklight)(that, arg0);
+	
+	return kIOReturnSuccess;
+}
+
+bool IGFX::initClockGating() {
+	// This workaround fixes a CNL PCH bug when changing 	backlight from a lower frequency to a higher frequency.
+	// During random reboot cycles, display backlight seems to be off/ dim for 2-3 mins.
+	// The only functional change on this patch is to set bit 13 of 0xC2020 for CNL PCH.
+	if (callbackIGFX->appleIntelFramebufferController == nullptr)
+		return false;
+	
+	callbackIGFX->orgWriteRegister32(callbackIGFX->appleIntelFramebufferController, SOUTH_DSPCLK_GATE_D, CNP_PWM_CGE_GATING_DISABLE);
+	
+	return true;
 }
 
 bool IGFX::updateBacklight() {

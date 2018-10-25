@@ -126,6 +126,9 @@ private:
 	/**
 	 *  Backlight registers
 	 */
+	static constexpr uint32_t SOUTH_DSPCLK_GATE_D = 0xC2020;
+	static constexpr uint32_t CNP_PWM_CGE_GATING_DISABLE = (1 << 13);
+	
 	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
 	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
 	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
@@ -264,6 +267,16 @@ private:
 	 *  Original CamelliaTcon2::doRecoverFromTconResetTimer function
 	 */
 	mach_vm_address_t orgDoRecoverFromTconResetTimer {};
+	
+	/**
+	 *  Original CamelliaBase::SetBacklightControlMode function
+	 */
+	mach_vm_address_t orgSetBacklightControlMode {};
+	
+	/**
+	 *  Original CamelliaBase::SetDPCDBacklight function
+	 */
+	mach_vm_address_t orgSetDPCDBacklight {};
 	
 	/**
 	 *  Detected CPU generation of the host system
@@ -420,7 +433,8 @@ private:
 	/**
 	 *  AppleIntelFramebufferController::hwSetPanelPowerConfig wrapper to fix backlight control on CFL platform
 	 */
-	static IOReturn wrapHwSetPanelPowerConfig(void *that, uint32_t arg0);
+	static IOReturn wrapHwSetPanelPowerConfig_Opcode(void *that, uint32_t arg0);
+	static IOReturn wrapHwSetPanelPowerConfig_Wrap(void *that, uint32_t arg0);
 	
 	/**
 	 *  AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
@@ -446,6 +460,21 @@ private:
 	 *  CamelliaTcon2::doRecoverFromTconResetTimer wrapper to fix backlight control on CFL platform
 	 */
 	static IOReturn wrapDoRecoverFromTconResetTimer(void *that);
+	
+	/**
+	 *  CamelliaBase::SetBacklightControlMode wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapSetBacklightControlMode(void *that, uint64_t arg0, uint32_t arg1);
+	
+	/**
+	 *  CamelliaBase::SetDPCDBacklight wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapSetDPCDBacklight(void *that, uint32_t arg0);
+	
+	/**
+	 *  Set bit 13 of 0xC2020 for CNL PCH
+	 */
+	static bool initClockGating();
 	
 	/**
 	 *  Write backlight registers to fix backlight control on CFL platform
