@@ -373,8 +373,28 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			}
 			else if (cflBacklightPatch == CFLBKLTWrapFix) {
+				// This patch will overwrite hard-coded BXT_BLC_PWM_FREQ1 values for real Mac 22222 (0x56CE) and 17777 (0x4571) with 0x1D4C0
+				// This will ensure no overflow when calculating BXT_BLC_PWM_DUTY1
+				
+				static const uint8_t freqPatch1Find[] = { 0xCE, 0x56, 0x00, 0x00 };
+				static const uint8_t freqPatch1Repl[] = { 0xC0, 0xD4, 0x01, 0x00 };
+				
+				static const uint8_t freqPatch2Find[] = { 0x71, 0x45, 0x00, 0x00 };
+				static const uint8_t freqPatch2Repl[] = { 0xC0, 0xD4, 0x01, 0x00 };
+				
+				static const KernelPatcher::LookupPatch freqPatches[] = {
+					{&kextIntelCFLFb, freqPatch1Find, freqPatch1Repl, sizeof(freqPatch1Find), 1},
+					{&kextIntelCFLFb, freqPatch2Find, freqPatch2Repl, sizeof(freqPatch2Find), 2}
+				};
+				
+				for (size_t i = 0; i < arrsize(freqPatches); i++) {
+					patcher.applyLookupPatch(&freqPatches[i]);
+				}
+				
 				// This patch will wrap AppleIntelFramebufferController::hwSetBacklight and AppleIntelFramebuffer::setAttributeForConnection
 				// and then perform 64-bit calculations of BXT_BLC_PWM_FREQ1 manually to avoid trunction error
+				// Added more wrapped methods:
+				// AppleIntelFramebufferController::hwSetPanelPower, AppleIntelFramebufferController::LightUpEDP and CamelliaTcon2::doRecoverFromTconResetTimer
 				
 				orgReadRegister32 = patcher.solveSymbol<decltype(orgReadRegister32)>(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 				orgWriteRegister32 = patcher.solveSymbol<decltype(orgWriteRegister32)>(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
@@ -386,6 +406,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 					{"__ZN31AppleIntelFramebufferController21hwSetPanelPowerConfigEj", wrapHwSetPanelPowerConfig, orgHwSetPanelPowerConfig},
 					{"__ZN31AppleIntelFramebufferController14hwSetBacklightEj", wrapHwSetBacklight, orgHwSetBacklight},
 					{"__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", wrapSetAttributeForConnection, orgSetAttributeForConnection},
+					// Newly added below (needs testing):
+					{"__ZN31AppleIntelFramebufferController15hwSetPanelPowerEj", wrapHwSetPanelPower, orgHwSetPanelPower},
+					{"__ZN31AppleIntelFramebufferController10LightUpEDPEP21AppleIntelFramebufferP21AppleIntelDisplayPathPK29IODetailedTimingInformationV2", wrapLightUpEDP, orgLightUpEDP},
+					{"__ZN13CamelliaTcon227DoRecoverFromTconResetTimerEv", wrapDoRecoverFromTconResetTimer, orgDoRecoverFromTconResetTimer},
 				};
 				
 				patcher.routeMultiple(index, requests, address, size);
@@ -572,6 +596,8 @@ IOReturn IGFX::wrapHwSetPanelPowerConfig(void *that, uint32_t arg0) {
 	// before backlight adjustments) to grab the initial BXT_BLC_PWM_FREQ1 value and patch it into
 	// the controller object.
 	
+	callbackIGFX->appleIntelFramebufferController = that;
+	
 	uint64_t bxt_blc_pwm_freq1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_FREQ1);
 #ifdef DEBUG
 	uint64_t bxt_blc_pwm_ctl1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_CTL1);
@@ -633,6 +659,57 @@ IOReturn IGFX::wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t
 	callbackIGFX->orgDisplayWriteRegister32(that, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
 
 	// SYSLOG("igfx", "wrapSetAttributeForConnection(): BXT_BLC_PWM_CTL1=0x%X BXT_BLC_PWM_FREQ1=0x%X BXT_BLC_PWM_DUTY1=0x%X backlightLevel=0x%X", bxt_blc_pwm_ctl1, bxt_blc_pwm_freq1, bxt_blc_pwm_duty1, callbackIGFX->backlightLevel);
+	
+	return r;
+}
+
+IOReturn IGFX::wrapHwSetPanelPower(void *that, uint32_t arg0) {
+	IOReturn r = FunctionCast(wrapHwSetPanelPower, callbackIGFX->orgHwSetPanelPower)(that, arg0);
+	
+	//uint64_t bxt_blc_pwm_ctl1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_CTL1);
+	uint64_t bxt_blc_pwm_freq1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_FREQ1);
+	uint64_t bxt_blc_pwm_duty1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_DUTY1);
+	
+	// Calculate backlight duty in 64-bits so result is not truncated (essentially CFL backlight fix)
+	bxt_blc_pwm_freq1 = callbackIGFX->backlightFrequency;
+	bxt_blc_pwm_duty1 = static_cast<uint64_t>(callbackIGFX->backlightLevel) * bxt_blc_pwm_freq1 / 0xFFFFLL;
+	
+	callbackIGFX->orgWriteRegister32(that, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(bxt_blc_pwm_freq1));
+	callbackIGFX->orgWriteRegister32(that, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
+	
+	return r;
+}
+
+IOReturn IGFX::wrapLightUpEDP(void *that, void *arg0, void *arg1) {
+	IOReturn r = FunctionCast(wrapLightUpEDP, callbackIGFX->orgLightUpEDP)(that, arg0, arg1);
+	
+	//uint64_t bxt_blc_pwm_ctl1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_CTL1);
+	uint64_t bxt_blc_pwm_freq1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_FREQ1);
+	uint64_t bxt_blc_pwm_duty1 = callbackIGFX->orgReadRegister32(that, BXT_BLC_PWM_DUTY1);
+	
+	// Calculate backlight duty in 64-bits so result is not truncated (essentially CFL backlight fix)
+	bxt_blc_pwm_freq1 = callbackIGFX->backlightFrequency;
+	bxt_blc_pwm_duty1 = static_cast<uint64_t>(callbackIGFX->backlightLevel) * bxt_blc_pwm_freq1 / 0xFFFFLL;
+	
+	callbackIGFX->orgWriteRegister32(that, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(bxt_blc_pwm_freq1));
+	callbackIGFX->orgWriteRegister32(that, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
+	
+	return r;
+}
+
+IOReturn IGFX::wrapDoRecoverFromTconResetTimer(void *that) {
+	IOReturn r = FunctionCast(wrapDoRecoverFromTconResetTimer, callbackIGFX->orgDoRecoverFromTconResetTimer)(that);
+	
+	//uint64_t bxt_blc_pwm_ctl1 = callbackIGFX->orgReadRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_CTL1);
+	uint64_t bxt_blc_pwm_freq1 = callbackIGFX->orgReadRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_FREQ1);
+	uint64_t bxt_blc_pwm_duty1 = callbackIGFX->orgReadRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_DUTY1);
+	
+	// Calculate backlight duty in 64-bits so result is not truncated (essentially CFL backlight fix)
+	bxt_blc_pwm_freq1 = callbackIGFX->backlightFrequency;
+	bxt_blc_pwm_duty1 = static_cast<uint64_t>(callbackIGFX->backlightLevel) * bxt_blc_pwm_freq1 / 0xFFFFLL;
+	
+	callbackIGFX->orgWriteRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(bxt_blc_pwm_freq1));
+	callbackIGFX->orgWriteRegister32(callbackIGFX->appleIntelFramebufferController, BXT_BLC_PWM_DUTY1, static_cast<uint32_t>(bxt_blc_pwm_duty1));
 	
 	return r;
 }

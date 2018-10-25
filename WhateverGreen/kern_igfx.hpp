@@ -251,6 +251,21 @@ private:
 	mach_vm_address_t orgSetAttributeForConnection {};
 	
 	/**
+	 *  Original AppleIntelFramebufferController::hwSetPanelPower function
+	 */
+	mach_vm_address_t orgHwSetPanelPower {};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::LightUpEDP function
+	 */
+	mach_vm_address_t orgLightUpEDP {};
+	
+	/**
+	 *  Original CamelliaTcon2::doRecoverFromTconResetTimer function
+	 */
+	mach_vm_address_t orgDoRecoverFromTconResetTimer {};
+	
+	/**
 	 *  Detected CPU generation of the host system
 	 */
 	CPUInfo::CpuGeneration cpuGeneration {};
@@ -371,6 +386,11 @@ private:
 	 *  Store backlight frequency
 	 */
 	uint32_t backlightFrequency { 0 };
+	
+	/**
+	 *  Pointer to AppleIntelFramebufferController
+	 */
+	void *appleIntelFramebufferController {nullptr};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -411,6 +431,21 @@ private:
 	 *  AppleIntelFramebuffer::setAttributeForConnection wrapper to fix backlight control on CFL platform
 	 */
 	static IOReturn wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2);
+	
+	/**
+	 *  AppleIntelFramebufferController::hwSetPanelPower wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapHwSetPanelPower(void *that, uint32_t arg0);
+	
+	/**
+	 *  AppleIntelFramebufferController::LightUpEDP wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapLightUpEDP(void *that, void *arg0, void *arg1);
+	
+	/**
+	 *  CamelliaTcon2::doRecoverFromTconResetTimer wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapDoRecoverFromTconResetTimer(void *that);
 	
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
