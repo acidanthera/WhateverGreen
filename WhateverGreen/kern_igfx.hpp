@@ -228,12 +228,12 @@ private:
 	/**
 	 *  Original AppleIntelFramebuffer::DisplayReadRegister32 function
 	 */
-	uint64_t (*orgDisplayReadRegister32)(void*, void*, uint64_t) {nullptr};
+	//uint64_t (*orgDisplayReadRegister32)(void*, void*, uint64_t) {nullptr};
 	
 	/**
 	 *  Original AppleIntelFramebuffer::DisplayWriteRegister32 function
 	 */
-	uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
+	//uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
 	
 	/**
 	 *  Original AppleIntelFramebufferController::hwSetPanelPowerConfig function
@@ -446,6 +446,11 @@ private:
 	 *  CamelliaTcon2::doRecoverFromTconResetTimer wrapper to fix backlight control on CFL platform
 	 */
 	static IOReturn wrapDoRecoverFromTconResetTimer(void *that);
+	
+	/**
+	 *  Write backlight registers to fix backlight control on CFL platform
+	 */
+	static void updateBacklight();
 	
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
