@@ -35,12 +35,12 @@ private:
 		// Remove forceOfflineRenderer from AppleGVA Info.plist.
 		// This is required to allow hardware acceleration on several mac models with discrete GPUs
 		// when only IGPU is available.
-		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for mor details.
+		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
 		ForceOnlineRenderer        = 1,
 		// Remve hweBGRA from AppleGVA Info.plist.
 		// hweBGRA is not supported by NVIDIA GPUs, so the patch is sometimes required when using NVIDIA
 		// in a mac model meant to be used with AMD or Intel.
-		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for mor details.
+		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
 		AllowNonBGRA               = 2,
 		// Prior to 10.13.4 certain GPU+CPU combinations were not meant to provide hardware acceleration and had to be patched.
 		// The overall problematic configuration list is: NVIDIA+BDW, NVIDIA+SKL, NVIDIA+KBL, AMD+IVB, NVIDIA+SNB.
@@ -63,7 +63,7 @@ private:
 		// Replace board-id used by AppleGVA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
 		// By default Mac-27ADBB7B4CEE8E61 (iMac14,2) will be used, but you can override this via shiki-id boot-arg.
-		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for mor details.
+		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
 		ReplaceBoardID             = 32,
 		// Attempt to support fps.1_0 (FairPlay 1.0) in Safari.
 		// This should technically fix some very old streaming services in Safari, which rely on FairPlay DRM
