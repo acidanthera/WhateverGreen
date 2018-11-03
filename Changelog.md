@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.5
+- Added support for specifying `agpmod` in external GPU properties
+- Added fatal error on `agpmod=cfgmap` on 10.14 and newer, which had no effect since 10.13.4
+
 #### v1.2.4
 - Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
 - Fixed 10.14.1 IGPU KBL/CFL support without external GPU

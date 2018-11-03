@@ -222,6 +222,15 @@ private:
 	void processManagementEngineProperties(IORegistryEntry *imei);
 
 	/**
+	 *  Parse AppleGraphicsDevicePolicy (AGDP) patch configuration
+	 *
+	 *  @param patcher KernelPatcher instance
+	 *  @param address agdp load address
+	 *  @param size    agdp memory size
+	 */
+	void processGraphicsPolicyStr(const char *agdp);
+
+	/**
 	 *  Apply AppleGraphicsDevicePolicy (AGDP) patches if any
 	 *
 	 *  @param patcher KernelPatcher instance

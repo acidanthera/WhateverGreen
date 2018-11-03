@@ -54,19 +54,8 @@ void WEG::init() {
 	// Black screen fix is needed everywhere, but the form depends on the boot-arg.
 	// Former boot-arg name is ngfxpatch.
 	char agdp[128];
-	if (PE_parse_boot_argn("agdpmod", agdp, sizeof(agdp))) {
-		if (strstr(agdp, "detect")) {
-			graphicsDisplayPolicyMod = AGDP_DETECT;
-		} else {
-			graphicsDisplayPolicyMod = AGDP_NONE;
-			if (strstr(agdp, "vit9696"))
-				graphicsDisplayPolicyMod |= AGDP_VIT9696;
-			if (strstr(agdp, "pikera"))
-				graphicsDisplayPolicyMod |= AGDP_PIKERA;
-			if (strstr(agdp, "cfgmap"))
-				graphicsDisplayPolicyMod |= AGDP_CFGMAP;
-		}
-	}
+	if (PE_parse_boot_argn("agdpmod", agdp, sizeof(agdp)))
+		processGraphicsPolicyStr(agdp);
 
 	// Callback setup is only done here for compatibility.
 	lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
@@ -131,6 +120,31 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			devInfo->videoExternal.deinit();
 		}
 
+		if (graphicsDisplayPolicyMod == AGDP_DETECT) {
+			size_t extNum = devInfo->videoExternal.size();
+			for (size_t i = 0; i < extNum; i++) {
+				auto prop = devInfo->videoExternal[i].video->getProperty("agdpmod");
+				if (prop) {
+					DBGLOG("weg", "found agdpmod in external GPU %s", safeString(devInfo->videoExternal[i].video->getName()));
+					const char *agdp = nullptr;
+					auto propStr = OSDynamicCast(OSString, prop);
+					auto propData = OSDynamicCast(OSData, prop);
+					if (propStr) {
+						agdp = propStr->getCStringNoCopy();
+					} else if (propData && propData->getLength() > 0) {
+						agdp = static_cast<const char *>(propData->getBytesNoCopy());
+						if (agdp && agdp[propData->getLength() - 1] != '\0') {
+							DBGLOG("weg", "agdpmod config is not null terminated");
+							agdp = nullptr;
+						}
+					}
+					if (agdp) {
+						processGraphicsPolicyStr(agdp);
+						break;
+					}
+				}
+			}
+		}
 
 		// Do not inject properties unless non-Apple
 		if (devInfo->firmwareVendor != DeviceInfo::FirmwareVendor::Apple) {
@@ -175,7 +189,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		kextIOGraphics.switchOff();
 	}
 
-	if (graphicsDisplayPolicyMod == AGDP_DETECT) {
+	if (graphicsDisplayPolicyMod == AGDP_DETECT || graphicsDisplayPolicyMod == AGDP_NONE) {
 		graphicsDisplayPolicyMod = AGDP_NONE;
 		kextAGDPolicy.switchOff();
 	}
@@ -373,6 +387,23 @@ void WEG::processManagementEngineProperties(IORegistryEntry *imei) {
 	}
 }
 
+void WEG::processGraphicsPolicyStr(const char *agdp) {
+	DBGLOG("weg", "agdpmod using config %s", agdp);
+	if (strstr(agdp, "detect")) {
+		graphicsDisplayPolicyMod = AGDP_DETECT;
+	} else if (strstr(agdp, "ignore")) {
+		graphicsDisplayPolicyMod = AGDP_NONE;
+	} else {
+		graphicsDisplayPolicyMod = AGDP_NONE;
+		if (strstr(agdp, "vit9696"))
+			graphicsDisplayPolicyMod |= AGDP_VIT9696;
+		if (strstr(agdp, "pikera"))
+			graphicsDisplayPolicyMod |= AGDP_PIKERA;
+		if (strstr(agdp, "cfgmap"))
+			graphicsDisplayPolicyMod |= AGDP_CFGMAP;
+	}
+}
+
 void WEG::processGraphicsPolicyMods(KernelPatcher &patcher, mach_vm_address_t address, size_t size) {
 	if (graphicsDisplayPolicyMod & AGDP_VIT9696) {
 		uint8_t find[]    = {0xBA, 0x05, 0x00, 0x00, 0x00};
@@ -404,8 +435,9 @@ void WEG::processGraphicsPolicyMods(KernelPatcher &patcher, mach_vm_address_t ad
 	}
 
 	if (graphicsDisplayPolicyMod & AGDP_CFGMAP) {
-		//FIXME: Does not function in 10.13.x, as the symbols have been stripped.
-		// Should not be needed really, remove it?
+		// Does not function in 10.13.x, as the symbols have been stripped. Abort on usage on 10.14 or newer.
+		if (getKernelVersion() >= KernelVersion::Mojave)
+			PANIC("weg", "adgpmod=cfgmap has no effect on 10.13.4, use agdpmod=ignore");
 		KernelPatcher::RouteRequest request("__ZN25AppleGraphicsDevicePolicy5startEP9IOService", wrapGraphicsPolicyStart, orgGraphicsPolicyStart);
 		patcher.routeMultiple(kextAGDPolicy.loadIndex, &request, 1, address, size);
 	}
