@@ -394,6 +394,7 @@ static constexpr Model dev67c7[] {
 };
 
 static constexpr Model dev67df[] {
+	{Model::DetectRev, 0x0000, 0x0000, 0x00e1, "Radeon RX 590"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 580"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c2, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "Radeon RX 580"},
