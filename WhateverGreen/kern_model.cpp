@@ -923,13 +923,17 @@ static BuiltinModel devIntel[] {
 	{ 0x5917, 0x5916, "Intel UHD Graphics 620" },
 	{ 0x5912, 0x0000, "Intel HD Graphics 630" },
 	{ 0x591B, 0x0000, "Intel HD Graphics 630" },
+	{ 0x591C, 0x0000, "Intel UHD Graphics 615" },
 	{ 0x591D, 0x591B, "Intel HD Graphics P630" },
+	{ 0x5923, 0x0000, "Intel HD Graphics 635" },
 	{ 0x5926, 0x0000, "Intel Iris Plus Graphics 640" },
 	{ 0x5927, 0x0000, "Intel Iris Plus Graphics 650" },
 	{ 0x3E91, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E92, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E9B, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3EA5, 0x0000, "Intel Iris Plus Graphics 655" },
+	{ 0x3EA0, 0x5916, "Intel UHD Graphics 620" },
+	{ 0x87C0, 0x0000, "Intel UHD Graphics 617" },
 	// Reserved/unused/generic Kaby Lake / Coffee Lake },
 };
 
