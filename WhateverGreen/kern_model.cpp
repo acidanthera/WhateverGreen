@@ -401,6 +401,7 @@ static constexpr Model dev67df[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c4, "Radeon RX 480"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c6, "Radeon RX 570"},
+	{Model::DetectRev, 0x174b, 0xe347, 0x00c7, "Sapphire NITRO+ OC Radeon RX 480"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon RX 480"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00d7, "Radeon RX 470"},
