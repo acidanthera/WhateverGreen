@@ -591,6 +591,7 @@ static constexpr Model dev6863[] {
 };
 
 static constexpr Model dev687f[] {
+	{Model::DetectRev, 0x1043, 0x04c4, 0x00c1, "Asus STRIX OC Radeon RX Vega 64"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon RX Vega 64"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX Vega 64"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c3, "Radeon RX Vega 56"},
