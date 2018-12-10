@@ -351,12 +351,12 @@ private:
 	/**
 	 *  Store backlight level
 	 */
-	uint32_t backlightLevel { 0 };
+	uint32_t backlightLevel {0};
 	
 	/**
 	 *  Store backlight frequency
 	 */
-	uint32_t backlightFrequency { 0 };
+	uint32_t backlightFrequency {0};
 	
 	/**
 	 *  Pointer to AppleIntelFramebufferController
@@ -418,7 +418,7 @@ private:
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
 	 */
 	static bool wrapLoadGuCBinary(void *that, bool flag);
-	
+
 	/**
 	 *  Actual firmware loader
 	 *
