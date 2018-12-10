@@ -161,12 +161,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #endif
 
 		// Enable CFL backlight patch if IGPU propery enable-cfl-backlight-fix is set
-		if (info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
-			cflBacklightPatch = true;
-
-		char igfxcflbklt[16];
-		if (PE_parse_boot_argn("igfxcflbklt", igfxcflbklt, sizeof(igfxcflbklt)))
-			cflBacklightPatch = strcmp(igfxcflbklt, "1") == 0;
+		int bkl = info->videoBuiltin->getProperty("enable-cfl-backlight-fix") != nullptr;
+		PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl));
+		cflBacklightPatch = bkl == 1;
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
