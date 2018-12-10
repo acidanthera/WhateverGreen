@@ -51,13 +51,15 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 - `-igfxdump` to dump IGPU framebuffer kext to `/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries). 
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
+- `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
-- [headkaze](https://github.com/headkaze) Intel framebuffer patching code
+- [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
+- [headkaze](https://github.com/headkaze) Intel framebuffer patching code and CFL backlight patch improvements
 - [igork](https://applelife.ru/members/igork.564/) for power-gating patch discovery
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for continuous implementation of Intel and NVIDIA fixing code
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries

@@ -122,6 +122,13 @@ private:
 	 *  Maximum find / replace patches
 	 */
 	static constexpr size_t MaxFramebufferPatchCount = 10;
+	
+	/**
+	 *  Backlight registers
+	 */
+	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
+	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
+	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 
 	/**
 	 *  Framebuffer find / replace patches
@@ -209,6 +216,41 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
+	 *  Original AppleIntelFramebufferController::ReadRegister32 function
+	 */
+	uint32_t (*orgReadRegister32)(void*, uint64_t) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::WriteRegister32 function
+	 */
+	uint32_t (*orgWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
+
+	/**
+	 *  Original AppleIntelFramebuffer::DisplayReadRegister32 function
+	 */
+	uint64_t (*orgDisplayReadRegister32)(void*, void*, uint64_t) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebuffer::DisplayWriteRegister32 function
+	 */
+	uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::hwSetPanelPowerConfig function
+	 */
+	mach_vm_address_t orgHwSetPanelPowerConfig {};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::hwSetBacklight function
+	 */
+	mach_vm_address_t orgHwSetBacklight {};
+	
+	/**
+	 *  Original AppleIntelFramebuffer::setAttributeForConnection function
+	 */
+	mach_vm_address_t orgSetAttributeForConnection {};
+	
+	/**
 	 *  Detected CPU generation of the host system
 	 */
 	CPUInfo::CpuGeneration cpuGeneration {};
@@ -217,6 +259,11 @@ private:
 	 *  Set to true if a black screen ComputeLaneCount patch is required
 	 */
 	bool blackScreenPatch {false};
+
+	/**
+	 *  Set to true if Coffee Lake backlight patch type required
+	 */
+	bool cflBacklightPatch {false};
 
 	/**
 	 *  Set to true if PAVP code should be disabled
@@ -307,6 +354,16 @@ private:
 	 *  Actual intercepted binary sizes
 	 */
 	uint32_t realBinarySize {};
+	
+	/**
+	 *  Store backlight level
+	 */
+	uint32_t backlightLevel {0};
+	
+	/**
+	 *  Store backlight frequency
+	 */
+	uint32_t backlightFrequency {0};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -334,9 +391,24 @@ private:
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
 
 	/**
+	 *  AppleIntelFramebufferController::hwSetPanelPowerConfig wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapHwSetPanelPowerConfig(void *that, uint32_t arg0);
+	
+	/**
+	 *  AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapHwSetBacklight(void *that, uint32_t backlight);
+	
+	/**
+	 *  AppleIntelFramebuffer::setAttributeForConnection wrapper to fix backlight control on CFL platform
+	 */
+	static IOReturn wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2);
+		
+	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
-	static uint64_t wrapGetOSInformation(void *that);
+	static bool wrapGetOSInformation(void *that);
 
 	/**
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
