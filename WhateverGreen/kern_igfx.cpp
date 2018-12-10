@@ -774,6 +774,8 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 
 		// Note, the casts to uint32_t here and below are required due to device properties always injecting 32-bit types.
 		framebufferPatchFlags.bits.FPFFramebufferId = WIOKit::getOSDataValue(igpu, "framebuffer-framebufferid", framebufferPatch.framebufferId);
+		framebufferPatchFlags.bits.FPFFlags = WIOKit::getOSDataValue(igpu, "framebuffer-flags", framebufferPatch.flags.value);
+		framebufferPatchFlags.bits.FPFCamelliaVersion = WIOKit::getOSDataValue(igpu, "framebuffer-camellia", framebufferPatch.camelliaVersion);
 		framebufferPatchFlags.bits.FPFMobile = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-mobile", framebufferPatch.fMobile);
 		framebufferPatchFlags.bits.FPFPipeCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-pipecount", framebufferPatch.fPipeCount);
 		framebufferPatchFlags.bits.FPFPortCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-portcount", framebufferPatch.fPortCount);
@@ -1012,6 +1014,13 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, Framebuffer
 	return framebufferFound;
 }
 
+// Sandy and Ivy have no flags
+template <>
+void IGFX::applyPlatformInformationPatchEx(FramebufferSNB *frame) {}
+
+template <>
+void IGFX::applyPlatformInformationPatchEx(FramebufferIVB *frame) {}
+
 template <>
 void IGFX::applyPlatformInformationPatchEx(FramebufferHSW *frame) {
 	// fCursorMemorySize is Haswell specific
@@ -1019,6 +1028,22 @@ void IGFX::applyPlatformInformationPatchEx(FramebufferHSW *frame) {
 		frame->fCursorMemorySize = fPatchCursorMemorySize;
 		DBGLOG("igfx", "fCursorMemorySize: 0x%08X", frame->fCursorMemorySize);
 	}
+
+	if (framebufferPatchFlags.bits.FPFFlags)
+		frame->flags.value = framebufferPatch.flags.value;
+
+	if (framebufferPatchFlags.bits.FPFCamelliaVersion)
+		frame->camelliaVersion = framebufferPatch.camelliaVersion;
+}
+
+template <typename T>
+void IGFX::applyPlatformInformationPatchEx(T *frame) {
+	if (framebufferPatchFlags.bits.FPFFlags)
+		frame->flags.value = framebufferPatch.flags.value;
+
+
+	if (framebufferPatchFlags.bits.FPFCamelliaVersion)
+		frame->camelliaVersion = framebufferPatch.camelliaVersion;
 }
 
 template <typename T>

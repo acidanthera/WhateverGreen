@@ -66,7 +66,7 @@ union FramebufferFlags {
 		uint8_t FBDisableFeatureIPS          :1;  /* 0x1000 */
 		uint8_t FBUnknownFlag_2000           :1;  /* 0x2000 */
 		/* Discovered in Broadwell AppleIntelFBController::getOSInformation.
-		 * Used by AppleIntelFramebufferController::LinkTraining for camelia version 2.
+		 * Used by AppleIntelFramebufferController::LinkTraining for camellia version 2.
 		 * Can be overridden by -notconrecover boot-arg, which effectively unsets this bit.
 		 */
 		uint8_t FBAllowConnectorRecover      :1;  /* 0x4000 */
@@ -261,7 +261,7 @@ struct PACKED FramebufferHSW {
 	ConnectorInfo connectors[MaxFramebufferConnectorCount];
 	FramebufferFlags flags;
 	uint8_t  unk1[3];
-	uint8_t  cameliaVersion;
+	uint8_t  camelliaVersion;
 	uint32_t unk2;
 	uint32_t fNumTransactionsThreshold;
 	uint32_t fVideoTurboFreq;
@@ -283,7 +283,7 @@ struct PACKED FramebufferBDW {
 	ConnectorInfo connectors[MaxFramebufferConnectorCount];
 	FramebufferFlags flags;
 	uint32_t unk1;
-	uint32_t cameliaVersion;
+	uint32_t camelliaVersion;
 	uint32_t unk2[6];
 	uint32_t fNumTransactionsThreshold;
 	uint32_t fVideoTurboFreq;
@@ -318,7 +318,7 @@ struct PACKED FramebufferSKL {
 	uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
 	uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
 	uint8_t pad3;
-	uint32_t cameliaVersion;
+	uint32_t camelliaVersion;
 	uint64_t unk3[3];
 	uint32_t fNumTransactionsThreshold;
 	/* Defaults to 14, used when UseVideoTurbo bit is set */
@@ -358,7 +358,7 @@ struct PACKED FramebufferCFL {
 	uint8_t fBTTableOffsetIndexNormal; /* FBEnableSliceFeatures = 0 */
 	uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
 	uint8_t pad3;
-	uint32_t cameliaVersion;
+	uint32_t camelliaVersion;
 	uint64_t unk3[3];
 	uint32_t fNumTransactionsThreshold;
 	/* Defaults to 14, used when UseVideoTurbo bit is set */
@@ -412,7 +412,7 @@ struct PACKED FramebufferCNL {
 	uint64_t fBTTArrayNormalAddr;
 	uint64_t fBTTArrayHDMIAddr;
 	FramebufferCNLCurrents currents[8];
-	uint32_t cameliaVersion;
+	uint32_t camelliaVersion;
 	uint64_t unk2[3];
 	uint32_t fNumTransactionsThreshold;
 	/* Defaults to 14, used when UseVideoTurbo bit is set */
@@ -449,7 +449,7 @@ struct PACKED FramebufferICLLP {
 	FramebufferFlags flags;
 	FramebufferCNLCurrents currents[8];
 	uint32_t unk2[5];
-	uint32_t cameliaVersion;
+	uint32_t camelliaVersion;
 	uint32_t unk3[6];
 	/* Defaults to 14, used when UseVideoTurbo bit is set */
 	uint32_t fNumTransactionsThreshold;
@@ -487,7 +487,7 @@ struct PACKED FramebufferICLHP {
 	FramebufferFlags flags;
 	FramebufferCNLCurrents currents[8];
 	uint32_t unk2[5];
-	uint32_t cameliaVersion;
+	uint32_t camelliaVersion;
 	uint32_t unk3[6];
 	/* Defaults to 14, used when UseVideoTurbo bit is set */
 	uint32_t fNumTransactionsThreshold;

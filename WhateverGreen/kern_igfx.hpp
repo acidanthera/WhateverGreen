@@ -61,7 +61,7 @@ private:
 			uint8_t FPFBTTableOffsetIndexSlice  :1;
 			uint8_t FPFBTTableOffsetIndexNormal :1;
 			uint8_t FPFBTTableOffsetIndexHDMI   :1;
-			uint8_t FPFCameliaVersion           :1;
+			uint8_t FPFCamelliaVersion          :1;
 			uint8_t FPFNumTransactionsThreshold :1;
 			uint8_t FPFVideoTurboFreq           :1;
 			uint8_t FPFBTTArraySliceAddr        :1;
@@ -531,7 +531,7 @@ private:
 	 *
 	 */
 	template <typename T>
-	void applyPlatformInformationPatchEx(T* frame) { }
+	void applyPlatformInformationPatchEx(T* frame);
 
 	/**
 	 *  Apply framebuffer patches

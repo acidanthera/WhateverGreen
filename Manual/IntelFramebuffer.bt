@@ -46,12 +46,12 @@ enum <uint32_t> FirstFramebuffer {
     FirstIceLakeId     = 0xff050000, /* LP and HP share the table */
 };
 
-enum <uint32_t> CameliaVersion {
-    CameliaDisabled = 0,      /* -nocam */
-    CameliaV1 = 1,            /* -forcecam1 */
-    CameliaV2 = 2,            /* -forcecam2, CamelliaTcon2 */
-    CameliaV3 = 3,            /* BanksiaTcon */
-    CameliaUnsupported = 0xFF /* dummy value for snb */
+enum <uint32_t> CamelliaVersion {
+    CamelliaDisabled = 0,      /* -nocam */
+    CamelliaV1 = 1,            /* -forcecam1 */
+    CamelliaV2 = 2,            /* -forcecam2, CamelliaTcon2 */
+    CamelliaV3 = 3,            /* BanksiaTcon */
+    CamelliaUnsupported = 0xFF /* dummy value for snb */
 };
 
 union FramebufferFlags {
@@ -113,7 +113,7 @@ union FramebufferFlags {
         uint8_t FBDisableFeatureIPS          :1;  /* 0x1000 */
         uint8_t FBUnknownFlag_2000           :1;  /* 0x2000 */
         /* Discovered in Broadwell AppleIntelFBController::getOSInformation.
-         * Used by AppleIntelFramebufferController::LinkTraining for camelia version 2.
+         * Used by AppleIntelFramebufferController::LinkTraining for camellia version 2.
          * Can be overridden by -notconrecover boot-arg, which effectively unsets this bit.
          */
         uint8_t FBAllowConnectorRecover      :1;  /* 0x4000 */
@@ -281,7 +281,7 @@ struct FramebufferSNB {
     local uint32_t fStolenMemorySize = 0;
     local uint32_t fFramebufferMemorySize = 0;
     local uint32_t fUnifiedMemorySize = 0;
-    local uint8_t  cameliaVersion = CameliaUnsupported;
+    local uint8_t  camelliaVersion = CamelliaUnsupported;
     local uint32_t flags = 0;
     local uint64_t fModelNameAddr = 0;
 };
@@ -327,7 +327,7 @@ struct FramebufferIVB {
     uint32_t unk3;
     ConnectorInfo connectors[4] <read=connectorToPrintable, optimize=false>;
     uint32_t pad2[26];
-    local uint8_t  cameliaVersion = CameliaUnsupported;
+    local uint8_t  camelliaVersion = CamelliaUnsupported;
     local uint32_t flags = 0;
     local uint64_t fModelNameAddr = 0;
 };
@@ -350,7 +350,7 @@ struct FramebufferHSW {
     ConnectorInfo connectors[4] <read=connectorToPrintable, optimize=false>;
     FramebufferFlags flags <read=framebufferFlagsToPrintable>;
     uint8_t  unk1[3];
-    uint8_t  cameliaVersion <read=cameliaToPrintable>;
+    uint8_t  camelliaVersion <read=camelliaToPrintable>;
     uint32_t unk2;
     uint32_t fNumTransactionsThreshold;
     uint32_t fVideoTurboFreq;
@@ -374,7 +374,7 @@ struct FramebufferBDW {
     ConnectorInfo connectors[4] <read=connectorToPrintable, optimize=false>;
     FramebufferFlags flags <read=framebufferFlagsToPrintable>;
     uint32_t unk1;
-    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t camelliaVersion <read=camelliaToPrintable>;
     uint32_t unk2[6];
     uint32_t fNumTransactionsThreshold;
     uint32_t fVideoTurboFreq;
@@ -416,7 +416,7 @@ struct FramebufferSKL {
     uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
     uint8_t pad2;
     Assert(pad2 == 0, "Non-zero sequence");
-    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t camelliaVersion <read=camelliaToPrintable>;
     uint64_t unk3[3];
     uint32_t fNumTransactionsThreshold;
     /* Defaults to 14, used when UseVideoTurbo bit is set */
@@ -463,7 +463,7 @@ struct FramebufferCFL {
     uint8_t fBTTableOffsetIndexHDMI; /* fDisplayType = 1 */
     uint8_t pad2;
     Assert(pad2 == 0, "Non-zero sequence");
-    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t camelliaVersion <read=camelliaToPrintable>;
     uint64_t unk3[3];
     uint32_t fNumTransactionsThreshold;
     /* Defaults to 14, used when UseVideoTurbo bit is set */
@@ -523,7 +523,7 @@ struct FramebufferCNL {
     uint64_t fBTTArrayNormalAddr;
     uint64_t fBTTArrayHDMIAddr;
     FramebufferCNLCurrents currents[8];
-    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t camelliaVersion <read=camelliaToPrintable>;
     uint64_t unk2[3];
     uint32_t fNumTransactionsThreshold;
     /* Defaults to 14, used when UseVideoTurbo bit is set */
@@ -565,7 +565,7 @@ struct FramebufferICLHP {
     FramebufferFlags flags <read=framebufferFlagsToPrintable>;
     FramebufferCNLCurrents currents[8];
     uint32_t unk2[5];
-    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t camelliaVersion <read=camelliaToPrintable>;
     uint32_t unk3[6];
     /* Defaults to 14, used when UseVideoTurbo bit is set */
     uint32_t fNumTransactionsThreshold;
@@ -602,7 +602,7 @@ struct FramebufferICLLP {
     FramebufferFlags flags <read=framebufferFlagsToPrintable>;
     FramebufferCNLCurrents currents[8];
     uint32_t unk2[5];
-    uint32_t cameliaVersion <read=cameliaToPrintable>;
+    uint32_t camelliaVersion <read=camelliaToPrintable>;
     uint32_t unk3[6];
     /* Defaults to 14, used when UseVideoTurbo bit is set */
     uint32_t fNumTransactionsThreshold;
@@ -662,7 +662,7 @@ string frequencyToPrintable(uint32_t freq) {
     return out;
 }
 
-string cameliaToPrintable(CameliaVersion cam) {
+string camelliaToPrintable(CamelliaVersion cam) {
     local string out;
     SPrintf(out, "%s (%d)", EnumToString(cam), cam);
     return out;
@@ -867,7 +867,7 @@ while (pos < size) {
         Printf("TOTAL STOLEN: %s, TOTAL CURSOR: %s, MAX STOLEN: %s, MAX OVERALL: %s\n", bytesToPrintable(fTotalStolen), bytesToPrintable(fTotalCursor), bytesToPrintable(fMaxStolen), bytesToPrintable(fMaxOverall));
         if (frames[i].fModelNameAddr != 0)
             Printf("Model name: %s\n", modelNameAddrToPrintable(frames[i].fModelNameAddr));
-        Printf("Camelia: %s, Freq: %s, FreqMax: %s\n", cameliaToPrintable(frames[i].cameliaVersion), 
+        Printf("Camellia: %s, Freq: %s, FreqMax: %s\n", camelliaToPrintable(frames[i].camelliaVersion), 
             frequencyToPrintable(frames[i].fBacklightFrequency), frequencyToPrintable(frames[i].fBacklightMax));
         Printf("Mobile: %d, PipeCount: %d, PortCount: %d, FBMemoryCount: %d\n", frames[i].fMobile, frames[i].fPipeCount,
             frames[i].fPortCount, frames[i].fFBMemoryCount);
@@ -901,7 +901,7 @@ if (firstId == FirstSandyBridgeId) {
             frames.framebufferStr = "Default";
             Printf("Default SNB, DVMT: %s, FBMEM: %s, VRAM: %s, Flags: 0x00000000\n",
                 bytesToPrintable(frames[i].fStolenMemorySize), bytesToPrintable(frames[i].fFramebufferMemorySize), bytesToPrintable(frames[i].fUnifiedMemorySize));
-            Printf("Camelia: %s, Freq: %s, FreqMax: %s\n", cameliaToPrintable(frames[i].cameliaVersion), 
+            Printf("Camellia: %s, Freq: %s, FreqMax: %s\n", camelliaToPrintable(frames[i].camelliaVersion), 
                 frequencyToPrintable(frames[i].fBacklightFrequency), frequencyToPrintable(frames[i].fBacklightMax));
             Printf("Mobile: %d, PipeCount: %d, PortCount: %d, FBMemoryCount: %d\n", frames[i].fMobile, frames[i].fPipeCount,
                 frames[i].fPortCount, frames[i].fFBMemoryCount);
