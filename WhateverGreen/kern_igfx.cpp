@@ -160,6 +160,14 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			dumpPlatformTable = true;
 #endif
 
+		// Enable CFL backlight patch if IGPU propery enable-cfl-backlight-fix is set
+		if (info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
+			cflBacklightPatch = true;
+
+		char igfxcflbklt[16];
+		if (PE_parse_boot_argn("igfxcflbklt", igfxcflbklt, sizeof(igfxcflbklt)))
+			cflBacklightPatch = strcmp(igfxcflbklt, "1") == 0;
+
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
 		// Black screen (ComputeLaneCount) happened from 10.12.4
@@ -184,7 +192,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && !cflBacklightPatch;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -204,14 +212,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		KernelPatcher::RouteRequest request("__ZN9IOService20copyExistingServicesEP12OSDictionaryjj", wrapCopyExistingServices, orgCopyExistingServices);
 		patcher.routeMultiple(KernelPatcher::KernelID, &request, 1);
 	}
-	
-	// Enable CFL backlight patch if IGPU propery enable-cfl-backlight-fix is set
-	if (info->videoBuiltin && info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
-		cflBacklightPatch = true;
-	
-	char igfxcflbklt[16];
-	if (PE_parse_boot_argn("igfxcflbklt", igfxcflbklt, sizeof(igfxcflbklt)))
-		cflBacklightPatch = strcmp(igfxcflbklt, "1") == 0;
 }
 
 bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
