@@ -59,7 +59,8 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
-- [headkaze](https://github.com/headkaze) Intel framebuffer patching code and CFL backlight patch improvements
+- [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements
+- [hieplpvip](https://github.com/hieplpvip) for initial AppleBacklight patching plugin
 - [igork](https://applelife.ru/members/igork.564/) for power-gating patch discovery
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for continuous implementation of Intel and NVIDIA fixing code
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries

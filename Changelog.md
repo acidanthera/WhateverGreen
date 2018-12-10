@@ -5,6 +5,7 @@ WhateverGreen Changelog
 - Added fatal error on `agpmod=cfgmap` on 10.14 and newer, which had no effect since 10.13.4
 - Added `igfxcflbklt` boot argument and `enable-cfl-backlight-fix` property to fix CFL backlight
 - Added `framebuffer-camellia` and `framebuffer-flags` patching
+- Added `AppleBacklight` patching code (based on `AppleBacklightFixup` by `hieplpvip`)
 
 #### v1.2.4
 - Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump

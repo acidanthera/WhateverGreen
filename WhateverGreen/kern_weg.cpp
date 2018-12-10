@@ -30,9 +30,12 @@ struct FramebufferViewer : public IOFramebuffer {
 
 static const char *pathIOGraphics[] { "/System/Library/Extensions/IOGraphicsFamily.kext/IOGraphicsFamily" };
 static const char *pathAGDPolicy[]  { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
+static const char *pathBacklight[]  { "/System/Library/Extensions/AppleBacklight.kext/Contents/MacOS/AppleBacklight" };
 
 static KernelPatcher::KextInfo kextIOGraphics { "com.apple.iokit.IOGraphicsFamily", pathIOGraphics, arrsize(pathIOGraphics), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextAGDPolicy  { "com.apple.driver.AppleGraphicsDevicePolicy", pathAGDPolicy, arrsize(pathAGDPolicy), {true}, {}, KernelPatcher::KextInfo::Unloaded };
+// Note: initially marked as reloadable, but I doubt it needs to be.
+static KernelPatcher::KextInfo kextBacklight { "com.apple.driver.AppleBacklight", pathBacklight, arrsize(pathBacklight), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 
 WEG *WEG::callbackWEG;
 
@@ -74,6 +77,8 @@ void WEG::init() {
 	// Perform a black screen fix.
 	if (graphicsDisplayPolicyMod != AGDP_NONE)
 		lilu.onKextLoad(&kextAGDPolicy);
+
+	lilu.onKextLoad(&kextBacklight);
 
 	igfx.init();
 	ngfx.init();
@@ -218,7 +223,7 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 			KernelPatcher::RouteRequest request("__ZN13IOFramebuffer6initFBEv", wrapFramebufferInit, orgFramebufferInit);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		} else {
-			SYSLOG("rad", "failed to resolve gIOFBVerboseBoot");
+			SYSLOG("weg", "failed to resolve gIOFBVerboseBoot");
 			patcher.clearError();
 		}
 
@@ -228,6 +233,16 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	if (kextAGDPolicy.loadIndex == index) {
 		processGraphicsPolicyMods(patcher, address, size);
 		return;
+	}
+
+	if (kextBacklight.loadIndex == index) {
+		const uint8_t find[]    = {"F%uT%04x"};
+		const uint8_t replace[] = {"F%uTxxxx"};
+		KernelPatcher::LookupPatch patch = {&kextBacklight, find, replace, sizeof(find), 1};
+		if (getKernelVersion() >= KernelVersion::Sierra) {
+			DBGLOG("weg", "applying backlight patch");
+			patcher.applyLookupPatch(&patch);
+		}
 	}
 
 	if (igfx.processKext(patcher, index, address, size))
