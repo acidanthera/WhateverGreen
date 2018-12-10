@@ -126,9 +126,6 @@ private:
 	/**
 	 *  Backlight registers
 	 */
-	static constexpr uint32_t SOUTH_DSPCLK_GATE_D = 0xC2020;
-	static constexpr uint32_t CNP_PWM_CGE_GATING_DISABLE = (1U << 13U);
-
 	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
 	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
 	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
@@ -228,6 +225,16 @@ private:
 	 */
 	uint32_t (*orgWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
 
+	/**
+	 *  Original AppleIntelFramebuffer::DisplayReadRegister32 function
+	 */
+	uint64_t (*orgDisplayReadRegister32)(void*, void*, uint64_t) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebuffer::DisplayWriteRegister32 function
+	 */
+	uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
+	
 	/**
 	 *  Original AppleIntelFramebufferController::hwSetPanelPowerConfig function
 	 */
@@ -357,11 +364,6 @@ private:
 	 *  Store backlight frequency
 	 */
 	uint32_t backlightFrequency {0};
-	
-	/**
-	 *  Pointer to AppleIntelFramebufferController
-	 */
-	void *appleIntelFramebufferController {nullptr};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -391,8 +393,7 @@ private:
 	/**
 	 *  AppleIntelFramebufferController::hwSetPanelPowerConfig wrapper to fix backlight control on CFL platform
 	 */
-	static IOReturn wrapHwSetPanelPowerConfig_Opcode(void *that, uint32_t arg0);
-	static IOReturn wrapHwSetPanelPowerConfig_Wrap(void *that, uint32_t arg0);
+	static IOReturn wrapHwSetPanelPowerConfig(void *that, uint32_t arg0);
 	
 	/**
 	 *  AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
@@ -403,12 +404,7 @@ private:
 	 *  AppleIntelFramebuffer::setAttributeForConnection wrapper to fix backlight control on CFL platform
 	 */
 	static IOReturn wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2);
-	
-	/**
-	 *  Write backlight registers to fix backlight control on CFL platform
-	 */
-	void updateBacklight();
-	
+		
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
