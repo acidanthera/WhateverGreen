@@ -236,11 +236,6 @@ private:
 	uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
 	
 	/**
-	 *  Original AppleIntelFramebufferController::hwSetPanelPowerConfig function
-	 */
-	mach_vm_address_t orgHwSetPanelPowerConfig {};
-	
-	/**
 	 *  Original AppleIntelFramebufferController::hwSetBacklight function
 	 */
 	mach_vm_address_t orgHwSetBacklight {};
@@ -361,9 +356,10 @@ private:
 	uint32_t backlightLevel {0};
 	
 	/**
-	 *  Store backlight frequency
+	 *  Backlight frequency, currently hardcoded, as it may get reset on wake.
+	 *  Can be specified via max-backlight-freq property.
 	 */
-	uint32_t backlightFrequency {0};
+	uint32_t backlightFrequency {120000};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -390,11 +386,6 @@ private:
 	 */
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
 
-	/**
-	 *  AppleIntelFramebufferController::hwSetPanelPowerConfig wrapper to fix backlight control on CFL platform
-	 */
-	static IOReturn wrapHwSetPanelPowerConfig(void *that, uint32_t arg0);
-	
 	/**
 	 *  AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
 	 */

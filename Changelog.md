@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Added support for specifying `agpmod` in external GPU properties
 - Added fatal error on `agpmod=cfgmap` on 10.14 and newer, which had no effect since 10.13.4
 - Added `igfxcflbklt` boot argument and `enable-cfl-backlight-fix` property to fix CFL backlight
+- Added max backlight frequency override via  `max-backlight-freq` IGPU property on CFL
 - Added `framebuffer-camellia` and `framebuffer-flags` patching
 - Added `AppleBacklight` patching code (based on `AppleBacklightFixup` by `hieplpvip`)
 
