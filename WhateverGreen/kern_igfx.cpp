@@ -480,9 +480,8 @@ void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 	} else if (reg == BXT_BLC_PWM_DUTY1) {
 		if (callbackIGFX->driverBacklightFrequency && callbackIGFX->targetBacklightFrequency) {
 			// Translate the PWM duty cycle between the driver scale value and the HW scale value
-			uint32_t rescaledValue = static_cast<uint32_t>(value /
-														   (static_cast<uint64_t>(callbackIGFX->driverBacklightFrequency) *
-														   static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)));
+			uint32_t rescaledValue = (value * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
+				static_cast<uint64_t>(callbackIGFX->driverBacklightFrequency);
 			DBGLOG("igfx", "wrapCflWriteRegister32: write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x", value,
 				   callbackIGFX->driverBacklightFrequency, rescaledValue, callbackIGFX->targetBacklightFrequency);
 			value = rescaledValue;
@@ -517,9 +516,8 @@ void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 		uint16_t frequency = (value & 0xffff0000U) >> 16U;
 		uint16_t dutyCycle = value & 0xffffU;
 
-		uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>(dutyCycle /
-													   (static_cast<uint64_t>(frequency) *
-														static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)));
+		uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
+										    static_cast<uint64_t>(frequency));
 		DBGLOG("igfx", "wrapKblWriteRegister32: write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x",
 			   dutyCycle, frequency, rescaledValue, callbackIGFX->targetBacklightFrequency);
 
