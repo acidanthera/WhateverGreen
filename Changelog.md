@@ -7,6 +7,7 @@ WhateverGreen Changelog
 - Added max backlight frequency override via  `max-backlight-freq` IGPU property on CFL
 - Added `framebuffer-camellia` and `framebuffer-flags` patching
 - Added `AppleBacklight` patching code (based on `AppleBacklightFixup` by `hieplpvip`)
+- Added NVIDIA HDMI enabling code for firmwares that disable it by default (thanks @Fraxul)
 
 #### v1.2.4
 - Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
