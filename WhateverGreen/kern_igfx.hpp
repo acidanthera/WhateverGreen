@@ -218,33 +218,15 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
-	uint32_t (*orgReadRegister32)(void*, uint64_t) {nullptr};
-	
+	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
+	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
+
 	/**
 	 *  Original AppleIntelFramebufferController::WriteRegister32 function
 	 */
-	uint32_t (*orgWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
+	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
-	/**
-	 *  Original AppleIntelFramebuffer::DisplayReadRegister32 function
-	 */
-	uint64_t (*orgDisplayReadRegister32)(void*, void*, uint64_t) {nullptr};
-	
-	/**
-	 *  Original AppleIntelFramebuffer::DisplayWriteRegister32 function
-	 */
-	uint64_t (*orgDisplayWriteRegister32)(void*, uint64_t, uint32_t) {nullptr};
-	
-	/**
-	 *  Original AppleIntelFramebufferController::hwSetBacklight function
-	 */
-	mach_vm_address_t orgHwSetBacklight {};
-	
-	/**
-	 *  Original AppleIntelFramebuffer::setAttributeForConnection function
-	 */
-	mach_vm_address_t orgSetAttributeForConnection {};
-	
 	/**
 	 *  Detected CPU generation of the host system
 	 */
@@ -353,13 +335,28 @@ private:
 	/**
 	 *  Store backlight level
 	 */
-	uint32_t backlightLevel {0};
-	
+	uint32_t backlightLevel {};
+
 	/**
-	 *  Backlight frequency, currently hardcoded, as it may get reset on wake.
+	 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
+	 */
+	static constexpr uint32_t FallbackTargetBacklightFrequency {120000};
+
+	/**
+	 *  User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
 	 *  Can be specified via max-backlight-freq property.
 	 */
-	uint32_t backlightFrequency {120000};
+	uint32_t targetBacklightFrequency {};
+
+	/**
+	 *  User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
+	 */
+	uint32_t targetPwmControl {};
+
+	/**
+	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
+	 */
+	uint32_t driverBacklightFrequency {};
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -387,15 +384,11 @@ private:
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
 
 	/**
-	 *  AppleIntelFramebufferController::hwSetBacklight wrapper to fix backlight control on CFL platform
+	 *  Wrapped AppleIntelFramebufferController::WriteRegister32 function
 	 */
-	static IOReturn wrapHwSetBacklight(void *that, uint32_t backlight);
-	
-	/**
-	 *  AppleIntelFramebuffer::setAttributeForConnection wrapper to fix backlight control on CFL platform
-	 */
-	static IOReturn wrapSetAttributeForConnection(void *that, uint32_t arg0, uint32_t arg1, uint64_t arg2);
-		
+	static void wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value);
+	static void wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value);
+
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
@@ -492,7 +485,16 @@ private:
 	 */
 	void writePlatformListData(const char *subKeyName);
 #endif
-	
+
+	/**
+	 *  Erase coverage instruction prefix (like inc qword ptr[]), that causes function routing to fail
+	 *  We might want to make it Lilu API some day...
+	 *
+	 *  @param addr   address to valid instruction code
+	 *  @param count  amount of instructions to inspect
+	 */
+	void eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count=5);
+
 	/**
 	 *  Patch data without changing kernel protection
 	 *
