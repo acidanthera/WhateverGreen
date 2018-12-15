@@ -7,6 +7,7 @@ WhateverGreen Changelog
 - Added max backlight frequency override via  `max-backlight-freq` IGPU property on CFL
 - Added `framebuffer-camellia` and `framebuffer-flags` patching
 - Added `AppleBacklight` patching code (based on `AppleBacklightFixup` by `hieplpvip`)
+- Enabled CFL backlight patches by default on laptops with CFL graphics
 - Added NVIDIA HDMI enabling code for firmwares that disable it by default (thanks @Fraxul)
 
 #### v1.2.4
