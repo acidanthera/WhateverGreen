@@ -160,8 +160,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			dumpPlatformTable = true;
 #endif
 
-		// Enable CFL backlight patch if IGPU propery enable-cfl-backlight-fix is set
-		int bkl = info->videoBuiltin->getProperty("enable-cfl-backlight-fix") != nullptr;
+		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
+		int bkl = currentFramebuffer == &kextIntelCFLFb && WIOKit::getComputerModel() == WIOKit::ComputerModel::ComputerLaptop;
+		bkl |= info->videoBuiltin->getProperty("enable-cfl-backlight-fix") != nullptr;
 		PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl));
 		cflBacklightPatch = bkl == 1;
 
