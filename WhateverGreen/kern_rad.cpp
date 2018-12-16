@@ -76,6 +76,9 @@ RAD *RAD::callbackRAD;
 void RAD::init() {
 	callbackRAD = this;
 
+	if (!currentPropProvider.init() || !currentLegacyPropProvider.init())
+		PANIC("rad", "failed to init prop provider storages");
+
 	// Certain displays do not support 32-bit colour output, so we have to force 24-bit.
 	if (getKernelVersion() >= KernelVersion::Sierra && checkKernelArgument("-rad24")) {
 		lilu.onKextLoadForce(&kextRadeonFramebuffer);
@@ -697,9 +700,7 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 
 	if (props && aKey) {
 		const char *prefix {nullptr};
-		auto provider = callbackRAD->currentLegacyPropProvider;
-		if (!provider)
-			provider = callbackRAD->currentPropProvider;
+		auto provider = OSDynamicCast(IOService, that->getParentEntry(gIOServicePlane));
 		if (provider) {
 			if (aKey[0] == 'a') {
 				if (!strcmp(aKey, "aty_config"))
@@ -729,12 +730,13 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 
 uint32_t RAD::wrapGetConnectorsInfoV1(void *that, RADConnectors::Connector *connectors, uint8_t *sz) {
 	uint32_t code = FunctionCast(wrapGetConnectorsInfoV1, callbackRAD->orgGetConnectorsInfoV1)(that, connectors, sz);
-	auto props = callbackRAD->currentPropProvider;
-	if (code == 0 && sz && props) {
+	auto props = callbackRAD->currentPropProvider.get();
+
+	if (code == 0 && sz && props && *props) {
 		if (getKernelVersion() >= KernelVersion::HighSierra)
-			callbackRAD->updateConnectorsInfo(nullptr, nullptr, props, connectors, sz);
+			callbackRAD->updateConnectorsInfo(nullptr, nullptr, *props, connectors, sz);
 		else
-			callbackRAD->updateConnectorsInfo(static_cast<void **>(that)[1], callbackRAD->orgGetAtomObjectTableForType, props, connectors, sz);
+			callbackRAD->updateConnectorsInfo(static_cast<void **>(that)[1], callbackRAD->orgGetAtomObjectTableForType, *props, connectors, sz);
 	} else {
 		DBGLOG("rad", "getConnectorsInfoV1 failed %X or undefined %d", code, props == nullptr);
 	}
@@ -744,23 +746,25 @@ uint32_t RAD::wrapGetConnectorsInfoV1(void *that, RADConnectors::Connector *conn
 
 uint32_t RAD::wrapGetConnectorsInfoV2(void *that, RADConnectors::Connector *connectors, uint8_t *sz) {
 	uint32_t code = FunctionCast(wrapGetConnectorsInfoV2, callbackRAD->orgGetConnectorsInfoV2)(that, connectors, sz);
-	auto props = callbackRAD->currentPropProvider;
-	if (code == 0 && sz && props)
-		callbackRAD->updateConnectorsInfo(nullptr, nullptr, props, connectors, sz);
+	auto props = callbackRAD->currentPropProvider.get();
+
+	if (code == 0 && sz && props && *props)
+		callbackRAD->updateConnectorsInfo(nullptr, nullptr, *props, connectors, sz);
 	else
 		DBGLOG("rad", "getConnectorsInfoV2 failed %X or undefined %d", code, props == nullptr);
-	
+
 	return code;
 }
 
 uint32_t RAD::wrapLegacyGetConnectorsInfo(void *that, RADConnectors::Connector *connectors, uint8_t *sz) {
 	uint32_t code = FunctionCast(wrapLegacyGetConnectorsInfo, callbackRAD->orgLegacyGetConnectorsInfo)(that, connectors, sz);
-	auto props = callbackRAD->currentLegacyPropProvider;
-	if (code == 0 && sz && props)
-		callbackRAD->updateConnectorsInfo(static_cast<void **>(that)[1], callbackRAD->orgLegacyGetAtomObjectTableForType, props, connectors, sz);
+	auto props = callbackRAD->currentLegacyPropProvider.get();
+
+	if (code == 0 && sz && props && *props)
+		callbackRAD->updateConnectorsInfo(static_cast<void **>(that)[1], callbackRAD->orgLegacyGetAtomObjectTableForType, *props, connectors, sz);
 	else
 		DBGLOG("rad", "legacy getConnectorsInfo failed %X or undefined %d", code, props == nullptr);
-	
+
 	return code;
 }
 
@@ -825,29 +829,31 @@ uint32_t RAD::wrapTranslateAtomConnectorInfoV2(void *that, RADConnectors::AtomCo
 }
 
 bool RAD::wrapATIControllerStart(IOService *ctrl, IOService *provider) {
-	DBGLOG("rad", "starting controller");
+	DBGLOG("rad", "starting controller " PRIKADDR, CASTKADDR(current_thread()));
 	if (callbackRAD->forceVesaMode) {
 		DBGLOG("rad", "disabling video acceleration on request");
 		return false;
 	}
-	
-	callbackRAD->currentPropProvider = provider;
+
+	callbackRAD->currentPropProvider.set(provider);
 	bool r = FunctionCast(wrapATIControllerStart, callbackRAD->orgATIControllerStart)(ctrl, provider);
-	callbackRAD->currentPropProvider = nullptr;
-	DBGLOG("rad", "starting controller done %d", r);
+	DBGLOG("rad", "starting controller done %d " PRIKADDR, r, CASTKADDR(current_thread()));
+	callbackRAD->currentPropProvider.erase();
+
 	return r;
 }
 
 bool RAD::wrapLegacyATIControllerStart(IOService *ctrl, IOService *provider) {
-	DBGLOG("rad", "starting legacy controller");
+	DBGLOG("rad", "starting legacy controller " PRIKADDR, CASTKADDR(current_thread()));
 	if (callbackRAD->forceVesaMode) {
 		DBGLOG("rad", "disabling legacy video acceleration on request");
 		return false;
 	}
-	
-	callbackRAD->currentLegacyPropProvider = provider;
+
+	callbackRAD->currentLegacyPropProvider.set(provider);
 	bool r = FunctionCast(wrapLegacyATIControllerStart, callbackRAD->orgLegacyATIControllerStart)(ctrl, provider);
-	callbackRAD->currentLegacyPropProvider = nullptr;
-	DBGLOG("rad", "starting legacy controller done %d", r);
+	DBGLOG("rad", "starting legacy legacy controller done %d " PRIKADDR, r, CASTKADDR(current_thread()));
+	callbackRAD->currentLegacyPropProvider.erase();
+
 	return r;
 }

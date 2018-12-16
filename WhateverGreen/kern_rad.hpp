@@ -102,10 +102,10 @@ private:
 	mach_vm_address_t orgLegacyATIControllerStart {};
 
 	/**
-	 *  Current controller property provider
+	 *  Current controller property provider, 8 for max GPUs at once.
 	 */
-	IOService *currentPropProvider {nullptr};
-	IOService *currentLegacyPropProvider {nullptr};
+	ThreadLocal<IOService *, 8> currentPropProvider;
+	ThreadLocal<IOService *, 8> currentLegacyPropProvider;
 
 	/**
 	 *  Original populateAccelConfig functions

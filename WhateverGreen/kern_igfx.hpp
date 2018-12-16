@@ -507,15 +507,6 @@ private:
 #endif
 
 	/**
-	 *  Erase coverage instruction prefix (like inc qword ptr[]), that causes function routing to fail
-	 *  We might want to make it Lilu API some day...
-	 *
-	 *  @param addr   address to valid instruction code
-	 *  @param count  amount of instructions to inspect
-	 */
-	void eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count=5);
-
-	/**
 	 *  Patch data without changing kernel protection
 	 *
 	 *  @param patch            KernelPatcher instance

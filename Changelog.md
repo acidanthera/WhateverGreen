@@ -10,6 +10,7 @@ WhateverGreen Changelog
 - Added NVIDIA HDMI enabling code for firmwares that disable it by default (thanks @Fraxul)
 - Enabled CFL backlight patches by default on laptops with CFL graphics
 - Fixed SNB IGPU HDMI automatic patching
+- Fix multiple AMD GPU support improperly handling configuration properties
 
 #### v1.2.4
 - Added platform list dumping to ioreg (at IOService:/IOResources/WhateverGreen), debug build only with -igfxfbdump
