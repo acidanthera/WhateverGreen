@@ -131,6 +131,26 @@ private:
 	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 
 	/**
+	 *  Number of SNB frames in a framebuffer kext
+	 */
+	static constexpr size_t SandyPlatformNum = 9;
+
+	/**
+	 *  SNB frame ids in a framebuffer kext
+	 */
+	uint32_t sandyPlatformId[SandyPlatformNum] {
+		0x00010000,
+		0x00020000,
+		0x00030010,
+		0x00030030,
+		0x00040000,
+		0xFFFFFFFF,
+		0xFFFFFFFF,
+		0x00030020,
+		0x00050000
+	};
+
+	/**
 	 *  Framebuffer find / replace patches
 	 */
 	FramebufferPatch framebufferPatches[MaxFramebufferPatchCount] {};

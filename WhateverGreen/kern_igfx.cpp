@@ -322,6 +322,8 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
 			}
 
+			DBGLOG("igfx", "platform is snb %d and list " PRIKADDR, gPlatformListIsSNB, CASTKADDR(gPlatformInformationList));
+
 			if (gPlatformInformationList) {
 				framebufferStart = reinterpret_cast<uint8_t *>(address);
 				framebufferSize = size;
@@ -481,8 +483,8 @@ void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 	} else if (reg == BXT_BLC_PWM_DUTY1) {
 		if (callbackIGFX->driverBacklightFrequency && callbackIGFX->targetBacklightFrequency) {
 			// Translate the PWM duty cycle between the driver scale value and the HW scale value
-			uint32_t rescaledValue = (value * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
-				static_cast<uint64_t>(callbackIGFX->driverBacklightFrequency);
+			uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
+				static_cast<uint64_t>(callbackIGFX->driverBacklightFrequency));
 			DBGLOG("igfx", "wrapCflWriteRegister32: write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x", value,
 				   callbackIGFX->driverBacklightFrequency, rescaledValue, callbackIGFX->targetBacklightFrequency);
 			value = rescaledValue;
@@ -995,12 +997,10 @@ bool IGFX::applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *starting
 
 template <>
 bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, FramebufferSNB *platformInformationList) {
-	uint32_t framebufferPlatformId[] = { 0x00010000, 0x00020000, 0x00030010, 0x00030030, 0x00040000, 0xFFFFFFFF, 0xFFFFFFFF, 0x00030020, 0x00050000 };
-	size_t platformInformationCount = arrsize(framebufferPlatformId);
 	bool framebufferFound = false;
 
-	for (size_t i = 0; i < platformInformationCount; i++) {
-		if (framebufferPlatformId[i] == framebufferId) {
+	for (size_t i = 0; i < SandyPlatformNum; i++) {
+		if (sandyPlatformId[i] == framebufferId) {
 			if (framebufferPatchFlags.bits.FPFMobile)
 				platformInformationList[i].fMobile = framebufferPatch.fMobile;
 
@@ -1153,6 +1153,28 @@ bool IGFX::applyPlatformInformationListPatch(uint32_t framebufferId, T *platform
 	return r;
 }
 
+template <>
+bool IGFX::applyDPtoHDMIPatch(uint32_t framebufferId, FramebufferSNB *platformInformationList) {
+	bool found = false;
+
+	for (size_t i = 0; i < SandyPlatformNum; i++) {
+		if (sandyPlatformId[i] == framebufferId) {
+			for (size_t j = 0; j < arrsize(platformInformationList[i].connectors); j++) {
+				DBGLOG("igfx", "snb connector [%lu] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", j, platformInformationList[i].connectors[j].busId, platformInformationList[i].connectors[j].pipe,
+					   platformInformationList[i].connectors[j].type, platformInformationList[i].connectors[j].flags);
+
+				if (platformInformationList[i].connectors[j].type == ConnectorDP) {
+					platformInformationList[i].connectors[j].type = ConnectorHDMI;
+					DBGLOG("igfx", "replaced snb connector %lu type from DP to HDMI", j);
+					found = true;
+				}
+			}
+		}
+	}
+
+	return found;
+}
+
 template <typename T>
 bool IGFX::applyDPtoHDMIPatch(uint32_t framebufferId, T *platformInformationList) {
 	auto frame = reinterpret_cast<T *>(findFramebufferId(framebufferId, reinterpret_cast<uint8_t *>(platformInformationList), PAGE_SIZE));
@@ -1161,14 +1183,17 @@ bool IGFX::applyDPtoHDMIPatch(uint32_t framebufferId, T *platformInformationList
 
 	bool found = false;
 	for (size_t i = 0; i < arrsize(frame->connectors); i++) {
+		DBGLOG("igfx", "connector [%lu] busId: 0x%02X, pipe: %d, type: 0x%08X, flags: 0x%08X", i, platformInformationList[i].connectors[i].busId, platformInformationList[i].connectors[i].pipe,
+			   platformInformationList[i].connectors[i].type, platformInformationList[i].connectors[i].flags);
+
 		if (frame->connectors[i].type == ConnectorDP) {
 			frame->connectors[i].type = ConnectorHDMI;
-			DBGLOG("igfx", "replaced connector %ld type from DP to HDMI", i);
+			DBGLOG("igfx", "replaced connector %lu type from DP to HDMI", i);
 			found = true;
 		}
 	}
 
-	return true;
+	return found;
 }
 
 void IGFX::applyFramebufferPatches() {
@@ -1202,9 +1227,9 @@ void IGFX::applyFramebufferPatches() {
 		}
 
 		if (success)
-			DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
+			DBGLOG("igfx", "patching framebufferId 0x%08X successful", framebufferId);
 		else
-			DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
+			DBGLOG("igfx", "patching framebufferId 0x%08X failed", framebufferId);
 	}
 
 	uint8_t *platformInformationAddress = findFramebufferId(framebufferId, static_cast<uint8_t *>(gPlatformInformationList), PAGE_SIZE);
@@ -1219,12 +1244,12 @@ void IGFX::applyFramebufferPatches() {
 			}
 
 			if (!platformInformationAddress) {
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X not found", i, framebufferId);
+				DBGLOG("igfx", "patch %lu framebufferId 0x%08X not found", i, framebufferId);
 				continue;
 			}
 
 			if (framebufferPatches[i].find->getLength() != framebufferPatches[i].replace->getLength()) {
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X length mistmatch", i, framebufferId);
+				DBGLOG("igfx", "patch %lu framebufferId 0x%08X length mistmatch", i, framebufferId);
 				continue;
 			}
 
@@ -1236,9 +1261,9 @@ void IGFX::applyFramebufferPatches() {
 			patch.count = framebufferPatches[i].count;
 
 			if (applyPatch(patch, platformInformationAddress, PAGE_SIZE))
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X successful", i, framebufferId);
+				DBGLOG("igfx", "patch %lu framebufferId 0x%08X successful", i, framebufferId);
 			else
-				DBGLOG("igfx", "Patch %lu framebufferId 0x%08X failed", i, framebufferId);
+				DBGLOG("igfx", "patch %lu framebufferId 0x%08X failed", i, framebufferId);
 
 			framebufferPatches[i].find->release();
 			framebufferPatches[i].find = nullptr;
@@ -1250,6 +1275,8 @@ void IGFX::applyFramebufferPatches() {
 
 void IGFX::applyHdmiAutopatch() {
 	uint32_t framebufferId = framebufferPatch.framebufferId;
+
+	DBGLOG("igfx", "applyHdmiAutopatch framebufferId %X cpugen %X", framebufferId, cpuGeneration);
 
 	bool success = false;
 	if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
@@ -1276,7 +1303,7 @@ void IGFX::applyHdmiAutopatch() {
 	}
 	
 	if (success)
-		DBGLOG("igfx", "Patching framebufferId 0x%08X successful", framebufferId);
+		DBGLOG("igfx", "hdmi patching framebufferId 0x%08X successful", framebufferId);
 	else
-		DBGLOG("igfx", "Patching framebufferId 0x%08X failed", framebufferId);
+		DBGLOG("igfx", "hdmi patching framebufferId 0x%08X failed", framebufferId);
 }
