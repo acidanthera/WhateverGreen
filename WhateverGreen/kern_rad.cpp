@@ -76,8 +76,8 @@ RAD *RAD::callbackRAD;
 void RAD::init() {
 	callbackRAD = this;
 
-	if (!currentPropProvider.init() || !currentLegacyPropProvider.init())
-		PANIC("rad", "failed to init prop provider storages");
+	currentPropProvider.init();
+	currentLegacyPropProvider.init();
 
 	// Certain displays do not support 32-bit colour output, so we have to force 24-bit.
 	if (getKernelVersion() >= KernelVersion::Sierra && checkKernelArgument("-rad24")) {
