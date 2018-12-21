@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.2.6
 - Added `-applbkloff` boot argument to termporarily disable `AppleBacklight` patching code
+- Fixed AMD Verde CAIL injection logic
 
 #### v1.2.5
 - Added support for specifying `agpmod` in external GPU properties

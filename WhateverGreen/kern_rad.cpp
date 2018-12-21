@@ -707,21 +707,18 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 					prefix = "CFG,";
 				else if (!strcmp(aKey, "aty_properties"))
 					prefix = "PP,";
+			} else if (aKey[0] == 'c' && !strcmp(aKey, "cail_properties")) {
+				prefix = "CAIL,";
 			}
-		} else if (aKey[0] == 'c' && !strcmp(aKey, "cail_properties")) {
-			provider = OSDynamicCast(IOService, that->getParentEntry(gIOServicePlane));
-			DBGLOG("rad", "GetProperty got cail_properties %d, merging from %s", provider != nullptr,
-				   provider ? safeString(provider->getName()) : "(null provider)");
-			if (provider) prefix = "CAIL,";
-		}
 
-		if (prefix && provider) {
-			DBGLOG("rad", "GetProperty discovered property merge request for %s", aKey);
-			auto newProps = OSDynamicCast(OSDictionary, props->copyCollection());
-			callbackRAD->mergeProperties(newProps, prefix, provider);
-			that->setProperty(aKey, newProps);
-			newProps->release();
-			obj = newProps;
+			if (prefix) {
+				DBGLOG("rad", "GetProperty discovered property merge request for %s", aKey);
+				auto newProps = OSDynamicCast(OSDictionary, props->copyCollection());
+				callbackRAD->mergeProperties(newProps, prefix, provider);
+				that->setProperty(aKey, newProps);
+				newProps->release();
+				obj = newProps;
+			}
 		}
 	}
 
