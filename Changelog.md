@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.6
+- Added `-applbkloff` boot argument to termporarily disable `AppleBacklight` patching code
+
 #### v1.2.5
 - Added support for specifying `agpmod` in external GPU properties
 - Added fatal error on `agpmod=cfgmap` on 10.14 and newer, which had no effect since 10.13.4

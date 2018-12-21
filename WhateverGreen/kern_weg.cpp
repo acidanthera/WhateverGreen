@@ -78,7 +78,9 @@ void WEG::init() {
 	if (graphicsDisplayPolicyMod != AGDP_NONE)
 		lilu.onKextLoad(&kextAGDPolicy);
 
-	lilu.onKextLoad(&kextBacklight);
+	// Disable backlight patches if asked specifically.
+	if (!checkKernelArgument("-applbkloff"))
+		lilu.onKextLoad(&kextBacklight);
 
 	igfx.init();
 	ngfx.init();
