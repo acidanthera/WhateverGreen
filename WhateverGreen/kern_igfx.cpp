@@ -161,10 +161,13 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #endif
 
 		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
-		int bkl = currentFramebuffer == &kextIntelCFLFb && WIOKit::getComputerModel() == WIOKit::ComputerModel::ComputerLaptop;
-		bkl |= info->videoBuiltin->getProperty("enable-cfl-backlight-fix") != nullptr;
-		PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl));
-		cflBacklightPatch = bkl == 1;
+		int bkl = 0;
+		if (PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl)))
+			cflBacklightPatch = bkl == 1 ? CoffeeBacklightPatch::On : CoffeeBacklightPatch::Off;
+		else if (info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
+			cflBacklightPatch = CoffeeBacklightPatch::On;
+		else if (currentFramebuffer == &kextIntelCFLFb && WIOKit::getComputerModel() == WIOKit::ComputerModel::ComputerLaptop)
+			cflBacklightPatch = CoffeeBacklightPatch::Auto;
 
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
 			DBGLOG("igfx", "read custom backlight frequency %u", targetBacklightFrequency);
@@ -193,7 +196,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && !cflBacklightPatch;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -245,8 +248,13 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
 		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
-		bool coffeeFb = currentFramebuffer == &kextIntelCFLFb;
-		if ((coffeeFb || currentFramebuffer == &kextIntelKBLFb) && cflBacklightPatch) {
+		// Find actual framebuffer used (kaby or coffee)
+		auto realFramebuffer = (currentFramebuffer && currentFramebuffer->loadIndex == index) ? currentFramebuffer : currentFramebufferOpt;
+		// Accept Coffee FB and enable backlight patches unless Off (Auto turns them on by default).
+		bool bklCoffeeFb = realFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
+		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
+		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
+		if (bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
 			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
 			// Singal-wise it looks as a cycle of signal levels on the timeline:
@@ -281,20 +289,20 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			auto regWrite = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
 			if (regWrite) {
-				(coffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = regRead;
+				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = regRead;
 
 				patcher.eraseCoverageInstPrefix(regWrite);
 				auto orgRegWrite = reinterpret_cast<decltype(orgCflWriteRegister32)>
-					(patcher.routeFunction(regWrite, reinterpret_cast<mach_vm_address_t>(coffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32), true));
+					(patcher.routeFunction(regWrite, reinterpret_cast<mach_vm_address_t>(bklCoffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32), true));
 
 				if (orgRegWrite) {
-					(coffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32) = orgRegWrite;
+					(bklCoffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32) = orgRegWrite;
 				} else {
-					SYSLOG("igfx", "failed to route WriteRegister32 for cfl %d", coffeeFb);
+					SYSLOG("igfx", "failed to route WriteRegister32 for cfl %d", bklCoffeeFb);
 					patcher.clearError();
 				}
 			} else {
-				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", coffeeFb);
+				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
 			}
 		}
 		

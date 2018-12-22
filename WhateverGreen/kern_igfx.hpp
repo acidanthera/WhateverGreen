@@ -258,9 +258,21 @@ private:
 	bool blackScreenPatch {false};
 
 	/**
-	 *  Set to true if Coffee Lake backlight patch type required
+	 *  Coffee Lake backlight patch configuration options
 	 */
-	bool cflBacklightPatch {false};
+	enum class CoffeeBacklightPatch {
+		Auto = -1,
+		On = 1,
+		Off = 0
+	};
+
+	/**
+	 *  Set to On if Coffee Lake backlight patch type required
+	 *  - boot-arg igfxcflbklt=0/1 forcibly turns patch on or off (override)
+	 *	- IGPU property enable-cfl-backlight-fix turns patch on
+	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
+	 */
+	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
 
 	/**
 	 *  Set to true if PAVP code should be disabled

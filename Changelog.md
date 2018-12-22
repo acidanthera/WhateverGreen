@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Added `-applbkloff` boot argument to termporarily disable `AppleBacklight` patching code
 - Fixed AMD Verde CAIL injection logic
 - Fixed breaking backlight on Apple hardware and on 10.11 or earlier
+- Changed CFL backlight patches to enable by default on CFL drivers only (avoids issues with faux "KBL" 8xxx CPUs)
 
 #### v1.2.5
 - Added support for specifying `agpmod` in external GPU properties
