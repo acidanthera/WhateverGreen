@@ -179,6 +179,9 @@ void WEG::processKernel(KernelPatcher &patcher) {
 
 			if (devInfo->managementEngine)
 				processManagementEngineProperties(devInfo->managementEngine);
+		} else {
+			// Do not patch AppleBacklight on Apple HW!
+			kextBacklight.switchOff();
 		}
 
 		igfx.processKernel(patcher, devInfo);
@@ -241,10 +244,8 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		const uint8_t find[]    = {"F%uT%04x"};
 		const uint8_t replace[] = {"F%uTxxxx"};
 		KernelPatcher::LookupPatch patch = {&kextBacklight, find, replace, sizeof(find), 1};
-		if (getKernelVersion() >= KernelVersion::Sierra) {
-			DBGLOG("weg", "applying backlight patch");
-			patcher.applyLookupPatch(&patch);
-		}
+		DBGLOG("weg", "applying backlight patch");
+		patcher.applyLookupPatch(&patch);
 	}
 
 	if (igfx.processKext(patcher, index, address, size))
