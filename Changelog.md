@@ -1,9 +1,9 @@
 WhateverGreen Changelog
 =======================
 #### v1.2.6
-- Added `-applbkloff` boot argument to termporarily disable `AppleBacklight` patching code
+- Added `applbkl=0` boot argument to termporarily disable `AppleBacklight` patching code
 - Fixed AMD Verde CAIL injection logic
-- Fixed breaking backlight on Apple hardware and on 10.11 or earlier
+- Fixed breaking backlight on Apple hardware, on laptops with AMD GPUs, and on 10.11 or earlier
 - Changed CFL backlight patches to enable by default on CFL drivers only (avoids issues with faux "KBL" 8xxx CPUs)
 
 #### v1.2.5

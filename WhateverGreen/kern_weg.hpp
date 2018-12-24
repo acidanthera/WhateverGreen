@@ -77,6 +77,22 @@ private:
 	uint32_t resetFramebuffer {FB_DETECT};
 
 	/**
+	 *  APPLBKL_OFF     disables AppleBacklight patches.
+	 *  APPLBKL_ON      enforces AppleBacklight patches.
+	 *  APPLBKL_DETECT  enables AppleBacklight patches for IGPU-only non-Apple setups.
+	 */
+	enum BacklightPatchMode {
+		APPLBKL_OFF    = 0,
+		APPLBKL_ON     = 1,
+		APPLBKL_DETECT = 2
+	};
+
+	/**
+	 *  applbkkl boot-arg controlled AppleBacklight kext patch
+	 */
+	uint32_t appleBacklightPatch {APPLBKL_DETECT};
+
+	/**
 	 *  Console info structure, taken from osfmk/console/video_console.h
 	 *  Last updated from XNU 4570.1.46.
 	 */
