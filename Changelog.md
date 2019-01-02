@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.7
+- Added more IGPU device-ids to detected list
+
 #### v1.2.6
 - Added `applbkl=0` boot argument to termporarily disable `AppleBacklight` patching code
 - Fixed AMD Verde CAIL injection logic
