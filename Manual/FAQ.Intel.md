@@ -13,7 +13,9 @@ IntelGraphicsDVMTFixup.kext deprecated because it is equivalent to use `framebuf
 `framebuffer-fbmem` = `00009000`  
 `framebuffer-stolenmem` = `00003001`  
 
-If anyone want to use custom applebacklightinjector.kext with WEG: set
-applebacklightinjector.kext with IOProbeScore 5500 and use boot-arg: applbkl=0  
+In case of custom AppleBacklight profile is necessary (e.g. via AppleBacklightInjector.kext) the following must be performed to accomplish WhateverGreen compatibility:
+- Create your injector with a correct profile
+- Disable WhateverGreen backlight patches via applbkl=0 boot argument
+- Specify injector IOProbeScore (in injector Info.plist) equal to 5500
 
 Read FAQ in more detail.  
