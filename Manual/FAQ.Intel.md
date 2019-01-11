@@ -13,4 +13,7 @@ IntelGraphicsDVMTFixup.kext deprecated because it is equivalent to use `framebuf
 `framebuffer-fbmem` = `00009000`  
 `framebuffer-stolenmem` = `00003001`  
 
+If anyone want to use custom applebacklightinjector.kext with WEG: set
+applebacklightinjector.kext with IOProbeScore 5500 and use boot-arg: applbkl=0  
+
 Read FAQ in more detail.  
