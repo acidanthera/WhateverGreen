@@ -52,7 +52,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-igfxdump` to dump IGPU framebuffer kext to `/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries). 
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 - `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
-- `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile - [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)  
+- `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)  
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
