@@ -2,26 +2,6 @@
   
 Discussion: [Russian](https://www.applelife.ru/threads/intel-hd-graphics-3000-4000-4400-4600-5000-5500-5600-520-530-630.1289648/), [English](https://www.insanelymac.com/forum/topic/334899-intel-framebuffer-patching-using-whatevergreen/)  
   
-AzulPatcher4600.kext is deprecated because it is equivalent to use `framebuffer-patch` in `Devices-Properties`  
-For example, patch fCursorMemorySize=9MB:  
-`framebuffer-patch-enable` = `01000000`  
-`framebuffer-cursormem` = `00009000`  
-[Full equivalent AzulPatcher4600.kext](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist)  
-  
-IntelGraphicsDVMTFixup.kext is deprecated because it is equivalent to use `framebuffer-patch` in `Devices-Properties`  
-`framebuffer-patch-enable` = `01000000`  
-`framebuffer-fbmem` = `00009000`  
-`framebuffer-stolenmem` = `00003001`  
-  
-EnableLidWake.kext is deprecated because it is equivalent to setting `FBAlternatePWMIncrement1/2` bit in flags.  
-  
-AppleBacklightFixup.kext is deprecated.  
-In case of custom AppleBacklight profile is necessary (e.g. via `AppleBacklightInjector.kext`) the following must be performed to accomplish WhateverGreen compatibility:
-- Create your injector with a correct profile
-- Disable WhateverGreen backlight patches via `applbkl=0` boot argument
-- Specify injector `IOProbeScore` (in injector Info.plist) equal to `5500`
-  
-#  
 **Intel® HD Graphics** are video cards built into Intel processors. Not all processors are equipped with integrated graphics. To find out if yours is - use [this table](https://en.wikipedia.org/wiki/List_of_Intel_graphics_processing_units) or see the characteristics of your processor on Intel’s website. For example, the table shows Intel® HD 4600 integrated graphics for [i7-4770k](https://ark.intel.com/products/75123/Intel-Core-i7-4770K-Processor-8M-Cache-up-to-3_90-GHz), whereas the [i7-4930k](https://ark.intel.com/products/77780/Intel-Core-i7-4930K-Processor-12M-Cache-up-to-3_90-GHz) has none.  
   
 macOS has quite acceptable support for Intel® HD Graphics 2000 (Sandy Bridge) and newer. For older generation graphics see the appropriate threads / instructions ( [Intel HD in Arrandale processors](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/?hl=%20vertek) , [GMA950](https://www.applelife.ru/threads/intel-gma950-32bit-only.22726/) , [GMA X3100](https://www.applelife.ru/threads/intel-gma-x3100-zavod.36617/)). Attention, not all Intel graphics cards can be successfully enabled in MacOS (more below).  
