@@ -468,6 +468,10 @@ static constexpr Model dev6810[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 370X"}
 };
 
+static constexpr Model dev6811[] {
+	{Model::DetectSub, 0x148c, 0x2337, 0x0000, "AMD Radeon R9 270X"},
+};
+
 static constexpr Model dev6818[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 7870"}
 };
