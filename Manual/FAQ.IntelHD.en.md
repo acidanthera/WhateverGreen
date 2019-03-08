@@ -1516,7 +1516,7 @@ Use the Kaby Lake HD630 framebuffer (specify the framebuffer explicitly!)
 </details>
   
 ## Adjusting the brightness on a laptop  
-Enable Clover DSDT fixes: `AddDTGP` and `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBacklight`. A specific value is not necessary - it will be automatically injected according to the processor installed.  
+Enable Clover DSDT fix: `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBacklight`. A specific value is not necessary - it will be automatically injected according to the processor installed.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
   
   
