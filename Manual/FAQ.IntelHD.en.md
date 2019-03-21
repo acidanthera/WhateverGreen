@@ -4,7 +4,7 @@ Discussion: [Russian](https://www.applelife.ru/threads/intel-hd-graphics-3000-40
   
 **Intel® HD Graphics** are video cards built into Intel processors. Not all processors are equipped with integrated graphics. To find out if yours is - use [this table](https://en.wikipedia.org/wiki/List_of_Intel_graphics_processing_units) or see the characteristics of your processor on Intel’s website. For example, the table shows Intel® HD 4600 integrated graphics for [i7-4770k](https://ark.intel.com/products/75123/Intel-Core-i7-4770K-Processor-8M-Cache-up-to-3_90-GHz), whereas the [i7-4930k](https://ark.intel.com/products/77780/Intel-Core-i7-4930K-Processor-12M-Cache-up-to-3_90-GHz) has none.  
   
-macOS has quite acceptable support for Intel® HD Graphics 2000 (Sandy Bridge) and newer. For older generation graphics see the appropriate threads / instructions ( [Intel HD in Arrandale processors](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/?hl=%20vertek) , [GMA950](https://www.applelife.ru/threads/intel-gma950-32bit-only.22726/) , [GMA X3100](https://www.applelife.ru/threads/intel-gma-x3100-zavod.36617/)). Attention, not all Intel graphics cards can be successfully enabled in MacOS (more below).  
+macOS has quite acceptable support for Intel® HD Graphics 2000 (Sandy Bridge) and newer. For older generation graphics see the appropriate threads / instructions ( [Intel HD in Arrandale processors](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/?hl=%20vertek) , [GMA950](https://www.applelife.ru/threads/intel-gma950-32bit-only.22726/) , [GMA X3100](https://www.applelife.ru/threads/intel-gma-x3100-zavod.36617/)). Attention, not all Intel graphics cards can be successfully enabled in macOS (more below).  
   
 If you use a discrete graphics card (AMD or NVIDIA), having integrated Intel graphics enabled is still useful, as it can be used in offline mode (also known as ["empty framebuffer", 0 connectors](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/)) for hardware encoding and decoding of media files and so forth.  
   
@@ -76,7 +76,7 @@ For example: `igfxframe=0x0166000B`
   
   
 ## Intel HD Graphics 2000/3000 ([Sandy Bridge](https://en.wikipedia.org/wiki/Sandy_Bridge) processors)  
-Supported from Mac OS X 10.7.x to MacOS 10.13.6. The instructions are for 10.8.h - 10.13.6. On older operating systems follow the "ancient ways". On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
+Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6. On older operating systems follow the "ancient ways". On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
 SNB framebuffer list:  
 — 0x00010000 (mobile, 4 connectors, no fbmem)  
 — 0x00020000 (mobile, 1 connectors, no fbmem)  
@@ -1498,7 +1498,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 ####
 *Recommended framebuffers*: for desktop - 0x3EA50000 (default), 0x3E9B0007 (recommended); for laptop - 0x3EA50009 (default).  
   
-If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`.  
+If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 beta6 the fake is not necessary.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/cfl-r_igpu.png)  
   
 <details>
@@ -1622,21 +1622,21 @@ Or instead of this property, use the boot-arg `-wegnoegpu`
 - Limited cards: HD2000, HD2500 can only be used for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/) (they are used in real Macs only for this), there are no solutions.  
 - Intel Pentium / Celeron Graphics can't be enabled, there are no solutions.  
 - HDMI black screen on Haswell platforms. Resolved by using *WEG* or macOS 10.13.4 and later.  
-- Support for 2 or more displays on Intel Skylake and newer desktops is missing or buggy. In 10.14.x there is an improvement tendency.  
-- Displays do not wake up on Intel Skylake desktops and later, connecting via DisplayPort or upgrading to 10.14.x may help.  
+- Support for 2 or more displays on Intel Skylake and newer desktops is missing or buggy. In macOS 10.14.x there is an improvement tendency.  
+- Displays do not wake up on Intel Skylake desktops and later, connecting via DisplayPort or upgrading to macOS 10.14.x may help.  
   
 *Glitches and settings* :  
 - HD3000 can sometimes have interface glitches. Since the amount of video memory in Sandy depends on the overall system memory - 8 GB is the minimum to have, but there are no guaranteed solutions. It is also recommended to install [Max TOLUD to Dynamic](https://applelife.ru/posts/595326/) in the BIOS. Perhaps you can benefit from these [patches](https://www.applelife.ru/posts/730496).  
 - "8 apples" and the disappearance of the background image with File Vault 2 during the transition from UEFI GOP drivers to macOS drivers (due to incompatible EDID). Partially solved in *WEG*.  
 - PAVP freezes (freezes during video playback, broken QuickLook, etc.) are solved with *WEG* at the cost of disabling HDCP.  
 - Haswell glitches for some are resolved with a semantic `framebuffer-cursormem` patch.  
-- In 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. For a temporary solution try to fake IGPU to use SKL drivers.  
+- In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. For a temporary solution try to fake IGPU to use SKL drivers.  
 - The several minutes black screen upon OS boot with mobile CFL is fixed by *WEG*.  
 - The absence in BIOS of an option to change the amount of memory for the frame buffer is resolved with either semantic `framebuffer-stolenmem` and `framebuffer-fbmem` patches, by modifying the BIOS or by manually inputting the values in UEFI Shell. **Otherwise you get a panic.** [Explanation](https://www.applelife.ru/posts/750369)  
   
 *Performance and media content* :  
-- Compatibility with discrete cards in unsupported configurations (NVIDIA + SNB/SKL/KBL; AMD + IVY), for some applications is fixed by *WEG*. Starting with MacOS 10.13.4 the problem is gone.  
-- Viewing protected iTunes content is fixed by *WEG*. Starting with 10.12 on Ivy Bridge and newer viewing HD movies on iTunes is not possible without a discrete card.  
+- Compatibility with discrete cards in unsupported configurations (NVIDIA + SNB/SKL/KBL; AMD + IVY), for some applications is fixed by *WEG*. Starting with macOS 10.13.4 the problem is gone.  
+- Viewing protected iTunes content is fixed by *WEG*. Starting with macOS 10.12 on Ivy Bridge and newer viewing HD movies on iTunes is not possible without a discrete card.  
 
 A [VDADecoderChecker](https://i.applelife.ru/2018/12/442759_VDADecoderChecker.zip) output for integrated graphics using non-empty connectors must look like this:  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/vda.png)  
