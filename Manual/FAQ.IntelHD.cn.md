@@ -689,7 +689,7 @@ BDW 平台可用的 FB 列表：
 <summary>BDW 平台详细信息（点击此处以展开）</summary>
 AppleIntelBDWGraphicsFramebuffer.kext  
   
-ID: 16060000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
+ID: 0x16060000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -700,7 +700,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 160E0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000706  
+ID: 0x160E0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000706  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -711,7 +711,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 16160000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
+ID: 0x16160000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -722,7 +722,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 161E0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000716  
+ID: 0x161E0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000716  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -733,7 +733,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 16260000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
+ID: 0x16260000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -744,7 +744,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 162B0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
+ID: 0x162B0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -755,7 +755,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 16220000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x0000110E  
+ID: 0x16220000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x0000110E  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -766,7 +766,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 04000000 04000000  
 02040900 00080000 82000000  
   
-ID: 160E0001, STOLEN: 38 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000702  
+ID: 0x160E0001, STOLEN: 38 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000702  
 TOTAL STOLEN: 60 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 136 MB, MAX OVERALL: 137 MB (144191488 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -777,7 +777,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 01100000  
 02040A00 00040000 01300000  
   
-ID: 161E0001, STOLEN: 38 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000702  
+ID: 0x161E0001, STOLEN: 38 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000702  
 TOTAL STOLEN: 60 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 136 MB, MAX OVERALL: 137 MB (144191488 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -788,7 +788,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 01100000  
 02040A00 00040000 01300000  
   
-ID: 16060002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B02  
+ID: 0x16060002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B02  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -799,7 +799,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16160002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B02  
+ID: 0x16160002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B02  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -810,7 +810,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16260002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
+ID: 0x16260002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -821,7 +821,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16220002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
+ID: 0x16220002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -832,7 +832,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 162B0002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
+ID: 0x162B0002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -843,7 +843,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16120003, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00001306  
+ID: 0x16120003, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00001306  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131612672 bytes)  
 Camelia: CameliaV1 (1), Freq: 1953 Hz, FreqMax: 1953 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3  
@@ -856,7 +856,7 @@ Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3
 02040B00 00040000 07050000  
 03060300 00080000 06000000  
   
-ID: 162B0004, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00040B46  
+ID: 0x162B0004, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00040B46  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -867,7 +867,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16260004, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00040B46  
+ID: 0x16260004, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00040B46  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -878,7 +878,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16220007, STOLEN: 38 MB, FBMEM: 38 MB, VRAM: 1536 MB, Flags: 0x000BB306  
+ID: 0x16220007, STOLEN: 38 MB, FBMEM: 38 MB, VRAM: 1536 MB, Flags: 0x000BB306  
 TOTAL STOLEN: 77 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 153 MB, MAX OVERALL: 154 MB (162017280 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -889,7 +889,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 02040A00 00040000 07050000  
 03060800 00040000 11000000  
   
-ID: 16260005, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000B0B  
+ID: 0x16260005, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000B0B  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -900,7 +900,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050B00 00040000 07050000  
 02040B00 00040000 07050000  
   
-ID: 16260006, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000B0B  
+ID: 0x16260006, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000B0B  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
 Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
@@ -911,7 +911,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050B00 00040000 07050000  
 02040B00 00040000 07050000  
   
-ID: 162B0008, STOLEN: 34 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x00002B0E  
+ID: 0x162B0008, STOLEN: 34 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x00002B0E  
 TOTAL STOLEN: 69 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 103 MB, MAX OVERALL: 104 MB (109060096 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2  
@@ -920,7 +920,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
   
-ID: 16260008, STOLEN: 34 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x00002B0E  
+ID: 0x16260008, STOLEN: 34 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x00002B0E  
 TOTAL STOLEN: 69 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 103 MB, MAX OVERALL: 104 MB (109060096 bytes)  
 Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2  
@@ -1364,7 +1364,7 @@ Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1
 </details>
  
 ####
-*推荐的 FB 设置*：0x59160000（桌面版，缺省值）或 0x59120000（桌面版，推荐）；0x59100000（移动版，缺省值）。
+*推荐的 FB 设置*：0x59160000（桌面版，缺省值）或 0x59120000（桌面版，推荐）；0x591B0000（移动版，缺省值）。
 
 对于 UHD 620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Kaby_Lake_R_processors)，译者注：该页面暂无中文版本，上次检查日期：2019/03/25)，需设定（仿冒）`IGPU` 的 `device-id` 为 `16590000`。（如下所示）
 
