@@ -1498,7 +1498,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 ####
 *Recommended framebuffers*: for desktop - 0x3EA50000 (default), 0x3E9B0007 (recommended); for laptop - 0x3EA50009 (default).  
   
-If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 beta6 the fake is not necessary.  
+If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 the fake is not necessary.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/cfl-r_igpu.png)  
   
 <details>
@@ -1516,7 +1516,7 @@ Use the Kaby Lake HD630 framebuffer (specify the framebuffer explicitly!)
 </details>
   
 ## Adjusting the brightness on a laptop  
-Enable Clover DSDT fix: `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBacklight`. A specific value is not necessary - it will be automatically injected according to the processor installed.  
+Enable Clover DSDT fix `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBacklight`. A specific value is not necessary - it will be automatically injected according to the processor installed.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
   
   
@@ -1541,7 +1541,7 @@ Example of a semantic patch: HDMI type connector (connector-type=00080000 for co
 Example of a semantic patch for bios with DVMT Pre-Alloc 32MB when higher is required. (stolenmem=19MB, fbmem=9MB)  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/sem.png)  
   
-[This series of patches](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) are the full equivalent of AzulPatcher4600.kext, for those who have previously used it. (on [some](https://github.com/coderobe/AzulPatcher4600#tested-on) Haswell laptops the `0x0A260006` frame helps to get rid of the artifacts).  
+[This series of patches](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) are the full equivalent of AzulPatcher4600.kext, for those who have previously used it. (on [some](https://github.com/coderobe/AzulPatcher4600#tested-on) Haswell laptops with framebuffer `0x0A260006` helps to get rid of the artifacts).  
   
   
 **All possible WEG custom patches**  
@@ -1629,7 +1629,7 @@ Or instead of this property, use the boot-arg `-wegnoegpu`
 - HD3000 can sometimes have interface glitches. Since the amount of video memory in Sandy depends on the overall system memory - 8 GB is the minimum to have, but there are no guaranteed solutions. It is also recommended to install [Max TOLUD to Dynamic](https://applelife.ru/posts/595326/) in the BIOS. Perhaps you can benefit from these [patches](https://www.applelife.ru/posts/730496).  
 - "8 apples" and the disappearance of the background image with File Vault 2 during the transition from UEFI GOP drivers to macOS drivers (due to incompatible EDID). Partially solved in *WEG*.  
 - PAVP freezes (freezes during video playback, broken QuickLook, etc.) are solved with *WEG* at the cost of disabling HDCP.  
-- Haswell glitches for some are resolved with a semantic `framebuffer-cursormem` patch.  
+- Haswell glitches for some framebuffers are resolved with a semantic `framebuffer-cursormem` patch.  
 - In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. For a temporary solution try to fake IGPU to use SKL drivers.  
 - The several minutes black screen upon OS boot with mobile CFL is fixed by *WEG*.  
 - The absence in BIOS of an option to change the amount of memory for the frame buffer is resolved with either semantic `framebuffer-stolenmem` and `framebuffer-fbmem` patches, by modifying the BIOS or by manually inputting the values in UEFI Shell. **Otherwise you get a panic.** [Explanation](https://www.applelife.ru/posts/750369)  
