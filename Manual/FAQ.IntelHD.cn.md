@@ -1529,7 +1529,7 @@ Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0
 
 注意：使用第九代 Coffee Lake R 处理器时，需设定（仿冒）`IGPU` 的 `device-id` 为 `923E0000`。（如下所示）
 
-*从 macOS Mojave 10.14.4 Beta 6 起，无需再设定此参数！*
+*从 macOS Mojave 10.14.4 起，无需再设定此参数！*
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/cfl-r_igpu.png)  
 
