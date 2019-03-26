@@ -1590,7 +1590,7 @@ macOS 10.14 下，对于 SKL 或更新平台，无法直接从 kext 二进制文
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/sem.png) 
 
-[此部分补丁](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) 完全等同于使用 AzulPatcher4600.kext，如曾在使用，请改用这些补丁。（在 [某些](https://github.com/coderobe/AzulPatcher4600#tested-onHaswell) Haswell 微架构的笔记本上，使用 `AAPL,ig-platform-id` = `0x0A260006` 会改善花屏的情况）
+[此部分补丁](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) 完全等同于使用 AzulPatcher4600.kext，如曾在使用，请改用这些补丁。（在 [某些](https://github.com/coderobe/AzulPatcher4600#tested-onHaswell) Haswell 微架构的笔记本上，使用 `0x0A260006` 这组 FB 会改善花屏的情况）
 
 **WEG 支持的自定义补丁列表**  
 语义补丁部分：
