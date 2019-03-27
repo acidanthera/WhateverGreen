@@ -280,6 +280,11 @@ private:
 	bool pavpDisablePatch {false};
 
 	/**
+	 *  Set to true if read descriptor patch should be enabled
+	 */
+	bool readDescriptorPatch {false};
+
+	/**
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
@@ -394,6 +399,11 @@ private:
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
 	 */
 	static IOReturn wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag);
+
+	/**
+	 *  Global page table read wrapper for Kaby Lake.
+	 */
+	static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
 
 	/**
 	 *  DP ComputeLaneCount wrapper to report success on non-DP screens to avoid black screen
