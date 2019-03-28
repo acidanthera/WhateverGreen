@@ -53,11 +53,13 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 - `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
 - `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)  
+- `-igfxmlr` boot argument (and `enable-dpcd-max-link-rate-fix` property) to apply the maximum link rate fix.
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
+- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements
