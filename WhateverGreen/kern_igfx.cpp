@@ -228,7 +228,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -344,17 +344,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 		
 		if (maxLinkRatePatch) {
-			auto symbolAddress  = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
-			
-			if (symbolAddress) {
-				patcher.eraseCoverageInstPrefix(symbolAddress);
-				
-				auto orgImp = reinterpret_cast<decltype(orgReadAUX)>(patcher.routeFunction(symbolAddress, reinterpret_cast<mach_vm_address_t>(wrapReadAUX), true));
-				
-				if (orgImp) {
-					orgReadAUX = orgImp;
-					SYSLOG("igfx", "MLR: ReadAUX() has been routed successfully.");
+			auto readAUXAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
+			if (readAUXAddress) {
+				patcher.eraseCoverageInstPrefix(readAUXAddress);
+				orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(patcher.routeFunction(readAUXAddress, reinterpret_cast<mach_vm_address_t>(wrapReadAUX), true));
+				if (orgReadAUX) {
+					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully.");
 				} else {
+					patcher.clearError();
 					SYSLOG("igfx", "MLR: Failed to route ReadAUX().");
 				}
 			} else {
@@ -576,7 +573,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 /**
  *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
  */
-int IGFX::wrapReadAUX(void* that, void* framebuffer, uint32_t address, uint16_t length, void* buffer, void* displayPath) {
+int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
 	
 	//
 	// Abstract:
@@ -606,21 +603,21 @@ int IGFX::wrapReadAUX(void* that, void* framebuffer, uint32_t address, uint16_t 
 	
 	// The driver tries to read the first 16 bytes from DPCD
 	// Get the current framebuffer index (field at 0x1dc in a framebuffer instance)
-	uint32_t port = *reinterpret_cast<uint32_t*>(reinterpret_cast<uint8_t*>(framebuffer) + 0x1dc);
+	auto index = getMember<uint32_t>(framebuffer, 0x1dc);
 	
-	// Guard: Check the framebuffer port index
+	// Guard: Check the framebuffer index
 	// By default, FB 0 refers the builtin display
-	if (port != 0)
+	if (index != 0)
 		// The driver is reading DPCD for an external display
 		return retVal;
 	
 	// The driver tries to read the receiver capabilities for the builtin display
-	struct DPCDCap16* caps = reinterpret_cast<DPCDCap16*>(buffer);
+	auto caps = reinterpret_cast<DPCDCap16*>(buffer);
 	
 	// Set the custom maximum link rate value
 	caps->maxLinkRate = callbackIGFX->maxLinkRate;
 	
-	SYSLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
+	DBGLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
 	
 	return retVal;
 }

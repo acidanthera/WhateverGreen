@@ -246,11 +246,11 @@ private:
 	 */
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-    
-    /**
-     *  Original AppleIntelFramebufferController::ReadAUX function
-     */
-    int (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::ReadAUX function
+	 */
+	int (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
 
 	/**
 	 *  Detected CPU generation of the host system
@@ -279,12 +279,12 @@ private:
 	 */
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
 
-    /**
-     *  Patch the maximum link rate in the DPCD buffer read from the built-in display
-     */
-    bool maxLinkRatePatch {false};
-    
-    /**
+	/**
+	 *  Patch the maximum link rate in the DPCD buffer read from the built-in display
+	 */
+	bool maxLinkRatePatch {false};
+	
+	/**
 	 *  Set to true if PAVP code should be disabled
 	 */
 	bool pavpDisablePatch {false};
@@ -447,17 +447,17 @@ private:
 		uint8_t others[12];
 	};
 	
-    /**
-     *  User-specified maximum link rate value in the DPCD buffer
-     *
-     *  Default value is 0x14 (5.4 Gbps, HBR2) for 4K laptop display
-     */
-    uint8_t maxLinkRate {0x14};
-    
-    /**
-     *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
-     */
-    static int wrapReadAUX(void* that, void* framebuffer, uint32_t address, uint16_t length, void* buffer, void* displayPath);
+	/**
+	 *  User-specified maximum link rate value in the DPCD buffer
+	 *
+	 *  Default value is 0x14 (5.4 Gbps, HBR2) for 4K laptop display
+	 */
+	uint8_t maxLinkRate {0x14};
+	
+	/**
+	 *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
+	 */
+	static int wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
