@@ -1689,7 +1689,7 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 
 ## 修复笔记本内屏返回错误的最大链路速率值的问题 (Dell XPS 15 9570 等高分屏笔记本)
 为核显添加 `enable-dpcd-max-link-rate-fix` 属性或者直接使用 `-igfxmlr` 启动参数以解决系统在点亮内屏时直接崩溃的问题。  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)
+![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)  
 另外可使用 `dpcd-max-link-rate` 这个属性来为笔记本内屏指定一个最大链路速率值。  
 4K 内屏一般使用 `0x14`，1080p 内屏使用 `0x0A` 即可。  
 可选值为 `0x06` (RBR)，`0x0A` (HBR)，`0x14` (HBR2) 以及 `0x1E` (HBR3)。  
