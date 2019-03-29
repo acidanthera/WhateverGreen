@@ -455,7 +455,7 @@ private:
 	uint8_t maxLinkRate {0x14};
 	
 	/**
-	 *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
+	 *  ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
 	 */
 	static int wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
 

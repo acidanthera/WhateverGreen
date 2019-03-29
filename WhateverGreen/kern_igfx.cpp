@@ -581,7 +581,7 @@ int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address
 	// Several fields in an `AppleIntelFramebuffer` instance are left zeroed because of
 	// an invalid value of maximum link rate reported by DPCD of the builtin display.
 	//
-	// One of those fields is the number of lanes is later used as a divisor during
+	// One of those fields, namely the number of lanes, is later used as a divisor during
 	// the link training, resulting in a kernel panic triggered by a divison-by-zero.
 	//
 	// DPCD are retrieved from the display via a helper function named ReadAUX().
@@ -602,12 +602,19 @@ int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address
 		return retVal;
 	
 	// The driver tries to read the first 16 bytes from DPCD
-	// Get the current framebuffer index (field at 0x1dc in a framebuffer instance)
-	auto index = getMember<uint32_t>(framebuffer, 0x1dc);
+	// Get the current framebuffer index (An UInt32 field at 0x1dc in a framebuffer instance)
+	// We read the value of "IOFBDependentIndex" instead of accessing that field directly
+	auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+	
+	// Guard: Should be able to retrieve the index from the registry
+	if (!index) {
+		SYSLOG("igfx", "MLR: wrapReadAUX: Failed to read the current framebuffer index.");
+		return retVal;
+	}
 	
 	// Guard: Check the framebuffer index
 	// By default, FB 0 refers the builtin display
-	if (index != 0)
+	if (index->unsigned32BitValue() != 0)
 		// The driver is reading DPCD for an external display
 		return retVal;
 	
