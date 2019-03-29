@@ -161,11 +161,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #endif
 		
 		// Enable maximum link rate patch if the corresponding boot argument is found
-		if (checkKernelArgument("-igfxmlr"))
-			maxLinkRatePatch = true;
-		else
-			// Or if "enable-dpcd-max-link-rate-fix" is set in IGPU property
-			WIOKit::getOSDataValue(info->videoBuiltin, "enable-dpcd-max-link-rate-fix", maxLinkRatePatch);
+		maxLinkRatePatch = checkKernelArgument("-igfxmlr");
+		// Or if "enable-dpcd-max-link-rate-fix" is set in IGPU property
+		if (!maxLinkRatePatch)
+			maxLinkRatePatch = info->videoBuiltin->getProperty("enable-dpcd-max-link-rate-fix") != nullptr;
 		
 		// Read the custom maximum link rate if present
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "dpcd-max-link-rate", maxLinkRate)) {
