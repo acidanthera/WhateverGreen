@@ -159,7 +159,36 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (checkKernelArgument("-igfxfbdump"))
 			dumpPlatformTable = true;
 #endif
-
+		
+		// Enable maximum link rate patch if the corresponding boot argument is found
+		if (checkKernelArgument("-igfxmlr"))
+			maxLinkRatePatch = true;
+		else
+			// Or if "enable-dpcd-max-link-rate-fix" is set in IGPU property
+			WIOKit::getOSDataValue(info->videoBuiltin, "enable-dpcd-max-link-rate-fix", maxLinkRatePatch);
+		
+		// Read the custom maximum link rate if present
+		if (WIOKit::getOSDataValue(info->videoBuiltin, "dpcd-max-link-rate", maxLinkRate)) {
+			// Guard: Verify the custom link rate before using it
+			switch (maxLinkRate) {
+				case 0x1E: // HBR3 8.1  Gbps
+				case 0x14: // HBR2 5.4  Gbps
+				case 0x0C: // 3_24 3.24 Gbps Used by Apple internally
+				case 0x0A: // HBR  2.7  Gbps
+				case 0x06: // RBR  1.62 Gbps
+					DBGLOG("igfx", "MLR: Found a valid custom maximum link rate value 0x%02x", maxLinkRate);
+					break;
+					
+				default:
+					// Invalid link rate value
+					SYSLOG("igfx", "MLR: Found an invalid custom maximum link rate value. Will use 0x14 as a fallback value.");
+					maxLinkRate = 0x14;
+					break;
+			}
+		} else {
+			DBGLOG("igfx", "MLR: No custom max link rate specified. Will use 0x14 as the default value.");
+		}
+		
 		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
 		int bkl = 0;
 		if (PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl)))
@@ -199,7 +228,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -311,6 +340,22 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
+			}
+		}
+		
+		if (maxLinkRatePatch) {
+			auto readAUXAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
+			if (readAUXAddress) {
+				patcher.eraseCoverageInstPrefix(readAUXAddress);
+				orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(patcher.routeFunction(readAUXAddress, reinterpret_cast<mach_vm_address_t>(wrapReadAUX), true));
+				if (orgReadAUX) {
+					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully.");
+				} else {
+					patcher.clearError();
+					SYSLOG("igfx", "MLR: Failed to route ReadAUX().");
+				}
+			} else {
+				SYSLOG("igfx", "MLR: Failed to find ReadAUX().");
 			}
 		}
 		
@@ -523,6 +568,65 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		that->setName("IntelAccelerator");
 
 	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
+}
+
+/**
+ *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
+ */
+int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
+	
+	//
+	// Abstract:
+	//
+	// Several fields in an `AppleIntelFramebuffer` instance are left zeroed because of
+	// an invalid value of maximum link rate reported by DPCD of the builtin display.
+	//
+	// One of those fields, namely the number of lanes, is later used as a divisor during
+	// the link training, resulting in a kernel panic triggered by a divison-by-zero.
+	//
+	// DPCD are retrieved from the display via a helper function named ReadAUX().
+	// This wrapper function checks whether the driver is reading receiver capabilities
+	// from DPCD of the builtin display and then provides a custom maximum link rate value,
+	// so that we don't need to update the binary patch on each system update.
+	//
+	// If you are interested in the story behind this fix, take a look at my blog posts.
+	// Phase 1: https://www.firewolf.science/2018/10/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-compromise-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
+	// Phase 2: https://www.firewolf.science/2018/11/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-nearly-ultimate-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
+	
+	// Call the original ReadAUX() function to read from DPCD
+	int retVal = callbackIGFX->orgReadAUX(that, framebuffer, address, length, buffer, displayPath);
+	
+	// Guard: Check the DPCD register address
+	// The first 16 fields of the receiver capabilities reside at 0x0 (DPCD Register Address)
+	if (address != 0)
+		return retVal;
+	
+	// The driver tries to read the first 16 bytes from DPCD
+	// Get the current framebuffer index (An UInt32 field at 0x1dc in a framebuffer instance)
+	// We read the value of "IOFBDependentIndex" instead of accessing that field directly
+	auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+	
+	// Guard: Should be able to retrieve the index from the registry
+	if (!index) {
+		SYSLOG("igfx", "MLR: wrapReadAUX: Failed to read the current framebuffer index.");
+		return retVal;
+	}
+	
+	// Guard: Check the framebuffer index
+	// By default, FB 0 refers the builtin display
+	if (index->unsigned32BitValue() != 0)
+		// The driver is reading DPCD for an external display
+		return retVal;
+	
+	// The driver tries to read the receiver capabilities for the builtin display
+	auto caps = reinterpret_cast<DPCDCap16*>(buffer);
+	
+	// Set the custom maximum link rate value
+	caps->maxLinkRate = callbackIGFX->maxLinkRate;
+	
+	DBGLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
+	
+	return retVal;
 }
 
 void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {

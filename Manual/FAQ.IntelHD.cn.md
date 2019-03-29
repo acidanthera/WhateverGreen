@@ -1687,6 +1687,14 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dGPU_off.png)  
 
+## 修复笔记本内屏返回错误的最大链路速率值的问题 (Dell XPS 15 9570 等高分屏笔记本)
+为核显添加 `enable-dpcd-max-link-rate-fix` 属性或者直接使用 `-igfxmlr` 启动参数以解决系统在点亮内屏时直接崩溃的问题。  
+![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)  
+另外可使用 `dpcd-max-link-rate` 这个属性来为笔记本内屏指定一个最大链路速率值。  
+4K 内屏一般使用 `0x14`，1080p 内屏使用 `0x0A` 即可。  
+可选值为 `0x06` (RBR)，`0x0A` (HBR)，`0x14` (HBR2) 以及 `0x1E` (HBR3)。  
+若指定了其他值，则补丁默认使用 `0x14`。若不定义此属性的话，同样默认使用 `0x14`。  
+
 ## 已知问题
 *兼容性*：
 - 受限制的显卡：HD2000 和 HD2500，它们只能用于 IQSV (因为在白苹果中它们只用来干这个)，无解。
