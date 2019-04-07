@@ -63,6 +63,7 @@ void IGFX::init() {
 
 	uint32_t family = 0, model = 0;
 	cpuGeneration = CPUInfo::getGeneration(&family, &model);
+	SYSLOG("igfx", "max: using family, model, generation 0x%X:0x%X,0x%X ", family, model, cpuGeneration);
 	switch (cpuGeneration) {
 		case CPUInfo::CpuGeneration::Penryn:
 		case CPUInfo::CpuGeneration::Nehalem:
@@ -102,8 +103,11 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelKBLFb;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
+			SYSLOG("igfx", "max: setting up CoffeeLake");
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
+			SYSLOG("igfx", "max: avoidFirmwareLoading: %d", avoidFirmwareLoading);
 			loadGuCFirmware = canLoadGuC > 0;
+			SYSLOG("igfx", "max: loadGuCFirmware: %d", loadGuCFirmware);
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelCFLFb;
 			// Allow faking ask KBL
@@ -159,6 +163,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (checkKernelArgument("-igfxfbdump"))
 			dumpPlatformTable = true;
 #endif
+		
+		SYSLOG("igfx", "max: cpuGeneration: %d", cpuGeneration);
 		
 		// Enable maximum link rate patch if the corresponding boot argument is found
 		maxLinkRatePatch = checkKernelArgument("-igfxmlr");
@@ -221,6 +227,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		forceOpenGL = gl == 1;
 
 		// Starting from 10.14.4b1 KabyLake graphics randomly kernel panics on GPU usage
+//		SYSLOG("igfx", "max: hard coded readDescriptorPatch = true");
+//		readDescriptorPatch = true;
 		readDescriptorPatch = cpuGeneration == CPUInfo::CpuGeneration::KabyLake && getKernelVersion() >= KernelVersion::Mojave;
 
 		// Automatically enable HDMI -> DP patches
@@ -275,6 +283,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (readDescriptorPatch) {
+			SYSLOG("igfx", "max: applying readDescriptorPatch");
 			KernelPatcher::RouteRequest request("__ZNK25IGHardwareGlobalPageTable4readEyRyS0_", globalPageTableRead);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
