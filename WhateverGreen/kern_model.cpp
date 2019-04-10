@@ -36,7 +36,7 @@ struct Model {
 		DetectRev = 0x2,
 		DetectAll = DetectSub | DetectRev
 	};
-	Detect mode {DetectDef};
+	uint16_t mode {DetectDef};
 	uint16_t subven {0};
 	uint16_t sub {0};
 	uint16_t rev {0};

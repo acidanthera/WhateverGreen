@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v.1.2.8
 - Added KBL graphics kernel panic workaround on 10.14.4+
+- Added IGPU DPDCD link incompatible rate patch (thanks @Firewolf)
 
 #### v1.2.7
 - Added more IGPU device-ids to detected list

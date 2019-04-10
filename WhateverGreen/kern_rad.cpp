@@ -714,10 +714,12 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 			if (prefix) {
 				DBGLOG("rad", "GetProperty discovered property merge request for %s", aKey);
 				auto newProps = OSDynamicCast(OSDictionary, props->copyCollection());
-				callbackRAD->mergeProperties(newProps, prefix, provider);
-				that->setProperty(aKey, newProps);
-				newProps->release();
-				obj = newProps;
+				if (newProps) {
+					callbackRAD->mergeProperties(newProps, prefix, provider);
+					that->setProperty(aKey, newProps);
+					newProps->release();
+					obj = newProps;
+				}
 			}
 		}
 	}
