@@ -1359,6 +1359,7 @@ CFL framebuffer list:
 — 0x3E9B0007 (desktop, 3 connectors, no fbmem, 58 MB)  
 — 0x3E920003 (desktop, 0 connectors, no fbmem, 1 MB)  
 — 0x3E910003 (desktop, 0 connectors, no fbmem, 1 MB)  
+— 0x3E980003 (desktop, 0 connectors, no fbmem, 1 MB)  
 
 <details>
 <summary>Spoiler: CFL connectors</summary>
@@ -1487,6 +1488,12 @@ Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: 3E910003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00001000  
+TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
+  
+ID: 3E980003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00001000  
 TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
 Model name: Intel HD Graphics CFL  
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
