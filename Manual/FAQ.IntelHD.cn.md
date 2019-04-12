@@ -1387,6 +1387,7 @@ CFL 平台可用的 FB 列表：
 - 0x3E9B0007 (桌面版，3 端口，无 FBMEM，58 MB)
 - 0x3E920003 (桌面版，无端口，无 FBMEM，1 MB)
 - 0x3E910003 (桌面版，无端口，无 FBMEM，1 MB)
+- 0x3E980003 (桌面版，无端口，无 FBMEM，1 MB)
 
 译者注：此处内容（“CFL 平台详细信息”）可能不必翻译至中文。
 <details>
@@ -1519,7 +1520,13 @@ ID: 0x3E910003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x0000100
 TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
 Model name: Intel HD Graphics CFL  
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
-Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
+Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0
+
+ID: 0x3E980003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00001000
+TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB
+Model name: Intel HD Graphics CFL
+Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz
+Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0
   
 注意：在不指定 `AAPL,ig-platform-id` 时，默认使用 `0x3EA50000`。
 </details>
