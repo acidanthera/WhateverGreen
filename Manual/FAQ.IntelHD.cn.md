@@ -1563,11 +1563,17 @@ macOS High Sierra 10.13.6 的特别版本 17G2208 包含对 CFL 平台核显的�
 </details> 
 
 ## 调节笔记本亮度
+**方案一**
 启用 Clover 中名为 `AddPNLF` 的 DSDT 补丁与 `SetIntelBacklight`, `SetIntelMaxBacklight` 两项。（如图所示）
 
 无需为其赋值，Clover 会根据相应的处理器型号自动适配。
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
+
+**方案二**
+使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/05/450784_SSDT-PNLF.aml.zip))
+
+**两种方案不要同时使用！**
 
 ## 数字音频支持 (HDMI / DVI / DP)
 若要启用数字音频，需要设置必要的属性，通常还需要修正端口信息。
