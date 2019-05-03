@@ -1,9 +1,11 @@
 WhateverGreen Changelog
 =======================
+#### v1.2.9
+- Added AMD Radeon VII to detected list
+
 #### v.1.2.8
 - Added KBL graphics kernel panic workaround on 10.14.4+
 - Added IGPU DPDCD link incompatible rate patch (thanks @Firewolf)
-- Added AMD Radeon VII to detected list
 
 #### v1.2.7
 - Added more IGPU device-ids to detected list
