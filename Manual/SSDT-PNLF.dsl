@@ -2,6 +2,9 @@
 // This is a modified PNLF version originally taken from RehabMan/OS-X-Clover-Laptop-Config repository:
 // https://raw.githubusercontent.com/RehabMan/OS-X-Clover-Laptop-Config/master/hotpatch/SSDT-PNLF.dsl
 // Rename GFX0 to anything else if your IGPU name is different.
+//
+// Licensed under GNU General Public License v2.0
+// https://github.com/RehabMan/OS-X-Clover-Laptop-Config/blob/master/License.md
 
 #define FBTYPE_SANDYIVY 1
 #define FBTYPE_HSWPLUS 2
