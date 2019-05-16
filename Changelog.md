@@ -3,6 +3,7 @@ WhateverGreen Changelog
 #### v1.2.9
 - Added AMD Radeon VII to detected list
 - Disabled automatic framebuffer usage on Polaris GPUs
+- Added `preserve-names` device property to preserve current GPU names
 
 #### v.1.2.8
 - Added KBL graphics kernel panic workaround on 10.14.4+

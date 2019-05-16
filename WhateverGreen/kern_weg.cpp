@@ -339,7 +339,9 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 
 	// It is unclear how to properly name the GPUs, and supposedly it does not really matter.
 	// However, we will try to at least name them in a unique manner (GFX0, GFX1, ...)
-	if (currentExternalGfxIndex <= MaxExternalGfxIndex && (!name || strncmp(name, "GFX", strlen("GFX")) != 0)) {
+	if (device->getProperty("preserve-names") == nullptr
+		&& currentExternalGfxIndex <= MaxExternalGfxIndex
+		&& (!name || strncmp(name, "GFX", strlen("GFX")) != 0)) {
 		char name[16];
 		snprintf(name, sizeof(name), "GFX%u", currentExternalGfxIndex++);
 		WIOKit::renameDevice(device, name);
