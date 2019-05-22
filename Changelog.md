@@ -4,7 +4,7 @@ WhateverGreen Changelog
 - Added AMD Radeon VII to detected list
 - Disabled automatic framebuffer usage on Polaris GPUs
 - Added `preserve-names` device property to preserve current GPU names
-- Added `AppleVPA` patching support (replaces NoVPAJpeg.kext)
+- Added `AppleVPA` patching support, replaces NoVPAJpeg.kext (thx CMMChris and uglyJoe)
 
 #### v.1.2.8
 - Added KBL graphics kernel panic workaround on 10.14.4+
