@@ -1,5 +1,7 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.0
+
 #### v1.2.9
 - Added AMD Radeon VII to detected list
 - Disabled automatic framebuffer usage on Polaris GPUs
