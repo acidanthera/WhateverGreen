@@ -506,7 +506,7 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 			if (consPtr && consSize > 0 && *sz > 0 && RADConnectors::valid(consSize, *sz)) {
 				RADConnectors::copy(connectors, *sz, static_cast<const RADConnectors::Connector *>(consPtr), consSize);
 				DBGLOG("rad", "getConnectorsInfo installed %u connectors", *sz);
-				applyPropertyFixes(ctrl, consSize);
+				applyPropertyFixes(ctrl, *sz);
 			} else {
 				DBGLOG("rad", "getConnectorsInfo conoverrides have invalid size %u for %u num", consSize, *sz);
 			}
