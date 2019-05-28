@@ -4,7 +4,8 @@ Shiki is now part of [WhateverGreen](https://github.com/acidanthera/WhateverGree
 
 - _Do I need Shiki?_  
 If you have Intel Ivy CPU or newer, iTunes DRM playback does not work for you, and your GPU works with HDCP, you may try it.  
-Sometimes it might help even improperly configured or problematic Sandy CPUs.
+Sometimes it might help even improperly configured or problematic Sandy CPUs.  
+Starting with macOS 10.12 on Ivy Bridge and newer viewing HD movies on iTunes is not possible without a discrete card.  
 
 - _How to disable Shiki?_  
 Add `-shikioff` argument to boot-args. It will also not load when -x or -s are set.
@@ -128,13 +129,14 @@ To check that read `/System/Library/PrivateFrameworks/AppleGVA.framework/Info.pl
 Add `shikigva=1` argument to boot-args.
 
 - _How can I inject IOVARendererID/IOVARendererSubID in certain NVIDIA GPUs?_  
-NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  
+NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell and Pascal GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  
 IOVARendererID    → `<08 00 04 01>`  
 IOVARendererSubID → `<03 00 00 00>`  
 VP3 ones want a different IOVARendererID → `<04 00 04 01>`.  
 Thanks to igork for noticing it. You may use [WhateverGreen](https://github.com/acidanthera/WhateverGreen) Lilu plugin to do this automatically.  
-Intel Skylake and newer processors require an AppleGVA patch to be compatible with NVIDIA GPUs, you may use `shikigva=4` boot argument for that.
-
+  
+- _Compatibility with discrete cards in unsupported configurations (NVIDIA + SNB/SKL/KBL; AMD + IVY)_, for some applications is fixed by [WhateverGreen](https://github.com/acidanthera/WhateverGreen) Lilu plugin. Starting with macOS 10.13.4 the problem is gone.  
+  
 - _I cannot get VDA decoder work with my AMD GPU, what could I try?_  
 Prioritising Intel and using connector-full platform-id (e.g. `<03 00 66 01>` for HD 4000, `<03 00 22 0D>` for HD 4600) seems to help with certain AMD GPUs (e.g. HD 7750).
 
