@@ -1,4 +1,7 @@
 #### 常见问题:
+- _Shiki 在哪里？_
+Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) 的一部分。
+
 - _我需要 Shiki 吗?_  
 如果您有一台 Ivy Bridge 或者更新的平台机器，并且无法使用 iTunes DRM 播放但您的显卡可以在 HDCP 模式下工作的话，您可以尝试使用 Shiki 。
 有时 Shiki 也可以修复 Sandy Bridge 平台的这些问题。
@@ -33,7 +36,7 @@
 理论上来说这可能不必要，不过这会带来未知的结果。
 
 - _哪些显卡可能会引发卡顿?_
-   - 使用 Azul 驱动的显卡 (如 HD 4400, HD 4600) 在没有独立显卡并在使用完整接口的 ig-platform-id 时可能因为不工作的 HDCP 而无法播放高清视频，但这不是 Shiki 导致的，您需要 [IntelGraphicsFixup.kext](https://sourceforge.net/p/intelgraphicsfixup) 来解决这个问题。
+   - 使用 Azul 驱动的显卡 (如 HD 4400, HD 4600) 在没有独立显卡并在使用完整接口的 ig-platform-id 时可能因为不工作的 HDCP 而无法播放高清视频，但这不是 Shiki 导致的，您需要 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) 来解决这个问题。
 
 - _我的机器会被禁止吗?_  
 如果您可以播放一个电影的预告片，但购买后的电影无法播放，即使已经对此电脑进行了授权，那么您的 NIC MAC 可能已被禁止。有时可以通过注销账户，并稍等片刻来重新授权来解决，但如果这无效的话，您可能需要修改以太网 MAC 地址。
@@ -130,7 +133,7 @@ IOVARendererID    → `<08 00 04 01>`
 IOVARendererSubID → `<03 00 00 00>`  
 VP3 需要一个不同的 IOVARendererID → `<04 00 04 01>`.  
 感谢 igork 的发现。
-或者，亦可使用 [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) (需使用 1.2.0 或更高版本) 来自动设定这些值。  
+或者，亦可使用 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) (需使用 1.2.0 或更高版本) 来自动设定这些值。  
 Intel Skylake (第六代) 或更新平台的核芯显卡需使用对 AppleGVA 的一组补丁以配合 NVIDIA 独立显卡工作，您可以通过加入 `shikigva=4` 参数启用此补丁。
 
 - _如果 AMD 显卡无法使用 VDA 解码器_  
@@ -145,7 +148,7 @@ BoardHash 可以用来生成 board-id 的哈希值，类似于 CoreAUC.framework
 目前已知 MacPro5,1 可以无视解码器状态而直接允许 HD 4000 播放高清视频。
 
 - _如何为 HD 4400, HD 4600 以及 HD 530 禁用 PAVP/HDCP ?_  
-考虑使用 [IntelGraphicsFixup.kext](https://sourceforge.net/p/intelgraphicsfixup) 以禁用 PAVP/HDCP 来避免冻屏。
+考虑使用 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) 以禁用 PAVP/HDCP 来避免冻屏。
 
 #### 配置列表
 
