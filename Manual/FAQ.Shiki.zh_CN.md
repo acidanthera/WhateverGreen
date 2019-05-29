@@ -6,6 +6,7 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 - _我需要 Shiki 吗?_  
 如果您有一台 Ivy Bridge 或者更新的平台机器，并且无法使用 iTunes DRM 播放但您的显卡可以在 HDCP 模式下工作的话，您可以尝试使用 Shiki 。
 有时 Shiki 也可以修复 Sandy Bridge 平台的这些问题。
+从 macOS 10.12 开始，在 Ivy Bridge 或更新平台上，没有独立显卡时将无法播放 iTunes 高清视频。
 
 - _如何禁用 Shiki?_  
 请加入 `-shikioff` 启动系统。另外，在使用 -x (安全模式) 或 -s (单用户模式) 启动时 Shiki 也不会载入。
@@ -129,13 +130,14 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 请加入 `shikigva=1` 启动系统。
 
 - _如何为某些 NVIDIA 显卡注入 IOVARendererID/IOVARendererSubID 属性?_
-NVIDIA 显卡驱动没有正确加入这些对 Maxwell 架构显卡来说必要的用于 VDA 解码的键值，您可以通过一个 Info 空壳来加入它们。以下是正确的值：
+NVIDIA 显卡驱动没有正确加入这些对 Maxwell / Pascal 架构显卡来说必要的用于 VDA 解码的键值，您可以通过一个 Info 空壳来加入它们。以下是正确的值：
 IOVARendererID    → `<08 00 04 01>`  
 IOVARendererSubID → `<03 00 00 00>`  
 VP3 需要一个不同的 IOVARendererID → `<04 00 04 01>`.  
 感谢 igork 的发现。
 或者，亦可使用 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) (需使用 1.2.0 或更高版本) 来自动设定这些值。  
-Intel Skylake (第六代) 或更新平台的核芯显卡需使用对 AppleGVA 的一组补丁以配合 NVIDIA 独立显卡工作，您可以通过加入 `shikigva=4` 参数启用此补丁。
+
+- _有关「不受原生支持」的配置的相关情况 (NVIDIA + SNB/SKL/KBL 和 AMD + IVY)_: [WhateverGreen](https://github.com/acidanthera/WhateverGreen) 有助于改善在某些应用程序下的情况，macOS 10.13.4 起此问题已解决。
 
 - _如果 AMD 显卡无法使用 VDA 解码器_  
 使用 Intel 核芯显卡作为主显卡，并注入一个所有 connectors 都可用的 ig-platform-id (如 HD 4000 使用 `<03 00 66 01>`；HD 4600 使用 `<03 00 22 0D>`)，这似乎改善了某些 AMD 显卡的情况。(如 HD 7750)
