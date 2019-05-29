@@ -32,6 +32,7 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 不，不需要。
 
 - _在测试 Shiki 之前，如何确定系统已正确配置?_
+您可以查阅[配置列表](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Shiki.zh_CN.md#配置列表)，这里面列出了所有的配置要求。
 
 - _在使用 Shiki 之前，为什么应该正确配置 VDA ?_  
 理论上来说这可能不必要，不过这会带来未知的结果。
