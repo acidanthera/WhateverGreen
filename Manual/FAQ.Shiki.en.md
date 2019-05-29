@@ -109,7 +109,7 @@ Afterwards make sure AppleGVA sigature is valid (the command should output nothi
 If it is not, restore AppleGVA.framework from a newly installed system with the correct permissions.  
 Reboot twice.
 
-- _How can I change my NIC MAC address via [libHookMac.dylib](https://github.com/vit9696/Shiki/raw/master/HookMac/libHookMac.dylib)?_  
+- _How can I change my NIC MAC address via [HookMac](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/HookMac)?_  
    - Disable SIP (System Integrity Protection);  
    - Run in Terminal (specifying your own random MAC):   
     `DYLD_INSERT_LIBRARIES=/full/path/to/libHookMac.dylib MAC=00:11:22:33:44:55 /Applications/iTunes.app/Contents/MacOS/iTunes`;
@@ -143,7 +143,7 @@ Prioritising Intel and using connector-full platform-id (e.g. `<03 00 66 01>` fo
 - _I get hardware accelerated decoding working on my AMD with forced ATI decoder but DRM decoding still does not work, what is up?_  
 Certain AMD GPUs, e. g. HD 7750, do support hardware accelerated video decoding but fail to decode DRM video. The cause is unknown. Use Shiki normally.
 
-- _What is [BoardHash](https://github.com/vit9696/Shiki/raw/master/BoardHash/BoardHash) tool for?_  
+- _What is [BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash) tool for?_  
 BoardHash tool can generate mac board id hashes similar to the ones present in CoreAUC.framework (_PsZXJ2EK7ifxrtgc function).  
 For example, Mac-F221BEC8 (MacPro5,1) stands for 5f571162ce99350785007863627a096bfa11c81b.  
 It seems to have hashes of the macs with special HDCP permissions. E. g. it is known that MacPro5,1 model makes HD movies work on HD 4000 regardless of decoder state. 

@@ -106,7 +106,7 @@ Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/Wha
 Если это не так, восстановите AppleGVA.framework из другой системы с правильными правами.  
 Перезагрузитесь дважды.
 
-- _Как мне изменить MAC адрес сетевой карты с помощью [libHookMac.dylib](https://github.com/vit9696/Shiki/raw/master/HookMac/libHookMac.dylib)?_  
+- _Как мне изменить MAC адрес сетевой карты с помощью [libHookMac](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/HookMac)?_  
    - Выключите SIP (System Integrity Protection);  
    - Запустите Терминал (указав свой случайный MAC адрес):  
    `DYLD_INSERT_LIBRARIES=/full/path/to/libHookMac.dylib MAC=00:11:22:33:44:55 /Applications/iTunes.app/Contents/MacOS/iTunes`;  
@@ -140,7 +140,7 @@ IOVARendererSubID → `<03 00 00 00>`
 - _На моей карте AMD работает декодер аппаратного ускорения, если включить его в терминале, но DRM декодирование до сих пор не работает, что делать?_  
 Некоторые видеокарты AMD, например HD 7750, поддерживают декодирование аппаратным ускорением, но не могут декодировать DRM видео. Причина неизвестна. Используйте обычный режим Shiki.
 
-- _Что делает утилита [BoardHash](https://github.com/vit9696/Shiki/raw/master/BoardHash/BoardHash)?_  
+- _Что делает утилита [BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash)?_  
 BoardHash может генерировать хэши board id моделей Mac по аналогии с теми, что присутствуют в CoreAUC.framework (функция _PsZXJ2EK7ifxrtgc). Например, для Mac-F221BEC8 (MacPro5,1) это 5f571162ce99350785007863627a096bfa11c81b.  
 Кажется, это хэши маков со специальными правами HDCP. Например, известно, что с Mac моделью MacPro5,1 будут работать HD фильмы на HD4000 вне зависимости от состояния декодера.
 
