@@ -1,6 +1,8 @@
 WhateverGreen Changelog
 =======================
 #### v1.3.0
+- Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald
+- Added `disable-gfx-submit` property to back `ngfxsubmit=0` boot argument
 
 #### v1.2.9
 - Added AMD Radeon VII to detected list

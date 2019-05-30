@@ -59,6 +59,8 @@ void NGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::NVIDIA) {
 			hasNVIDIA = true;
+			if (info->videoExternal[i].video->getProperty("disable-gfx-submit"))
+				fifoSubmit = 0;
 			break;
 		}
 	}
@@ -112,11 +114,10 @@ void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach
 		return;
 	}
 
-	int fifoSubmit = 1;
 	PE_parse_boot_argn("ngfxsubmit", &fifoSubmit, sizeof(fifoSubmit));
 	DBGLOG("ngfx", "read legacy fifo submit as %d", fifoSubmit);
 
-	if (!fifoSubmit) {
+	if (fifoSubmit == 0) {
 		DBGLOG("ngfx", "vaddr presubmit performance fix was disabled manually");
 		return;
 	}

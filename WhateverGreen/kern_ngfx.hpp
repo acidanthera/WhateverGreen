@@ -61,6 +61,11 @@ private:
 	int forceDriverCompatibility {-1};
 
 	/**
+	 *  Virtual address submission performance fix
+	 */
+	int fifoSubmit {-1};
+
+	/**
 	 *  Disable team unrestriction patches fixing visual glitches on 10.12 with Web drivers
 	 */
 	bool disableTeamUnrestrict {false};
