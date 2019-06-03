@@ -58,7 +58,7 @@ void IGFX::init() {
 	callbackIGFX = this;
 
 	int canLoadGuC = 0;
-	if (getKernelVersion() >= KernelVersion::HighSierra)
+	if (getKernelVersion() >= KernelVersion::HighSierra && getKernelVersion() <= KernelVersion::Mojave)
 		PE_parse_boot_argn("igfxfw", &canLoadGuC, sizeof(canLoadGuC));
 
 	uint32_t family = 0, model = 0;
@@ -262,7 +262,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (forceOpenGL || moderniseAccelerator || avoidFirmwareLoading) {
+		if (forceOpenGL || moderniseAccelerator || (avoidFirmwareLoading && getKernelVersion() <= KernelVersion::Mojave)) {
 			auto startSym = "__ZN16IntelAccelerator5startEP9IOService";
 			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
 				startSym = "__ZN16IntelAccelerator5startEP9IOService";
@@ -272,6 +272,24 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 			if (loadGuCFirmware)
 				loadIGScheduler4Patches(patcher, index, address, size);
+		}
+
+		// On 10.15 GraphicsSchedulerSelect 2 is removed, so we disable it by manually patching default flags.
+		if (avoidFirmwareLoading && getKernelVersion() > KernelVersion::Mojave) {
+			auto sym = patcher.solveSymbol<uint8_t *>(index, "__ZN16IntelAccelerator19populateAccelConfigEP13IOAccelConfig", address, size);
+			for (size_t i = 0; i < 4096; i++, sym++) {
+				if (sym[0] == 0x00 && sym[1] == 0x00 && sym[2] == 0x18 && sym[3] == 0x00) {
+					DBGLOG("igfx", "found GuC accel config at " PRIKADDR, CASTKADDR(sym));
+					auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
+					if (status == KERN_SUCCESS) {
+						sym[2] = 0x28;
+						MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
+					} else {
+						SYSLOG("igfx", "GuC accel config protection upgrade failure %d", status);
+					}
+					break;
+				}
+			}
 		}
 
 		if (readDescriptorPatch) {
@@ -536,13 +554,14 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	// On KBL they do it unconditionally, which causes infinite loop.
 	// On 10.13 there is an option to ignore/load a generic firmware, which we set here.
 	// On 10.12 it is not necessary.
-	if (callbackIGFX->avoidFirmwareLoading) {
+	// On 10.15 a different route is used, as GuC firmware loading is completely removed.
+	if (callbackIGFX->avoidFirmwareLoading && getKernelVersion() <= KernelVersion::Mojave) {
 		auto dev = OSDynamicCast(OSDictionary, that->getProperty("Development"));
 		if (dev && dev->getObject("GraphicsSchedulerSelect")) {
 			auto newDev = OSDynamicCast(OSDictionary, dev->copyCollection());
 			if (newDev) {
 				// 1 - Automatic scheduler (Apple -> fallback to disabled)
-				// 2 - Force disable via plist
+				// 2 - Force disable via plist (removed as of 10.15)
 				// 3 - Apple Scheduler
 				// 4 - Reference Scheduler
 				auto num = OSNumber::withNumber(callbackIGFX->loadGuCFirmware ? 4 : 2, 32);
