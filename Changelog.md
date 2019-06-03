@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald
 - Added `disable-gfx-submit` property to back `ngfxsubmit=0` boot argument
 - Added GuC firmware loading patch for latest SKL+ drivers
+- Allow loading on 10.15 without `-lilubetaall`
 
 #### v1.2.9
 - Added AMD Radeon VII to detected list
