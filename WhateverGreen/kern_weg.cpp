@@ -623,16 +623,20 @@ bool WEG::wrapGraphicsPolicyStart(IOService *that, IOService *provider) {
 		DBGLOG("weg", "agdp fix got board-id %s", boardIdentifier);
 		auto oldConfigMap = OSDynamicCast(OSDictionary, that->getProperty("ConfigMap"));
 		if (oldConfigMap) {
-			auto newConfigMap = OSDynamicCast(OSDictionary, oldConfigMap->copyCollection());
-			if (newConfigMap) {
-				auto none = OSString::withCString("none");
-				if (none) {
-					newConfigMap->setObject(boardIdentifier, none);
-					that->setProperty("ConfigMap", newConfigMap);
-					newConfigMap->release();
+			auto rawConfigMap = oldConfigMap->copyCollection();
+			if (rawConfigMap) {
+				auto newConfigMap = OSDynamicCast(OSDictionary, rawConfigMap);
+				if (newConfigMap) {
+					auto none = OSString::withCString("none");
+					if (none) {
+						newConfigMap->setObject(boardIdentifier, none);
+						none->release();
+						that->setProperty("ConfigMap", newConfigMap);
+					}
+				} else {
+					SYSLOG("weg", "agdp fix failed to clone ConfigMap");
 				}
-			} else {
-				SYSLOG("weg", "agdp fix failed to clone ConfigMap");
+				rawConfigMap->release();
 			}
 		} else {
 			SYSLOG("weg", "agdp fix failed to obtain valid ConfigMap");

@@ -558,20 +558,24 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->avoidFirmwareLoading && getKernelVersion() <= KernelVersion::Mojave) {
 		auto dev = OSDynamicCast(OSDictionary, that->getProperty("Development"));
 		if (dev && dev->getObject("GraphicsSchedulerSelect")) {
-			auto newDev = OSDynamicCast(OSDictionary, dev->copyCollection());
-			if (newDev) {
-				// 1 - Automatic scheduler (Apple -> fallback to disabled)
-				// 2 - Force disable via plist (removed as of 10.15)
-				// 3 - Apple Scheduler
-				// 4 - Reference Scheduler
-				auto num = OSNumber::withNumber(callbackIGFX->loadGuCFirmware ? 4 : 2, 32);
-				if (num) {
-					newDev->setObject("GraphicsSchedulerSelect", num);
-					num->release();
-					that->setProperty("Development", newDev);
-					newDev->release();
+			auto rawDev = dev->copyCollection();
+			if (rawDev) {
+				auto newDev = OSDynamicCast(OSDictionary, rawDev);
+				if (newDev) {
+					// 1 - Automatic scheduler (Apple -> fallback to disabled)
+					// 2 - Force disable via plist (removed as of 10.15)
+					// 3 - Apple Scheduler
+					// 4 - Reference Scheduler
+					auto num = OSNumber::withNumber(callbackIGFX->loadGuCFirmware ? 4 : 2, 32);
+					if (num) {
+						newDev->setObject("GraphicsSchedulerSelect", num);
+						num->release();
+						that->setProperty("Development", newDev);
+					}
 				}
+				rawDev->release();
 			}
+
 		}
 	}
 
