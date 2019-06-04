@@ -109,8 +109,8 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 }
 
 void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	if (getKernelVersion() < KernelVersion::HighSierra) {
-		DBGLOG("ngfx", "not bothering vaddr presubmit performance fix on pre-10.13");
+	if (getKernelVersion() < KernelVersion::HighSierra || getKernelVersion() > KernelVersion::Mojave) {
+		DBGLOG("ngfx", "not bothering vaddr presubmit performance fix on pre-10.13 and past 10.14");
 		return;
 	}
 

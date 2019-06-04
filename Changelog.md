@@ -5,6 +5,7 @@ WhateverGreen Changelog
 - Added `disable-gfx-submit` property to back `ngfxsubmit=0` boot argument
 - Added GuC firmware loading patch for latest SKL+ drivers
 - Allow loading on 10.15 without `-lilubetaall`
+- Disabled NVIDIA performance fix on 10.15, as it now is built-in
 
 #### v1.2.9
 - Added AMD Radeon VII to detected list
