@@ -6,7 +6,7 @@ WhateverGreen Changelog
 - Added GuC firmware loading patch for latest SKL+ drivers
 - Allow loading on 10.15 without `-lilubetaall`
 - Disabled NVIDIA performance fix on 10.15, as it now is built-in
-- Enable HDMI 2.0 patches on 10.15
+- Enable HDMI 2.0 patches on 10.14+ (Use at own risk in case of undiscovered change)
 
 #### v1.2.9
 - Added AMD Radeon VII to detected list

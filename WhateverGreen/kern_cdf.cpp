@@ -157,19 +157,23 @@ void CDF::init() {
 	callbackCDF = this;
 	lilu.onKextLoadForce(kextList, arrsize(kextList));
 
-	if (getKernelVersion() == KernelVersion::Yosemite || getKernelVersion() == KernelVersion::ElCapitan) {
-		// 10.10, 10.11
-		currentProcInfo = &procInfoYosEC;
-		currentModInfo = &binaryModYosEC;
-	} else if (getKernelVersion() == KernelVersion::Sierra || (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5)) {
-		// 10.12, 10.13.0-10.13.3
-		currentProcInfo = &procInfoSieHS;
-		currentModInfo = &binaryModSieHS;
-	} else if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
-			   || getKernelVersion() == KernelVersion::Mojave || getKernelVersion() == KernelVersion::Catalina) {
-		// 10.13.4+
-		currentProcInfo = &procInfoSieHS;
-		currentModInfo = &binaryModHS1034;
+	// nothing should be applied when -cdfoff is passed
+	if (!checkKernelArgument("-cdfoff")) {
+		if (getKernelVersion() == KernelVersion::Yosemite || getKernelVersion() == KernelVersion::ElCapitan) {
+			// 10.10, 10.11
+			currentProcInfo = &procInfoYosEC;
+			currentModInfo = &binaryModYosEC;
+		} else if (getKernelVersion() == KernelVersion::Sierra || (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5)) {
+			// 10.12, 10.13.0-10.13.3
+			currentProcInfo = &procInfoSieHS;
+			currentModInfo = &binaryModSieHS;
+		} else if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
+				   || getKernelVersion() >= KernelVersion::Mojave) {
+			// the patch is indeed for 10.13.4+, 10.14.x,
+			// and assuming identical one for 10.15+.
+			currentProcInfo = &procInfoSieHS;
+			currentModInfo = &binaryModHS1034;
+		}
 	}
 
 	if (currentProcInfo && currentModInfo)
