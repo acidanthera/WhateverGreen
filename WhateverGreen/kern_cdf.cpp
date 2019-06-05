@@ -165,7 +165,8 @@ void CDF::init() {
 		// 10.12, 10.13.0-10.13.3
 		currentProcInfo = &procInfoSieHS;
 		currentModInfo = &binaryModSieHS;
-	} else if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5) || getKernelVersion() == KernelVersion::Mojave) {
+	} else if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
+			   || getKernelVersion() == KernelVersion::Mojave || getKernelVersion() == KernelVersion::Catalina) {
 		// 10.13.4+
 		currentProcInfo = &procInfoSieHS;
 		currentModInfo = &binaryModHS1034;
