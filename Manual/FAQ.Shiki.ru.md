@@ -4,6 +4,7 @@ Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/Wha
 
 - _Для чего нужен Shiki?_  
 Если у вас Intel Ivy процессор или новее, воспроизведение iTunes DRM контента не работает, но ваш GPU поддерживает HDCP, вы можете попробовать исправить ситуацию с помощью Shiki.  
+В некоторых случаях Shiki полезен и для Sandy.  
 Начиная с 10.12 на Ivy Bridge и новее без дискретной видеокарты просмотр HD фильмов в iTunes невозможен.  
 
 - _Как отключить загрузку Shiki?_  
@@ -62,7 +63,7 @@ Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/Wha
 
 #### FAQ по настройке системы:
 - _Как мне проверить, что аппаратное декодирование видео работает?_  
-Выполните собранную утилиту [VDADecoderChecker для 10.11](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-2#post-595056)/[VDADecoderChecker для 10.12](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-26#post-647746) (или соберите [сами](https://github.com/cylonbrain/VDADecoderCheck)) и проверьте вывод:  
+Выполните собранную утилиту [VDADecoderChecker для 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker для 10.12](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (или соберите [сами](https://github.com/cylonbrain/VDADecoderCheck)) и проверьте вывод:  
 `GVA info: Successfully connected to the Intel plugin, offline Gen75`  
 `Hardware acceleration is fully supported` (Аппаратное ускорение полностью поддерживается)
 

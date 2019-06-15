@@ -65,7 +65,7 @@ It may be possible and can be discussed.
 
 #### System configuration FAQ:
 - _How can I check that hardware video decoding works?_  
-Run an existing build of [VDADecoderChecker for 10.11](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-2#post-595056)/[VDADecoderChecker for 10.12](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-26#post-647746) (or compile [yourself](https://github.com/cylonbrain/VDADecoderCheck)) and check its output:  
+Run an existing build of [VDADecoderChecker for 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker for 10.12](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (or compile [yourself](https://github.com/cylonbrain/VDADecoderCheck)) and check its output:  
 `GVA info: Successfully connected to the Intel plugin, offline Gen75`  
 `Hardware acceleration is fully supported`
 
