@@ -7,6 +7,7 @@ WhateverGreen Changelog
 - Allow loading on 10.15 without `-lilubetaall`
 - Disabled NVIDIA performance fix on 10.15, as it now is built-in
 - Enable HDMI 2.0 patches on 10.14+ (Use at own risk in case of undiscovered change)
+- Added CFL graphics kernel panic workaround on 10.14.4+
 
 #### v1.2.9
 - Added AMD Radeon VII to detected list

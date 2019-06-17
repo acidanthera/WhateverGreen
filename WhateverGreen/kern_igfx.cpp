@@ -221,7 +221,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		forceOpenGL = gl == 1;
 
 		// Starting from 10.14.4b1 KabyLake graphics randomly kernel panics on GPU usage
-		readDescriptorPatch = cpuGeneration == CPUInfo::CpuGeneration::KabyLake && getKernelVersion() >= KernelVersion::Mojave;
+		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::KabyLake && getKernelVersion() >= KernelVersion::Mojave;
 
 		// Automatically enable HDMI -> DP patches
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
