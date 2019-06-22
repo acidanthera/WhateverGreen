@@ -339,7 +339,9 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 
 	// It is unclear how to properly name the GPUs, and supposedly it does not really matter.
 	// However, we will try to at least name them in a unique manner (GFX0, GFX1, ...)
-	if (currentExternalGfxIndex <= MaxExternalGfxIndex && (!name || strncmp(name, "GFX", strlen("GFX")) != 0)) {
+	if (device->getProperty("preserve-names") == nullptr
+		&& currentExternalGfxIndex <= MaxExternalGfxIndex
+		&& (!name || strncmp(name, "GFX", strlen("GFX")) != 0)) {
 		char name[16];
 		snprintf(name, sizeof(name), "GFX%u", currentExternalGfxIndex++);
 		WIOKit::renameDevice(device, name);
@@ -621,16 +623,20 @@ bool WEG::wrapGraphicsPolicyStart(IOService *that, IOService *provider) {
 		DBGLOG("weg", "agdp fix got board-id %s", boardIdentifier);
 		auto oldConfigMap = OSDynamicCast(OSDictionary, that->getProperty("ConfigMap"));
 		if (oldConfigMap) {
-			auto newConfigMap = OSDynamicCast(OSDictionary, oldConfigMap->copyCollection());
-			if (newConfigMap) {
-				auto none = OSString::withCString("none");
-				if (none) {
-					newConfigMap->setObject(boardIdentifier, none);
-					that->setProperty("ConfigMap", newConfigMap);
-					newConfigMap->release();
+			auto rawConfigMap = oldConfigMap->copyCollection();
+			if (rawConfigMap) {
+				auto newConfigMap = OSDynamicCast(OSDictionary, rawConfigMap);
+				if (newConfigMap) {
+					auto none = OSString::withCString("none");
+					if (none) {
+						newConfigMap->setObject(boardIdentifier, none);
+						none->release();
+						that->setProperty("ConfigMap", newConfigMap);
+					}
+				} else {
+					SYSLOG("weg", "agdp fix failed to clone ConfigMap");
 				}
-			} else {
-				SYSLOG("weg", "agdp fix failed to clone ConfigMap");
+				rawConfigMap->release();
 			}
 		} else {
 			SYSLOG("weg", "agdp fix failed to obtain valid ConfigMap");

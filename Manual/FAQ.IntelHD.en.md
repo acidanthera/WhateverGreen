@@ -1355,10 +1355,13 @@ CFL framebuffer list:
 — 0x3E000000 (mobile, 3 connectors, no fbmem, 58 MB)  
 — 0x3E9B0000 (mobile, 3 connectors, no fbmem, 58 MB)  
 — 0x3EA50004 (mobile, 3 connectors, no fbmem, 58 MB)  
+— 0x3EA50005 (mobile, 3 connectors, no fbmem, 58 MB)  
+— 0x3EA60005 (mobile, 3 connectors, no fbmem, 58 MB)  
 — 0x3E9B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
 — 0x3E9B0007 (desktop, 3 connectors, no fbmem, 58 MB)  
 — 0x3E920003 (desktop, 0 connectors, no fbmem, 1 MB)  
 — 0x3E910003 (desktop, 0 connectors, no fbmem, 1 MB)  
+— 0x3E980003 (desktop, 0 connectors, no fbmem, 1 MB)  
 
 <details>
 <summary>Spoiler: CFL connectors</summary>
@@ -1460,6 +1463,30 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 01050900 00040000 C7030000  
 02040A00 00040000 C7030000  
   
+ID: 3EA50005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A  
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
+[1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
+[2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
+00000800 02000000 98040000  
+01050900 00040000 C7030000  
+02040A00 00040000 C7030000  
+  
+ID: 3EA60005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A  
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
+[1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
+[2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
+00000800 02000000 98040000  
+01050900 00040000 C7030000  
+02040A00 00040000 C7030000  
+  
 ID: 3E9B0006, STOLEN: 38 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00131302  
 TOTAL STOLEN: 39 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 39 MB, MAX OVERALL: 39 MB (41422848 bytes)  
 Model name: Intel Graphics UHD 630  
@@ -1492,6 +1519,12 @@ Model name: Intel HD Graphics CFL
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
+ID: 3E980003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00001000  
+TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
+  
 Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000  
 </details>
   
@@ -1516,8 +1549,14 @@ Use the Kaby Lake HD630 framebuffer (specify the framebuffer explicitly!)
 </details>
   
 ## Adjusting the brightness on a laptop  
+**Method 1**  
 Enable Clover DSDT fix `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBacklight`. A specific value is not necessary - it will be automatically injected according to the processor installed.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
+  
+**Method 2**  
+Use this ACPI table: [SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) [SSDT-PNLF.aml](https://i.applelife.ru/2019/05/450784_SSDT-PNLF.aml.zip)  
+  
+**Do not use both methods at the same time!**  
   
   
 ## Digital Audio (HDMI / DVI / DP)  

@@ -1,7 +1,11 @@
 #### General FAQ:
+- _Where is Shiki?_  
+Shiki is now part of [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+
 - _Do I need Shiki?_  
 If you have Intel Ivy CPU or newer, iTunes DRM playback does not work for you, and your GPU works with HDCP, you may try it.  
-Sometimes it might help even improperly configured or problematic Sandy CPUs.
+Sometimes it might help even improperly configured or problematic Sandy CPUs.  
+Starting with macOS 10.12 on Ivy Bridge and newer viewing HD movies on iTunes is not possible without a discrete card.  
 
 - _How to disable Shiki?_  
 Add `-shikioff` argument to boot-args. It will also not load when -x or -s are set.
@@ -34,7 +38,7 @@ There is a ticklist to check against for all sorts of configurations. See config
 You may theoretically not do this but the consequences will be unspecified.
 
 - _Which GPUs this solution is known to glitch with?_
-   - Azul GPUs (e.g. HD 4400, HD 4600) when used with a connector-full platform-id without a discrete GPU fail to play HD videos due to not working HDCP playback. The issue is unrelated to Shiki, and you need [IntelGraphicsFixup.kext](https://sourceforge.net/p/intelgraphicsfixup) to avoid freezes.
+   - Azul GPUs (e.g. HD 4400, HD 4600) when used with a connector-full platform-id without a discrete GPU fail to play HD videos due to not working HDCP playback. The issue is unrelated to Shiki, and you need [WhateverGreen](https://github.com/acidanthera/WhateverGreen) to avoid freezes.
 
 - _Is my computer banned?_  
 If you are able to view the trailers but bought movies do not play even after computer authorisation your NIC MAC might be banned. Sometimes it is possible to log out and reauthorise your computer after a short while. Otherwise you must change your LAN MAC address.
@@ -61,7 +65,7 @@ It may be possible and can be discussed.
 
 #### System configuration FAQ:
 - _How can I check that hardware video decoding works?_  
-Run an existing build of [VDADecoderChecker for 10.11](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-2#post-595056)/[VDADecoderChecker for 10.12](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-26#post-647746) (or compile [yourself](https://github.com/cylonbrain/VDADecoderCheck)) and check its output:  
+Run an existing build of [VDADecoderChecker for 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker for 10.12](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (or compile [yourself](https://github.com/cylonbrain/VDADecoderCheck)) and check its output:  
 `GVA info: Successfully connected to the Intel plugin, offline Gen75`  
 `Hardware acceleration is fully supported`
 
@@ -105,7 +109,7 @@ Afterwards make sure AppleGVA sigature is valid (the command should output nothi
 If it is not, restore AppleGVA.framework from a newly installed system with the correct permissions.  
 Reboot twice.
 
-- _How can I change my NIC MAC address via [libHookMac.dylib](https://github.com/vit9696/Shiki/raw/master/HookMac/libHookMac.dylib)?_  
+- _How can I change my NIC MAC address via [HookMac](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/HookMac)?_  
    - Disable SIP (System Integrity Protection);  
    - Run in Terminal (specifying your own random MAC):   
     `DYLD_INSERT_LIBRARIES=/full/path/to/libHookMac.dylib MAC=00:11:22:33:44:55 /Applications/iTunes.app/Contents/MacOS/iTunes`;
@@ -125,26 +129,27 @@ To check that read `/System/Library/PrivateFrameworks/AppleGVA.framework/Info.pl
 Add `shikigva=1` argument to boot-args.
 
 - _How can I inject IOVARendererID/IOVARendererSubID in certain NVIDIA GPUs?_  
-NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  
+NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell and Pascal GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  
 IOVARendererID    → `<08 00 04 01>`  
 IOVARendererSubID → `<03 00 00 00>`  
 VP3 ones want a different IOVARendererID → `<04 00 04 01>`.  
-Thanks to igork for noticing it. You may use [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) Lilu plugin starting with 1.2.0 to do this automatically.  
-Intel Skylake and newer processors require an AppleGVA patch to be compatible with NVIDIA GPUs, you may use `shikigva=4` boot argument for that.
-
+Thanks to igork for noticing it. You may use [WhateverGreen](https://github.com/acidanthera/WhateverGreen) Lilu plugin to do this automatically.  
+  
+- _Compatibility with discrete cards in unsupported configurations (NVIDIA + SNB/SKL/KBL; AMD + IVY)_, for some applications is fixed by [WhateverGreen](https://github.com/acidanthera/WhateverGreen) Lilu plugin. Starting with macOS 10.13.4 the problem is gone.  
+  
 - _I cannot get VDA decoder work with my AMD GPU, what could I try?_  
 Prioritising Intel and using connector-full platform-id (e.g. `<03 00 66 01>` for HD 4000, `<03 00 22 0D>` for HD 4600) seems to help with certain AMD GPUs (e.g. HD 7750).
 
 - _I get hardware accelerated decoding working on my AMD with forced ATI decoder but DRM decoding still does not work, what is up?_  
 Certain AMD GPUs, e. g. HD 7750, do support hardware accelerated video decoding but fail to decode DRM video. The cause is unknown. Use Shiki normally.
 
-- _What is [BoardHash](https://github.com/vit9696/Shiki/raw/master/BoardHash/BoardHash) tool for?_  
+- _What is [BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash) tool for?_  
 BoardHash tool can generate mac board id hashes similar to the ones present in CoreAUC.framework (_PsZXJ2EK7ifxrtgc function).  
 For example, Mac-F221BEC8 (MacPro5,1) stands for 5f571162ce99350785007863627a096bfa11c81b.  
 It seems to have hashes of the macs with special HDCP permissions. E. g. it is known that MacPro5,1 model makes HD movies work on HD 4000 regardless of decoder state. 
 
 - _How can I disable PAVP/HDCP on Intel Azul (HD 4400, HD 4600) and Skylake (HD 530) GPUs?_  
-Consider using [IntelGraphicsFixup.kext](https://sourceforge.net/p/intelgraphicsfixup) to disable PAVP/HDCP and avoid freezes.
+Consider using [WhateverGreen](https://github.com/acidanthera/WhateverGreen) to disable PAVP/HDCP and avoid freezes.
 
 #### Configuration checklist
 

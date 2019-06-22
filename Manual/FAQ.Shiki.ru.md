@@ -1,6 +1,11 @@
 #### Общий FAQ:
+- _Где вообще Shiki?_  
+Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+
 - _Для чего нужен Shiki?_  
-Если у вас Intel Ivy процессор или новее, воспроизведение iTunes DRM контента не работает, но ваш GPU поддерживает HDCP, вы можете попробовать исправить ситуацию с помощью Shiki.
+Если у вас Intel Ivy процессор или новее, воспроизведение iTunes DRM контента не работает, но ваш GPU поддерживает HDCP, вы можете попробовать исправить ситуацию с помощью Shiki.  
+В некоторых случаях Shiki полезен и для Sandy.  
+Начиная с 10.12 на Ivy Bridge и новее без дискретной видеокарты просмотр HD фильмов в iTunes невозможен.  
 
 - _Как отключить загрузку Shiki?_  
 Добавьте `-shikioff` в аргументы загрузки ядра (boot-args). Также он не загружается, если вписан аргумент -x или -s.
@@ -32,7 +37,7 @@
 Вы теоретически можете этого не делать, но работа системы может быть непредсказуема.
 
 - _Какие видеокарты (GPU) поддерживаются с недочётами?_  
-   - Видеокарты, использующие фреймбуферы Azul (например, HD 4400, HD4600), при использовании полноценного завода в режиме единственного GPU (без дискретной видеокарты) не могут проигрывать HD видео. Это связано с некорректно работающим HDCP на этих картах. Проблема не имеет отношения к Shiki, и для предотвращения зависаний требуется [IntelGraphicsFixup.kext](https://sourceforge.net/p/intelgraphicsfixup).
+   - Видеокарты, использующие фреймбуферы Azul (например, HD 4400, HD4600), при использовании полноценного завода в режиме единственного GPU (без дискретной видеокарты) не могут проигрывать HD видео. Это связано с некорректно работающим HDCP на этих картах. Проблема не имеет отношения к Shiki, и для предотвращения зависаний требуется [WhateverGreen](https://github.com/acidanthera/WhateverGreen).
 
 - _Мой компьютер забанили?_  
 Если вы можете просматривать трейлеры, но купленные фильмы не проигрываются даже после авторизации компьютера, возможно, ваш MAC адрес сетевой карты забанили. Иногда это проходит через некоторое время само, иногда нужно войти и выйти или сбросить конфигурацию DRM. Если ничего не помогает, стоит изменить LAN MAC адрес. Смотрите подробности использования libHookMac во второй части FAQ. Если вам это помогло, стоит перепрошивать сетевую карту другим MAC адресом.
@@ -58,7 +63,7 @@
 
 #### FAQ по настройке системы:
 - _Как мне проверить, что аппаратное декодирование видео работает?_  
-Выполните собранную утилиту [VDADecoderChecker для 10.11](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-2#post-595056)/[VDADecoderChecker для 10.12](https://applelife.ru/threads/shiki-patcher-polzovatelskogo-urovnja.1349123/page-26#post-647746) (или соберите [сами](https://github.com/cylonbrain/VDADecoderCheck)) и проверьте вывод:  
+Выполните собранную утилиту [VDADecoderChecker для 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker для 10.12](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (или соберите [сами](https://github.com/cylonbrain/VDADecoderCheck)) и проверьте вывод:  
 `GVA info: Successfully connected to the Intel plugin, offline Gen75`  
 `Hardware acceleration is fully supported` (Аппаратное ускорение полностью поддерживается)
 
@@ -102,7 +107,7 @@
 Если это не так, восстановите AppleGVA.framework из другой системы с правильными правами.  
 Перезагрузитесь дважды.
 
-- _Как мне изменить MAC адрес сетевой карты с помощью [libHookMac.dylib](https://github.com/vit9696/Shiki/raw/master/HookMac/libHookMac.dylib)?_  
+- _Как мне изменить MAC адрес сетевой карты с помощью [libHookMac](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/HookMac)?_  
    - Выключите SIP (System Integrity Protection);  
    - Запустите Терминал (указав свой случайный MAC адрес):  
    `DYLD_INSERT_LIBRARIES=/full/path/to/libHookMac.dylib MAC=00:11:22:33:44:55 /Applications/iTunes.app/Contents/MacOS/iTunes`;  
@@ -122,25 +127,26 @@
 Добавьте `shikigva=1` в аргументы загрузки ядра.
 
 - _Как можно сделать инжекцию IOVARendererID/IOVARendererSubID в некоторых видеокартах NVIDIA?_  
-Веб драйвера NVIDIA могут не добавлять эти значения для карт на архитектуре Maxwell. Вы можете их добавить в кекст состоящий из одного plist (legacy) сами. Правильными значениями для VP4 графических процессоров являются:  
+Веб драйвера NVIDIA могут не добавлять эти значения для карт на архитектуре Maxwell и Pascal. Вы можете их добавить в кекст состоящий из одного plist (legacy) сами. Правильными значениями для VP4 графических процессоров являются:  
 IOVARendererID → `<08 00 04 01>`  
 IOVARendererSubID → `<03 00 00 00>`  
 Для VP3 нужны другие цифры IOVARendererID → `<04 00 04 01>`.  
-Спасибо igork, что заметил это. Также можно использовать плагин Lilu [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) версии 1.2.0 и новее для автоматиизации этого процесса.  
-Процессорам Intel Skylake и новее также требуется патч AppleGVA для совместимости с видеокартами NVIDIA, используйте аргумент загрузки `shikigva=4` для этого.
-
+Спасибо igork, что заметил это. Также можно использовать плагин Lilu [WhateverGreen](https://github.com/acidanthera/WhateverGreen) для автоматиизации этого процесса.  
+  
+- _Совместимость с дискретной видеокартой для неподдерживаемых конфигураций (NVIDIA+SNB/SKL/KBL, AMD+IVY)_, для некоторых приложений решается с помощью плагина Lilu [WhateverGreen](https://github.com/acidanthera/WhateverGreen), начиная с macOS 10.13.4 проблема отсутствует.  
+  
 - _Мне не удалось завести VDA декодер на моей видеокарте AMD, что можно попробовать еще?_  
 Стоит выставить приоритет для встроенной графики Intel в BIOS и использовать platform-id с коннекторами (например, `<03 00 66 01>` для HD 4000 или `<03 00 22 0D>` для HD 4600). Кажется, это помогает с некоторыми видеокартами AMD (например, HD 7750).
 
 - _На моей карте AMD работает декодер аппаратного ускорения, если включить его в терминале, но DRM декодирование до сих пор не работает, что делать?_  
 Некоторые видеокарты AMD, например HD 7750, поддерживают декодирование аппаратным ускорением, но не могут декодировать DRM видео. Причина неизвестна. Используйте обычный режим Shiki.
 
-- _Что делает утилита [BoardHash](https://github.com/vit9696/Shiki/raw/master/BoardHash/BoardHash)?_  
+- _Что делает утилита [BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash)?_  
 BoardHash может генерировать хэши board id моделей Mac по аналогии с теми, что присутствуют в CoreAUC.framework (функция _PsZXJ2EK7ifxrtgc). Например, для Mac-F221BEC8 (MacPro5,1) это 5f571162ce99350785007863627a096bfa11c81b.  
 Кажется, это хэши маков со специальными правами HDCP. Например, известно, что с Mac моделью MacPro5,1 будут работать HD фильмы на HD4000 вне зависимости от состояния декодера.
 
 - _Как отключить PAVP/HDCP на Intel Azul (HD 4400, HD 4600) и Skylake (HD 530)?_  
-Для отключения HDCP/PAVP и предотвращения зависаний рекомендуется использовать [IntelGraphicsFixup.kext](https://sourceforge.net/p/intelgraphicsfixup).
+Для отключения HDCP/PAVP и предотвращения зависаний рекомендуется использовать [WhateverGreen](https://github.com/acidanthera/WhateverGreen).
 
 
 #### Проверка конфигурации

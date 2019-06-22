@@ -21,3 +21,6 @@ In case of custom AppleBacklight profile is necessary (e.g. via `AppleBacklightI
 - Disable WhateverGreen backlight patches via `applbkl=0` boot argument  
 - Specify injector `IOProbeScore` (in injector Info.plist) equal to `5500`  
   
+NoVPAJpeg.kext is deprecated.  
+In case its functionality is needed, add the following boot arguments:  
+`shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94﻿`

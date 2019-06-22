@@ -355,6 +355,11 @@ private:
 	 */
 	static bool wrapATIControllerStart(IOService *ctrl, IOService *provider);
 	static bool wrapLegacyATIControllerStart(IOService *ctrl, IOService *provider);
+
+	/**
+	 *  Wrapped polaris controller project creator
+	 */
+	static IOReturn findProjectByPartNumber(IOService *ctrl, void *properties);
 };
 
 #endif /* kern_rad_hpp */

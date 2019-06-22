@@ -59,6 +59,8 @@ void NGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::NVIDIA) {
 			hasNVIDIA = true;
+			if (info->videoExternal[i].video->getProperty("disable-gfx-submit"))
+				fifoSubmit = 0;
 			break;
 		}
 	}
@@ -107,16 +109,15 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 }
 
 void NGFX::restoreLegacyOptimisations(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	if (getKernelVersion() < KernelVersion::HighSierra) {
-		DBGLOG("ngfx", "not bothering vaddr presubmit performance fix on pre-10.13");
+	if (getKernelVersion() < KernelVersion::HighSierra || getKernelVersion() > KernelVersion::Mojave) {
+		DBGLOG("ngfx", "not bothering vaddr presubmit performance fix on pre-10.13 and past 10.14");
 		return;
 	}
 
-	int fifoSubmit = 1;
 	PE_parse_boot_argn("ngfxsubmit", &fifoSubmit, sizeof(fifoSubmit));
 	DBGLOG("ngfx", "read legacy fifo submit as %d", fifoSubmit);
 
-	if (!fifoSubmit) {
+	if (fifoSubmit == 0) {
 		DBGLOG("ngfx", "vaddr presubmit performance fix was disabled manually");
 		return;
 	}

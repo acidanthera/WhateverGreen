@@ -259,6 +259,31 @@
 				</dict>
 			</array>
 		</dict>
+		<dict>
+			<key>Path</key>
+			<string>/System/Library/PrivateFrameworks/AppleVPA.framework/Versions/A/AppleVPA</string>
+			<key>Patches</key>
+			<array>
+				<dict>
+					<key>Comment</key>
+					<string>board-id -> shiki-id (normally for iMac14,2)</string>
+					<key>CPU</key>
+					<string>CPU_TYPE_X86_64</string>
+					<key>Find</key>
+					<data>Ym9hcmQtaWQA</data>
+					<key>Replace</key>
+					<data>c2hpa2ktaWQA</data>
+					<key>Skip</key>
+					<integer>0</integer>
+					<key>Count</key>
+					<integer>1</integer>
+					<key>Section</key>
+					<string>BOARDID</string>
+					<key>Segment</key>
+					<string>TextCstring</string>
+				</dict>
+			</array>
+		</dict>
 	</array>
 	<key>Processes</key>
 	<array>

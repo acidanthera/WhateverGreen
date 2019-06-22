@@ -60,7 +60,7 @@ private:
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
 		DisabledUnused16           = 16,
-		// Replace board-id used by AppleGVA by a different board-id.
+		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
 		// By default Mac-27ADBB7B4CEE8E61 (iMac14,2) will be used, but you can override this via shiki-id boot-arg.
 		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.

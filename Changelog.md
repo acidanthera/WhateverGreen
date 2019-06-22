@@ -1,5 +1,20 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.0
+- Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald
+- Added `disable-gfx-submit` property to back `ngfxsubmit=0` boot argument
+- Added GuC firmware loading patch for latest SKL+ drivers
+- Allow loading on 10.15 without `-lilubetaall`
+- Disabled NVIDIA performance fix on 10.15, as it now is built-in
+- Enable HDMI 2.0 patches on 10.14+ (Use at own risk in case of undiscovered change)
+- Added CFL graphics kernel panic workaround on 10.14.4+
+
+#### v1.2.9
+- Added AMD Radeon VII to detected list
+- Disabled automatic framebuffer usage on Polaris GPUs
+- Added `preserve-names` device property to preserve current GPU names
+- Added `AppleVPA` patching support, replaces NoVPAJpeg.kext (thx CMMChris and uglyJoe)
+
 #### v.1.2.8
 - Added KBL graphics kernel panic workaround on 10.14.4+
 - Added IGPU DPDCD link incompatible rate patch (thanks @Firewolf)

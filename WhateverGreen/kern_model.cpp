@@ -86,6 +86,10 @@ static constexpr Model dev665d[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 260"}
 };
 
+static constexpr Model dev66af[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x00c1, "AMD Radeon VII"}
+};
+
 static constexpr Model dev6704[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD FirePro V7900"}
 };
@@ -746,6 +750,7 @@ static constexpr DevicePair devices[] {
 	{0x6647, dev6647, arrsize(dev6647)},
 	{0x665c, dev665c, arrsize(dev665c)},
 	{0x665d, dev665d, arrsize(dev665d)},
+	{0x66af, dev66af, arrsize(dev66af)},
 	{0x6704, dev6704, arrsize(dev6704)},
 	{0x6718, dev6718, arrsize(dev6718)},
 	{0x6719, dev6719, arrsize(dev6719)},

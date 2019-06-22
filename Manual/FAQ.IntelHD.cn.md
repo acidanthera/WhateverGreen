@@ -1383,10 +1383,13 @@ CFL 平台可用的 FB 列表：
 - 0x3E000000 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3E9B0000 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3EA50004 (移动版，3 端口，无 FBMEM，58 MB)
+- 0x3EA50005 (移动版，3 端口，无 FBMEM，58 MB)
+- 0x3EA60005 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3E9B0006 (移动版，1 端口，无 FBMEM，39 MB)
 - 0x3E9B0007 (桌面版，3 端口，无 FBMEM，58 MB)
 - 0x3E920003 (桌面版，无端口，无 FBMEM，1 MB)
 - 0x3E910003 (桌面版，无端口，无 FBMEM，1 MB)
+- 0x3E980003 (桌面版，无端口，无 FBMEM，1 MB)
 
 译者注：此处内容（“CFL 平台详细信息”）可能不必翻译至中文。
 <details>
@@ -1488,7 +1491,31 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 00000800 02000000 98040000  
 01050900 00040000 C7030000  
 02040A00 00040000 C7030000  
+
+ID: 0x3EA50005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)
+Model name: Intel HD Graphics CFL
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz
+Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS
+[1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP
+[2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x000003C7 - ConnectorDP
+00000800 02000000 98040000
+01050900 00040000 C7030000
+02040A00 00040000 C7030000
   
+ID: 0x3EA60005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)
+Model name: Intel HD Graphics CFL
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz
+Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS
+[1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP
+[2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x000003C7 - ConnectorDP
+00000800 02000000 98040000
+01050900 00040000 C7030000
+02040A00 00040000 C7030000
+
 ID: 0x3E9B0006, STOLEN: 38 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00131302  
 TOTAL STOLEN: 39 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 39 MB, MAX OVERALL: 39 MB (41422848 bytes)  
 Model name: Intel Graphics UHD 630  
@@ -1519,7 +1546,13 @@ ID: 0x3E910003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x0000100
 TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
 Model name: Intel HD Graphics CFL  
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
-Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
+Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0
+
+ID: 0x3E980003, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00001000
+TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB
+Model name: Intel HD Graphics CFL
+Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz
+Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0
   
 注意：在不指定 `AAPL,ig-platform-id` 时，默认使用 `0x3EA50000`。
 </details>
@@ -1556,11 +1589,17 @@ macOS High Sierra 10.13.6 的特别版本 17G2208 包含对 CFL 平台核显的�
 </details> 
 
 ## 调节笔记本亮度
+**方案一**
 启用 Clover 中名为 `AddPNLF` 的 DSDT 补丁与 `SetIntelBacklight`, `SetIntelMaxBacklight` 两项。（如图所示）
 
 无需为其赋值，Clover 会根据相应的处理器型号自动适配。
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
+
+**方案二**
+使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/05/450784_SSDT-PNLF.aml.zip))
+
+**两种方案不要同时使用！**
 
 ## 数字音频支持 (HDMI / DVI / DP)
 若要启用数字音频，需要设置必要的属性，通常还需要修正端口信息。

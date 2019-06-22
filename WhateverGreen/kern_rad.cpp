@@ -25,7 +25,8 @@ static const char *pathRadeonX4100[]        { "/System/Library/Extensions/AMDRad
 static const char *pathRadeonX4150[]        { "/System/Library/Extensions/AMDRadeonX4150.kext/Contents/MacOS/AMDRadeonX4150" };
 static const char *pathRadeonX4200[]        { "/System/Library/Extensions/AMDRadeonX4200.kext/Contents/MacOS/AMDRadeonX4200" };
 static const char *pathRadeonX4250[]        { "/System/Library/Extensions/AMDRadeonX4250.kext/Contents/MacOS/AMDRadeonX4250" };
-static const char *kextRadeonX5000[]        { "/System/Library/Extensions/AMDRadeonX5000.kext/Contents/MacOS/AMDRadeonX5000" };
+static const char *pathRadeonX5000[]        { "/System/Library/Extensions/AMDRadeonX5000.kext/Contents/MacOS/AMDRadeonX5000" };
+static const char *patchPolarisController[] { "/System/Library/Extensions/AMD9500Controller.kext/Contents/MacOS/AMD9500Controller" };
 
 static const char *idRadeonX3000New {"com.apple.kext.AMDRadeonX3000"};
 static const char *idRadeonX4000New {"com.apple.kext.AMDRadeonX4000"};
@@ -45,6 +46,8 @@ static KernelPatcher::KextInfo kextRadeonSupport
 { "com.apple.kext.AMDSupport", pathSupport, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextRadeonLegacySupport
 { "com.apple.kext.AMDLegacySupport", pathLegacySupport, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextPolarisController
+{ "com.apple.kext.AMD9500Controller", patchPolarisController, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -53,7 +56,7 @@ static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX4200] = { idRadeonX4200New, pathRadeonX4200, arrsize(pathRadeonX4200), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4250] = { idRadeonX4250New, pathRadeonX4250, arrsize(pathRadeonX4250), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4000] = { idRadeonX4000New, pathRadeonX4000, arrsize(pathRadeonX4000), {}, {}, KernelPatcher::KextInfo::Unloaded },
-	[RAD::IndexRadeonHardwareX5000] = { idRadeonX5000New, kextRadeonX5000, arrsize(kextRadeonX5000), {}, {}, KernelPatcher::KextInfo::Unloaded }
+	[RAD::IndexRadeonHardwareX5000] = { idRadeonX5000New, pathRadeonX5000, arrsize(pathRadeonX5000), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 /**
@@ -104,6 +107,8 @@ void RAD::init() {
 	// Mojave dropped legacy GPU support (5xxx and 6xxx).
 	if (getKernelVersion() < KernelVersion::Mojave)
 		lilu.onKextLoadForce(&kextRadeonLegacySupport);
+	else
+		lilu.onKextLoadForce(&kextPolarisController);
 
 	initHardwareKextMods();
 
@@ -169,6 +174,11 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	if (kextRadeonLegacySupport.loadIndex == index) {
 		processConnectorOverrides(patcher, address, size, false);
 		return true;
+	}
+
+	if (kextPolarisController.loadIndex == index) {
+		KernelPatcher::RouteRequest request("__ZN17AMD9500Controller23findProjectByPartNumberEP20ControllerProperties", findProjectByPartNumber);
+		patcher.routeMultiple(index, &request, 1, address, size);
 	}
 
 	for (size_t i = 0; i < maxHardwareKexts; i++) {
@@ -496,7 +506,7 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 			if (consPtr && consSize > 0 && *sz > 0 && RADConnectors::valid(consSize, *sz)) {
 				RADConnectors::copy(connectors, *sz, static_cast<const RADConnectors::Connector *>(consPtr), consSize);
 				DBGLOG("rad", "getConnectorsInfo installed %u connectors", *sz);
-				applyPropertyFixes(ctrl, consSize);
+				applyPropertyFixes(ctrl, *sz);
 			} else {
 				DBGLOG("rad", "getConnectorsInfo conoverrides have invalid size %u for %u num", consSize, *sz);
 			}
@@ -713,13 +723,17 @@ OSObject *RAD::wrapGetProperty(IORegistryEntry *that, const char *aKey) {
 
 			if (prefix) {
 				DBGLOG("rad", "GetProperty discovered property merge request for %s", aKey);
-				auto newProps = OSDynamicCast(OSDictionary, props->copyCollection());
-				if (newProps) {
-					callbackRAD->mergeProperties(newProps, prefix, provider);
-					that->setProperty(aKey, newProps);
-					newProps->release();
-					obj = newProps;
+				auto rawProps = props->copyCollection();
+				if (rawProps) {
+					auto newProps = OSDynamicCast(OSDictionary, rawProps);
+					if (newProps) {
+						callbackRAD->mergeProperties(newProps, prefix, provider);
+						that->setProperty(aKey, newProps);
+						obj = newProps;
+					}
+					rawProps->release();
 				}
+
 			}
 		}
 	}
@@ -855,4 +869,11 @@ bool RAD::wrapLegacyATIControllerStart(IOService *ctrl, IOService *provider) {
 	callbackRAD->currentLegacyPropProvider.erase();
 
 	return r;
+}
+
+IOReturn RAD::findProjectByPartNumber(IOService *ctrl, void *properties) {
+	// Drivers have predefined framebuffers for the following models:
+	// 113-4E353BU, 113-4E3531U, 113-C94002A1XTA
+	// Despite this looking sane, at least with Sapphire 113-4E353BU-O50 (RX 580) these framebuffers break connectors.
+	return kIOReturnNotFound;
 }
