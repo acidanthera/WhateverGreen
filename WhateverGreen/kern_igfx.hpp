@@ -250,7 +250,7 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::ReadAUX function
 	 */
-	int (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
+	IOReturn (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
 	
 	/**
 	 *	Original AppleIntelFramebufferController::ReadI2COverAUX function
@@ -482,7 +482,7 @@ private:
 	/**
 	 *  ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
 	 */
-	static int wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
+	static IOReturn wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
 	
 	/**
 	 *	Represents the register layouts of DisplayPort++ adapter at I2C address 0x40

@@ -646,7 +646,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 /**
  *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
  */
-int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
+IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
 	
 	//
 	// Abstract:
@@ -667,7 +667,7 @@ int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address
 	// Phase 2: https://www.firewolf.science/2018/11/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-nearly-ultimate-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
 	
 	// Call the original ReadAUX() function to read from DPCD
-	int retVal = callbackIGFX->orgReadAUX(that, framebuffer, address, length, buffer, displayPath);
+	IOReturn retVal = callbackIGFX->orgReadAUX(that, framebuffer, address, length, buffer, displayPath);
 	
 	// Guard: Check the DPCD register address
 	// The first 16 fields of the receiver capabilities reside at 0x0 (DPCD Register Address)
