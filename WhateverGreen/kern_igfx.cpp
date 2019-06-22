@@ -1051,9 +1051,9 @@ IOReturn IGFX::LSPCON::wakeUpNativeAUX() {
 
 IOReturn IGFX::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate, uint8_t flags) {
 	if (callbackIGFX->verboseI2C) {
-		auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+		auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"))->unsigned32BitValue();
 		DBGLOG("igfx", "SC:  ReadI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = %d.",
-			   index->unsigned32BitValue(), address, length, intermediate, flags);
+			   index, address, length, intermediate, flags);
 		IOReturn retVal = callbackIGFX->orgReadI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate, flags);
 		DBGLOG("igfx", "SC:  ReadI2COverAUX() returns 0x%x.", retVal);
 		return retVal;
@@ -1064,9 +1064,9 @@ IOReturn IGFX::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void
 
 IOReturn IGFX::wrapWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate) {
 	if (callbackIGFX->verboseI2C) {
-		auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+		auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"))->unsigned32BitValue();
 		DBGLOG("igfx", "SC: WriteI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = 0",
-			   index->unsigned32BitValue(), address, length, intermediate);
+			   index, address, length, intermediate);
 		IOReturn retVal = callbackIGFX->orgWriteI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate);
 		DBGLOG("igfx", "SC: WriteI2COverAUX() returns 0x%x.", retVal);
 		return retVal;
