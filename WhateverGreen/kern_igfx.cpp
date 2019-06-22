@@ -165,6 +165,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			dumpPlatformTable = true;
 #endif
 		
+		// Enable the fix for computing HDMI dividers on SKL, KBL, CFL platforms if the corresponding boot argument is found
+		hdmiP0P1P2Patch = checkKernelArgument("-igfxhdmidivs");
+		
 		// Enable the LSPCON driver support if the corresponding boot argument is found
 		supportLSPCON = checkKernelArgument("-igfxlspcon");
 		// Or if "enable-lspcon-support" is set in IGPU property
@@ -256,7 +259,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !supportLSPCON;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -402,6 +405,22 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "MLR: Failed to find ReadAUX().");
+			}
+		}
+		
+		if (hdmiP0P1P2Patch) {
+			auto ppp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", address, size);
+			if (ppp) {
+				patcher.eraseCoverageInstPrefix(ppp);
+				orgComputeHdmiP0P1P2 = reinterpret_cast<decltype(orgComputeHdmiP0P1P2)>(patcher.routeFunction(ppp, reinterpret_cast<mach_vm_address_t>(wrapComputeHdmiP0P1P2), true));
+				if (orgComputeHdmiP0P1P2) {
+					DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() has been routed successfully.");
+				} else {
+					patcher.clearError();
+					SYSLOG("igfx", "SC: Failed to route ComputeHdmiP0P1P2().");
+				}
+			} else {
+				SYSLOG("igfx", "SC: Failed to find ComputeHdmiP0P1P2().");
 			}
 		}
 		
@@ -700,6 +719,193 @@ IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t ad
 	DBGLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
 	
 	return retVal;
+}
+
+void IGFX::populateP0P1P2(struct ProbeContext *context) {
+	uint32_t p = context->divider;
+	uint32_t p0 = 0;
+	uint32_t p1 = 0;
+	uint32_t p2 = 0;
+	
+	// Even divider
+	if (p % 2 == 0) {
+		unsigned int half = p / 2;
+		if (half == 1 || half == 2 || half == 3 || half == 5) {
+			p0 = 2;
+			p1 = 1;
+			p2 = half;
+		} else if (half % 2 == 0) {
+			p0 = 2;
+			p1 = half / 2;
+			p2 = 2;
+		} else if (half % 3 == 0) {
+			p0 = 3;
+			p1 = half / 3;
+			p2 = 2;
+		} else if (half % 7 == 0) {
+			p0 = 7;
+			p1 = half / 7;
+			p2 = 2;
+		}
+	}
+	// Odd divider
+	else if (p == 3 || p == 9) {
+		p0 = 3;
+		p1 = 1;
+		p2 = p / 3;
+	} else if (p == 5 || p == 7) {
+		p0 = p;
+		p1 = 1;
+		p2 = 1;
+	} else if (p == 15) {
+		p0 = 3;
+		p1 = 1;
+		p2 = 5;
+	} else if (p == 21) {
+		p0 = 7;
+		p1 = 1;
+		p2 = 3;
+	} else if (p == 35) {
+		p0 = 7;
+		p1 = 1;
+		p2 = 5;
+	}
+	
+	context->pdiv = p0;
+	context->qdiv = p1;
+	context->kdiv = p2;
+}
+
+int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters)
+{
+	//
+	// Abstract
+	//
+	// ComputeHdmiP0P1P2 is used to compute required parameters to establish the HDMI connection.
+	// Apple's original implementation cannot find appropriate dividers for a higher pixel clock
+	// value like 533.25 MHz (HDMI 2.0 4K @ 60Hz) and then causes an infinite loop in the kernel.
+	//
+	// This reverse engineering research focuses on identifying fields in CRTC parameters by
+	// carefully analyzing Apple's original implementation, and a better implementation that
+	// conforms to Intel Graphics Programmer Reference Manual is provided to fix the issue.
+	//
+	// This is the first stage to try to solve the HDMI output issue on Dell XPS 15 9570,
+	// and is now succeeded by the LSPCON driver solution.
+	// When the onboard LSPCON chip is running in LS mode, macOS recognizes the HDMI port as
+	// a HDMI port. Consequently, ComputeHdmiP0P1P2() is called by SetupClock() to compute
+	// the parameters for the connection.
+	// In comparison, when the chip is running in PCON mode, macOS recognizes the HDMI port as
+	// a DisplayPort port. As a result, this method is never called by SetupClock().
+	//
+	// This fix is left here as an emergency fallback and for reference purposes,
+	// and is compatible for graphics on Skylake, Kaby Lake and Coffee Lake platforms.
+	//
+	// It is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.
+	//
+	// - FireWolf
+	// - 2019.06
+	//
+	
+	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Called with pixel clock = %d Hz.", pixelClock);
+	
+	/// All possible dividers
+	static constexpr uint32_t dividers[] = {
+		// Even dividers
+		4,  6,  8, 10, 12, 14, 16, 18, 20,
+		24, 28, 30, 32, 36, 40, 42, 44, 48,
+		52, 54, 56, 60, 64, 66, 68, 70, 72,
+		76, 78, 80, 84, 88, 90, 92, 96, 98,
+		
+		// Odd dividers
+		3, 5, 7, 9, 15, 21, 35
+	};
+	
+	/// All possible central frequency values
+	static constexpr uint64_t centralFrequencies[3] = {8400000000ULL, 9000000000ULL, 9600000000ULL};
+	
+	// Calculate the AFE clock
+	uint64_t afeClock = pixelClock * 5;
+	
+	// Prepare the context for probing P0, P1 and P2
+	struct ProbeContext context;
+	bzero(&context, sizeof(struct ProbeContext));
+	
+	// Apple chooses 400 as the initial minimum deviation
+	// However 400 is too small for a pixel clock like 533.25 MHz (HDMI 2.0 4K @ 60Hz)
+	// Raise the value to UInt64 MAX
+	// It's OK because the deviation is still bound by MAX_POS_DEV and MAX_NEG_DEV.
+	context.minDeviation = UINT64_MAX;
+	
+	for (int dindex = 0; dindex < sizeof(dividers) / sizeof(int); dindex++) {
+		for (int cfindex = 0; cfindex < sizeof(centralFrequencies) / sizeof(uint64_t); cfindex++) {
+			int divider = dividers[dindex];
+			uint64_t central = centralFrequencies[cfindex];
+			// Calculate the current DCO frequency
+			uint64_t frequency = divider * afeClock;
+			// Calculate the deviation
+			uint64_t deviation = (frequency > central ? frequency - central : central - frequency) * 10000 / central;
+			DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Dev = %6llu; Central = %10llu Hz; DCO Freq = %12llu Hz; Divider = %2d.\n", deviation, central, frequency, divider);
+			
+			// Guard: Positive deviation is within the allowed range
+			if (frequency >= central && deviation >= SKL_DCO_MAX_POS_DEVIATION)
+				continue;
+			
+			// Guard: Negative deviation is within the allowed range
+			if (frequency < central && deviation >= SKL_DCO_MAX_NEG_DEVIATION)
+				continue;
+			
+			// Guard: Less than the current minimum deviation value
+			if (deviation >= context.minDeviation)
+				continue;
+			
+			// Found a better one
+			// Update the value
+			context.minDeviation = deviation;
+			context.central = central;
+			context.frequency = frequency;
+			context.divider = divider;
+			DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: FOUND: Min Dev = %8llu; Central = %10llu Hz; Freq = %12llu Hz; Divider = %d\n", deviation, central, frequency, divider);
+			
+			// Guard: Check whether the new minmimum deviation has been reduced to 0
+			if (deviation != 0)
+				continue;
+			
+			// Guard: An even divider is preferred
+			if (divider % 2 == 0) {
+				DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Found an even divider [%d] with deviation 0.\n", divider);
+				break;
+			}
+		}
+	}
+	
+	// Guard: A valid divider has been found
+	if (context.divider == 0) {
+		SYSLOG("igfx", "SC: ComputeHdmiP0P1P2() Error: Cannot find a valid divider for the given pixel clock %d Hz.\n", pixelClock);
+		return 0;
+	}
+	
+	// Calculate the p,q,k dividers
+	populateP0P1P2(&context);
+	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Divider = %d --> P0 = %d; P1 = %d; P2 = %d.\n", context.divider, context.pdiv, context.qdiv, context.kdiv);
+	
+	// Calculate the CRTC parameters
+	uint32_t multiplier = (uint32_t) (context.frequency / 24000000);
+	uint32_t fraction = (uint32_t) (context.frequency - multiplier * 24000000);
+	uint32_t cf15625 = (uint32_t) (context.central / 15625);
+	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Multiplier = %d; Fraction = %d; CF15625 = %d.\n", multiplier, fraction, cf15625);
+	auto params = reinterpret_cast<CRTCParams*>(parameters);
+	if (params == nullptr) {
+		DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() Error: Failed to cast the given CRTC parameter pointer.");
+		return 0;
+	}
+	params->pdiv = context.pdiv;
+	params->qdiv = context.qdiv;
+	params->kdiv = context.kdiv;
+	params->multiplier = multiplier;
+	params->fraction = fraction;
+	params->cf15625 = cf15625;
+	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: CTRC parameters have been populated successfully.");
+	return 0;
 }
 
 IGFX::LSPCON::LSPCON(void *controller, IORegistryEntry *framebuffer, void *displayPath) {

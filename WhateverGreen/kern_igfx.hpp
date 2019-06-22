@@ -266,6 +266,11 @@ private:
 	 *	Original AppleIntelFramebufferController::GetDPCDInfo function
 	 */
 	IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *);
+	
+	/**
+	 *	Original AppleIntelFramebufferController::ComputeHdmiP0P1P2 function
+	 */
+	int (*orgComputeHdmiP0P1P2)(void *, uint32_t, void *, void *);
 
 	/**
 	 *  Detected CPU generation of the host system
@@ -308,6 +313,11 @@ private:
 	 *	Set to true to enable verbose output in I2C-over-AUX transactions
 	 */
 	bool verboseI2C {false};
+	
+	/**
+	 *	Set to true to fix the infinite loop issue when computing dividers for HDMI connections
+	 */
+	bool hdmiP0P1P2Patch {false};
 	
 	/**
 	 *  Set to true if PAVP code should be disabled
@@ -483,6 +493,116 @@ private:
 	 *  ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
 	 */
 	static IOReturn wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
+	
+	/**
+	 *	Reflect the `AppleIntelFramebufferController::CRTCParams` struct
+	 *
+	 *	@note Unlike the Intel Linux Graphics Driver,
+	 *	- Apple does not transform the `pdiv`, `qdiv` and `kdiv` fields.
+	 *	- Apple records the final central frequency divided by 15625.
+	 *	@ref static void skl_wrpll_params_populate(params:afe_clock:central_freq:p0:p1:p2:)
+	 *	@seealso https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1171
+	 */
+	struct CRTCParams
+	{
+		/// Uninvestigated fields
+		uint8_t uninvestigated[32];
+		
+		/// P0                          [`CRTCParams` field offset 0x20]
+		uint32_t pdiv;
+		
+		/// P1                          [`CRTCParams` field offset 0x24]
+		uint32_t qdiv;
+		
+		/// P2                          [`CRTCParams` field offset 0x28]
+		uint32_t kdiv;
+		
+		/// Difference in Hz            [`CRTCParams` field offset 0x2C]
+		uint32_t fraction;
+		
+		/// Multiplier of 24 MHz        [`CRTCParams` field offset 0x30]
+		uint32_t multiplier;
+		
+		/// Central Frequency / 15625   [`CRTCParams` field offset 0x34]
+		uint32_t cf15625;
+		
+		/// Other fields that are not of interest
+		uint8_t others[0];
+	};
+	
+	/**
+	 *	Represents the current context of probing dividers for HDMI connections
+	 */
+	struct ProbeContext
+	{
+		/// The current minimum deviation
+		uint64_t minDeviation;
+		
+		/// The current chosen central frequency
+		uint64_t central;
+		
+		/// The current DCO frequency
+		uint64_t frequency;
+		
+		/// The current selected divider
+		uint32_t divider;
+		
+		/// The corresponding pdiv value [P0]
+		uint32_t pdiv;
+		
+		/// The corresponding qdiv value [P1]
+		uint32_t qdiv;
+		
+		/// The corresponding kqiv value [P2]
+		uint32_t kdiv;
+	};
+	
+	/**
+	 *	The maximum positive deviation from the DCO central frequency
+	 *
+	 *	@note DCO frequency must be within +1% of the DCO central frequency.
+	 *	@warning This is a hardware requirement.
+	 *			 See "Intel Graphics Programmer Reference Manual for Kaby Lake platform"
+	 *			 Volume 12 Display, Page 134, Formula for HDMI and DVI DPLL Programming
+	 *	@link https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
+	 *	@note This value is appropriate for graphics on Skylake, Kaby Lake and Coffee Lake platforms.
+	 *	@seealso Intel Linux Graphics Driver
+	 *	https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1080
+	 */
+	static constexpr uint64_t SKL_DCO_MAX_POS_DEVIATION = 100;
+	
+	/**
+	 *	The maximum negative deviation from the DCO central frequency
+	 *
+	 *	@note DCO frequency must be within -6% of the DCO central frequency.
+	 *	@seealso See `SKL_DCO_MAX_POS_DEVIATION` above for details.
+	 */
+	static constexpr uint64_t SKL_DCO_MAX_NEG_DEVIATION = 600;
+	
+	/**
+	 *	[Helper] Compute the final P0, P1, P2 values based on the current frequency divider
+	 *
+	 *	@param context The current context for probing P0, P1 and P2.
+	 *	@note Implementation adopted from the Intel Graphics Programmer Reference Manual;
+	 *		  Volume 12 Display, Page 135, Algorithm to Find HDMI and DVI DPLL Programming.
+	 *		  Volume 12 Display, Page 135, Pseudo-code for HDMI and DVI DPLL Programming.
+	 *	@ref static void skl_wrpll_get_multipliers(p:p0:p1:p2:)
+	 *	@seealso Intel Linux Graphics Driver
+	 *	https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1112
+	 */
+	static void populateP0P1P2(struct ProbeContext* context);
+	
+	/**
+	 *	Compute dividers for a HDMI connection with the given pixel clock
+	 *
+	 *	@param that The hidden implicit `this` pointer
+	 *	@param pixelClock The pixel clock value (in Hz) used for the HDMI connection
+	 *	@param displayPath The corresponding display path
+	 *	@param parameters CRTC parameters populated on return
+	 *	@return Never used by its caller, so this method might return void.
+	 *	@note Method Signature: `AppleIntelFramebufferController::ComputeHdmiP0P1P2(pixelClock:displayPath:parameters:)`
+	 */
+	static int wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
 	
 	/**
 	 *	Represents the register layouts of DisplayPort++ adapter at I2C address 0x40
