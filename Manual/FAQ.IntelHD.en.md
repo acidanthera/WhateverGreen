@@ -1669,41 +1669,44 @@ If this property is not specified, same as above.
 Add the `-igfxhdmidivs` boot argument to fix the infinite loop when the graphics driver tries to establish a HDMI connection with a higher pixel clock rate, for example connecting to a 2K/4K display with HDMI 1.4, otherwise the system just hangs (and your builtin laptop display remains black) when you plug in the HDMI cable.  
 #### General Notes
 - For those who want to have "limited" 2K/4K experience (i.e. 2K@59Hz or 4K@30Hz) with their HDMI 1.4 port, you might find this fix helpful.
-- For those who have a laptop or PC with HDMI 2.0 routed to Intel IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.
+- For those who have a laptop or PC with HDMI 2.0 routed to Intel IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.  
 *(You might still need this fix temporarily to figure out the framebuffer index of your HDMI port. See the LSPCON section below.)*
 
 ## LSPCON driver support to enable DisplayPort to HDMI 2.0 output on Intel IGPU
 #### Brief Introduction
 Recent laptops (Kaby Lake/Coffee Lake-based) are typically equipped with a HDMI 2.0 port. This port could be either routed to IGPU or DGPU, and you can have a confirmation on Windows 10. Intel (U)HD Graphics, however, does not provide native HDMI 2.0 output, so in order to solve this issue OEMs add an additional hardware named LSPCON on the motherboard to convert DisplayPort into HDMI 2.0.  
+
 LSPCON works in either Level Shifter (LS) or Protocol Converter (PCON) mode. When the adapter works in LS mode, it is capable of producing HDMI 1.4 signals from DisplayPort, while in PCON mode, it could provide HDMI 2.0 output. Some onboard LSPCON adapters (e.g. the one on Dell XPS 15 9570) have been configured in the firmware to work in LS mode by default, resulting a black screen on handling HDMI 2.0 connections.  
+
 Starting from version 1.3.0, WhateverGreen now provides driver support for the onboard LSPCON by automatically configuring the adapter to run in PCON mode on new HDMI connections, and hence solves the black screen issue on some platforms.  
 #### Before you start
 - LSPCON driver is only applicable for laptops and PCs **with HDMI 2.0 routed to Intel IGPU**.
 - LSPCON driver is necessary for all newer platforms unless the new Intel IGPU starts to provide native HDMI 2.0 output.
 - Supported Intel Platform: Skylake, Kaby Lake, Coffee Lake and later.  
-Skylake: Intel NUC Skull Canyon; Iris Pro 580 + HDMI 2.0 with Parade PS175 LSPCON.  
-Coffee Lake: Some laptops, Dell XPS 15 9570 for example, are equipped with HDMI 2.0 and Parade PS175 LSPCON.  
+Skylake Case: Intel NUC Skull Canyon; Iris Pro 580 + HDMI 2.0 with Parade PS175 LSPCON.  
+Coffee Lake Case: Some laptops, e.g. Dell XPS 15 9570, are equipped with HDMI 2.0 and Parade PS175 LSPCON.  
 - If you have confirmed that your HDMI 2.0 is routed to Intel IGPU and is working properly right now, you don't need to enable this driver, because your onboard LSPCON might already be configured in the firmware to work in PCON mode.
 
 #### Instructions
 - Add the `enable-lspcon-support` property to `IGPU` to enable the driver, or use the boot-arg `-igfxlspcon` instead.  
-- Next, you need to know the corresponding connector index (one of 0,1,2,3) of your HDMI port. You could find it under IGPU in IORegistryExplorer.  
-*If you only have a 2K/4K HDMI monitor, you might need to enable the infinite loop fix before connecting a HDMI monitor to your build, otherwise the system just hangs and you won't be able to run the IORegistryExplorer and find the framebuffer index.*
+- Next, you need to know the corresponding connector index (one of 0,1,2,3) of your HDMI port. You could find it under IGPU in IORegistryExplorer. (i.e. `AppleIntelFramebuffer@0/1/2/3`)  
+*If you only have a 2K/4K HDMI monitor, you might need to enable the infinite loop fix before connecting a HDMI monitor to your build, otherwise the system just hangs, so you won't be able to run the IORegistryExplorer and find the framebuffer index.*
 - Add the `framebuffer-conX-has-lspcon` property to `IGPU` to inform the driver which connector has an onboard LSPCON adapter.  
 Replace `X` with the index you have found in the previous step.  
-The value must be of type `Data` and must be one of `01000000` (True) and `00000000` (False).
+The value must be of type `Data` and should be one of `01000000` (True) and `00000000` (False).
 - (*Optional*) Add the `framebuffer-conX-preferred-lspcon-mode` property to `IGPU` to specify a mode for your onboard LSPCON adapter.  
-The value must be of type `Data` and must be one of `01000000` (PCON, DP to HDMI 2.0) and `00000000` (LS, DP to HDMI 1.4).  
+The value must be of type `Data` and should be one of `01000000` (PCON, DP to HDMI 2.0) and `00000000` (LS, DP to HDMI 1.4).  
 Any other invalid values are treated as PCON mode.  
 If this property is not specified, the driver assumes that PCON mode is preferred.
 ![](Img/lspcon.png)
 
 #### Debugging
 Once you have completed the steps above, rebuild the kext cache and reboot your computer.
-After plugging into your HDMI 2.0 cable (and the HDMI 2.0 monitor), you should be able to see the output on your monitor.
-Dump your kernel log, and you should also be able to see something simillar to lines below.
+After plugging into your HDMI 2.0 cable (and the HDMI 2.0 monitor), you should be able to see the output on your monitor.  
+
+Dump your kernel log and you should also be able to see something simillar to lines below.
 ```
-// When you plug the HDMI 2.0 cable
+// When you insert the HDMI 2.0 cable
 igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] called with controller at 0xffffff81a8680000 and framebuffer at 0xffffff81a868c000.
 igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] No LSPCON chip associated with this framebuffer.
 igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] Will call the original method.
@@ -1735,9 +1738,12 @@ igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Will call the original method.
 igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
 ```
 
-Additionally, you can find these properties injected by the driver under the corresponding framebuffer. (Only available in DEBUG version)
-`fw-framebuffer-has-lspcon` indicates whether the onboard LSPCON adapter exists or not.
-`fw-framebuffer-preferred-lspcon-mode` indicates the preferred adapter mode. 1 is PCON, and 0 is LS.
+Additionally, you can find these properties injected by the driver under the corresponding framebuffer.  
+**(Only available in DEBUG version)**  
+
+`fw-framebuffer-has-lspcon` indicates whether the onboard LSPCON adapter exists or not.  
+`fw-framebuffer-preferred-lspcon-mode` indicates the preferred adapter mode. 1 is PCON, and 0 is LS.  
+  
 ![](Img/lspcon_debug.png)
 
 ## Known Issues  

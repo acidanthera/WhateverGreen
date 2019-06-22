@@ -1736,9 +1736,9 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 
 
 ## 修复核显驱动在尝试点亮外接 HDMI 高分辨率显示器时造成的死循环问题
-**适用平台：** 第六代酷睿 Skylake 核显，第七代酷睿 Kaby Lake 核显以及第八代酷睿 Coffee Lake。
-使用 `-igfxhdmidivs` 启动参数以解决核显驱动试图点亮外接 HDMI 高分辨率显示器时造成的系统死机问题。  
-具体症状表现在插入 HDMI 线后，笔记本内屏变黑但有背光，且系统无响应，外屏也无输出。
+**适用平台：** 第六代酷睿 Skylake 核显，第七代酷睿 Kaby Lake 核显以及第八代酷睿 Coffee Lake。  
+使用 `-igfxhdmidivs` 启动参数以解决核显驱动在试图点亮外接 HDMI 高分辨率显示器时造成的系统死机问题。  
+具体症状表现为插入 HDMI 线后，笔记本内屏变黑但有背光，系统无响应，并且外屏也无输出。
 #### 关于使用此修复补丁的一些建议
 - 如果你的笔记本或台式机主板有 HDMI 1.4 接口，并且想使用 2K 或 4K HDMI 显示器的话，你可能需要这个补丁。
 - 如果你的笔记本或台式机主板有 HDMI 2.0 接口，并且当前 HDMI 输出有问题，那么建议你启用 LSPCON 驱动支持以获得更好的 HDMI 2.0 体验。（详情请阅读下方 LSPCON 章节）
@@ -1750,7 +1750,7 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 如果连在了核显上，那么笔记本厂商需要在主板上安装额外的信号转换器来把 DP 信号转换成 HDMI 2.0 信号，  
 这是因为现阶段英特尔的核显并不能原生提供 HDMI 2.0 信号输出。（类似主板厂商使用第三方芯片以提供 USB 3.0 功能）  
 这个信号转换器名为 LSPCON，全称 **L**evel **S**hifter and **P**rotocol **Con**verter，并且有两种工作模式。  
-当转换器工作在 LS 模式下，它可以把 DP 转换成 HDMI 1.4 信号；在 PCON 模式下，它可以把 DP 转换成 HDMI 2.0 信号。  
+当工作在 LS 模式下，它可以把 DP 转换成 HDMI 1.4 信号。在 PCON 模式下，它可以把 DP 转换成 HDMI 2.0 信号。  
 然而有些厂商在转换器的固件里把 LS 设为了默认的工作模式，这就导致在 macOS 下 HDMI 2.0 连接直接黑屏或者根本不工作。    
 从 1.3.0 版本开始，WhateverGreen 提供了对 LSPCON 的驱动支持。驱动会自动将转换器调为 PCON 模式以解决 HDMI 2.0 输出黑屏问题。  
 
@@ -1764,15 +1764,16 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 
 #### 如何使用
 - 为核显添加 `enable-lspcon-support` 属性或者直接使用 `-igfxlspcon` 启动参数来启用驱动。
-- 接下来你需要知道 HDMI 2.0 对应的端口号是多少。这个你可以直接在 IORegistryExplorer 里看到。在 AppleIntelFramebuffer@0/1/2/3 下面找到你的外接显示器。
-*如果你身边只有 2K/4K HDMI 显示器的话，你需要先启用上面的死循环修复补丁，否则当你连接显示器时，系统直接死机，所以就看不到对应的端口号了。*  
-- 为核显添加 `framebuffer-conX-has-lspcon` 属性来通知驱动哪个接口下面有 LSPCON 信号转换器。把 `conX` 里的 X 替换成你在上一步找到的端口值。  
+- 接下来你需要知道 HDMI 2.0 对应的端口号是多少。这个你可以直接在 IORegistryExplorer 里看到。也就是在 `AppleIntelFramebuffer@0/1/2/3` 下面找到你的外接显示器。  
+*如果你身边只有 2K/4K HDMI 显示器的话，你可能需要先启用上面的死循环修复补丁，否则当你连接显示器时系统直接死机，所以就看不到对应的端口号了。*  
+- 为核显添加 `framebuffer-conX-has-lspcon` 属性来通知驱动哪个接口下面有 LSPCON 信号转换器。  
+把 `conX` 里的 X 替换成你在上一步找到的端口值。  
 这个属性的对应值请设为 `Data` 类型。如果接口下存在转换器的话，请设为 `01000000`，反之设为 `00000000`。  
 若不定义这个属性的话，驱动默认认为对应接口下**不存在**转换器。
-- (*可选*) 为核显添加 `framebuffer-conX-preferred-lspcon-mode` 属性以指定 LSPCON 信号转换器应该工作在何种模式下。  
+- *(可选)* 为核显添加 `framebuffer-conX-preferred-lspcon-mode` 属性以指定 LSPCON 应该工作在何种模式下。  
 这个属性的对应值请设为 `Data` 类型。  
 如果希望转换器工作在 PCON (DP 转 HDMI 2.0) 模式下的话，请设为 `01000000`。  
-如果希望转换器工作在   LS (DP 转 HDMI 1.4) 模式下的话，请设为 `00000000`。  
+如果希望转换器工作在 &nbsp;&nbsp;LS (DP 转 HDMI 1.4) 模式下的话，请设为 `00000000`。  
 若指定其他值的话，驱动默认认为转换器应工作在 PCON 模式下。  
 若不定义此属性的话，同上。  
 ![](Img/lspcon.png)
@@ -1814,9 +1815,11 @@ igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Will call the original method.
 igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
 ```
 
-另外你也能在 IORegistryExplorer 下找到驱动在对应的 Framebuffer 下注入的属性。（此功能仅限 DEBUG 版驱动）  
+另外你也能在 IORegistryExplorer 下找到驱动在对应的 Framebuffer 下注入的属性。**（此功能仅限 DEBUG 版驱动）**  
+
 `fw-framebuffer-has-lspcon` 显示当前端口是否存在 LSPCON 信号转换器，为布尔值类型。  
 `fw-framebuffer-preferred-lspcon-mode` 显示当前指定的 LSPCON 工作模式，为数据类型。1 为 PCON 模式，0 为 LS 模式。  
+  
 ![](Img/lspcon_debug.png)
 
 
