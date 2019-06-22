@@ -23,6 +23,8 @@ WhateverGreen
 - Injects IOVARendererID into GPU properties (required for Shiki-based solution for non-freezing Intel and/or any discrete GPU)
 - For Intel HD digital audio HDMI, DP, Digital DVI (Patches connector-type DP -> HDMI)
 - Fixes NVIDIA GPU interface stuttering on 10.13 (official and web drivers)
+- Fixes the kernel panic caused by an invalid link rate reported by DPCD on some laptops with Intel IGPU.
+- Implements the driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on some platforms with Intel IGPU.
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
@@ -54,12 +56,14 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
 - `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)  
 - `-igfxmlr` boot argument (and `enable-dpcd-max-link-rate-fix` property) to apply the maximum link rate fix.
+- `-igfxlspcon` boot argument (and `enable-lspcon-support` property) to enable the driver support for onboard LSPCON chips. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)
+- `-igfxi2cdbg` boot argument to enable verbose output in I2C-over-AUX transactions (only for debugging purposes).
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
-- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix
+- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix and LSPCON driver support
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements
