@@ -1734,6 +1734,82 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 可选值为 `0x06` (RBR)，`0x0A` (HBR)，`0x14` (HBR2) 以及 `0x1E` (HBR3)。  
 若指定了其他值，则补丁默认使用 `0x14`。若不定义此属性的话，同样默认使用 `0x14`。  
 
+## 启用 LSPCON 驱动以支持核显 DisplayPort 转 HDMI 2.0 输出
+#### 简述
+近几年的笔记本都开始配备了 HDMI 2.0 输出端口。这个端口可能直接连到核显上也有可能连在独显上。  
+如果连在了独显上，那么在 macOS 下这个 HDMI 2.0 端口直接废掉了，因为苹果不支持 Optimus 等双显卡切换技术。  
+如果连在了核显上，那么笔记本厂商需要在主板上安装额外的信号转换器来把 DP 信号转换成 HDMI 2.0 信号，  
+这是因为现阶段英特尔的核显并不能原生提供 HDMI 2.0 信号输出。（类似主板厂商使用第三方芯片以提供 USB 3.0 功能）  
+这个信号转换器名为 LSPCON，全称 **L**evel **S**hifter and **P**rotocol **Con**verter，并且有两种工作模式。  
+当转换器工作在 LS 模式下，它可以把 DP 转换成 HDMI 1.4 信号；在 PCON 模式下，它可以把 DP 转换成 HDMI 2.0 信号。  
+然而有些厂商在转换器的固件里把 LS 设为了默认的工作模式，这就导致在 macOS 下 HDMI 2.0 连接直接黑屏或者根本不工作。    
+从 1.3.0 版本开始，WhateverGreen 提供了对 LSPCON 的驱动支持。驱动会自动将转换器调为 PCON 模式以解决 HDMI 2.0 输出黑屏问题。  
+
+#### 使用前必读
+- LSPCON 驱动适用于所有配备 HDMI 2.0 接口并接在核显上的笔记本和台式机。
+- 目前来看，英特尔的新处理器所配备的核显仍然不支持原生 HDMI 2.0 输出，所以在新平台上你可能仍然需要此驱动。
+- 适用的英特尔平台: Skylake, Kaby Lake, Coffee Lake 以及以后。  
+      Skylake 平台案例: 英特尔在 Skull Canyon NUC 上搭载了 HDMI 2.0 接口，使用了型号为 Parade PS175 的 LSPCON 信号转换器。  
+  Coffee Lake 平台案例: 部分笔记本如 Dell XPS 15 搭载了 HDMI 2.0 接口，同样使用了型号为 Parade PS175 的 LSPCON 信号转换器。  
+- 如果你已确认你的 HDMI 2.0 接口是连在核显上并且目前输出没有任何问题，那么你不需要特意启用此驱动。你的转换器可能已经出厂时就把 PCON 设为了默认的工作模式。
+
+#### 如何使用
+- 为核显添加 `enable-lspcon-support` 属性或者直接使用 `-igfxlspcon` 启动参数来启用驱动。
+- 接下来你需要知道 HDMI 2.0 对应的端口号是多少。这个你可以直接在 IORegistryExplorer 里看到。在 AppleIntelFramebuffer@0/1/2/3 下面找到你的外接显示器。  
+- 为核显添加 `framebuffer-conX-has-lspcon` 属性来通知驱动哪个接口下面有 LSPCON 信号转换器。把 `conX` 里的 X 替换成你在上一步找到的端口值。  
+这个属性的对应值请设为 `Data` 类型。如果接口下存在转换器的话，请设为 `01000000`，反之设为 `00000000`。  
+若不定义这个属性的话，驱动默认认为对应接口下**不存在**转换器。
+- (*可选*) 为核显添加 `framebuffer-conX-preferred-lspcon-mode` 属性以指定 LSPCON 信号转换器应该工作在何种模式下。  
+这个属性的对应值请设为 `Data` 类型。  
+如果希望转换器工作在 PCON (DP 转 HDMI 2.0) 模式下的话，请设为 `01000000`。  
+如果希望转换器工作在   LS (DP 转 HDMI 1.4) 模式下的话，请设为 `00000000`。  
+若指定其他值的话，驱动默认认为转换器应工作在 PCON 模式下。  
+若不定义此属性的话，同上。  
+![](Img/lspcon.png)
+
+#### 排查错误
+完成上述步骤后，重建缓存重启电脑，插上 HDMI 2.0 线和 HDMI 2.0 显示器应该可以正常看到输出的图像了。  
+如果提取内核日志的话，你应该可以看到类似如下的日志。  
+
+```
+// 插入 HDMI 2.0 线
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] called with controller at 0xffffff81a8680000 and framebuffer at 0xffffff81a868c000.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] No LSPCON chip associated with this framebuffer.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] Will call the original method.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] Returns 0x0.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] called with controller at 0xffffff81a8680000 and framebuffer at 0xffffff81a869a000.
+igfx @ (DBG) SC:   LSPCON::probe() DInfo: [FB2] Found the LSPCON adapter: Parade PS1750.
+igfx @ (DBG) SC:   LSPCON::probe() DInfo: [FB2] The current adapter mode is Level Shifter (DP++ to HDMI 1.4).
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] LSPCON driver has detected the onboard chip successfully.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] LSPCON driver has been initialized successfully.
+igfx @ (DBG) SC: LSPCON::getMode() DInfo: [FB2] The current mode value is 0x00.
+igfx @ (DBG) SC: LSPCON::getMode() DInfo: [FB2] The current mode value is 0x00.
+igfx @ (DBG) SC: LSPCON::getMode() DInfo: [FB2] The current mode value is 0x00.
+igfx @ (DBG) SC: LSPCON::getMode() DInfo: [FB2] The current mode value is 0x01.
+igfx @ (DBG) SC: LSPCON::setMode() DInfo: [FB2] The new mode is now effective.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] The adapter is running in preferred mode [Protocol Converter (DP++ to HDMI 2.0)].
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Will call the original method.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
+
+// 拔出 HDMI 2.0 线
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] called with controller at 0xffffff81a8680000 and framebuffer at 0xffffff81a868c000.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] No LSPCON chip associated with this framebuffer.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] Will call the original method.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] Returns 0x0.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] called with controller at 0xffffff81a8680000 and framebuffer at 0xffffff81a869a000.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] LSPCON driver (at 0xffffff802ba3afe0) has already been initialized for this framebuffer.
+igfx @ (DBG) SC: LSPCON::setModeIfNecessary() DInfo: [FB2] The adapter is already running in Protocol Converter (DP++ to HDMI 2.0) mode. No need to update.
+igfx @ (DBG) SC: LSPCON::wakeUpNativeAUX() DInfo: [FB2] The native AUX channel is up. DPCD Rev = 0x12.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Will call the original method.
+igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
+```
+
+另外你也能在 IORegistryExplorer 下找到驱动在对应的 Framebuffer 下注入的属性。（此功能仅限 DEBUG 版驱动）  
+`fw-framebuffer-has-lspcon` 显示当前端口是否存在 LSPCON 信号转换器，为布尔值类型。  
+`fw-framebuffer-preferred-lspcon-mode` 显示当前指定的 LSPCON 工作模式，为数据类型。1 为 PCON 模式，0 为 LS 模式。  
+![](Img/lspcon_debug.png)
+
+
 ## 已知问题
 *兼容性*：
 - 受限制的显卡：HD2000 和 HD2500，它们只能用于 IQSV (因为在白苹果中它们只用来干这个)，无解。
