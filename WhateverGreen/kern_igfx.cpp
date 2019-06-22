@@ -942,11 +942,10 @@ IOReturn IGFX::LSPCON::probe() {
 	}
 	
 	// Parse the chip vendor
-	Vendor vendor = parseVendor(info);
 	char device[8];
 	bzero(device, 8);
 	lilu_os_memcpy(device, info->deviceID, 6);
-	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] Found the LSPCON adapter: %s %s.", index, getVendorString(vendor), device);
+	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] Found the LSPCON adapter: %s %s.", index, getVendorString(parseVendor(info)), device);
 	
 	// Parse the current adapter mode
 	Mode mode = parseMode(info->lspconCurrentMode);
