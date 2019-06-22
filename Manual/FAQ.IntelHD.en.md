@@ -1665,6 +1665,13 @@ All possible values are `0x06` (RBR), `0x0A` (HBR), `0x14` (HBR2) and `0x1E` (HB
 If an invalid value is specified, the default value `0x14` will be used instead.  
 If this property is not specified, same as above.  
 
+## Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on Skylake, Kaby Lake and Coffee Lake platforms
+Add the `-igfxhdmidivs` boot argument to fix the infinite loop when the graphics driver tries to establish a HDMI connection with a higher pixel clock rate, for example connecting to a 2K/4K display with HDMI 1.4, otherwise the system just hangs (and your builtin laptop display remains black) when you plug in the HDMI cable.  
+#### General Notes
+- For those who want to have "limited" 2K/4K experience (i.e. 2K@59Hz or 4K@30Hz) with their HDMI 1.4 port, you might find this fix helpful.
+- For those who have a laptop or PC with HDMI 2.0 routed to Intel IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.
+*(You might still need this fix temporarily to figure out the framebuffer index of your HDMI port. See the LSPCON section below.)*
+
 ## LSPCON driver support to enable DisplayPort to HDMI 2.0 output on Intel IGPU
 #### Brief Introduction
 Recent laptops (Kaby Lake/Coffee Lake-based) are typically equipped with a HDMI 2.0 port. This port could be either routed to IGPU or DGPU, and you can have a confirmation on Windows 10. Intel (U)HD Graphics, however, does not provide native HDMI 2.0 output, so in order to solve this issue OEMs add an additional hardware named LSPCON on the motherboard to convert DisplayPort into HDMI 2.0.  
@@ -1681,6 +1688,7 @@ Coffee Lake: Some laptops, Dell XPS 15 9570 for example, are equipped with HDMI 
 #### Instructions
 - Add the `enable-lspcon-support` property to `IGPU` to enable the driver, or use the boot-arg `-igfxlspcon` instead.  
 - Next, you need to know the corresponding connector index (one of 0,1,2,3) of your HDMI port. You could find it under IGPU in IORegistryExplorer.  
+*If you only have a 2K/4K HDMI monitor, you might need to enable the infinite loop fix before connecting a HDMI monitor to your build, otherwise the system just hangs and you won't be able to run the IORegistryExplorer and find the framebuffer index.*
 - Add the `framebuffer-conX-has-lspcon` property to `IGPU` to inform the driver which connector has an onboard LSPCON adapter.  
 Replace `X` with the index you have found in the previous step.  
 The value must be of type `Data` and must be one of `01000000` (True) and `00000000` (False).

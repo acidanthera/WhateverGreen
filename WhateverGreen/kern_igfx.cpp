@@ -789,8 +789,9 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 	// carefully analyzing Apple's original implementation, and a better implementation that
 	// conforms to Intel Graphics Programmer Reference Manual is provided to fix the issue.
 	//
-	// This is the first stage to try to solve the HDMI output issue on Dell XPS 15 9570,
+	// This is the first stage to try to solve the HDMI 2.0 output issue on Dell XPS 15 9570,
 	// and is now succeeded by the LSPCON driver solution.
+	// LSPCON is used to convert DisplayPort signal to HDMI 2.0 signal.
 	// When the onboard LSPCON chip is running in LS mode, macOS recognizes the HDMI port as
 	// a HDMI port. Consequently, ComputeHdmiP0P1P2() is called by SetupClock() to compute
 	// the parameters for the connection.
@@ -799,8 +800,14 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 	//
 	// This fix is left here as an emergency fallback and for reference purposes,
 	// and is compatible for graphics on Skylake, Kaby Lake and Coffee Lake platforms.
+	// Note that it is still capable of finding appropriate dividers for a 1080p HDMI connection
+	// and is more robust than the original implementation.
 	//
-	// It is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.
+	// For those who want to have "limited" 2K/4K experience (i.e. 2K@59Hz or 4K@30Hz) with their
+	// HDMI 1.4 port, you might find this fix helpful.
+	//
+	// For those who have a laptop or PC with HDMI 2.0 routed to IGPU and have HDMI output issues,
+	// it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.
 	//
 	// - FireWolf
 	// - 2019.06
