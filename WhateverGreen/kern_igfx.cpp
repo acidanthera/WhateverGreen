@@ -141,7 +141,12 @@ void IGFX::init() {
 }
 
 void IGFX::deinit() {
-
+	for (int index = 0; index < arrsize(lspcons); index++) {
+		if (lspcons[index].lspcon != nullptr) {
+			delete lspcons[index].lspcon;
+			lspcons[index].lspcon = nullptr;
+		}
+	}
 }
 
 void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
@@ -159,6 +164,30 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (checkKernelArgument("-igfxfbdump"))
 			dumpPlatformTable = true;
 #endif
+		
+		// Enable the LSPCON driver support if the corresponding boot argument is found
+		supportLSPCON = checkKernelArgument("-igfxlspcon");
+		// Or if "enable-lspcon-support" is set in IGPU property
+		if (!supportLSPCON)
+			supportLSPCON = info->videoBuiltin->getProperty("enable-lspcon-support") != nullptr;
+		
+		// Read the user-defined IGPU properties to know whether a connector has an onboard LSPCON chip
+		if (supportLSPCON) {
+			char name[48];
+			uint32_t pmode = 0x01; // PCON mode as a fallback value
+			for (size_t index = 0; index < arrsize(lspcons); index++) {
+				bzero(name, 48);
+				snprintf(name, sizeof(name), "framebuffer-con%lu-has-lspcon", index);
+				WIOKit::getOSDataValue(info->videoBuiltin, name, lspcons[index].hasLSPCON);
+				snprintf(name, sizeof(name), "framebuffer-con%lu-preferred-lspcon-mode", index);
+				WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
+				// Assuming PCON mode if invalid mode value (i.e. > 1) specified by the user
+				lspcons[index].preferredMode = LSPCON::parseMode(pmode != 0);
+			}
+		}
+		
+		// Enable the verbose output in I2C-over-AUX transactions if the corresponding boot argument is found
+		verboseI2C = checkKernelArgument("-igfxi2cdbg");
 		
 		// Enable maximum link rate patch if the corresponding boot argument is found
 		maxLinkRatePatch = checkKernelArgument("-igfxmlr");
@@ -227,7 +256,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !supportLSPCON;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -373,6 +402,28 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "MLR: Failed to find ReadAUX().");
+			}
+		}
+		
+		if (supportLSPCON) {
+			auto roa = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14ReadI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhbh", address, size);
+			auto woa = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhb", address, size);
+			auto gdi = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController11GetDPCDInfoEP21AppleIntelFramebufferP21AppleIntelDisplayPath", address, size);
+			if (roa && woa && gdi) {
+				patcher.eraseCoverageInstPrefix(roa);
+				patcher.eraseCoverageInstPrefix(woa);
+				patcher.eraseCoverageInstPrefix(gdi);
+				orgReadI2COverAUX = reinterpret_cast<decltype(orgReadI2COverAUX)>(patcher.routeFunction(roa, reinterpret_cast<mach_vm_address_t>(wrapReadI2COverAUX), true));
+				orgWriteI2COverAUX = reinterpret_cast<decltype(orgWriteI2COverAUX)>(patcher.routeFunction(woa, reinterpret_cast<mach_vm_address_t>(wrapWriteI2COverAUX), true));
+				orgGetDPCDInfo = reinterpret_cast<decltype(orgGetDPCDInfo)>(patcher.routeFunction(gdi, reinterpret_cast<mach_vm_address_t>(wrapGetDPCDInfo), true));
+				if (orgReadI2COverAUX && orgWriteI2COverAUX && orgGetDPCDInfo) {
+					DBGLOG("igfx", "SC: ReadI2COverAUX(), etc. have been routed successfully.");
+				} else {
+					patcher.clearError();
+					SYSLOG("igfx", "SC: ReadI2COverAUX(), etc. cannot be routed.");
+				}
+			} else {
+				SYSLOG("igfx", "SC: Failed to find ReadI2COverAUX(), etc.");
 			}
 		}
 		
@@ -648,6 +699,391 @@ int IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address
 	
 	DBGLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
 	
+	return retVal;
+}
+
+IGFX::LSPCON::LSPCON(void *controller, IORegistryEntry *framebuffer, void *displayPath) {
+	this->controller = controller;
+	this->framebuffer = framebuffer;
+	this->displayPath = displayPath;
+	this->isActive = false;
+	this->index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"))->unsigned32BitValue();
+}
+
+IOReturn IGFX::LSPCON::probe() {
+	// Read the adapter info
+	uint8_t buffer[128];
+	bzero(buffer, 128);
+	IOReturn retVal = callbackIGFX->advReadI2COverAUX(controller, framebuffer, displayPath, DP_DUAL_MODE_ADAPTER_I2C_ADDR, 0x00, 128, buffer, 0);
+	if (retVal != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: LSPCON::probe() Error: [FB%d] Failed to read the LSPCON adapter info. RV = 0x%llx.", index, retVal);
+		return retVal;
+	}
+	
+	// Start to parse the adapter info
+	auto info = reinterpret_cast<DisplayPortDualModeAdapterInfo*>(buffer);
+	// Guard: Check whether this is a LSPCON adapter
+	if (!isLSPCONAdapter(info)) {
+		SYSLOG("igfx", "SC: LSPCON::probe() Error: [FB%d] Not a LSPCON DP-HDMI adapter. AdapterID = 0x%02x.", index, info->adapterID);
+		return kIOReturnNotFound;
+	}
+	
+	// Parse the chip vendor
+	Vendor vendor = parseVendor(info);
+	char device[8];
+	bzero(device, 8);
+	lilu_os_memcpy(device, info->deviceID, 6);
+	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] Found the LSPCON adapter: %s %s.", index, getVendorString(vendor), device);
+	
+	// Parse the current adapter mode
+	Mode mode = parseMode(info->lspconCurrentMode);
+	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] The current adapter mode is %s.", index, getModeString(mode));
+	switch (mode) {
+		case Mode::LevelShifter:
+			break;
+			
+		case Mode::ProtocolConverter:
+			isActive = true;
+			break;
+			
+		default:
+			SYSLOG("igfx", "SC: LSPCON::probe() Error: [FB%d] Cannot detect the current adapter mode. Assuming Level Shifter mode.", index);
+			break;
+	}
+	
+	return kIOReturnSuccess;
+}
+
+IOReturn IGFX::LSPCON::getMode(Mode *mode) {
+	uint8_t byte;
+	IOReturn retVal = kIOReturnAborted;
+	
+	// Guard: The given `mode` pointer cannot be NULL
+	if (mode != nullptr) {
+		// Try at most 5 times
+		for (int attempt = 0; attempt < 5; attempt++) {
+			// Read from the adapter @ 0x40; offset = 0x41
+			retVal = callbackIGFX->advReadI2COverAUX(controller, framebuffer, displayPath, DP_DUAL_MODE_ADAPTER_I2C_ADDR, DP_DUAL_MODE_LSPCON_CURRENT_MODE, 1, &byte, 0);
+			
+			// Guard: Can read the current adapter mode successfully
+			if (retVal == kIOReturnSuccess) {
+				DBGLOG("igfx", "SC: LSPCON::getMode() DInfo: [FB%d] The current mode value is 0x%02x.", index, byte);
+				*mode = parseMode(byte);
+				break;
+			}
+			
+			// Sleep 1 ms
+			IOSleep(1);
+		}
+	}
+	
+	return retVal;
+}
+
+IOReturn IGFX::LSPCON::setMode(Mode newMode) {
+	// Guard: The given new mode must be valid
+	if (newMode == Mode::Invalid)
+		return kIOReturnAborted;
+	
+	// Guard: Write the new mode
+	uint8_t byte = getModeValue(newMode);
+	IOReturn retVal = callbackIGFX->advWriteI2COverAUX(controller, framebuffer, displayPath, DP_DUAL_MODE_ADAPTER_I2C_ADDR, DP_DUAL_MODE_LSPCON_CHANGE_MODE, 1, &byte, 0);
+	if (retVal != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: LSPCON::setMode() Error: [FB%d] Failed to set the new adapter mode. RV = 0x%llx.", index, retVal);
+		return retVal;
+	}
+	
+	// Read the register again and verify the mode
+	uint32_t timeout = 200;
+	Mode mode = Mode::Invalid;
+	while (timeout != 0) {
+		retVal = getMode(&mode);
+		// Guard: Read the current effective mode
+		if (retVal != kIOReturnSuccess) {
+			SYSLOG("igfx", "SC: LSPCON::setMode() Error: [FB%d] Failed to read the new effective mode. RV = 0x%llx.", index, retVal);
+			continue;
+		}
+		// Guard: The new mode is effective now
+		if (mode == newMode) {
+			DBGLOG("igfx", "SC: LSPCON::setMode() DInfo: [FB%d] The new mode is now effective.", index);
+			isActive = newMode == Mode::ProtocolConverter;
+			return kIOReturnSuccess;
+		}
+		timeout -= 20;
+		IOSleep(20);
+	}
+	
+	SYSLOG("igfx", "SC: LSPCON::setMode() Error: [FB%d] Timed out while waiting for the new mode to be effective. Last RV = 0x%llx.", index, retVal);
+	return retVal;
+}
+
+IOReturn IGFX::LSPCON::setModeIfNecessary(Mode newMode) {
+	if (isRunningInMode(newMode)) {
+		DBGLOG("igfx", "SC: LSPCON::setModeIfNecessary() DInfo: [FB%d] The adapter is already running in %s mode. No need to update.", index, getModeString(newMode));
+		return kIOReturnSuccess;
+	}
+	
+	return setMode(newMode);
+}
+
+IOReturn IGFX::LSPCON::wakeUpNativeAUX() {
+	uint8_t byte;
+	IOReturn retVal = wrapReadAUX(controller, framebuffer, 0x00000, 1, &byte, displayPath);
+	if (retVal != kIOReturnSuccess)
+		SYSLOG("igfx", "SC: LSPCON::wakeUpNativeAUX() Error: [FB%d] Failed to wake up the native AUX channel. RV = 0x%llx.", index, retVal);
+	else
+		DBGLOG("igfx", "SC: LSPCON::wakeUpNativeAUX() DInfo: [FB%d] The native AUX channel is up. DPCD Rev = 0x%02x.", index, byte);
+	return retVal;
+}
+
+IOReturn IGFX::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate, uint8_t flags) {
+	if (callbackIGFX->verboseI2C) {
+		auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+		DBGLOG("igfx", "SC:  ReadI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = %d.",
+			   index->unsigned32BitValue(), address, length, intermediate, flags);
+		IOReturn retVal = callbackIGFX->orgReadI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate, flags);
+		DBGLOG("igfx", "SC:  ReadI2COverAUX() returns 0x%x.", retVal);
+		return retVal;
+	} else {
+		return callbackIGFX->orgReadI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate, flags);
+	}
+}
+
+IOReturn IGFX::wrapWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate) {
+	if (callbackIGFX->verboseI2C) {
+		auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+		DBGLOG("igfx", "SC: WriteI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = 0",
+			   index->unsigned32BitValue(), address, length, intermediate);
+		IOReturn retVal = callbackIGFX->orgWriteI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate);
+		DBGLOG("igfx", "SC: WriteI2COverAUX() returns 0x%x.", retVal);
+		return retVal;
+	} else {
+		return callbackIGFX->orgWriteI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate);
+	}
+}
+
+IOReturn IGFX::advSeekI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint8_t flags) {
+	// No need to check the given `address` and `offset`
+	// if they are invalid, the underlying RunAUXCommand() will return an error
+	// First start the transaction by performing an empty write
+	IOReturn retVal = wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, true);
+	
+	// Guard: Check the START transaction
+	if (retVal != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: AdvSeekI2COverAUX() Error: Failed to start the I2C transaction. Return value = 0x%x.\n", retVal);
+		return retVal;
+	}
+	
+	// Write a single byte to the given I2C slave
+	// and set the Middle-of-Transaction bit to 1
+	return wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 1, reinterpret_cast<uint8_t*>(&offset), true);
+}
+
+IOReturn IGFX::advReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint16_t length, uint8_t *buffer, uint8_t flags) {
+	// Guard: Check the buffer length
+	if (length == 0) {
+		SYSLOG("igfx", "SC: AdvReadI2COverAUX() Error: Buffer length must be non-zero.");
+		return kIOReturnInvalid;
+	}
+	
+	// Guard: Check the buffer
+	if (buffer == nullptr) {
+		SYSLOG("igfx", "SC: AdvReadI2COverAUX() Error: Buffer cannot be NULL.");
+		return kIOReturnInvalid;
+	}
+	
+	// Guard: Start the transaction and set the access offset successfully
+	IOReturn retVal = advSeekI2COverAUX(that, framebuffer, displayPath, address, offset, flags);
+	if (retVal != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: AdvReadI2COverAUX() Error: Failed to set the data offset.");
+		return retVal;
+	}
+	
+	// Process the read request
+	// ReadI2COverAUX() can only process up to 16 bytes in one AUX transaction
+	// because the burst data size is 20 bytes, in which the first 4 bytes are used for the AUX message header
+	while (length != 0) {
+		// Calculate the new length for this I2C-over-AUX transaction
+		uint16_t newLength = length >= 16 ? 16 : length;
+		
+		// This is an intermediate transaction
+		retVal = wrapReadI2COverAUX(that, framebuffer, displayPath, address, newLength, buffer, true, flags);
+		
+		// Guard: The intermediate transaction succeeded
+		if (retVal != kIOReturnSuccess) {
+			// Terminate the transaction
+			wrapReadI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false, flags);
+			return retVal;
+		}
+		
+		// Update the buffer position and length
+		length -= newLength;
+		buffer += newLength;
+	}
+	
+	// All intermediate transactions succeeded
+	// Terminate the transaction
+	return wrapReadI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false, flags);
+}
+
+IOReturn IGFX::advWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint16_t length, uint8_t *buffer, uint8_t flags) {
+	// Guard: Check the buffer length
+	if (length == 0) {
+		SYSLOG("igfx", "SC: AdvWriteI2COverAUX() Error: Buffer length must be non-zero.");
+		return kIOReturnInvalid;
+	}
+	
+	// Guard: Check the buffer
+	if (buffer == nullptr) {
+		SYSLOG("igfx", "SC: AdvWriteI2COverAUX() Error: Buffer cannot be NULL.");
+		return kIOReturnInvalid;
+	}
+	
+	// Guard: Start the transaction and set the access offset successfully
+	IOReturn retVal = advSeekI2COverAUX(that, framebuffer, displayPath, address, offset, flags);
+	if (retVal != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: AdvWriteI2COverAUX() Error: Failed to set the data offset.");
+		return retVal;
+	}
+	
+	// Process the write request
+	// WriteI2COverAUX() can only process up to 16 bytes in one AUX transaction
+	// because the burst data size is 20 bytes, in which the first 4 bytes are used for the AUX message header
+	while (length != 0) {
+		// Calculate the new length for this I2C-over-AUX transaction
+		uint16_t newLength = length >= 16 ? 16 : length;
+		
+		// This is an intermediate transaction
+		retVal = wrapWriteI2COverAUX(that, framebuffer, displayPath, address, newLength, buffer, true);
+		
+		// Guard: The intermediate transaction succeeded
+		if (retVal != kIOReturnSuccess) {
+			// Terminate the transaction
+			wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false);
+			return retVal;
+		}
+		
+		// Update the buffer position and length
+		length -= newLength;
+		buffer += newLength;
+	}
+	
+	// All intermediate transactions succeeded
+	// Terminate the transaction
+	return wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false);
+}
+
+IOReturn IGFX::wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *displayPath) {
+	//
+	// Abstract
+	//
+	// Recent laptops are now typically equipped with a HDMI 2.0 port.
+	// For laptops with Intel IGPU + Nvidia DGPU, this HDMI 2.0 port could be either routed to IGPU or DGPU,
+	// and we are only interested in the former case, because DGPU (Optimus) is not supported on macOS.
+	// However, as indicated in Intel Product Specifications, Intel (U)HD Graphics card does not provide
+	// native HDMI 2.0 output. As a result, Intel suggests that OEMs should add an additional hardware component
+	// named LSPCON (Level Shifter and Protocol Converter) on the motherboard to convert DisplayPort to HDMI.
+	//
+	// LSPCON conforms to the DisplayPort Dual Mode (DP++) standard and works in either Level Shifter (LS) mode
+	// or Protocol Converter (PCON) mode.
+	// When the adapter is running in   LS mode, it supports DisplayPort to HDMI 1.4.
+	// When the adapter is running in PCON mode, it supports DisplayPort to HDMI 2.0.
+	// LSPCON on some laptops, Dell XPS 15 9570 for example, might be configured in the firmware to run in LS mode
+	// by default, resulting in a black screen on a HDMI 2.0 connection.
+	// In comparison, LSPCON on a DisplayPort to HDMI 2.0 cable could be configured to always run in PCON mode.
+	// Fortunately, LSPCON is programmable and is a Type 2 DP++ adapter, so the graphics driver could communicate
+	// with the adapter via either the native I2C protocol or the special I2C-over-AUX protocol to configure the
+	// mode properly for HDMI connections.
+	//
+	// This reverse engineering research analyzes and exploits Apple's existing I2C-over-AUX transaction API layers,
+	// and an additional API layer is implemented to provide R/W access to registers at specific offsets on the adapter.
+	// AppleIntelFramebufferController::GetDPCDInfo() is then wrapped to inject code for LSPCON driver initialization,
+	// so that the adapter is configured to run in PCON mode instead on plugging the HDMI 2.0 cable to the port.
+	// Besides, the adapter is able to handle HDMI 1.4 connections when running in PCON mode, so we don't need to switch
+	// back to LS mode again.
+	//
+	// If you are interested in the detailed theory behind this fix, please take a look at my blog post.
+	// [ToDo: The article is still working in progress. I will add the link at here once I finish it. :D]
+	//
+	// Notes:
+	// 1. This fix is applicable for all laptops and PCs with HDMI 2.0 routed to IGPU.
+	//    (Laptops/Mobiles start from Skylake platform. e.g. Intel Skull Canyon NUC; Iris Pro 580 and HDMI 2.0)
+	// 2. If your HDMI 2.0 with Intel (U)HD Graphics is working properly, you don't need this fix,
+	//    as the adapter might already be configured in the firmware to run in PCON mode.
+	//
+	// - FireWolf
+	// - 2019.06
+	//
+	
+	// Retrieve the framebuffer index
+	auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"))->unsigned32BitValue();
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] called with controller at 0x%llx and framebuffer at 0x%llx.", index, that, framebuffer);
+	
+	// Retrieve the user preference
+	LSPCON *lspcon = nullptr;
+	auto pmode = framebufferLSPCONGetPreferredMode(index);
+	
+	// Guard: Check whether this framebuffer connector has an onboard LSPCON chip
+	if (!framebufferHasLSPCON(index)) {
+		// No LSPCON chip associated with this connector
+		DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] No LSPCON chip associated with this framebuffer.", index);
+		goto org;
+	}
+	
+	// Guard: Check whether the LSPCON driver has already been initialized for this framebuffer
+	if (framebufferHasLSPCONInitialized(index)) {
+		// Already initialized
+		lspcon = framebufferGetLSPCON(index);
+		DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] LSPCON driver (at 0x%llx) has already been initialized for this framebuffer.", index, lspcon);
+		// Confirm that the adapter is running in preferred mode
+		if (lspcon->setModeIfNecessary(pmode) != kIOReturnSuccess) {
+			SYSLOG("igfx", "SC: GetDPCDInfo() Error: [FB%d] The adapter is not running in preferred mode. Failed to update the mode.", index);
+		}
+		// Wake up the native AUX channel if PCON mode is preferred
+		if (pmode == LSPCON::Mode::ProtocolConverter) {
+			if (lspcon->wakeUpNativeAUX() != kIOReturnSuccess)
+				SYSLOG("igfx", "SC: GetDPCDInfo() Error: [FB%d] Failed to wake up the native AUX channel.", index);
+		}
+		goto org;
+	}
+	
+	// User has specified the existence of onboard LSPCON
+	// Guard: Initialize the driver for this framebuffer
+	lspcon = new LSPCON(that, framebuffer, displayPath);
+	if (lspcon == nullptr) {
+		SYSLOG("igfx", "SC: GetDPCDInfo() Error: [FB%d] Failed to initialize the LSPCON driver. Insufficient memory.", index);
+		goto org;
+	}
+	
+	// Guard: Attempt to probe the onboard LSPCON chip
+	if (lspcon->probe() != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: GetDPCDInfo() Error: [FB%d] Failed to probe the LSPCON adapter.", index);
+		delete lspcon;
+		lspcon = nullptr;
+		SYSLOG("igfx", "SC: GetDPCDInfo() Error: [FB%d] Abort the LSPCON driver initialization.", index);
+		goto org;
+	}
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] LSPCON driver has detected the onboard chip successfully.", index);
+	
+	// LSPCON driver has been initialized successfully
+	framebufferSetLSPCON(index, lspcon);
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] LSPCON driver has been initialized successfully.", index);
+	
+	// Guard: Set the preferred adapter mode if necessary
+	if (lspcon->setModeIfNecessary(pmode) != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: GetDPCDInfo() Error: [FB%d] The adapter is not running in preferred mode. Failed to set the %s mode.", index,  LSPCON::getModeString(pmode));
+	}
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] The adapter is running in preferred mode [%s].", index, LSPCON::getModeString(pmode));
+	
+#ifdef DEBUG
+	framebuffer->setProperty("fw-framebuffer-has-lspcon", framebufferHasLSPCON(index));
+	framebuffer->setProperty("fw-framebuffer-preferred-lspcon-mode", LSPCON::getModeValue(pmode), 8);
+#endif
+	
+org:
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] Will call the original method.", index);
+	IOReturn retVal = callbackIGFX->orgGetDPCDInfo(that, framebuffer, displayPath);
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: [FB%d] Returns 0x%llx.", index, retVal);
 	return retVal;
 }
 
