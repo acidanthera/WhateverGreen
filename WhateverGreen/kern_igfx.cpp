@@ -900,9 +900,10 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 	uint32_t fraction = (uint32_t) (context.frequency - multiplier * 24000000);
 	uint32_t cf15625 = (uint32_t) (context.central / 15625);
 	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Multiplier = %d; Fraction = %d; CF15625 = %d.\n", multiplier, fraction, cf15625);
+	// Guard: The given CRTC parameters should never be NULL
 	auto params = reinterpret_cast<CRTCParams*>(parameters);
 	if (params == nullptr) {
-		DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() Error: Failed to cast the given CRTC parameter pointer.");
+		DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() Error: The given CRTC parameters should not be NULL.");
 		return 0;
 	}
 	params->pdiv = context.pdiv;
