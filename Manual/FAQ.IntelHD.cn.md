@@ -1737,7 +1737,7 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 
 ## 修复核显驱动在尝试点亮外接 HDMI 高分辨率显示器时造成的死循环问题
 **适用平台：** 第六代酷睿 Skylake 核显，第七代酷睿 Kaby Lake 核显以及第八代酷睿 Coffee Lake。  
-使用 `-igfxhdmidivs` 启动参数以解决核显驱动在试图点亮外接 HDMI 高分辨率显示器时造成的系统死机问题。  
+为核显添加 `enable-hdmi-dividers-fix` 属性或者直接使用 `-igfxhdmidivs` 启动参数以解决核显驱动在试图点亮外接 HDMI 高分辨率显示器时造成的系统死机问题。  
 具体症状表现为插入 HDMI 线后，笔记本内屏变黑但有背光，系统无响应，并且外屏也无输出。
 #### 关于使用此修复补丁的一些建议
 - 如果你的笔记本或台式机主板有 HDMI 1.4 接口，并且想使用 2K 或 4K HDMI 显示器的话，你可能需要这个补丁。
