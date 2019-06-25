@@ -695,17 +695,16 @@ IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t ad
 	// The driver tries to read the first 16 bytes from DPCD
 	// Get the current framebuffer index (An UInt32 field at 0x1dc in a framebuffer instance)
 	// We read the value of "IOFBDependentIndex" instead of accessing that field directly
-	auto index = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
-	
+	uint32_t index;
 	// Guard: Should be able to retrieve the index from the registry
-	if (!index) {
+	if (!AppleIntelFramebufferExplorer::getIndex(framebuffer, index)) {
 		SYSLOG("igfx", "MLR: wrapReadAUX: Failed to read the current framebuffer index.");
 		return retVal;
 	}
 	
 	// Guard: Check the framebuffer index
 	// By default, FB 0 refers the builtin display
-	if (index->unsigned32BitValue() != 0)
+	if (index != 0)
 		// The driver is reading DPCD for an external display
 		return retVal;
 	
@@ -775,8 +774,7 @@ void IGFX::populateP0P1P2(struct ProbeContext *context) {
 	context->kdiv = p2;
 }
 
-int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters)
-{
+int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters) {
 	//
 	// Abstract
 	//
@@ -811,8 +809,6 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 	// - FireWolf
 	// - 2019.06
 	//
-	
-	static_assert(__offsetof(CRTCParams, pdiv) == 0x20, "Invalid pdiv offset, please check your compiler.");
 	
 	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Called with pixel clock = %d Hz.", pixelClock);
 	
@@ -1031,9 +1027,8 @@ IOReturn IGFX::LSPCON::wakeUpNativeAUX() {
 
 IOReturn IGFX::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate, uint8_t flags) {
 	if (callbackIGFX->verboseI2C) {
-		auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
-		auto index = idxnum != nullptr ? idxnum->unsigned32BitValue() : -1;
-		//->unsigned32BitValue();
+		uint32_t index = 0xFF;
+		AppleIntelFramebufferExplorer::getIndex(framebuffer, index);
 		SYSLOG("igfx", "SC:  ReadI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = %d.",
 			   index, address, length, intermediate, flags);
 		IOReturn retVal = callbackIGFX->orgReadI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate, flags);
@@ -1046,8 +1041,8 @@ IOReturn IGFX::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void
 
 IOReturn IGFX::wrapWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate) {
 	if (callbackIGFX->verboseI2C) {
-		auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
-		auto index = idxnum != nullptr ? idxnum->unsigned32BitValue() : -1;
+		uint32_t index = 0xFF;
+		AppleIntelFramebufferExplorer::getIndex(framebuffer, index);
 		SYSLOG("igfx", "SC: WriteI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = 0",
 			   index, address, length, intermediate);
 		IOReturn retVal = callbackIGFX->orgWriteI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate);
@@ -1171,12 +1166,11 @@ IOReturn IGFX::advWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void
 
 void IGFX::framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void *displayPath) {
 	// Retrieve the framebuffer index
-	auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
-	if (idxnum == nullptr) {
+	uint32_t index;
+	if (!AppleIntelFramebufferExplorer::getIndex(framebuffer, index)) {
 		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: Failed to retrieve the framebuffer index.");
 		return;
 	}
-	auto index = idxnum->unsigned32BitValue();
 	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] called with controller at 0x%llx and framebuffer at 0x%llx.", index, that, framebuffer);
 	
 	// Retrieve the user preference

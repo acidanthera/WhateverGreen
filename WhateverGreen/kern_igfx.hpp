@@ -522,6 +522,9 @@ private:
 		/// The rest fields are not of interest
 	};
 	
+	static_assert(offsetof(CRTCParams, pdiv) == 0x20, "Invalid pdiv offset, please check your compiler.");
+	static_assert(sizeof(CRTCParams) == 56, "Invalid size of CRTCParams struct, please check your compiler.");
+	
 	/**
 	 *  Represents the current context of probing dividers for HDMI connections
 	 */
@@ -594,6 +597,28 @@ private:
 	 *  @note Method Signature: `AppleIntelFramebufferController::ComputeHdmiP0P1P2(pixelClock:displayPath:parameters:)`
 	 */
 	static int wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
+	
+	/**
+	 *  Explore the framebuffer structure in Apple's Intel graphics driver
+	 */
+	struct AppleIntelFramebufferExplorer {
+		/**
+		 *  [Convenient] Retrieve the framebuffer index
+		 *
+		 *  @param framebuffer An `AppleIntelFramebuffer` instance
+		 *  @param index The framebuffer index on return
+		 *  @return `true` on success, `false` if the index does not exist.
+		 */
+		static bool getIndex(IORegistryEntry *framebuffer, uint32_t &index) {
+			auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+			if (idxnum != nullptr) {
+				index = idxnum->unsigned32BitValue();
+				return true;
+			} else {
+				return false;
+			}
+		}
+	};
 	
 	/**
 	 *  Represents the register layouts of DisplayPort++ adapter at I2C address 0x40
@@ -767,12 +792,12 @@ private:
 		 */
 		static LSPCON *create(void *controller, IORegistryEntry *framebuffer, void *displayPath) {
 			// Guard: Framebuffer index should exist
-			auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
-			if (idxnum == nullptr) {
+			uint32_t index;
+			if (!AppleIntelFramebufferExplorer::getIndex(framebuffer, index))
 				return nullptr;
-			}
+			
 			// Call the private constructor
-			return new LSPCON(controller, framebuffer, displayPath, idxnum->unsigned32BitValue());
+			return new LSPCON(controller, framebuffer, displayPath, index);
 		}
 		
 		/**
@@ -780,10 +805,7 @@ private:
 		 *
 		 *  @param instance A nullable LSPCON driver instance
 		 */
-		static void deleter(LSPCON *instance) {
-			if (instance != nullptr)
-				delete instance;
-		}
+		static void deleter(LSPCON *instance NONNULL) { delete instance; }
 		
 		/**
 		 *  Probe the onboard LSPCON chip
