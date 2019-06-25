@@ -1029,10 +1029,10 @@ IOReturn IGFX::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void
 	if (callbackIGFX->verboseI2C) {
 		uint32_t index = 0xFF;
 		AppleIntelFramebufferExplorer::getIndex(framebuffer, index);
-		SYSLOG("igfx", "SC:  ReadI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = %d.",
+		DBGLOG("igfx", "SC:  ReadI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = %d.",
 			   index, address, length, intermediate, flags);
 		IOReturn retVal = callbackIGFX->orgReadI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate, flags);
-		SYSLOG("igfx", "SC:  ReadI2COverAUX() returns 0x%x.", retVal);
+		DBGLOG("igfx", "SC:  ReadI2COverAUX() returns 0x%x.", retVal);
 		return retVal;
 	} else {
 		return callbackIGFX->orgReadI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate, flags);
@@ -1043,10 +1043,10 @@ IOReturn IGFX::wrapWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, voi
 	if (callbackIGFX->verboseI2C) {
 		uint32_t index = 0xFF;
 		AppleIntelFramebufferExplorer::getIndex(framebuffer, index);
-		SYSLOG("igfx", "SC: WriteI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = 0",
+		DBGLOG("igfx", "SC: WriteI2COverAUX() called. FB%d: Addr = 0x%02x; Len = %02d; MOT = %d; Flags = 0",
 			   index, address, length, intermediate);
 		IOReturn retVal = callbackIGFX->orgWriteI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate);
-		SYSLOG("igfx", "SC: WriteI2COverAUX() returns 0x%x.", retVal);
+		DBGLOG("igfx", "SC: WriteI2COverAUX() returns 0x%x.", retVal);
 		return retVal;
 	} else {
 		return callbackIGFX->orgWriteI2COverAUX(that, framebuffer, displayPath, address, length, buffer, intermediate);
