@@ -1669,10 +1669,10 @@ If this property is not specified, same as above.
 Add the `enable-hdmi-dividers-fix` property to `IGPU` or use the `-igfxhdmidivs` boot argument instead to fix the infinite loop when the graphics driver tries to establish a HDMI connection with a higher pixel clock rate, for example connecting to a 2K/4K display with HDMI 1.4, otherwise the system just hangs (and your builtin laptop display remains black) when you plug in the HDMI cable.  
 #### General Notes
 - For those who want to have "limited" 2K/4K experience (i.e. 2K@59Hz or 4K@30Hz) with their HDMI 1.4 port, you might find this fix helpful.
-- For those who have a laptop or PC with HDMI 2.0 routed to Intel IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.  
+- For those who have a laptop or PC with HDMI 2.0 routed to IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.  
 *(You might still need this fix temporarily to figure out the framebuffer index of your HDMI port. See the LSPCON section below.)*
 
-## LSPCON driver support to enable DisplayPort to HDMI 2.0 output on Intel IGPU
+## LSPCON driver support to enable DisplayPort to HDMI 2.0 output on IGPU
 #### Brief Introduction
 Recent laptops (Kaby Lake/Coffee Lake-based) are typically equipped with a HDMI 2.0 port. This port could be either routed to IGPU or DGPU, and you can have a confirmation on Windows 10. Intel (U)HD Graphics, however, does not provide native HDMI 2.0 output, so in order to solve this issue OEMs add an additional hardware named LSPCON on the motherboard to convert DisplayPort into HDMI 2.0.  
 
@@ -1680,12 +1680,12 @@ LSPCON works in either Level Shifter (LS) or Protocol Converter (PCON) mode. Whe
 
 Starting from version 1.3.0, WhateverGreen now provides driver support for the onboard LSPCON by automatically configuring the adapter to run in PCON mode on new HDMI connections, and hence solves the black screen issue on some platforms.  
 #### Before you start
-- LSPCON driver is only applicable for laptops and PCs **with HDMI 2.0 routed to Intel IGPU**.
-- LSPCON driver is necessary for all newer platforms unless the new Intel IGPU starts to provide native HDMI 2.0 output.
+- LSPCON driver is only applicable for laptops and PCs **with HDMI 2.0 routed to IGPU**.
+- LSPCON driver is necessary for all newer platforms unless the new IGPU starts to provide native HDMI 2.0 output.
 - Supported Intel Platform: Skylake, Kaby Lake, Coffee Lake and later.  
 Skylake Case: Intel NUC Skull Canyon; Iris Pro 580 + HDMI 2.0 with Parade PS175 LSPCON.  
 Coffee Lake Case: Some laptops, e.g. Dell XPS 15 9570, are equipped with HDMI 2.0 and Parade PS175 LSPCON.  
-- If you have confirmed that your HDMI 2.0 is routed to Intel IGPU and is working properly right now, you don't need to enable this driver, because your onboard LSPCON might already be configured in the firmware to work in PCON mode.
+- If you have confirmed that your HDMI 2.0 is routed to IGPU and is working properly right now, you don't need to enable this driver, because your onboard LSPCON might already be configured in the firmware to work in PCON mode.
 
 #### Instructions
 - Add the `enable-lspcon-support` property to `IGPU` to enable the driver, or use the boot-arg `-igfxlspcon` instead.  
