@@ -8,6 +8,8 @@ WhateverGreen Changelog
 - Disabled NVIDIA performance fix on 10.15, as it now is built-in
 - Enable HDMI 2.0 patches on 10.14+ (Use at own risk in case of undiscovered change)
 - Added CFL graphics kernel panic workaround on 10.14.4+
+- Added infinite loop fix when calculating dividers for Intel HDMI connections on SKL, KBL and CFL platforms.
+- Added driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on Intel IGPUs (by @0xFireWolf)
 
 #### v1.2.9
 - Added AMD Radeon VII to detected list
@@ -17,7 +19,7 @@ WhateverGreen Changelog
 
 #### v.1.2.8
 - Added KBL graphics kernel panic workaround on 10.14.4+
-- Added IGPU DPDCD link incompatible rate patch (thanks @Firewolf)
+- Added IGPU DPCD link incompatible rate patch (thanks @0xFireWolf)
 
 #### v1.2.7
 - Added more IGPU device-ids to detected list

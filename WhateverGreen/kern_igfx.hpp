@@ -250,7 +250,22 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::ReadAUX function
 	 */
-	int (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
+	IOReturn (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::ReadI2COverAUX function
+	 */
+	IOReturn (*orgReadI2COverAUX)(void *, IORegistryEntry *, void *, uint32_t, uint16_t, uint8_t *, bool, uint8_t) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::WriteI2COverAUX function
+	 */
+	IOReturn (*orgWriteI2COverAUX)(void *, IORegistryEntry *, void *, uint32_t, uint16_t, uint8_t *, bool) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::GetDPCDInfo function
+	 */
+	IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *);
 
 	/**
 	 *  Detected CPU generation of the host system
@@ -274,7 +289,7 @@ private:
 	/**
 	 *  Set to On if Coffee Lake backlight patch type required
 	 *  - boot-arg igfxcflbklt=0/1 forcibly turns patch on or off (override)
-	 *	- IGPU property enable-cfl-backlight-fix turns patch on
+	 *  - IGPU property enable-cfl-backlight-fix turns patch on
 	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
 	 */
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
@@ -283,6 +298,21 @@ private:
 	 *  Patch the maximum link rate in the DPCD buffer read from the built-in display
 	 */
 	bool maxLinkRatePatch {false};
+	
+	/**
+	 *  Set to true to enable LSPCON driver support
+	 */
+	bool supportLSPCON {false};
+	
+	/**
+	 *  Set to true to enable verbose output in I2C-over-AUX transactions
+	 */
+	bool verboseI2C {false};
+	
+	/**
+	 *  Set to true to fix the infinite loop issue when computing dividers for HDMI connections
+	 */
+	bool hdmiP0P1P2Patch {false};
 	
 	/**
 	 *  Set to true if PAVP code should be disabled
@@ -415,8 +445,7 @@ private:
 	 *  - struct intel_dp @ line 1073 in intel_drv.h (Linux 4.19 Kernel)
 	 *  - DP_RECEIVER_CAP_SIZE @ line 964 in drm_dp_helper.h
 	 */
-	struct DPCDCap16 // 16 bytes
-	{
+	struct DPCDCap16 { // 16 bytes
 		// DPCD Revision (DP Config Version)
 		// Value: 0x10, 0x11, 0x12, 0x13, 0x14
 		uint8_t revision;
@@ -457,7 +486,731 @@ private:
 	/**
 	 *  ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
 	 */
-	static int wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
+	static IOReturn wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
+	
+	/**
+	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct
+	 *
+	 *  @note Unlike the Intel Linux Graphics Driver,
+	 *  - Apple does not transform the `pdiv`, `qdiv` and `kdiv` fields.
+	 *  - Apple records the final central frequency divided by 15625.
+	 *  @ref static void skl_wrpll_params_populate(params:afe_clock:central_freq:p0:p1:p2:)
+	 *  @seealso https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1171
+	 */
+	struct CRTCParams {
+		/// Uninvestigated fields
+		uint8_t uninvestigated[32];
+		
+		/// P0                          [`CRTCParams` field offset 0x20]
+		uint32_t pdiv;
+		
+		/// P1                          [`CRTCParams` field offset 0x24]
+		uint32_t qdiv;
+		
+		/// P2                          [`CRTCParams` field offset 0x28]
+		uint32_t kdiv;
+		
+		/// Difference in Hz            [`CRTCParams` field offset 0x2C]
+		uint32_t fraction;
+		
+		/// Multiplier of 24 MHz        [`CRTCParams` field offset 0x30]
+		uint32_t multiplier;
+		
+		/// Central Frequency / 15625   [`CRTCParams` field offset 0x34]
+		uint32_t cf15625;
+		
+		/// The rest fields are not of interest
+	};
+	
+	static_assert(offsetof(CRTCParams, pdiv) == 0x20, "Invalid pdiv offset, please check your compiler.");
+	static_assert(sizeof(CRTCParams) == 56, "Invalid size of CRTCParams struct, please check your compiler.");
+	
+	/**
+	 *  Represents the current context of probing dividers for HDMI connections
+	 */
+	struct ProbeContext {
+		/// The current minimum deviation
+		uint64_t minDeviation;
+		
+		/// The current chosen central frequency
+		uint64_t central;
+		
+		/// The current DCO frequency
+		uint64_t frequency;
+		
+		/// The current selected divider
+		uint32_t divider;
+		
+		/// The corresponding pdiv value [P0]
+		uint32_t pdiv;
+		
+		/// The corresponding qdiv value [P1]
+		uint32_t qdiv;
+		
+		/// The corresponding kqiv value [P2]
+		uint32_t kdiv;
+	};
+	
+	/**
+	 *  The maximum positive deviation from the DCO central frequency
+	 *
+	 *  @note DCO frequency must be within +1% of the DCO central frequency.
+	 *  @warning This is a hardware requirement.
+	 *           See "Intel Graphics Programmer Reference Manual for Kaby Lake platform"
+	 *           Volume 12 Display, Page 134, Formula for HDMI and DVI DPLL Programming
+	 *  @link https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
+	 *  @note This value is appropriate for graphics on Skylake, Kaby Lake and Coffee Lake platforms.
+	 *  @seealso Intel Linux Graphics Driver
+	 *  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1080
+	 */
+	static constexpr uint64_t SKL_DCO_MAX_POS_DEVIATION = 100;
+	
+	/**
+	 *  The maximum negative deviation from the DCO central frequency
+	 *
+	 *  @note DCO frequency must be within -6% of the DCO central frequency.
+	 *  @seealso See `SKL_DCO_MAX_POS_DEVIATION` above for details.
+	 */
+	static constexpr uint64_t SKL_DCO_MAX_NEG_DEVIATION = 600;
+	
+	/**
+	 *  [Helper] Compute the final P0, P1, P2 values based on the current frequency divider
+	 *
+	 *  @param context The current context for probing P0, P1 and P2.
+	 *  @note Implementation adopted from the Intel Graphics Programmer Reference Manual;
+	 *        Volume 12 Display, Page 135, Algorithm to Find HDMI and DVI DPLL Programming.
+	 *        Volume 12 Display, Page 135, Pseudo-code for HDMI and DVI DPLL Programming.
+	 *  @ref static void skl_wrpll_get_multipliers(p:p0:p1:p2:)
+	 *  @seealso Intel Linux Graphics Driver
+	 *  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1112
+	 */
+	static void populateP0P1P2(struct ProbeContext* context);
+	
+	/**
+	 *  Compute dividers for a HDMI connection with the given pixel clock
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param pixelClock The pixel clock value (in Hz) used for the HDMI connection
+	 *  @param displayPath The corresponding display path
+	 *  @param parameters CRTC parameters populated on return
+	 *  @return Never used by its caller, so this method might return void.
+	 *  @note Method Signature: `AppleIntelFramebufferController::ComputeHdmiP0P1P2(pixelClock:displayPath:parameters:)`
+	 */
+	static int wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
+	
+	/**
+	 *  Explore the framebuffer structure in Apple's Intel graphics driver
+	 */
+	struct AppleIntelFramebufferExplorer {
+		/**
+		 *  [Convenient] Retrieve the framebuffer index
+		 *
+		 *  @param framebuffer An `AppleIntelFramebuffer` instance
+		 *  @param index The framebuffer index on return
+		 *  @return `true` on success, `false` if the index does not exist.
+		 */
+		static bool getIndex(IORegistryEntry *framebuffer, uint32_t &index) {
+			auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+			if (idxnum != nullptr) {
+				index = idxnum->unsigned32BitValue();
+				return true;
+			} else {
+				return false;
+			}
+		}
+	};
+	
+	/**
+	 *  Represents the register layouts of DisplayPort++ adapter at I2C address 0x40
+	 *
+	 *  Specific to LSPCON DisplayPort 1.2 to HDMI 2.0 Adapter
+	 */
+	struct DisplayPortDualModeAdapterInfo { // first 128 bytes
+		/// [0x00] HDMI ID
+		///
+		/// Fixed Value: "DP-HDMI ADAPTOR\x04"
+		uint8_t hdmiID[16];
+		
+		/// [0x10] Adapter ID
+		///
+		/// Bit Masks:
+		/// - isType2 = 0xA0
+		/// - hasDPCD = 0x08
+		///
+		/// Sample Values: 0xA8 = Type 2 Adapter with DPCD
+		uint8_t adapterID;
+		
+		/// [0x11] IEEE OUI
+		///
+		/// Sample Value: 0x001CF8 [Parade]
+		/// Reference: http://standards-oui.ieee.org/oui.txt
+		uint8_t oui[3];
+		
+		/// [0x14] Device ID
+		///
+		/// Sample Value: 0x505331373530 = "PS1750"
+		uint8_t deviceID[6];
+		
+		/// [0x1A] Hardware Revision Number
+		///
+		/// Sample Value: 0xB2 (B2 version)
+		uint8_t revision;
+		
+		/// [0x1B] Firmware Major Revision
+		uint8_t firmwareMajor;
+		
+		/// [0x1C] Firmware Minor Revision
+		uint8_t firmwareMinor;
+		
+		/// [0x1D] Maximum TMDS Clock
+		uint8_t maxTMDSClock;
+		
+		/// [0x1E] I2C Speed Capability
+		uint8_t i2cSpeedCap;
+		
+		/// [0x1F] Unused/Reserved Field???
+		uint8_t reserved0;
+		
+		/// [0x20] TMDS Output Buffer State
+		///
+		/// Bit Masks:
+		/// - Disabled = 0x01
+		///
+		/// Sample Value:
+		/// 0x00 = Enabled
+		uint8_t tmdsOutputBufferState;
+		
+		/// [0x21] HDMI PIN CONTROL
+		uint8_t hdmiPinCtrl;
+		
+		/// [0x22] I2C Speed Control
+		uint8_t i2cSpeedCtrl;
+		
+		/// [0x23 - 0x3F] Unused/Reserved Fields
+		uint8_t reserved1[29];
+		
+		/// [0x40] [W] Set the new LSPCON mode
+		uint8_t lspconChangeMode;
+		
+		/// [0x41] [R] Get the current LSPCON mode
+		///
+		/// Bit Masks:
+		/// - PCON = 0x01
+		///
+		/// Sample Value:
+		/// 0x00 = LS
+		/// 0x01 = PCON
+		uint8_t lspconCurrentMode;
+		
+		/// [0x42 - 0x7F] Rest Unused/Reserved Fields
+		uint8_t reserved2[62];
+	};
+	
+	/**
+	 *  Represents the onboard Level Shifter and Protocol Converter
+	 */
+	class LSPCON {
+	public:
+		/**
+		 *  Represents all possible adapter modes
+		 */
+		enum class Mode: uint32_t {
+			
+			/// Level Shifter Mode 		(DP++ to HDMI 1.4)
+			LevelShifter = 0x00,
+			
+			/// Protocol Converter Mode (DP++ to HDMI 2.0)
+			ProtocolConverter = 0x01,
+			
+			/// Invalid Mode
+			Invalid
+		};
+		
+		/**
+		 *  [Mode Helper] Parse the adapter mode from the raw register value
+		 *
+		 *  @param mode A raw register value read from the adapter.
+		 *  @return The corresponding adapter mode on success, `invalid` otherwise.
+		 */
+		static inline Mode parseMode(uint8_t mode) {
+			switch (mode & DP_DUAL_MODE_LSPCON_MODE_PCON) {
+				case DP_DUAL_MODE_LSPCON_MODE_LS:
+					return Mode::LevelShifter;
+					
+				case DP_DUAL_MODE_LSPCON_MODE_PCON:
+					return Mode::ProtocolConverter;
+					
+				default:
+					return Mode::Invalid;
+			}
+		}
+		
+		/**
+		 *  [Mode Helper] Get the raw value of the given adapter mode
+		 *
+		 *  @param mode A valid adapter mode
+		 *  @return The corresponding register value on success.
+		 *          If the given mode is `Invalid`, the raw value of `LS` mode will be returned.
+		 */
+		static inline uint8_t getModeValue(Mode mode) {
+			switch (mode) {
+				case Mode::LevelShifter:
+					return DP_DUAL_MODE_LSPCON_MODE_LS;
+					
+				case Mode::ProtocolConverter:
+					return DP_DUAL_MODE_LSPCON_MODE_PCON;
+					
+				default:
+					return DP_DUAL_MODE_LSPCON_MODE_LS;
+			}
+		}
+		
+		/**
+		 *  [Mode Helper] Get the string representation of the adapter mode
+		 */
+		static inline const char *getModeString(Mode mode) {
+			switch (mode) {
+				case Mode::LevelShifter:
+					return "Level Shifter (DP++ to HDMI 1.4)";
+					
+				case Mode::ProtocolConverter:
+					return "Protocol Converter (DP++ to HDMI 2.0)";
+					
+				default:
+					return "Invalid";
+			}
+		}
+		
+		/**
+		 *  [Convenient] Create the LSPCON driver for the given framebuffer
+		 *
+		 *  @param controller The opaque `AppleIntelFramebufferController` instance
+		 *  @param framebuffer The framebuffer that owns this LSPCON chip
+		 *  @param displayPath The corresponding opaque display path instance
+		 *  @return A driver instance on success, `nullptr` otherwise.
+		 *  @note This convenient initializer returns `nullptr` if it could not retrieve the framebuffer index.
+		 */
+		static LSPCON *create(void *controller, IORegistryEntry *framebuffer, void *displayPath) {
+			// Guard: Framebuffer index should exist
+			uint32_t index;
+			if (!AppleIntelFramebufferExplorer::getIndex(framebuffer, index))
+				return nullptr;
+			
+			// Call the private constructor
+			return new LSPCON(controller, framebuffer, displayPath, index);
+		}
+		
+		/**
+		 *  [Convenient] Destroy the LSPCON driver safely
+		 *
+		 *  @param instance A nullable LSPCON driver instance
+		 */
+		static void deleter(LSPCON *instance NONNULL) { delete instance; }
+		
+		/**
+		 *  Probe the onboard LSPCON chip
+		 *
+		 *  @return `kIOReturnSuccess` on success, errors otherwise.
+		 *  @note This method will mark the adapter active if it has found that the adpater is already in `PCON` mode.
+		 *  @see `isActive` and `isAdapterActive()`.
+		 */
+		IOReturn probe();
+		
+		/**
+		 *  Get the current adapter mode
+		 *
+		 *  @param mode The current adapter mode on return.
+		 *  @return `kIOReturnSuccess` on success, errors otherwise.
+		 */
+		IOReturn getMode(Mode *mode);
+		
+		/**
+		 *  Change the adapter mode
+		 *
+		 *  @param newMode The new adapter mode
+		 *  @return `kIOReturnSuccess` on success, errors otherwise.
+		 *  @note This method will not return until `newMode` is effective.
+		 *  @note This method will mark the adapter active if `newMode` is `PCON`and becomes effective.
+		 *  @warning This method will return the result of the last attempt if timed out on waiting for `newMode` to be effective.
+		 */
+		IOReturn setMode(Mode newMode);
+		
+		/**
+		 *  Change the adapter mode if necessary
+		 *
+		 *  @param newMode The new adapter mode
+		 *  @return `kIOReturnSuccess` on success, errors otherwise.
+		 *  @note This method is a wrapper of `setMode` and will only set the new mode if `newMode` is not currently effective.
+		 *  @seealso `setMode(newMode:)`
+		 */
+		IOReturn setModeIfNecessary(Mode newMode);
+		
+		/**
+		 *  Wake up the native DisplayPort AUX channel for this adapter
+		 *
+		 *  @return `kIOReturnSuccess` on success, other errors otherwise.
+		 */
+		IOReturn wakeUpNativeAUX();
+		
+		/**
+		 *  Return `true` if the adapter is active
+		 */
+		inline bool isAdapterActive() {
+			return isActive;
+		}
+		
+		/**
+		 *  Return `true` if the adapter is running in the given mode
+		 *
+		 *  @param mode The expected mode; one of `LS` and `PCON`
+		 */
+		inline bool isRunningInMode(Mode mode) {
+			//  isActive 1 1 0 0
+			// Preferred 1 0 1 0
+			//       XOR 0 1 1 0
+			return !(isActive ^ getModeValue(mode));
+		}
+		
+	private:
+		/// The 7-bit I2C slave address of the DisplayPort dual mode adapter
+		static constexpr uint32_t DP_DUAL_MODE_ADAPTER_I2C_ADDR = 0x40;
+		
+		/// Register address to change the adapter mode
+		static constexpr uint8_t DP_DUAL_MODE_LSPCON_CHANGE_MODE = 0x40;
+		
+		/// Register address to read the current adapter mode
+		static constexpr uint8_t DP_DUAL_MODE_LSPCON_CURRENT_MODE = 0x41;
+		
+		/// Register value when the adapter is in **Level Shifter** mode
+		static constexpr uint8_t DP_DUAL_MODE_LSPCON_MODE_LS = 0x00;
+		
+		/// Register value when the adapter is in **Protocol Converter** mode
+		static constexpr uint8_t DP_DUAL_MODE_LSPCON_MODE_PCON = 0x01;
+		
+		/// IEEE OUI of Parade Technologies
+		static constexpr uint32_t DP_DUAL_MODE_LSPCON_VENDOR_PARADE = 0x001CF8;
+		
+		/// IEEE OUI of MegaChips Corporation
+		static constexpr uint32_t DP_DUAL_MODE_LSPCON_VENDOR_MEGACHIPS = 0x0060AD;
+		
+		/// Bit mask indicating that the DisplayPort dual mode adapter is of type 2
+		static constexpr uint8_t DP_DUAL_MODE_TYPE_IS_TYPE2 = 0xA0;
+		
+		/// Bit mask indicating that the DisplayPort dual mode adapter has DPCD (LSPCON case)
+		static constexpr uint8_t DP_DUAL_MODE_TYPE_HAS_DPCD = 0x08;
+		
+		/**
+		 *  Represents all possible chip vendors
+		 */
+		enum class Vendor {
+			MegaChips,
+			Parade,
+			Unknown
+		};
+		
+		/// The opaque framebuffer controller instance
+		void *controller;
+		
+		/// The framebuffer that owns this LSPCON chip
+		IORegistryEntry *framebuffer;
+		
+		/// The corresponding opaque display path instance
+		void *displayPath;
+		
+		/// Indicate whether the LSPCON adapter is active or not;
+		/// The adapter is considered to be active once it is switched to PCON mode
+		bool isActive;
+		
+		/// The framebuffer index (for debugging purposes)
+		uint32_t index;
+		
+		/**
+		 *  Initialize the LSPCON chip for the given framebuffer
+		 *
+		 *  @param controller The opaque `AppleIntelFramebufferController` instance
+		 *  @param framebuffer The framebuffer that owns this LSPCON chip
+		 *  @param displayPath The corresponding opaque display path instance
+		 *  @param index The framebuffer index (only for debugging purposes)
+		 *  @seealso LSPCON::create(controller:framebuffer:displayPath:) to create the driver instance.
+		 */
+		LSPCON(void *controller, IORegistryEntry *framebuffer, void *displayPath, uint32_t index) {
+			this->controller = controller;
+			this->framebuffer = framebuffer;
+			this->displayPath = displayPath;
+			this->isActive = false;
+			this->index = index;
+		}
+		
+		/**
+		 *  [Vendor Helper] Parse the adapter vendor from the adapter info
+		 *
+		 *  @param info A non-null DP++ adapter info instance
+		 *  @return The vendor on success, `Unknown` otherwise.
+		 */
+		static inline Vendor parseVendor(DisplayPortDualModeAdapterInfo *info) {
+			uint32_t oui = info->oui[0] << 16 | info->oui[1] << 8 | info->oui[2];
+			switch (oui) {
+				case DP_DUAL_MODE_LSPCON_VENDOR_PARADE:
+					return Vendor::Parade;
+					
+				case DP_DUAL_MODE_LSPCON_VENDOR_MEGACHIPS:
+					return Vendor::MegaChips;
+					
+				default:
+					return Vendor::Unknown;
+			}
+		}
+		
+		/**
+		 *  [Vendor Helper] Get the string representation of the adapter vendor
+		 */
+		static inline const char *getVendorString(Vendor vendor) {
+			switch (vendor) {
+				case Vendor::Parade:
+					return "Parade";
+					
+				case Vendor::MegaChips:
+					return "MegaChips";
+					
+				default:
+					return "Unknown";
+			}
+		}
+		
+		/**
+		 *  [DP++ Helper] Check whether this is a HDMI adapter based on the adapter info
+		 *
+		 *  @param info A non-null DP++ adapter info instance
+		 *  @return `true` if this is a HDMI adapter, `false` otherwise.
+		 */
+		static inline bool isHDMIAdapter(DisplayPortDualModeAdapterInfo *info) {
+			return memcmp(info->hdmiID, "DP-HDMI ADAPTOR\x04", 16) == 0;
+		}
+		
+		/**
+		 *  [DP++ Helper] Check whether this is a LSPCON adapter based on the adapter info
+		 *
+		 *  @param info A non-null DP++ adapter info instance
+		 *  @return `true` if this is a LSPCON DP-HDMI adapter, `false` otherwise.
+		 */
+		static inline bool isLSPCONAdapter(DisplayPortDualModeAdapterInfo *info) {
+			// Guard: Check whether it is a DP to HDMI adapter
+			if (!isHDMIAdapter(info))
+				return false;
+			
+			// Onboard LSPCON adapter must be of type 2 and have DPCD info
+			return info->adapterID == (DP_DUAL_MODE_TYPE_IS_TYPE2 | DP_DUAL_MODE_TYPE_HAS_DPCD);
+		}
+	};
+	
+	/**
+	 *  Represents the LSPCON chip info for a framebuffer
+	 */
+	struct FramebufferLSPCON {
+		/**
+		 *  Indicate whether this framebuffer has an onboard LSPCON chip
+		 *
+		 *  @note This value will be read from the IGPU property `framebuffer-conX-has-lspcon`.
+		 *  @warning If not specified, assuming no onboard LSPCON chip for this framebuffer.
+		 */
+		uint32_t hasLSPCON {0};
+		
+		/**
+		 *  User preferred LSPCON adapter mode
+		 *
+		 *  @note This value will be read from the IGPU property `framebuffer-conX-preferred-lspcon-mode`.
+		 *  @warning If not specified, assuming `PCON` mode is preferred.
+		 *  @warning If invalid mode value found, assuming `PCON` mode
+		 */
+		LSPCON::Mode preferredMode {LSPCON::Mode::ProtocolConverter};
+		
+		/**
+		 *  The corresponding LSPCON driver; `NULL` if no onboard chip
+		 */
+		LSPCON *lspcon {nullptr};
+	};
+	
+	/**
+	 *  User-defined LSPCON chip info for all possible framebuffers
+	 */
+	FramebufferLSPCON lspcons[MaxFramebufferConnectorCount];
+	
+	/// MARK:- Manage user-defined LSPCON chip info for all framebuffers
+	
+	/**
+	 *  Setup the LSPCON driver for the given framebuffer
+	 *
+	 *  @param that The opaque framebuffer controller instance
+	 *  @param framebuffer The framebuffer that owns this LSPCON chip
+	 *  @param displayPath The corresponding opaque display path instance
+	 *  @note This method will update fields in `lspcons` accordingly on success.
+	 */
+	static void framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void *displayPath);
+	
+	/**
+	 *  [Convenient] Check whether the given framebuffer has an onboard LSPCON chip
+	 *
+	 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+	 *  @return `true` if the framebuffer has an onboard LSPCON chip, `false` otherwise.
+	 */
+	static inline bool framebufferHasLSPCON(uint32_t index) {
+		return callbackIGFX->lspcons[index].hasLSPCON;
+	}
+	
+	/**
+	 *  [Convenient] Check whether the given framebuffer already has LSPCON driver initialized
+	 *
+	 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+	 *  @return `true` if the LSPCON driver has already been initialized for this framebuffer, `false` otherwise.
+	 */
+	static inline bool framebufferHasLSPCONInitialized(uint32_t index) {
+		return callbackIGFX->lspcons[index].lspcon != nullptr;
+	}
+	
+	/**
+	 *  [Convenient] Get the non-null LSPCON driver associated with the given framebuffer
+	 *
+	 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+	 *  @return The LSPCON driver instance.
+	 */
+	static inline LSPCON *framebufferGetLSPCON(uint32_t index) {
+		return callbackIGFX->lspcons[index].lspcon;
+	}
+	
+	/**
+	 *  [Convenient] Set the non-null LSPCON driver for the given framebuffer
+	 *
+	 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+	 *  @param lspcon A non-null LSPCON driver instance associated with the given framebuffer
+	 */
+	static inline void framebufferSetLSPCON(uint32_t index, LSPCON *lspcon) {
+		callbackIGFX->lspcons[index].lspcon = lspcon;
+	}
+	
+	/**
+	 *  [Convenient] Get the preferred LSPCON mode for the given framebuffer
+	 *
+	 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+	 *  @return The preferred adapter mode.
+	 */
+	static inline LSPCON::Mode framebufferLSPCONGetPreferredMode(uint32_t index) {
+		return callbackIGFX->lspcons[index].preferredMode;
+	}
+	
+	/// MARK:- I2C-over-AUX Transaction APIs
+	
+	/**
+	 *  [Advanced] Reposition the offset for an I2C-over-AUX access
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param framebuffer A framebuffer instance
+	 *  @param displayPath A display path instance
+	 *  @param address The 7-bit address of an I2C slave
+	 *  @param offset The address of the next register to access
+	 *  @param flags A flag reserved by Apple. Currently always 0.
+	 *  @return `kIOReturnSuccess` on success, other values otherwise.
+	 *  @note Method Signature: `AppleIntelFramebufferController::advSeekI2COverAUX(framebuffer:displayPath:address:offset:flags:)`
+	 *  @note Built upon Apple's original `ReadI2COverAUX()` and `WriteI2COverAUX()` APIs.
+	 */
+	static IOReturn advSeekI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint8_t flags);
+	
+	/**
+	 *  [Advanced] Read from an I2C slave via the AUX channel
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param framebuffer A framebuffer instance
+	 *  @param displayPath A display path instance
+	 *  @param address The 7-bit address of an I2C slave
+	 *  @param offset Address of the first register to read from
+	 *  @param length The number of bytes requested to read starting from `offset`
+	 *  @param buffer A non-null buffer to store the bytes
+	 *  @param flags A flag reserved by Apple. Currently always 0.
+	 *  @return `kIOReturnSuccess` on success, other values otherwise.
+	 *  @note Method Signature: `AppleIntelFramebufferController::advReadI2COverAUX(framebuffer:displayPath:address:offset:length:buffer:flags:)`
+	 *  @note Built upon Apple's original `ReadI2COverAUX()` and `WriteI2COverAUX()` APIs.
+	 */
+	static IOReturn advReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint16_t length, uint8_t *buffer, uint8_t flags);
+	
+	/**
+	 *  [Advanced] Write to an I2C slave via the AUX channel
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param framebuffer A framebuffer instance
+	 *  @param displayPath A display path instance
+	 *  @param address The 7-bit address of an I2C slave
+	 *  @param offset Address of the first register to write to
+	 *  @param length The number of bytes requested to write starting from `offset`
+	 *  @param buffer A non-null buffer containing the bytes to write
+	 *  @param flags A flag reserved by Apple. Currently always 0.
+	 *  @return `kIOReturnSuccess` on success, other values otherwise.
+	 *  @note Method Signature: `AppleIntelFramebufferController::advWriteI2COverAUX(framebuffer:displayPath:address:offset:length:buffer:flags:)`
+	 *  @note Built upon Apple's original `ReadI2COverAUX()` and `WriteI2COverAUX()` APIs.
+	 */
+	static IOReturn advWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint16_t length, uint8_t *buffer, uint8_t flags);
+	
+	/**
+	 *  [Basic] Read from an I2C slave via the AUX channel
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param framebuffer A framebuffer instance
+	 *  @param displayPath A display path instance
+	 *  @param address The 7-bit address of an I2C slave
+	 *  @param length The number of bytes requested to read and must be <= 16 (See below)
+	 *  @param buffer A buffer to store the read bytes (See below)
+	 *  @param intermediate Set `true` if this is an intermediate read (See below)
+	 *  @param flags A flag reserved by Apple; currently always 0.
+	 *  @return `kIOReturnSuccess` on success, other values otherwise.
+	 *  @note The number of bytes requested to read cannot be greater than 16, because the burst data size in
+	 *        a single AUX transaction is 20 bytes, in which the first 4 bytes are used for the message header.
+	 *  @note Passing a `0` buffer length and a `NULL` buffer will start or stop an I2C transaction.
+	 *  @note When `intermediate` is `true`, the Middle-of-Transaction (MOT, bit 30 in the header) bit will be set to 1.
+	 *        (See Section 2.7.5.1 I2C-over-AUX Request Transaction Command in VESA DisplayPort Specification 1.2)
+	 *  @note Similar logic could be found at `intel_dp.c` (Intel Linux Graphics Driver; Linux Kernel)
+	 *        static ssize_t intel_dp_aux_transfer(struct drm_dp_aux* aux, struct drm_dp_aux_msg* msg)
+	 *  @note Method Signature: `AppleIntelFramebufferController::ReadI2COverAUX(framebuffer:displayPath:address:length:buffer:intermediate:flags:)`
+	 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::ReadI2COverAUX()` method.
+	 *  @seealso See the actual implementation extracted from my reverse engineering research for detailed information.
+	 *  @ref TODO: Add the link to the blog post. [Working In Progress]
+	 */
+	static IOReturn wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate, uint8_t flags);
+	
+	/**
+	 *  [Basic] Write to an I2C adapter via the AUX channel
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param framebuffer A framebuffer instance
+	 *  @param displayPath A display path instance
+	 *  @param address The 7-bit address of an I2C slave
+	 *  @param length The number of bytes requested to write and must be <= 16 (See below)
+	 *  @param buffer A buffer that stores the bytes to write (See below)
+	 *  @param intermediate Set `true` if this is an intermediate write (See below)
+	 *  @param flags A flag reserved by Apple; currently always 0.
+	 *  @return `kIOReturnSuccess` on success, other values otherwise.
+	 *  @note The number of bytes requested to read cannot be greater than 16, because the burst data size in
+	 *        a single AUX transaction is 20 bytes, in which the first 4 bytes are used for the message header.
+	 *  @note Passing a `0` buffer length and a `NULL` buffer will start or stop an I2C transaction.
+	 *  @note When `intermediate` is `true`, the Middle-of-Transaction (MOT, bit 30 in the header) bit will be set to 1.
+	 *        (See Section 2.7.5.1 I2C-over-AUX Request Transaction Command in VESA DisplayPort Specification 1.2)
+	 *  @note Similar logic could be found at `intel_dp.c` (Intel Linux Graphics Driver; Linux Kernel)
+	 *        static ssize_t intel_dp_aux_transfer(struct drm_dp_aux* aux, struct drm_dp_aux_msg* msg)
+	 *  @note Method Signature: `AppleIntelFramebufferController::WriteI2COverAUX(framebuffer:displayPath:address:length:buffer:intermediate:)`
+	 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::WriteI2COverAUX()` method.
+	 *  @seealso See the actual implementation extracted from my reverse engineering research for detailed information.
+	 *  @ref TODO: Add the link to the blog post. [Working In Progress]
+	 */
+	static IOReturn wrapWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate);
+	
+	/**
+	 *  [Wrapper] Retrieve the DPCD info for a given framebuffer port
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @param framebuffer A framebuffer instance
+	 *  @param displayPath A display path instance
+	 *  @return `kIOReturnSuccess` on success, other values otherwise.
+	 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::GetDPCDInfo()` method.
+	 *        Used to inject code to initialize the driver for the onboard LSPCON chip.
+	 */
+	static IOReturn wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *displayPath);
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
