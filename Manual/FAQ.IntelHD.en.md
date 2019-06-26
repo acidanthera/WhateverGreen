@@ -1670,7 +1670,7 @@ Add the `enable-hdmi-dividers-fix` property to `IGPU` or use the `-igfxhdmidivs`
 #### General Notes
 - For those who want to have "limited" 2K/4K experience (i.e. 2K@59Hz or 4K@30Hz) with their HDMI 1.4 port, you might find this fix helpful.
 - For those who have a laptop or PC with HDMI 2.0 routed to IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience.  
-*(You might still need this fix temporarily to figure out the framebuffer index of your HDMI port. See the LSPCON section below.)*
+*(You might still need this fix temporarily to figure out the connector index of your HDMI port. See the LSPCON section below.)*
 
 ## LSPCON driver support to enable DisplayPort to HDMI 2.0 output on IGPU
 #### Brief Introduction
