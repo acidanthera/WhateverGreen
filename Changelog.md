@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.1
+- Fixed an issue that LSPCON driver fails to set the mode after the adapter power is off, i.e. sleep/wake up cycle.
+
 #### v1.3.0
 - Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald
 - Added `disable-gfx-submit` property to back `ngfxsubmit=0` boot argument
