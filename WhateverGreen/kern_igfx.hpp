@@ -810,9 +810,7 @@ private:
 		/**
 		 *  Probe the onboard LSPCON chip
 		 *
-		 *  @return `kIOReturnSuccess` on success, errors otherwise.
-		 *  @note This method will mark the adapter active if it has found that the adpater is already in `PCON` mode.
-		 *  @see `isActive` and `isAdapterActive()`.
+		 *  @return `kIOReturnSuccess` on success, errors otherwise
 		 */
 		IOReturn probe();
 		
@@ -830,7 +828,6 @@ private:
 		 *  @param newMode The new adapter mode
 		 *  @return `kIOReturnSuccess` on success, errors otherwise.
 		 *  @note This method will not return until `newMode` is effective.
-		 *  @note This method will mark the adapter active if `newMode` is `PCON`and becomes effective.
 		 *  @warning This method will return the result of the last attempt if timed out on waiting for `newMode` to be effective.
 		 */
 		IOReturn setMode(Mode newMode);
@@ -853,22 +850,17 @@ private:
 		IOReturn wakeUpNativeAUX();
 		
 		/**
-		 *  Return `true` if the adapter is active
-		 */
-		inline bool isAdapterActive() {
-			return isActive;
-		}
-		
-		/**
 		 *  Return `true` if the adapter is running in the given mode
 		 *
 		 *  @param mode The expected mode; one of `LS` and `PCON`
 		 */
 		inline bool isRunningInMode(Mode mode) {
-			//  isActive 1 1 0 0
-			// Preferred 1 0 1 0
-			//       XOR 0 1 1 0
-			return !(isActive ^ getModeValue(mode));
+			Mode currentMode;
+			if (getMode(&currentMode) != kIOReturnSuccess) {
+				DBGLOG("igfx", "LSPCON::isRunningInMode() Error: [FB%d] Failed to get the current adapter mode.", index);
+				return false;
+			}
+			return mode == currentMode;
 		}
 		
 	private:
@@ -917,10 +909,6 @@ private:
 		/// The corresponding opaque display path instance
 		void *displayPath;
 		
-		/// Indicate whether the LSPCON adapter is active or not;
-		/// The adapter is considered to be active once it is switched to PCON mode
-		bool isActive;
-		
 		/// The framebuffer index (for debugging purposes)
 		uint32_t index;
 		
@@ -937,7 +925,6 @@ private:
 			this->controller = controller;
 			this->framebuffer = framebuffer;
 			this->displayPath = displayPath;
-			this->isActive = false;
 			this->index = index;
 		}
 		

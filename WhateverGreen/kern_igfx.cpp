@@ -935,9 +935,7 @@ IOReturn IGFX::LSPCON::probe() {
 	// Parse the current adapter mode
 	Mode mode = parseMode(info->lspconCurrentMode);
 	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] The current adapter mode is %s.", index, getModeString(mode));
-	if (mode == Mode::ProtocolConverter)
-		isActive = true;
-	else if (mode != Mode::LevelShifter)
+	if (mode == Mode::Invalid)
 		SYSLOG("igfx", "SC: LSPCON::probe() Error: [FB%d] Cannot detect the current adapter mode. Assuming Level Shifter mode.", index);
 	return kIOReturnSuccess;
 }
@@ -995,7 +993,6 @@ IOReturn IGFX::LSPCON::setMode(Mode newMode) {
 		// Guard: The new mode is effective now
 		if (mode == newMode) {
 			DBGLOG("igfx", "SC: LSPCON::setMode() DInfo: [FB%d] The new mode is now effective.", index);
-			isActive = newMode == Mode::ProtocolConverter;
 			return kIOReturnSuccess;
 		}
 		timeout -= 20;
