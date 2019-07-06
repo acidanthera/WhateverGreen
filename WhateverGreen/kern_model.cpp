@@ -941,7 +941,7 @@ static BuiltinModel devIntel[] {
 	{ 0x3E98, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E9B, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3EA5, 0x0000, "Intel Iris Plus Graphics 655" },
-	{ 0x3EA0, 0x5916, "Intel UHD Graphics 620" },
+	{ 0x3EA0, 0x3EA5, "Intel UHD Graphics 620" },
 	{ 0x87C0, 0x0000, "Intel UHD Graphics 617" },
 	// Reserved/unused/generic Kaby Lake / Coffee Lake },
 };
