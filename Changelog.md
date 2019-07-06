@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.1
+- Unified release archive names
+
 #### v1.3.0
 - Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald
 - Added `disable-gfx-submit` property to back `ngfxsubmit=0` boot argument
