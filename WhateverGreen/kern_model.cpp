@@ -595,6 +595,11 @@ static constexpr Model dev6863[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Vega Frontier Edition"}
 };
 
+static constexpr Model dev6868[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 8200"},
+	{Model::DetectDef, 0x1002, 0x0a0c, 0x0000, "Radeon Pro WX 8200"}
+};
+
 static constexpr Model dev687f[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon RX Vega 64"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX Vega 64"},
@@ -807,6 +812,7 @@ static constexpr DevicePair devices[] {
 	{0x6841, dev6841, arrsize(dev6841)},
 	{0x6861, dev6861, arrsize(dev6861)},
 	{0x6863, dev6863, arrsize(dev6863)},
+	{0x6868, dev6868, arrsize(dev6868)},	
 	{0x687f, dev687f, arrsize(dev687f)},
 	{0x6898, dev6898, arrsize(dev6898)},
 	{0x6899, dev6899, arrsize(dev6899)},
