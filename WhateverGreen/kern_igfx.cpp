@@ -94,12 +94,14 @@ void IGFX::init() {
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
+			forceCompleteModeset = true;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
+			forceCompleteModeset = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -111,12 +113,14 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
+			forceCompleteModeset = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
+			forceCompleteModeset = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -124,6 +128,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
+			forceCompleteModeset = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -263,7 +268,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON && !forceCompleteModeset;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -412,10 +417,11 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			}
 		}
 
-		if (forceCompleteModeset && cpuGeneration >= CPUInfo::CpuGeneration::Skylake) {
-			auto hwRegsNeedUpdate = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", address, size);
+		if (forceCompleteModeset) {
+			mach_vm_address_t hwRegsNeedUpdate {};
+			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", hwRegsNeedUpdate);
 
-			if (hwRegsNeedUpdate) {
+			if (patcher.routeMultiple(index, &request, 1, address, size)) {
 				patcher.eraseCoverageInstPrefix(hwRegsNeedUpdate);
 				auto orgHwRegsNeedUpdate = patcher.routeFunction(hwRegsNeedUpdate, reinterpret_cast<mach_vm_address_t>(&wrapHwRegsNeedUpdate), true);
 				if (orgHwRegsNeedUpdate) {
@@ -682,6 +688,24 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 }
 
 bool IGFX::wrapHwRegsNeedUpdate() {
+	// The framebuffer controller can perform panel fitter, partial, or a
+	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
+	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
+	// boot: it was observed that for HDMI framebuffer a complete modeset
+	// eventually occured, but for DVI it never did until after sleep and wake
+	// sequence.
+	//
+	// Function AppleIntelFramebufferController::hwRegsNeedUpdate checks
+	// whether a complete modeset needs to be issued. It does so by comparing
+	// sets of pipes and transcoder parameters. For some reason, the result was
+	// never true in the above scenario, so a complete modeset never occured.
+	// Consequently, AppleIntelFramebufferController::LightUpTMDS was never
+	// called for that framebuffer.
+	//
+	// Patching hwRegsNeedUpdate to always return true seems to be a rather
+	// safe solution to that. Note that the root cause of the problem is
+	// somewhere deeper.
+
 	return true;
 }
 
