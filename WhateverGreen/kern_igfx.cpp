@@ -418,21 +418,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (forceCompleteModeset) {
-			mach_vm_address_t hwRegsNeedUpdate {};
-			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", hwRegsNeedUpdate);
+			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", wrapHwRegsNeedUpdate);
 
-			if (patcher.routeMultiple(index, &request, 1, address, size)) {
-				patcher.eraseCoverageInstPrefix(hwRegsNeedUpdate);
-				auto orgHwRegsNeedUpdate = patcher.routeFunction(hwRegsNeedUpdate, reinterpret_cast<mach_vm_address_t>(&wrapHwRegsNeedUpdate), true);
-				if (orgHwRegsNeedUpdate) {
-					DBGLOG("igfx", "routed AppleIntelFramebufferController::hwRegsNeedUpdate()");
-				} else {
-					patcher.clearError();
-					SYSLOG("igfx", "failed to route AppleIntelFramebufferController::hwRegsNeedUpdate()");
-				}
-			} else {
-				SYSLOG("igfx", "failed to find AppleIntelFramebufferController::hwRegsNeedUpdate()");
-			}
+			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 		
 		if (hdmiP0P1P2Patch) {
