@@ -418,11 +418,24 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (forceCompleteModeset) {
-			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", wrapHwRegsNeedUpdate);
+			auto sym = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2");
+			if (!sym) {
+				DBGLOG("igfx", "hwregs multimonitor lookup failure, trying second");
+				sym = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE");
+			}
 
-			patcher.routeMultiple(index, &request, 1, address, size);
+			if (sym) {
+				if (patcher.routeFunction(sym, reinterpret_cast<mach_vm_address_t>(wrapHwRegsNeedUpdate)) == 0) {
+					DBGLOG("igfx", "routed hwregs multimonitor");
+				} else {
+					patcher.clearError();
+					SYSLOG("igfx", "failed to route hwregs multimonitor");
+				}
+			} else {
+				SYSLOG("igfx", "hwregs multimonitor lookup failure");
+			}
 		}
-		
+
 		if (hdmiP0P1P2Patch) {
 			auto ppp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", address, size);
 			if (ppp) {
