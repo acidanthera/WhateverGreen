@@ -152,6 +152,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool switchOffFramebuffer = false;
 	framebufferPatch.framebufferId = info->reportedFramebufferId;
 
+	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+		forceCompleteModeset = false; // may interfere with FV2
+
 	if (info->videoBuiltin) {
 		applyFramebufferPatch = loadPatchesFromDevice(info->videoBuiltin, info->reportedFramebufferId);
 
@@ -408,6 +411,23 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				SYSLOG("igfx", "MLR: Failed to find ReadAUX().");
 			}
 		}
+
+		if (forceCompleteModeset && cpuGeneration >= CPUInfo::CpuGeneration::Skylake) {
+			auto hwRegsNeedUpdate = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", address, size);
+
+			if (hwRegsNeedUpdate) {
+				patcher.eraseCoverageInstPrefix(hwRegsNeedUpdate);
+				auto orgHwRegsNeedUpdate = patcher.routeFunction(hwRegsNeedUpdate, reinterpret_cast<mach_vm_address_t>(&wrapHwRegsNeedUpdate), true);
+				if (orgHwRegsNeedUpdate) {
+					DBGLOG("igfx", "routed AppleIntelFramebufferController::hwRegsNeedUpdate()");
+				} else {
+					patcher.clearError();
+					SYSLOG("igfx", "failed to route AppleIntelFramebufferController::hwRegsNeedUpdate()");
+				}
+			} else {
+				SYSLOG("igfx", "failed to find AppleIntelFramebufferController::hwRegsNeedUpdate()");
+			}
+		}
 		
 		if (hdmiP0P1P2Patch) {
 			auto ppp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", address, size);
@@ -659,6 +679,10 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		that->setName("IntelAccelerator");
 
 	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
+}
+
+bool IGFX::wrapHwRegsNeedUpdate() {
+	return true;
 }
 
 /**
