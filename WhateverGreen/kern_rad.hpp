@@ -360,6 +360,11 @@ private:
 	 *  Wrapped polaris controller project creator
 	 */
 	static IOReturn findProjectByPartNumber(IOService *ctrl, void *properties);
+
+	/**
+	 *  Wrapped VRAM testing method
+	 */
+	static bool doNotTestVram(IOService *ctrl, uint32_t reg, bool retryOnFail);
 };
 
 #endif /* kern_rad_hpp */

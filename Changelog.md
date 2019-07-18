@@ -3,7 +3,8 @@ WhateverGreen Changelog
 #### v1.3.1
 - Fixed an issue that LSPCON driver fails to set the mode after the adapter power is off, i.e. sleep/wake up cycle.
 - Unified release archive names
-- IGFX: Enforce complete modeset on Skylake and newer
+- Enforce complete IGPU modeset on Skylake and newer
+- Disable VRAM testing on AMD GPUs on 10.14.4+ (based on vladie's patch)
 
 #### v1.3.0
 - Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald

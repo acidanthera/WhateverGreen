@@ -168,6 +168,13 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 	if (kextRadeonSupport.loadIndex == index) {
 		processConnectorOverrides(patcher, address, size, true);
+
+		if (getKernelVersion() > KernelVersion::Mojave ||
+			(getKernelVersion() == KernelVersion::Mojave && getKernelMinorVersion() >= 5)) {
+			KernelPatcher::RouteRequest request("__ZN13ATIController8TestVRAME13PCI_REG_INDEXb", doNotTestVram);
+			patcher.routeMultiple(index, &request, 1, address, size);
+		}
+
 		return true;
 	}
 
@@ -876,4 +883,16 @@ IOReturn RAD::findProjectByPartNumber(IOService *ctrl, void *properties) {
 	// 113-4E353BU, 113-4E3531U, 113-C94002A1XTA
 	// Despite this looking sane, at least with Sapphire 113-4E353BU-O50 (RX 580) these framebuffers break connectors.
 	return kIOReturnNotFound;
+}
+
+bool RAD::doNotTestVram(IOService *ctrl, uint32_t reg, bool retryOnFail) {
+	// Based on vladie's patch description:
+	// TestVRAM fills memory with 0xaa55aa55 bytes (it's magenta pixels visible onscreen),
+	// and it tries to test too much of address space, writing this bytes to framebuffer memory.
+	// If you have verbose mode enabled (as i have), there is a possibility that framebuffer
+	// will scroll during this test, and TestVRAM will write 0xaa55aa55, but read 0x00000000
+	// (because magenta-colored pixels are scrolled up) causing kernel panic.
+	//
+	// Here we just do not do video memory testing for simplicity.
+	return true;
 }
