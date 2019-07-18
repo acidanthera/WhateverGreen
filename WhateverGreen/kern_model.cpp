@@ -969,18 +969,18 @@ const char *WEG::getRadeonModel(uint16_t dev, uint16_t rev, uint16_t subven, uin
 		if (device.dev == dev) {
 			for (size_t j = 0; j < device.modelNum; j++) {
 				auto &model = device.models[j];
-				
+
 				if (model.mode & Model::DetectSub && (model.subven != subven || model.sub != sub))
 					continue;
-				
+
 				if (model.mode & Model::DetectRev && (model.rev != rev))
 					continue;
-				
+
 				return model.name;
 			}
 			break;
 		}
 	}
-	
+
 	return nullptr;
 }

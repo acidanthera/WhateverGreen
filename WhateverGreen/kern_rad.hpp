@@ -331,25 +331,25 @@ private:
 	 *  Wrapped set property function
 	 */
 	static bool wrapSetProperty(IORegistryEntry *that, const char *aKey, void *bytes, unsigned length);
-	
+
 	/**
 	 *  Wrapped get property function
 	 */
 	static OSObject *wrapGetProperty(IORegistryEntry *that, const char *aKey);
-	
+
 	/**
 	 *  Wrapped get connectors info functions
 	 */
 	static uint32_t wrapGetConnectorsInfoV1(void *that, RADConnectors::Connector *connectors, uint8_t *sz);
 	static uint32_t wrapGetConnectorsInfoV2(void *that, RADConnectors::Connector *connectors, uint8_t *sz);
 	static uint32_t wrapLegacyGetConnectorsInfo(void *that, RADConnectors::Connector *connectors, uint8_t *sz);
-	
+
 	/**
 	 *  Wrapped translate atom connector into modern connector functions
 	 */
 	static uint32_t wrapTranslateAtomConnectorInfoV1(void *that, RADConnectors::AtomConnectorInfo *info, RADConnectors::Connector *connector);
 	static uint32_t wrapTranslateAtomConnectorInfoV2(void *that, RADConnectors::AtomConnectorInfo *info, RADConnectors::Connector *connector);
-	
+
 	/**
 	 *  Wrapped ATIController start functions
 	 */

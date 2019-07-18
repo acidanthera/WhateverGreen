@@ -173,7 +173,7 @@ inline uint8_t getSenseID(uint8_t *record) {
 			record += h->ucRecordSize;
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -205,7 +205,7 @@ inline bool getTxEnc(uint16_t usGraphicObjIds, uint8_t &txmit, uint8_t &enc) {
 		DBGLOG("atom", "getTxEnc found unsupported encoder %02X objid %04X", encoder, usGraphicObjIds);
 		return false;
 	}
-	
+
 	return true;
 }
 
