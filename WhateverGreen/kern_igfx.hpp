@@ -511,12 +511,12 @@ private:
 	 */
 	struct hwRegsNeedUpdateSKL {
 		static bool wrap(void*, IOService*, void*, void*);
-		decltype(&hwRegsNeedUpdateSKL::wrap) org;
+		mach_vm_address_t org;
 	} hwRegsNeedUpdateSKL;
 
 	struct hwRegsNeedUpdateCFL {
 		static bool wrap(void*, IOService*, void*, void*, void*);
-		decltype(&hwRegsNeedUpdateCFL::wrap) org;
+		mach_vm_address_t org;
 	} hwRegsNeedUpdateCFL;
 
 	bool wrapHwRegsNeedUpdate(IOService*);

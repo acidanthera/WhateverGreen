@@ -432,8 +432,8 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 		if (forceCompleteModeset.enable) {
 			KernelPatcher::RouteRequest reqs[] {
-				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", reinterpret_cast<mach_vm_address_t>(hwRegsNeedUpdateCFL.wrap), reinterpret_cast<mach_vm_address_t&>(hwRegsNeedUpdateCFL.org)),
-				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", reinterpret_cast<mach_vm_address_t>(hwRegsNeedUpdateSKL.wrap), reinterpret_cast<mach_vm_address_t&>(hwRegsNeedUpdateSKL.org)),
+				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", hwRegsNeedUpdateCFL.wrap, hwRegsNeedUpdateCFL.org),
+				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", hwRegsNeedUpdateSKL.wrap, hwRegsNeedUpdateSKL.org),
 			};
 
 			for (auto& req : reqs) {
@@ -742,13 +742,12 @@ bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 
 bool IGFX::hwRegsNeedUpdateSKL::wrap(void* fbc, IOService* framebuffer, void* path, void* params) {
 	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) ||
-		callbackIGFX->hwRegsNeedUpdateSKL.org(fbc, framebuffer, path, params);
+		FunctionCast(callbackIGFX->hwRegsNeedUpdateSKL.wrap, callbackIGFX->hwRegsNeedUpdateSKL.org)(fbc, framebuffer, path, params);
 }
 
 bool IGFX::hwRegsNeedUpdateCFL::wrap(void* fbc, IOService* framebuffer, void* path, void* params,
 									 void* info) {
-	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) ||
-		callbackIGFX->hwRegsNeedUpdateCFL.org(fbc, framebuffer, path, params, info);
+	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) || FunctionCast(callbackIGFX->hwRegsNeedUpdateCFL.wrap, callbackIGFX->hwRegsNeedUpdateCFL.org)(fbc, framebuffer, path, params, info);
 }
 
 /**
