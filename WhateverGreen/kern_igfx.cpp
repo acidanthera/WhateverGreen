@@ -727,8 +727,8 @@ bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 	// somewhere deeper.
 
 	// Either this framebuffer is in override list
-	if (forceCompleteModeset.override && forceCompleteModeset.inList(framebuffer))
-		return true;
+	if (forceCompleteModeset.override)
+		return forceCompleteModeset.inList(framebuffer);
 
 	// Or it is built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
 	// this framebuffer.
