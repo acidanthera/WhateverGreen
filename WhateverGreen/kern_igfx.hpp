@@ -352,7 +352,20 @@ private:
 	/**
 	 * Ensure each modeset is a complete modeset.
 	 */
-	bool forceCompleteModeset {false};
+	struct {
+		bool enable {false}; // enable the patch
+		bool override {false}; // override default patch behaviour
+		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
+
+		bool inList(IORegistryEntry* fb) {
+			uint32_t idx;
+			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
+				for (auto i : fbs)
+					if (i == idx)
+						return true;
+			return false;
+		}
+	} forceCompleteModeset;
 
 	/**
 	 *  Perform platform table dump to ioreg
@@ -496,7 +509,17 @@ private:
 	/**
 	 * See function definition for explanation
 	 */
-	static bool wrapHwRegsNeedUpdate(void);
+	struct hwRegsNeedUpdateSKL {
+		static bool wrap(void*, IOService*, void*, void*);
+		mach_vm_address_t org;
+	} hwRegsNeedUpdateSKL;
+
+	struct hwRegsNeedUpdateCFL {
+		static bool wrap(void*, IOService*, void*, void*, void*);
+		mach_vm_address_t org;
+	} hwRegsNeedUpdateCFL;
+
+	bool wrapHwRegsNeedUpdate(IOService*);
 
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct

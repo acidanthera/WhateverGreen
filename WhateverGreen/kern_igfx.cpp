@@ -94,14 +94,14 @@ void IGFX::init() {
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
-			forceCompleteModeset = true;
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
-			forceCompleteModeset = true;
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -113,14 +113,14 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset = true;
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
-			forceCompleteModeset = true;
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -128,7 +128,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
-			forceCompleteModeset = true;
+			forceCompleteModeset.enable = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -157,9 +157,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool switchOffFramebuffer = false;
 	framebufferPatch.framebufferId = info->reportedFramebufferId;
 
-	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
-		forceCompleteModeset = false; // may interfere with FV2
-
 	if (info->videoBuiltin) {
 		applyFramebufferPatch = loadPatchesFromDevice(info->videoBuiltin, info->reportedFramebufferId);
 
@@ -170,6 +167,22 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (checkKernelArgument("-igfxfbdump"))
 			dumpPlatformTable = true;
 #endif
+
+		if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+			forceCompleteModeset.enable = false; // may interfere with FV2
+
+		if (forceCompleteModeset.enable) {
+			uint64_t fbs;
+
+			if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
+				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers",
+					fbs)) {
+				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
+					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
+
+				forceCompleteModeset.override = true;
+			}
+		}
 
 		// Enable the fix for computing HDMI dividers on SKL, KBL, CFL platforms if the corresponding boot argument is found
 		hdmiP0P1P2Patch = checkKernelArgument("-igfxhdmidivs");
@@ -268,7 +281,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON && !forceCompleteModeset;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON && !forceCompleteModeset.enable;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -417,22 +430,28 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			}
 		}
 
-		if (forceCompleteModeset) {
-			auto sym = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2");
-			if (!sym) {
-				DBGLOG("igfx", "hwregs multimonitor lookup failure, trying second");
-				sym = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE");
-			}
+		if (forceCompleteModeset.enable) {
+			KernelPatcher::RouteRequest reqs[] {
+				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", hwRegsNeedUpdateCFL.wrap, hwRegsNeedUpdateCFL.org),
+				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", hwRegsNeedUpdateSKL.wrap, hwRegsNeedUpdateSKL.org),
+			};
 
-			if (sym) {
-				if (patcher.routeFunction(sym, reinterpret_cast<mach_vm_address_t>(wrapHwRegsNeedUpdate)) == 0) {
-					DBGLOG("igfx", "routed hwregs multimonitor");
+			for (auto& req : reqs) {
+				auto addr = patcher.solveSymbol(index, req.symbol);
+
+				if (addr) {
+					*req.org = patcher.routeFunction(addr, req.to, true);
+
+					if (req.org)
+						DBGLOG("igfx", "routed hwRegsNeedUpdate");
+					else {
+						patcher.clearError();
+						DBGLOG("igfx", "failed to route hwRegsNeedUpdate");
+					}
+					break;
 				} else {
-					patcher.clearError();
-					SYSLOG("igfx", "failed to route hwregs multimonitor");
+					DBGLOG("igfx", "failed to solve %s", req.symbol);
 				}
-			} else {
-				SYSLOG("igfx", "hwregs multimonitor lookup failure");
 			}
 		}
 
@@ -688,7 +707,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
 }
 
-bool IGFX::wrapHwRegsNeedUpdate() {
+bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 	// The framebuffer controller can perform panel fitter, partial, or a
 	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
 	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
@@ -707,7 +726,28 @@ bool IGFX::wrapHwRegsNeedUpdate() {
 	// safe solution to that. Note that the root cause of the problem is
 	// somewhere deeper.
 
+	// Either this framebuffer is in override list
+	if (forceCompleteModeset.override)
+		return forceCompleteModeset.inList(framebuffer);
+
+	// Or it is built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
+	// this framebuffer.
+	// Note we need to check this at every invocation, as this property may reappear
+	IORegistryEntry* entry = OSDynamicCast(IORegistryEntry, framebuffer);
+	if (entry && entry->getProperty("built-in"))
+		return false;
+
 	return true;
+}
+
+bool IGFX::hwRegsNeedUpdateSKL::wrap(void* fbc, IOService* framebuffer, void* path, void* params) {
+	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) ||
+		FunctionCast(callbackIGFX->hwRegsNeedUpdateSKL.wrap, callbackIGFX->hwRegsNeedUpdateSKL.org)(fbc, framebuffer, path, params);
+}
+
+bool IGFX::hwRegsNeedUpdateCFL::wrap(void* fbc, IOService* framebuffer, void* path, void* params,
+									 void* info) {
+	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) || FunctionCast(callbackIGFX->hwRegsNeedUpdateCFL.wrap, callbackIGFX->hwRegsNeedUpdateCFL.org)(fbc, framebuffer, path, params, info);
 }
 
 /**
