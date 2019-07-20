@@ -331,18 +331,23 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// On 10.15 GraphicsSchedulerSelect 2 is removed, so we disable it by manually patching default flags.
 		if (avoidFirmwareLoading && getKernelVersion() > KernelVersion::Mojave) {
 			auto sym = patcher.solveSymbol<uint8_t *>(index, "__ZN16IntelAccelerator19populateAccelConfigEP13IOAccelConfig", address, size);
-			for (size_t i = 0; i < 4096; i++, sym++) {
-				if (sym[0] == 0x00 && sym[1] == 0x00 && sym[2] == 0x18 && sym[3] == 0x00) {
-					DBGLOG("igfx", "found GuC accel config at " PRIKADDR, CASTKADDR(sym));
-					auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
-					if (status == KERN_SUCCESS) {
-						sym[2] = 0x28;
-						MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
-					} else {
-						SYSLOG("igfx", "GuC accel config protection upgrade failure %d", status);
+			if (sym) {
+				for (size_t i = 0; i < 4096; i++, sym++) {
+					if (sym[0] == 0x00 && sym[1] == 0x00 && sym[2] == 0x18 && sym[3] == 0x00) {
+						DBGLOG("igfx", "found GuC accel config at " PRIKADDR, CASTKADDR(sym));
+						auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
+						if (status == KERN_SUCCESS) {
+							sym[2] = 0x28;
+							MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
+						} else {
+							SYSLOG("igfx", "GuC accel config protection upgrade failure %d", status);
+						}
+						break;
 					}
-					break;
 				}
+			} else {
+				SYSLOG("igfx", "failed to solve populateAccelConfig");
+				patcher.clearError();
 			}
 		}
 
@@ -396,7 +401,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			auto regRead = patcher.solveSymbol<decltype(orgCflReadRegister32)>
 				(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			auto regWrite = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
-			if (regWrite) {
+			if (regRead && regWrite) {
 				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = regRead;
 
 				patcher.eraseCoverageInstPrefix(regWrite);
@@ -411,6 +416,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
+				patcher.clearError();
 			}
 		}
 
@@ -420,13 +426,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				patcher.eraseCoverageInstPrefix(readAUXAddress);
 				orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(patcher.routeFunction(readAUXAddress, reinterpret_cast<mach_vm_address_t>(wrapReadAUX), true));
 				if (orgReadAUX) {
-					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully.");
+					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully");
 				} else {
 					patcher.clearError();
-					SYSLOG("igfx", "MLR: Failed to route ReadAUX().");
+					SYSLOG("igfx", "MLR: Failed to route ReadAUX()");
 				}
 			} else {
-				SYSLOG("igfx", "MLR: Failed to find ReadAUX().");
+				SYSLOG("igfx", "MLR: Failed to find ReadAUX()");
+				patcher.clearError();
 			}
 		}
 
@@ -436,7 +443,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", hwRegsNeedUpdateSKL.wrap, hwRegsNeedUpdateSKL.org),
 			};
 
-			for (auto& req : reqs) {
+			for (auto &req : reqs) {
 				auto addr = patcher.solveSymbol(index, req.symbol);
 
 				if (addr) {
@@ -451,6 +458,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 					break;
 				} else {
 					DBGLOG("igfx", "failed to solve %s", req.symbol);
+					patcher.clearError();
 				}
 			}
 		}
@@ -460,12 +468,13 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (ppp) {
 				if (patcher.routeFunction(ppp, reinterpret_cast<mach_vm_address_t>(wrapComputeHdmiP0P1P2))) {
 					patcher.clearError();
-					SYSLOG("igfx", "SC: Failed to route ComputeHdmiP0P1P2().");
+					SYSLOG("igfx", "SC: Failed to route ComputeHdmiP0P1P2()");
 				} else {
-					DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() has been routed successfully.");
+					DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() has been routed successfully");
 				}
 			} else {
-				SYSLOG("igfx", "SC: Failed to find ComputeHdmiP0P1P2().");
+				SYSLOG("igfx", "SC: Failed to find ComputeHdmiP0P1P2()");
+				patcher.clearError();
 			}
 		}
 
@@ -481,13 +490,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				orgWriteI2COverAUX = reinterpret_cast<decltype(orgWriteI2COverAUX)>(patcher.routeFunction(woa, reinterpret_cast<mach_vm_address_t>(wrapWriteI2COverAUX), true));
 				orgGetDPCDInfo = reinterpret_cast<decltype(orgGetDPCDInfo)>(patcher.routeFunction(gdi, reinterpret_cast<mach_vm_address_t>(wrapGetDPCDInfo), true));
 				if (orgReadI2COverAUX && orgWriteI2COverAUX && orgGetDPCDInfo) {
-					DBGLOG("igfx", "SC: ReadI2COverAUX(), etc. have been routed successfully.");
+					DBGLOG("igfx", "SC: ReadI2COverAUX(), etc. have been routed successfully");
 				} else {
 					patcher.clearError();
-					SYSLOG("igfx", "SC: ReadI2COverAUX(), etc. cannot be routed.");
+					SYSLOG("igfx", "SC: ReadI2COverAUX(), etc. cannot be routed");
 				}
 			} else {
-				SYSLOG("igfx", "SC: Failed to find ReadI2COverAUX(), etc.");
+				SYSLOG("igfx", "SC: Failed to find ReadI2COverAUX(), etc");
+				patcher.clearError();
 			}
 		}
 
