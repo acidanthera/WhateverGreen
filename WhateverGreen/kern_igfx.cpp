@@ -431,24 +431,23 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (forceCompleteModeset.enable) {
-			struct {
-				const char* sym;
-				mach_vm_address_t* org, * wrap;
-			} syms[] {
-				{"__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", reinterpret_cast<mach_vm_address_t*>(&hwRegsNeedUpdateCFL.org), reinterpret_cast<mach_vm_address_t*>(&hwRegsNeedUpdateCFL.wrap)},
-				{"__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", reinterpret_cast<mach_vm_address_t*>(&hwRegsNeedUpdateSKL.org), reinterpret_cast<mach_vm_address_t*>(&hwRegsNeedUpdateSKL.wrap)}
+			KernelPatcher::RouteRequest reqs[] {
+				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", reinterpret_cast<mach_vm_address_t>(hwRegsNeedUpdateCFL.wrap), reinterpret_cast<mach_vm_address_t&>(hwRegsNeedUpdateCFL.org)),
+				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", reinterpret_cast<mach_vm_address_t>(hwRegsNeedUpdateSKL.wrap), reinterpret_cast<mach_vm_address_t&>(hwRegsNeedUpdateSKL.org)),
 			};
 
-			for (const auto& sym : syms) {
-				auto addr = patcher.solveSymbol(index, sym.sym);
+			for (auto& req : reqs) {
+				auto addr = patcher.solveSymbol(index, req.symbol);
 
 				if (addr) {
-					*sym.org = patcher.routeFunction(addr, *sym.wrap, true);
+					*req.org = patcher.routeFunction(addr, req.to, true);
 
-					if (*sym.org)
+					if (req.org)
 						DBGLOG("igfx", "routed hwRegsNeedUpdate");
-					else
+					else {
+						patcher.clearError();
 						DBGLOG("igfx", "failed to route hwRegsNeedUpdate");
+					}
 					break;
 				} else
 					DBGLOG("igfx", "failed to solve %s", sym.sym);
