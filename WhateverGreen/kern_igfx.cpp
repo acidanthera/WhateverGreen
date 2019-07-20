@@ -449,8 +449,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 						DBGLOG("igfx", "failed to route hwRegsNeedUpdate");
 					}
 					break;
-				} else
-					DBGLOG("igfx", "failed to solve %s", sym.sym);
+				} else {
+					DBGLOG("igfx", "failed to solve %s", req.symbol);
+				}
 			}
 		}
 
