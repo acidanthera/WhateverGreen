@@ -172,23 +172,14 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			forceCompleteModeset.enable = false; // may interfere with FV2
 
 		if (forceCompleteModeset.enable) {
-			auto parseFbList = [&fbs = forceCompleteModeset.fbs](const char* str) {
-				unsigned long v {};
+			uint64_t fbs;
 
-				v = strtoul(str, nullptr, 16);
-
-				for (size_t i = 0; i < arrsize(fbs); i++)
-					fbs[i] = (v >> (8 * i)) & 0xff;
-			};
-
-			char fbs[sizeof("0x010203040506")];
-			fbs[arrsize(fbs) - 1] = '\0';
-			char* fbsPtr = fbs;
-
-			if (PE_parse_boot_argn("igfxfcmsfbs", &fbsPtr, sizeof(fbs)) ||
+			if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
 				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers",
-					fbsPtr)) {
-				parseFbList(fbsPtr);
+					fbs)) {
+				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
+					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xff;
+
 				forceCompleteModeset.override = true;
 			}
 		}
