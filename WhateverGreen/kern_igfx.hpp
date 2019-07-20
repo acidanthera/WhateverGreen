@@ -355,7 +355,7 @@ private:
 	struct {
 		bool enable {false}; // enable the patch
 		bool override {false}; // override default patch behaviour
-		uint8_t fbs[6] {}; // framebuffers to force modeset for on override
+		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
 
 		bool inList(IORegistryEntry* fb) {
 			uint32_t idx;

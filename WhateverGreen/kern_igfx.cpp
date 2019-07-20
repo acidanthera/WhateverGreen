@@ -178,7 +178,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers",
 					fbs)) {
 				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
-					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xff;
+					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
 
 				forceCompleteModeset.override = true;
 			}
