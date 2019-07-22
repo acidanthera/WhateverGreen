@@ -180,7 +180,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
 					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
 
-				forceCompleteModeset.customised = true;
+				forceCompleteModeset.customized = true;
 			}
 		}
 
@@ -740,7 +740,7 @@ bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 		return false;
 
 	// Either this framebuffer is in override list
-	if (forceCompleteModeset.customised)
+	if (forceCompleteModeset.customized)
 		return forceCompleteModeset.inList(framebuffer);
 
 	// Or it is built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
