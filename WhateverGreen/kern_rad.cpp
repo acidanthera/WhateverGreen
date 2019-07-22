@@ -263,6 +263,7 @@ void RAD::process24BitOutput(KernelPatcher &patcher, KernelPatcher::KextInfo &in
 		}
 	} else {
 		SYSLOG("rad", "failed to find BITS_PER_COMPONENT");
+		patcher.clearError();
 	}
 
 	DBGLOG("rad", "fixing pixel types");
