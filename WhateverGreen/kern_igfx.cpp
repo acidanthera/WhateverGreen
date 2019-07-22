@@ -180,7 +180,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
 					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
 
-				forceCompleteModeset.override = true;
+				forceCompleteModeset.customised = true;
 			}
 		}
 
@@ -736,15 +736,17 @@ bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 	// safe solution to that. Note that the root cause of the problem is
 	// somewhere deeper.
 
+	if (!framebuffer)
+		return false;
+
 	// Either this framebuffer is in override list
-	if (forceCompleteModeset.override)
+	if (forceCompleteModeset.customised)
 		return forceCompleteModeset.inList(framebuffer);
 
 	// Or it is built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
 	// this framebuffer.
 	// Note we need to check this at every invocation, as this property may reappear
-	IORegistryEntry* entry = OSDynamicCast(IORegistryEntry, framebuffer);
-	if (entry && entry->getProperty("built-in"))
+	if (framebuffer->getProperty("built-in"))
 		return false;
 
 	return true;
