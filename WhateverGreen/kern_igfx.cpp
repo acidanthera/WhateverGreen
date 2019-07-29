@@ -720,9 +720,8 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 	// this framebuffer.
 	// Note we need to check this at every invocation, as this property may reappear
 	if (framebuffer->getProperty("built-in"))
-		return false;
-
-	return FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(controller, framebuffer, displayPath, crtParams, detailedInfo);
+		return FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(controller, framebuffer, displayPath, crtParams, detailedInfo);
+	return true;
 }
 
 /**
