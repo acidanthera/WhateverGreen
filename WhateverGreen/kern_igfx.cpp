@@ -94,7 +94,6 @@ void IGFX::init() {
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
-			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -438,44 +437,15 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (forceCompleteModeset.enable) {
-			KernelPatcher::RouteRequest reqs[] {
-				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", hwRegsNeedUpdateCFL.wrap, hwRegsNeedUpdateCFL.org),
-				KernelPatcher::RouteRequest("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE", hwRegsNeedUpdateSKL.wrap, hwRegsNeedUpdateSKL.org),
-			};
-
-			for (auto &req : reqs) {
-				auto addr = patcher.solveSymbol(index, req.symbol);
-
-				if (addr) {
-					*req.org = patcher.routeFunction(addr, req.to, true);
-
-					if (req.org)
-						DBGLOG("igfx", "routed hwRegsNeedUpdate");
-					else {
-						patcher.clearError();
-						DBGLOG("igfx", "failed to route hwRegsNeedUpdate");
-					}
-					break;
-				} else {
-					DBGLOG("igfx", "failed to solve %s", req.symbol);
-					patcher.clearError();
-				}
-			}
+			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
+			if (!patcher.routeMultiple(index, &request, 1, address, size))
+				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
 		}
 
 		if (hdmiP0P1P2Patch) {
-			auto ppp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", address, size);
-			if (ppp) {
-				if (patcher.routeFunction(ppp, reinterpret_cast<mach_vm_address_t>(wrapComputeHdmiP0P1P2))) {
-					patcher.clearError();
-					SYSLOG("igfx", "SC: Failed to route ComputeHdmiP0P1P2()");
-				} else {
-					DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() has been routed successfully");
-				}
-			} else {
-				SYSLOG("igfx", "SC: Failed to find ComputeHdmiP0P1P2()");
-				patcher.clearError();
-			}
+			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", wrapComputeHdmiP0P1P2);
+			if (!patcher.routeMultiple(index, &request, 1, address, size))
+				SYSLOG("igfx", "failed to route ComputeHdmiP0P1P2");
 		}
 
 		if (supportLSPCON) {
@@ -717,7 +687,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
 }
 
-bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
+bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo) {
 	// The framebuffer controller can perform panel fitter, partial, or a
 	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
 	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
@@ -736,12 +706,15 @@ bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 	// safe solution to that. Note that the root cause of the problem is
 	// somewhere deeper.
 
-	if (!framebuffer)
-		return false;
-
 	// Either this framebuffer is in override list
-	if (forceCompleteModeset.customised)
-		return forceCompleteModeset.inList(framebuffer);
+	if (callbackIGFX->forceCompleteModeset.customised)
+		return callbackIGFX->forceCompleteModeset.inList(framebuffer);
+
+	// FIXME:
+	// A similar function exists in Skylake:
+	// __ZN31AppleIntelFramebufferController13hwSetupMemoryEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEb
+	// However, it does not use framebuffer argument and thus the compiler does not pass it to the target function.
+	// Since the fix is not very beneficial for Skylake, for the time being we do not care fixing it.
 
 	// Or it is built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
 	// this framebuffer.
@@ -749,17 +722,7 @@ bool IGFX::wrapHwRegsNeedUpdate(IOService* framebuffer) {
 	if (framebuffer->getProperty("built-in"))
 		return false;
 
-	return true;
-}
-
-bool IGFX::hwRegsNeedUpdateSKL::wrap(void* fbc, IOService* framebuffer, void* path, void* params) {
-	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) ||
-		FunctionCast(callbackIGFX->hwRegsNeedUpdateSKL.wrap, callbackIGFX->hwRegsNeedUpdateSKL.org)(fbc, framebuffer, path, params);
-}
-
-bool IGFX::hwRegsNeedUpdateCFL::wrap(void* fbc, IOService* framebuffer, void* path, void* params,
-									 void* info) {
-	return callbackIGFX->wrapHwRegsNeedUpdate(framebuffer) || FunctionCast(callbackIGFX->hwRegsNeedUpdateCFL.wrap, callbackIGFX->hwRegsNeedUpdateCFL.org)(fbc, framebuffer, path, params, info);
+	return FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(controller, framebuffer, displayPath, crtParams, detailedInfo);
 }
 
 /**

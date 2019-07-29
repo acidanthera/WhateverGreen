@@ -509,17 +509,8 @@ private:
 	/**
 	 * See function definition for explanation
 	 */
-	struct hwRegsNeedUpdateSKL {
-		static bool wrap(void*, IOService*, void*, void*);
-		mach_vm_address_t org;
-	} hwRegsNeedUpdateSKL;
-
-	struct hwRegsNeedUpdateCFL {
-		static bool wrap(void*, IOService*, void*, void*, void*);
-		mach_vm_address_t org;
-	} hwRegsNeedUpdateCFL;
-
-	bool wrapHwRegsNeedUpdate(IOService*);
+	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
+	mach_vm_address_t orgHwRegsNeedUpdate;
 
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct

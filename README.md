@@ -26,8 +26,7 @@ WhateverGreen
 - Fixes the kernel panic caused by an invalid link rate reported by DPCD on some laptops with Intel IGPU.
 - Fixes the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on Skylake, Kaby Lake and Coffee Lake platforms.
 - Implements the driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on some platforms with Intel IGPU.
-- Enforces complete modeset on non-built-in displays on Skylake and newer to fix booting to black
-screen.
+- Enforces complete modeset on non-built-in displays on Kaby Lake and newer to fix booting to black screen.
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
@@ -65,7 +64,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `igfxfcmsfbs` boot argument (`complete-modeset-framebuffers` device property) to specify
 indices of framebuffers for which complete modeset must be enforced. Each index is a byte in
 a 64-bit word; for example, value `0x010203` specifies framebuffers 1, 2, 3. If a framebuffer is
-not in the list, the driver's logic is used to determine whether complete modeset is needed.
+not in the list, the driver's logic is used to determine whether complete modeset is needed. Pass `-1` to disable.
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS
