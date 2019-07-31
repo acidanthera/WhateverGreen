@@ -707,8 +707,11 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 	// somewhere deeper.
 
 	// Either this framebuffer is in override list
-	if (callbackIGFX->forceCompleteModeset.customised)
-		return callbackIGFX->forceCompleteModeset.inList(framebuffer);
+	if (callbackIGFX->forceCompleteModeset.customised) {
+		return callbackIGFX->forceCompleteModeset.inList(framebuffer)
+		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
+			controller, framebuffer, displayPath, crtParams, detailedInfo);
+	}
 
 	// FIXME:
 	// A similar function exists in Skylake:
@@ -716,12 +719,12 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 	// However, it does not use framebuffer argument and thus the compiler does not pass it to the target function.
 	// Since the fix is not very beneficial for Skylake, for the time being we do not care fixing it.
 
-	// Or it is built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
+	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
 	// this framebuffer.
 	// Note we need to check this at every invocation, as this property may reappear
-	if (framebuffer->getProperty("built-in"))
-		return FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(controller, framebuffer, displayPath, crtParams, detailedInfo);
-	return true;
+	return !framebuffer->getProperty("built-in")
+		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
+		controller, framebuffer, displayPath, crtParams, detailedInfo);
 }
 
 /**
