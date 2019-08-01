@@ -202,9 +202,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			for (size_t index = 0; index < arrsize(lspcons); index++) {
 				bzero(name, sizeof(name));
 				snprintf(name, sizeof(name), "framebuffer-con%lu-has-lspcon", index);
-				WIOKit::getOSDataValue(info->videoBuiltin, name, lspcons[index].hasLSPCON);
+				(void)WIOKit::getOSDataValue(info->videoBuiltin, name, lspcons[index].hasLSPCON);
 				snprintf(name, sizeof(name), "framebuffer-con%lu-preferred-lspcon-mode", index);
-				WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
+				(void)WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
 				// Assuming PCON mode if invalid mode value (i.e. > 1) specified by the user
 				lspcons[index].preferredMode = LSPCON::parseMode(pmode != 0);
 			}
@@ -894,7 +894,7 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 	static constexpr uint64_t centralFrequencies[3] = {8400000000ULL, 9000000000ULL, 9600000000ULL};
 
 	// Calculate the AFE clock
-	uint64_t afeClock = pixelClock * 5;
+	uint64_t afeClock = static_cast<uint64_t>(pixelClock) * 5;
 
 	// Prepare the context for probing P0, P1 and P2
 	ProbeContext context {};
@@ -1769,7 +1769,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		snprintf(name, sizeof(name), "framebuffer-patch%lu-replace", i);
 		auto framebufferPatchReplace = OSDynamicCast(OSData, igpu->getProperty(name));
 		snprintf(name, sizeof(name), "framebuffer-patch%lu-count", i);
-		WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
+		(void)WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
 
 		if (!framebufferPatchFind || !framebufferPatchReplace)
 			continue;
