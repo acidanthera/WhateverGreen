@@ -363,14 +363,14 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 	// This is not necessary for NVIDIA, as their drivers properly detect the name.
 	if (vendor == WIOKit::VendorID::ATIAMD && !device->getProperty("model")) {
 		uint32_t dev, rev, subven, sub;
-		if (WIOKit::getOSDataValue(device, "device-id", dev) &&
-			WIOKit::getOSDataValue(device, "revision-id", rev) &&
-			WIOKit::getOSDataValue(device, "subsystem-vendor-id", subven) &&
-			WIOKit::getOSDataValue(device, "subsystem-id", sub)) {
-			auto model = getRadeonModel(dev, rev, subven, sub);
-			if (model) {
-				device->setProperty("model", const_cast<char *>(model), static_cast<unsigned>(strlen(model)+1));
-			}
+		dev = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigDeviceID);
+		rev = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigRevisionID);
+		subven = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigSubSystemVendorID);
+		sub = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigSubSystemID);
+		auto model = getRadeonModel(dev, rev, subven, sub);
+		if (model) {
+			device->setProperty("model", const_cast<char *>(model),
+								static_cast<unsigned>(strlen(model)+1));
 		}
 	}
 
