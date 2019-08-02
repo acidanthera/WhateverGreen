@@ -741,6 +741,18 @@ static constexpr Model dev6939[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 285"}
 };
 
+static constexpr Model dev694c[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon RX Vega M GH"}
+};
+
+static constexpr Model dev694e[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon RX Vega M GL"}
+};
+
+static constexpr Model dev694f[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Pro WX Vega M GL"}
+};
+
 static constexpr Model dev7300[] {
 	{Model::DetectSub, 0x1002, 0x1b36, 0x0000, "AMD Radeon Pro Duo"},
 	{Model::DetectSub, 0x1043, 0x04a0, 0x0000, "AMD Radeon FURY X"},
@@ -831,6 +843,9 @@ static constexpr DevicePair devices[] {
 	{0x6921, dev6921, arrsize(dev6921)},
 	{0x6938, dev6938, arrsize(dev6938)},
 	{0x6939, dev6939, arrsize(dev6939)},
+	{0x694c, dev694c, arrsize(dev694c)},
+	{0x694e, dev694e, arrsize(dev694e)},
+	{0x694f, dev694f, arrsize(dev694f)},
 	{0x7300, dev7300, arrsize(dev7300)}
 };
 
