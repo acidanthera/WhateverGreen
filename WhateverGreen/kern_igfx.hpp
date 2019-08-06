@@ -510,7 +510,7 @@ private:
 	 * See function definition for explanation
 	 */
 	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
-	mach_vm_address_t orgHwRegsNeedUpdate;
+	mach_vm_address_t orgHwRegsNeedUpdate {0};
 
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct
