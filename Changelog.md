@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.2
+- Added more GPUs for detection
+
 #### v1.3.1
 - Fixed an issue that LSPCON driver fails to set the mode after the adapter power is off, i.e. sleep/wake up cycle.
 - Unified release archive names
