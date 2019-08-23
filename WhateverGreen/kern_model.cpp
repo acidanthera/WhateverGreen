@@ -399,6 +399,7 @@ static constexpr Model dev67c7[] {
 };
 
 static constexpr Model dev67df[] {
+  {Model::DetectSub, 0x1462, 0x341E, 0x0000, "Radeon RX 570 Armor"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e1, "Radeon RX 590"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 580"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c2, "Radeon RX 570"},
