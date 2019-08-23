@@ -399,6 +399,7 @@ static constexpr Model dev67c7[] {
 };
 
 static constexpr Model dev67df[] {
+	{Model::DetectAll, 0x1462, 0x341E, 0x00cf, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e1, "Radeon RX 590"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 580"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c2, "Radeon RX 570"},
@@ -407,7 +408,6 @@ static constexpr Model dev67df[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c6, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon RX 480"},
-	{Model::DetectRev, 0x1462, 0x341E, 0x00cf, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 470/570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00d7, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon RX 470"},
@@ -426,11 +426,11 @@ static constexpr Model dev67e3[] {
 };
 
 static constexpr Model dev67ef[] {
+	{Model::DetectAll, 0x1787, 0x3000, 0x00cf, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon Pro 460/560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 460"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 460"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon Pro 455/555"},
-	{Model::DetectRev, 0x1787, 0x3000, 0x00cf, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 460/560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e5, "Radeon RX 560"},
