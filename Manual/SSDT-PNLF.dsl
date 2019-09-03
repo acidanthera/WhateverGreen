@@ -17,7 +17,7 @@
 #define CUSTOM_PWMMAX_1499 0x1499
 #define COFFEELAKE_PWMMAX 0xffff
 
-DefinitionBlock("", "SSDT", 2, "hack", "_PNLF", 0)
+DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
 {
     External(RMCF.BKLT, IntObj)
     External(RMCF.LMAX, IntObj)
