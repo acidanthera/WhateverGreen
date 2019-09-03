@@ -1,4 +1,4 @@
-DefinitionBlock ("", "SSDT", 2, "ACDT ", "AMDGPU", 0x00001000)
+DefinitionBlock ("", "SSDT", 2, "ACDT", "AMDGPU", 0x00001000)
 {
     External (_SB_.PCI0, DeviceObj)
     External (_SB_.PCI0.GFX0, DeviceObj)
