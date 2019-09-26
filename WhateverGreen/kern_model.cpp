@@ -946,6 +946,7 @@ static BuiltinModel devIntel[] {
 	{ 0x3E91, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E92, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E93, 0x3E92, "Intel UHD Graphics 610" },
+	{ 0x3E96, 0x3E92, "Intel UHD Graphics P630" },
 	{ 0x3E98, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E9B, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3EA5, 0x0000, "Intel Iris Plus Graphics 655" },
