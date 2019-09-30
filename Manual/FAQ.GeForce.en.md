@@ -9,7 +9,7 @@ If you have builtin Intel GPU, make sure to rename it to IGPU and enable with co
 - _How to properly choose a mac model?_
 If you have Ivy Bridge or Haswell CPU you should go with iMac13,2 or iMac14,2. Otherwise choose the model you prefer, but keep this in mind:  
     * If you have Intel GPU, especially if Ivy Bridge or newer, choose the model (by `board-id`) that has `forceOfflineRenderer` set to YES (true) in /System/Library/PrivateFrameworks/AppleGVA.framework/Versions/A/Info.plist.
-    * Models other than iMac13,2 and iMac14,2 require patches, which are though normally automated in NvidiaGraphicsFixup (see below)
+    * Models other than iMac13,2 and iMac14,2 require patches, which are though normally automated in WhateverGreen (see below)
     * CPUs newer than Haswell require Shiki patches for hardware video decoding (see below).
 
 - _Why should I use Intel GPU with a connector-less frame?_  
@@ -25,13 +25,13 @@ Scope (GFX0) {
 ``` 
 
 - _What patches do I need for mac models other than iMac13,2 and iMac14,2?_  
-AppleGraphicsDisplayPolicy.kext contains a check against its Info.plist and determines which mode should be used for a specific board-id. It is dependent on the GPU which mode is suitable and is normally determined experimentally. NvidiaGraphicsFixup contains several ways to configure to set power management modes:
+AppleGraphicsDisplayPolicy.kext contains a check against its Info.plist and determines which mode should be used for a specific board-id. It is dependent on the GPU which mode is suitable and is normally determined experimentally. WhateverGreen contains several ways to configure to set power management modes:
   - kext patch enforcing `none` into ConfigMap dictionary for system board-id (agdpmod=cfgmap)
   - kext patch disabling string comparison (`agdpmod=vit9696`, enabled by default)
   - kext patch replacing `board-id` with `board-ix` (`agdpmod=pikera`)
 
 - _What patches do I need for Maxwell or Pascal GPUs?_  
-Maxwell GPUs (normally 9xx and some 7xx) no longer supply a correct IOVARendererID to enable hardware video decoder. See more details: [here](https://github.com/vit9696/Shiki/issues/5). You no longer need any changes (e.g. iMac.kext) but NvidiaGraphicsFixup. This fix was added in 1.2.0 branch. Can be switched off by using boot-arg "-ngfxnovarenderer".
+Maxwell GPUs (normally 9xx and some 7xx) no longer supply a correct IOVARendererID to enable hardware video decoder. See more details: [here](https://github.com/vit9696/Shiki/issues/5). You no longer need any changes (e.g. iMac.kext) but WhateverGreen. This fix was added in 1.2.0 branch. Can be switched off by using boot-arg "-ngfxnovarenderer".
 
 - _What patches do processors newer than Haswell need?_  
 Apple limits hardware video decoder with NVIDIA to only Haswell and earlier. To get hardware accelerated video decoding you need to patch AppleGVA.framework. To do so you could use [WhateverGreen](https://github.com/acidanthera/WhateverGreen) with `shikigva=4` boot argument. On 10.13 you may currently use a temporary workaround that enables hardware video decoding only for a subset of processes via `shikigva=12` boot argument.
@@ -50,7 +50,7 @@ Inject `@X,AAPL,boot-display` GFX0 property with the main screen index instead o
 Not at the moment. It is also known that HDMI audio may not always work with Pascal GPUs.
 
 - _HDMI audio device only visible after rescan_
-[Jamie](https://sourceforge.net/p/nvidiagraphicsfixup/tickets/9/) found out through linux that nvidia graphics on laptops gtx 1060/1070 specifically,
+[Jamie](https://sourceforge.net/p/WhateverGreen/tickets/9/) found out through linux that nvidia graphics on laptops gtx 1060/1070 specifically,
 that the audio device is disabled by default. [Bug description](https://bugs.freedesktop.org/show_bug.cgi?id=75985).
 He discovered that when the 0x488 magic bit is not set, the gfx device advertises as non-multifunction.
 After the bit is set, the device advertises as multi-function.
