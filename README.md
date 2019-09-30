@@ -61,7 +61,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-igfxhdmidivs` boot argument (and `enable-hdmi-dividers-fix` property) to fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms.
 - `-igfxlspcon` boot argument (and `enable-lspcon-support` property) to enable the driver support for onboard LSPCON chips. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)
 - `-igfxi2cdbg` boot argument to enable verbose output in I2C-over-AUX transactions (only for debugging purposes).
-- `-igfxfcmsfbs` boot argument (`complete-modeset-framebuffers` device property) to specify
+- `igfxfcmsfbs=` boot argument (`complete-modeset-framebuffers` device property) to specify
 indices of connectors for which complete modeset must be enforced. Each index is a byte in
 a 64-bit word; for example, value `0x010203` specifies connectors 1, 2, 3. If a connector is
 not in the list, the driver's logic is used to determine whether complete modeset is needed. Pass `-1` to disable.
