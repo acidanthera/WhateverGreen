@@ -50,7 +50,7 @@ Inject `@X,AAPL,boot-display` GFX0 property with the main screen index instead o
 Not at the moment. It is also known that HDMI audio may not always work with Pascal GPUs.
 
 - _HDMI audio device only visible after rescan_
-[Jamie](https://sourceforge.net/p/WhateverGreen/tickets/9/) found out through linux that nvidia graphics on laptops gtx 1060/1070 specifically,
+[Jamie](https://sourceforge.net/p/nvidiagraphicsfixup/tickets/9/) found out through linux that nvidia graphics on laptops gtx 1060/1070 specifically,
 that the audio device is disabled by default. [Bug description](https://bugs.freedesktop.org/show_bug.cgi?id=75985).
 He discovered that when the 0x488 magic bit is not set, the gfx device advertises as non-multifunction.
 After the bit is set, the device advertises as multi-function.
