@@ -18,6 +18,7 @@
 #include "kern_shiki.hpp"
 
 class IOFramebuffer;
+class IODisplay;
 
 class WEG {
 public:
@@ -93,6 +94,19 @@ private:
 	uint32_t appleBacklightPatch {APPLBKL_DETECT};
 
 	/**
+	 *  Backlight panel data format
+	 */
+	struct ApplePanelData {
+		const char *deviceName;
+		uint8_t deviceData[36];
+	};
+
+	/**
+	 *  Backlight panel data
+	 */
+	static ApplePanelData appleBacklightData[];
+
+	/**
 	 *  Console info structure, taken from osfmk/console/video_console.h
 	 *  Last updated from XNU 4570.1.46.
 	 */
@@ -143,6 +157,16 @@ private:
 	 *  Original AppleGraphicsDevicePolicy start handler
 	 */
 	mach_vm_address_t orgGraphicsPolicyStart {0};
+
+	/**
+	 *  Original AppleIntelPanel set display handler
+	 */
+	mach_vm_address_t orgApplePanelSetDisplay {0};
+
+	/**
+	 *  vinfo presence status
+	 */
+	bool applePanelDisplaySet {false};
 
 	/**
 	 *  vinfo presence status
@@ -308,6 +332,16 @@ private:
 	 *  @return agdp start status
 	 */
 	static bool wrapGraphicsPolicyStart(IOService *that, IOService *provider);
+
+	/**
+	 *  AppleIntelPanel start wrapper used for extra panel injection
+	 *
+	 *  @param that      backlight panel instance
+	 *  @param display  backlight panel display
+	 *
+	 *  @return backlight panel start status
+	 */
+	static bool wrapApplePanelSetDisplay(IOService *that, IODisplay *display);
 };
 
 #endif /* kern_weg_hpp */
