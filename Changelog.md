@@ -1,9 +1,11 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.3
+- Rework backlight panel info injection to fix Mac issues
+
 #### v1.3.2
 - Added more GPUs for detection
 - Enable IGPU graphics kernel panic workaround on 10.14.4+ on SKL
-- Rework backlight panel info injection to fix Mac issues
 
 #### v1.3.1
 - Fixed an issue that LSPCON driver fails to set the mode after the adapter power is off, i.e. sleep/wake up cycle.
