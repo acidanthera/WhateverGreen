@@ -1718,7 +1718,7 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 
 ## HDMI 高分屏 60 fps 方案
 ## 并不局限于HDMI,例如ThinkPad P71/7700HQ/HD630/4K,必须添加此参数才能使4K内屏工作,不添加的话会卡在"... gIOScreenLockState3 ..."
-## RehabMan 说:"Hint: It enables 'CoreDisplayFixup' related code/patching in WhateverGreen.kext."
+## RehabMan 说:"Hint: It enables '[C]ore[D]isplay[F]ixup' related code/patching in WhateverGreen.kext."
 为核显添加 `enable-hdmi20` 属性，或使用 `-cdfon` 启动参数代替，**否则将会黑屏**。
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hdmi20.png) 
