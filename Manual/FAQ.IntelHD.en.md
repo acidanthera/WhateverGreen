@@ -1644,7 +1644,8 @@ An EDID dump can be obtained, for example, [with Linux](https://unix.stackexchan
 In some cases the EDID dump may be incompatible with macOS and leads to distortions. For some EDID in such cases you can use [this script](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/edid-gen.sh), which corrects a provided EDID and saves it to your desktop.  
   
   
-## HDMI in UHD resolution with 60 fps  
+## HDMI in UHD resolution with 60 fps 
+#### In addtion to HDMI, this should be enabled on some platforms like `ThinkPad P71 / 7700HQ / HD630 / 4K`, where `gIOScreenLockState3` error may occur.
 Add the `enable-hdmi20` property to `IGPU`, otherwise you will get a black screen.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hdmi20.png)  
 Or instead of this property use the boot-arg `-cdfon`  
