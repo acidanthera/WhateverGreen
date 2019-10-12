@@ -1717,8 +1717,8 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 某些时候，导出的 EDID 可能与 macOS 不兼容并导致失真。这时，对于一些 EDID 可以使用 [此脚本](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/edid-gen.sh)，它能修正 EDID 并保存到桌面上。
 
 ## HDMI 高分屏 60 fps 方案
-# 并不局限于HDMI,例如ThinkPad P71/7700HQ/HD630/4K,必须添加此参数才能使4K内屏工作,不添加的话会卡在"... gIOScreenLockState3 ..."
-# RehabMan 说:"Hint: It enables '[C]ore[D]isplay[F]ixup' related code/patching in WhateverGreen.kext."
+#### 并不局限于HDMI,例如ThinkPad P71/7700HQ/HD630/4K,必须添加此参数才能使4K内屏工作,不添加的话会卡在"... gIOScreenLockState3 ..."
+#### RehabMan 说:"Hint: It enables '[C]ore[D]isplay[F]ixup' related code/patching in WhateverGreen.kext."
 为核显添加 `enable-hdmi20` 属性，或使用 `-cdfon` 启动参数代替，**否则将会黑屏**。
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hdmi20.png) 
