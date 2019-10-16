@@ -51,7 +51,7 @@ It is opensource starting with version 2.0.0.
 Enable coremedia tracing: `defaults write com.apple.coremedia cfbyteflume_trace 1`  
 Afterwards you will see a trailer URL in Console.app if you filter the output by 'iTunes' keyword.  
 `... <<< CFByteFlume >>> FigCFHTTPCheckCacheValidator: Comparing dictUrl = http://.....m4v, url = http://......m4v`  
-Paste it into your browser, and you will be able to download the trailer file ([example](https://applelife.ru/threads/chernye-trejlery-itunes.42290/page-11#post-583709)).  
+Paste it into your browser, and you will be able to download the trailer file ([example](https://drive.google.com/file/d/12pQ5FFpdHdGOVV6jvbqEq2wmkpMKxsOF/view)).  
 
 - _DRM playback starts to produce garbled frames after a while, why does it happen?_  
 From the tests it happens to be a bug in Apple DRM decoder, and the issue supposedly exists on Apple hardware as well.  

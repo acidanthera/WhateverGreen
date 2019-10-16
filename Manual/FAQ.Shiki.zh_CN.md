@@ -52,7 +52,7 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 然后在 控制台 中 过滤 栏中输入 iTunes ，您会看到一个影片预告片的地址，像下面这样:
 `... <<< CFByteFlume >>> FigCFHTTPCheckCacheValidator: Comparing dictUrl = http://.....m4v, url = http://......m4v`  
 粘贴到浏览器中，即可下载此影片。
-或者，这里有一个例子，您可以直接下载[此影片](http://rgho.st/download/private/7df2dy85Y/8e91160b88b19984abda5dbd9247d579/cb78ad46934391d67ab638718f6dd466267a217c/1.m4v)。
+或者，这里有一个例子，您可以直接下载[此影片](https://drive.google.com/file/d/12pQ5FFpdHdGOVV6jvbqEq2wmkpMKxsOF/view)。
 
 - _为什么 DRM 播放一段时间后开始出现一些错乱?_  
 从测试中来看这似乎是 Apple DRM 解码器的问题，并且在某些白苹果上也存在。

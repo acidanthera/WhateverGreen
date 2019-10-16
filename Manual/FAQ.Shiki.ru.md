@@ -50,7 +50,7 @@ Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/Wha
 `defaults write com.apple.coremedia cfbyteflume_trace 1`  
 После, отфильтровав лог по ключевому слову 'iTunes', в консоли вы увидите URL ссылку.  
 `... <<< CFByteFlume >>> FigCFHTTPCheckCacheValidator: Comparing dictUrl = http://.....m4v, url = http://......m4v`  
-Вставьте её в свой браузер и вы сможете скачать файл: [пример](https://applelife.ru/threads/chernye-trejlery-itunes.42290/page-11#post-583709).
+Вставьте её в свой браузер и вы сможете скачать файл: [пример](https://drive.google.com/file/d/12pQ5FFpdHdGOVV6jvbqEq2wmkpMKxsOF/view).
 
 - _Воспроизведение DRM приводит к искажению картинки и артефактам через некоторое время, с чем это связано?_  
 Судя по тестам это баг в декодере Apple DRM. Проблема якобы существует и на оборудовании от Apple. Обычно все нормально, но 1080p фильмы с большим битрейтом могут это провоцировать. Попробуйте перезагрузить компьютер, сбросить конфигурацию DRM, как это написанно ниже, проверьте управление питанием процессора.
