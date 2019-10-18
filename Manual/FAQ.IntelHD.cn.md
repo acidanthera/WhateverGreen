@@ -1371,7 +1371,7 @@ Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/kbl-r_igpu.png)
  
 
-## UHD 630（[Coffee Lake](https://zh.wikipedia.org/zh-cn/Coffee_Lake微架构) 微架构，下文简称 CFL）
+## UHD 610-655（[Coffee Lake](https://zh.wikipedia.org/zh-cn/Coffee_Lake微架构) 微架构，下文简称 CFL）
 支持 macOS 10.14 或更新版本。
 
 CFL 平台可用的 FB 列表：
@@ -1386,6 +1386,7 @@ CFL 平台可用的 FB 列表：
 - 0x3EA50005 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3EA60005 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3E9B0006 (移动版，1 端口，无 FBMEM，39 MB)
+- 0x3E9B0008 (移动版，1 端口，无 FBMEM, 58 MB)
 - 0x3E9B0007 (桌面版，3 端口，无 FBMEM，58 MB)
 - 0x3E920003 (桌面版，无端口，无 FBMEM，1 MB)
 - 0x3E910003 (桌面版，无端口，无 FBMEM，1 MB)
@@ -1494,7 +1495,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 
 ID: 0x3EA50005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)
-Model name: Intel HD Graphics CFL
+Model name: Intel Iris Plus Graphics 655
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS
@@ -1506,7 +1507,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0x3EA60005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)
-Model name: Intel HD Graphics CFL
+Model name: Intel Iris Plus Graphics 645
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS
@@ -1518,15 +1519,23 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 
 ID: 0x3E9B0006, STOLEN: 38 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00131302  
 TOTAL STOLEN: 39 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 39 MB, MAX OVERALL: 39 MB (41422848 bytes)  
-Model name: Intel Graphics UHD 630  
+Model name: Intel UHD Graphics 630  
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
 00000800 02000000 98040000  
-  
+
+ID: 0x3E9B0008, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00031302  
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 58 MB, MAX OVERALL: 58 MB (61345792 bytes)  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1  
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000098 - ConnectorLVDS  
+00000800 02000000 98000000
+
 ID: 0x3E9B0007, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00801302  
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
-Model name: Intel HD Graphics CFL  
+Model name: Intel UHD Graphics 630  
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
@@ -1687,7 +1696,7 @@ framebuffer-conX-YYYYYYYY-alldata (**在当前 FB 与 YYYYYY 匹配时完全替�
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ifbt.png)
 
-macOS 10.14 下，对于 SKL 或更新平台，要取得适合脚本的导出数据，可以使用 *WEG* 的 Debug 版本并加入 `-igfxdump` 启动参数。导出的数据将保存在系统分区的根目录中。
+macOS 10.14 下，对于 SKL 或更新平台，要取得适合脚本的导出数据，可以使用 *WEG* 的 Debug 版本并加入 `-igfxdump` 启动参数。导出的数据将保存在 `/var/log`目录中。
 
 原始与修补的导出数据可通过使用 *WEG* 的 Debug 版本、使用 `-igfxfbdump` 启动参数，并在 IOReg 中的 `IOService:/IOResources/WhateverGreen` 位置取得。
 
