@@ -1344,7 +1344,7 @@ For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/kbl-r_igpu.png)  
   
   
-## Intel UHD Graphics 630 ([Coffee Lake](https://en.wikipedia.org/wiki/Coffee_Lake) processors)  
+## Intel UHD Graphics 610-655 ([Coffee Lake](https://en.wikipedia.org/wiki/Coffee_Lake) processors)  
 Supported since macOS 10.14  
 CFL framebuffer list:  
 — 0x3EA50009 (mobile, 3 connectors, no fbmem, 58 MB)  
@@ -1358,6 +1358,7 @@ CFL framebuffer list:
 — 0x3EA50005 (mobile, 3 connectors, no fbmem, 58 MB)  
 — 0x3EA60005 (mobile, 3 connectors, no fbmem, 58 MB)  
 — 0x3E9B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
+— 0x3E9B0008 (mobile, 1 connectors, no fbmem, 58 MB)  
 — 0x3E9B0007 (desktop, 3 connectors, no fbmem, 58 MB)  
 — 0x3E920003 (desktop, 0 connectors, no fbmem, 1 MB)  
 — 0x3E910003 (desktop, 0 connectors, no fbmem, 1 MB)  
@@ -1465,7 +1466,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 3EA50005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A  
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
-Model name: Intel HD Graphics CFL  
+Model name: Intel Iris Plus Graphics 655  
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
@@ -1477,7 +1478,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 3EA60005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A  
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
-Model name: Intel HD Graphics CFL  
+Model name: Intel Iris Plus Graphics 645  
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
@@ -1489,15 +1490,23 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 3E9B0006, STOLEN: 38 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00131302  
 TOTAL STOLEN: 39 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 39 MB, MAX OVERALL: 39 MB (41422848 bytes)  
-Model name: Intel Graphics UHD 630  
+Model name: Intel UHD Graphics 630  
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
 00000800 02000000 98040000  
   
+ID: 3E9B0008, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00031302  
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 58 MB, MAX OVERALL: 58 MB (61345792 bytes)  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1  
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000098 - ConnectorLVDS  
+00000800 02000000 98000000  
+  
 ID: 3E9B0007, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00801302  
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
-Model name: Intel HD Graphics CFL  
+Model name: Intel UHD Graphics 630  
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
@@ -1622,7 +1631,7 @@ Detailed information about framebuffers and connectors can be extracted with [01
 This information is useful for those who make custom patches.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ifbt.png)  
 In 10.14 for SKL and newer to get a dump suitable for the script you can use the debug version of *WEG* with the  
-`-igfxdump` boot-argument. The dump will be saved in the root of the system partition.  
+`-igfxdump` boot-argument. The dump will be saved to /var/log/  
 The original and patched dumps can be obtained with IOReg when using a debug version of *WEG* and booting with the  
 `-igfxfbdump` boot-argument from `IOService:/IOResources/WhateverGreen`.  
   
