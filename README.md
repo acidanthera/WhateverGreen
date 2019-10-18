@@ -53,7 +53,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `igfxgl=0` to disable Metal support on Intel.
 - `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
-- `-igfxdump` to dump IGPU framebuffer kext to `/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries).
+- `-igfxdump` to dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries).
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 - `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
 - `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)

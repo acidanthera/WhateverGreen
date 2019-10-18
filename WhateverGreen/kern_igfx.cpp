@@ -1450,7 +1450,7 @@ bool IGFX::wrapGetOSInformation(void *that) {
 #ifdef DEBUG
 	if (callbackIGFX->dumpFramebufferToDisk) {
 		char name[64];
-		snprintf(name, sizeof(name), "/AppleIntelFramebuffer_%d_%d.%d", callbackIGFX->cpuGeneration, getKernelVersion(), getKernelMinorVersion());
+		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", callbackIGFX->cpuGeneration, getKernelVersion(), getKernelMinorVersion());
 		FileIO::writeBufferToFile(name, callbackIGFX->framebufferStart, callbackIGFX->framebufferSize);
 		SYSLOG("igfx", "dumping framebuffer information to %s", name);
 	}
