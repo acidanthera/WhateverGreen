@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.4
+- Added support for disabled AppleGraphicsDevicePolicy in AMD drivers on 10.15.1
+- Added basic support for `-radcfg` and `-radgl` on AMD Navi GPUs
+
 #### v1.3.3
 - Rework backlight panel info injection to fix Mac issues
 

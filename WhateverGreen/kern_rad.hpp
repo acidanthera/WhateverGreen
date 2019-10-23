@@ -14,6 +14,84 @@
 #include "kern_atom.hpp"
 #include "kern_con.hpp"
 
+#pragma pack(push, 1)
+
+enum kAGDCRegisterLinkControlEvent_t {
+    kAGDCRegisterLinkInsert             = 0,
+    kAGDCRegisterLinkRemove             = 1,
+    kAGDCRegisterLinkChange             = 2,
+    kAGDCRegisterLinkChangeMST          = 3,
+    kAGDCRegisterLinkFramebuffer        = 4,                                // V106+
+    // This event is handled by AppleGraphicsDevicePolicy::VendorEventHandler.
+    // The point of this event to validate the timing information, and take decision on what to do with this display.
+    // One of the examples of this event is to merge multiple display ports into one connection for 5K/6K output.
+    // Drivers should interpret modeStatus to decide on whether to continue execution, change the mode, or disable link.
+    kAGDCValidateDetailedTiming         = 10,
+    kAGDCRegisterLinkChangeWakeProbe    = 0x80,
+};
+
+struct AGDCDetailedTimingInformation_t
+{
+	uint32_t      horizontalScaledInset;          // pixels
+	uint32_t      verticalScaledInset;            // lines
+
+	uint32_t      scalerFlags;
+	uint32_t      horizontalScaled;
+	uint32_t      verticalScaled;
+
+	uint32_t      signalConfig;
+	uint32_t      signalLevels;
+
+	uint64_t      pixelClock;                     // Hz
+
+	uint64_t      minPixelClock;                  // Hz - With error what is slowest actual clock
+	uint64_t      maxPixelClock;                  // Hz - With error what is fasted actual clock
+
+	uint32_t      horizontalActive;               // pixels
+	uint32_t      horizontalBlanking;             // pixels
+	uint32_t      horizontalSyncOffset;           // pixels
+	uint32_t      horizontalSyncPulseWidth;       // pixels
+
+	uint32_t      verticalActive;                 // lines
+	uint32_t      verticalBlanking;               // lines
+	uint32_t      verticalSyncOffset;             // lines
+	uint32_t      verticalSyncPulseWidth;         // lines
+
+	uint32_t      horizontalBorderLeft;           // pixels
+	uint32_t      horizontalBorderRight;          // pixels
+	uint32_t      verticalBorderTop;              // lines
+	uint32_t      verticalBorderBottom;           // lines
+
+	uint32_t      horizontalSyncConfig;
+	uint32_t      horizontalSyncLevel;            // Future use (init to 0)
+	uint32_t      verticalSyncConfig;
+	uint32_t      verticalSyncLevel;              // Future use (init to 0)
+	uint32_t      numLinks;
+	uint32_t      verticalBlankingExtension;
+	uint16_t      pixelEncoding;
+	uint16_t      bitsPerColorComponent;
+	uint16_t      colorimetry;
+	uint16_t      dynamicRange;
+	uint16_t      dscCompressedBitsPerPixel;
+	uint16_t      dscSliceHeight;
+	uint16_t      dscSliceWidth;
+};
+
+struct AGDCValidateDetailedTiming_t
+{
+	uint32_t                         framebufferIndex;     // IOFBDependentIndex
+	AGDCDetailedTimingInformation_t  timing;
+	uint16_t                         padding1[5];
+	void                             *cfgInfo;             // AppleGraphicsDevicePolicy configuration
+	int32_t                          frequency;
+	uint16_t                         padding2[6];
+	uint32_t                         modeStatus;           // 1 - invalid, 2 - success, 3 - change timing
+	uint16_t                         padding3[2];
+};
+
+#pragma pack(pop)
+
+
 class RAD {
 public:
 	void init();
@@ -25,12 +103,14 @@ public:
 	enum HardwareIndex {
 		IndexRadeonHardwareX4000,
 		IndexRadeonHardwareX5000,
+		IndexRadeonHardwareX6000,
 		IndexRadeonHardwareX3000,
 		IndexRadeonHardwareX4100,
 		IndexRadeonHardwareX4150,
 		IndexRadeonHardwareX4200,
 		IndexRadeonHardwareX4250,
 		MaxRadeonHardware,
+		MaxRadeonHardwareCatalina = IndexRadeonHardwareX6000 + 1,
 		MaxRadeonHardwareMojave = IndexRadeonHardwareX5000 + 1,
 		MaxRadeonHardwareModernHighSierra = IndexRadeonHardwareX3000 + 1
 	};
@@ -100,6 +180,11 @@ private:
 	 */
 	mach_vm_address_t orgATIControllerStart {};
 	mach_vm_address_t orgLegacyATIControllerStart {};
+
+	/**
+	 *  Original AGDP handler
+	 */
+	mach_vm_address_t orgNotifyLinkChange {};
 
 	/**
 	 *  Current controller property provider, 8 for max GPUs at once.
@@ -173,6 +258,16 @@ private:
 		[RAD::IndexRadeonHardwareX4000] = "__ZN37AMDRadeonX4250_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
 		[RAD::IndexRadeonHardwareX5000] = "__ZN37AMDRadeonX5000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig"
 	};
+
+	/**
+	 *  Enforce 24-bit output
+	 */
+	bool force24BppMode {false};
+
+	/**
+	 *  Take AGDP decisions on our own
+	 */
+	bool useCustomAgdpDecision {false};
 
 	/**
 	 *  Limit DVI resolution to single link
@@ -355,6 +450,11 @@ private:
 	 */
 	static bool wrapATIControllerStart(IOService *ctrl, IOService *provider);
 	static bool wrapLegacyATIControllerStart(IOService *ctrl, IOService *provider);
+
+	/**
+	 * Wrapped AGDP handler
+	 */
+	static bool wrapNotifyLinkChange(void *atiDeviceControl, kAGDCRegisterLinkControlEvent_t event, void *eventData, uint32_t eventFlags);
 
 	/**
 	 *  Wrapped polaris controller project creator

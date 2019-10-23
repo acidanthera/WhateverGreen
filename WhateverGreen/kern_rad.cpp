@@ -26,6 +26,7 @@ static const char *pathRadeonX4150[]        { "/System/Library/Extensions/AMDRad
 static const char *pathRadeonX4200[]        { "/System/Library/Extensions/AMDRadeonX4200.kext/Contents/MacOS/AMDRadeonX4200" };
 static const char *pathRadeonX4250[]        { "/System/Library/Extensions/AMDRadeonX4250.kext/Contents/MacOS/AMDRadeonX4250" };
 static const char *pathRadeonX5000[]        { "/System/Library/Extensions/AMDRadeonX5000.kext/Contents/MacOS/AMDRadeonX5000" };
+static const char *pathRadeonX6000[]        { "/System/Library/Extensions/AMDRadeonX6000.kext/Contents/MacOS/AMDRadeonX6000" };
 static const char *patchPolarisController[] { "/System/Library/Extensions/AMD9500Controller.kext/Contents/MacOS/AMD9500Controller" };
 
 static const char *idRadeonX3000New {"com.apple.kext.AMDRadeonX3000"};
@@ -35,6 +36,7 @@ static const char *idRadeonX4150New {"com.apple.kext.AMDRadeonX4150"};
 static const char *idRadeonX4200New {"com.apple.kext.AMDRadeonX4200"};
 static const char *idRadeonX4250New {"com.apple.kext.AMDRadeonX4250"};
 static const char *idRadeonX5000New {"com.apple.kext.AMDRadeonX5000"};
+static const char *idRadeonX6000New {"com.apple.kext.AMDRadeonX6000"};
 static const char *idRadeonX3000Old {"com.apple.AMDRadeonX3000"};
 static const char *idRadeonX4000Old {"com.apple.AMDRadeonX4000"};
 
@@ -56,7 +58,8 @@ static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX4200] = { idRadeonX4200New, pathRadeonX4200, arrsize(pathRadeonX4200), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4250] = { idRadeonX4250New, pathRadeonX4250, arrsize(pathRadeonX4250), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4000] = { idRadeonX4000New, pathRadeonX4000, arrsize(pathRadeonX4000), {}, {}, KernelPatcher::KextInfo::Unloaded },
-	[RAD::IndexRadeonHardwareX5000] = { idRadeonX5000New, pathRadeonX5000, arrsize(pathRadeonX5000), {}, {}, KernelPatcher::KextInfo::Unloaded }
+	[RAD::IndexRadeonHardwareX5000] = { idRadeonX5000New, pathRadeonX5000, arrsize(pathRadeonX5000), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	[RAD::IndexRadeonHardwareX6000] = { idRadeonX6000New, pathRadeonX6000, arrsize(pathRadeonX6000), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 /**
@@ -82,8 +85,11 @@ void RAD::init() {
 	currentPropProvider.init();
 	currentLegacyPropProvider.init();
 
+	force24BppMode = checkKernelArgument("-rad24");
+	useCustomAgdpDecision = getKernelVersion() >= KernelVersion::Catalina;
+
 	// Certain displays do not support 32-bit colour output, so we have to force 24-bit.
-	if (getKernelVersion() >= KernelVersion::Sierra && checkKernelArgument("-rad24")) {
+	if (getKernelVersion() >= KernelVersion::Sierra && force24BppMode) {
 		lilu.onKextLoadForce(&kextRadeonFramebuffer);
 		// Mojave dropped legacy GPU support (5xxx and 6xxx).
 		if (getKernelVersion() < KernelVersion::Mojave)
@@ -144,6 +150,9 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
 		};
 		patcher.routeMultiple(KernelPatcher::KernelID, requests);
+
+		if (useCustomAgdpDecision && info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+			useCustomAgdpDecision = false;
 	} else {
 		kextRadeonFramebuffer.switchOff();
 		kextRadeonLegacyFramebuffer.switchOff();
@@ -157,12 +166,14 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	if (kextRadeonFramebuffer.loadIndex == index) {
-		process24BitOutput(patcher, kextRadeonFramebuffer, address, size);
+		if (force24BppMode)
+			process24BitOutput(patcher, kextRadeonFramebuffer, address, size);
 		return true;
 	}
 
 	if (kextRadeonLegacyFramebuffer.loadIndex == index) {
-		process24BitOutput(patcher, kextRadeonLegacyFramebuffer, address, size);
+		if (force24BppMode)
+			process24BitOutput(patcher, kextRadeonLegacyFramebuffer, address, size);
 		return true;
 	}
 
@@ -172,6 +183,11 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		if (getKernelVersion() > KernelVersion::Mojave ||
 			(getKernelVersion() == KernelVersion::Mojave && getKernelMinorVersion() >= 5)) {
 			KernelPatcher::RouteRequest request("__ZN13ATIController8TestVRAME13PCI_REG_INDEXb", doNotTestVram);
+			patcher.routeMultiple(index, &request, 1, address, size);
+		}
+
+		if (useCustomAgdpDecision) {
+			KernelPatcher::RouteRequest request("__ZN16AtiDeviceControl16notifyLinkChangeE31kAGDCRegisterLinkControlEvent_tmj", wrapNotifyLinkChange, orgNotifyLinkChange);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
@@ -200,9 +216,12 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 void RAD::initHardwareKextMods() {
 	// Decide on kext amount present for optimal performance.
+	// 10.15+   has X4000, X5000, and X6000
 	// 10.14+   has X4000 and X5000
 	// 10.13.4+ has X3000, X4000, and X5000
-	if (getKernelVersion() >= KernelVersion::Mojave)
+	if (getKernelVersion() >= KernelVersion::Catalina)
+		maxHardwareKexts = MaxRadeonHardwareCatalina;
+	else if (getKernelVersion() >= KernelVersion::Mojave)
 		maxHardwareKexts = MaxRadeonHardwareMojave;
 	else if (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
 		maxHardwareKexts = MaxRadeonHardwareModernHighSierra;
@@ -216,7 +235,12 @@ void RAD::initHardwareKextMods() {
 		if (!fixConfigName && !forceOpenGL) {
 			kextRadeonHardware[IndexRadeonHardwareX4000].switchOff();
 			kextRadeonHardware[IndexRadeonHardwareX5000].switchOff();
+			kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 		}
+	}
+
+	if (getKernelVersion() < KernelVersion::Catalina) {
+		kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 	}
 
 	if (getKernelVersion() < KernelVersion::HighSierra) {
@@ -896,4 +920,22 @@ bool RAD::doNotTestVram(IOService *ctrl, uint32_t reg, bool retryOnFail) {
 	//
 	// Here we just do not do video memory testing for simplicity.
 	return true;
+}
+
+bool RAD::wrapNotifyLinkChange(void *atiDeviceControl, kAGDCRegisterLinkControlEvent_t event, void *eventData, uint32_t eventFlags) {
+	auto ret = FunctionCast(wrapNotifyLinkChange, callbackRAD->orgNotifyLinkChange)(atiDeviceControl, event, eventData, eventFlags);
+
+	if (event == kAGDCValidateDetailedTiming) {
+		auto cmd = static_cast<AGDCValidateDetailedTiming_t *>(eventData);
+		DBGLOG("rad", "AGDCValidateDetailedTiming %u -> %d (%u)", cmd->framebufferIndex, ret, cmd->modeStatus);
+		// While we have this condition below, the only actual value we get is ret = true, cmd->modeStatus = 0.
+		// This is because AGDP is disabled, and starting from 10.15.1b2 AMDFramebuffer no longer accepts 0 in
+		// __ZN14AMDFramebuffer22validateDetailedTimingEPvy
+		if (ret == false || cmd->modeStatus < 1 || cmd->modeStatus > 3) {
+			cmd->modeStatus = 2;
+			ret = true;
+		}
+	}
+
+	return ret;
 }
