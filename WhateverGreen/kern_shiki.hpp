@@ -59,7 +59,7 @@ private:
 		// It is enabled automatically on 10.12 and 10.13 if shikigva is *NOT* passed and ForceCompatibleRenderer or
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
-        // Removed in current version.
+		// Removed in current version.
 		DisabledUnused16           = 16,
 		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
@@ -72,7 +72,7 @@ private:
 		// so nothing could be done about them.
 		// Another way to enable this is to pass -shikifps boot argument.
 		UnlockFP10Streaming        = 64,
-        // Removed in current version.
+		// Removed in current version.
 		DeprecatedUnused128        = 128
 	};
 
