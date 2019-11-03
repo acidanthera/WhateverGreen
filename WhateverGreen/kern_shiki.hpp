@@ -59,10 +59,7 @@ private:
 		// It is enabled automatically on 10.12 and 10.13 if shikigva is *NOT* passed and ForceCompatibleRenderer or
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
-        // Disable hardware-accelerated FairPlay support in iTunes to fix crashes in 10.13.
-        // While this breaks streaming, it is currently the only way to workaround iTunes crashes in 10.13
-        // when one has IGPU installed.
-        // This is enabled automatically on 10.13.x till 10.13.4 inclusive if shikigva is *NOT* passed via boot-args.
+        // Removed in current version.
 		DisabledUnused16           = 16,
 		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
@@ -75,9 +72,7 @@ private:
 		// so nothing could be done about them.
 		// Another way to enable this is to pass -shikifps boot argument.
 		UnlockFP10Streaming        = 64,
-        // Replace IntelAccelerator with Gen6Accelerator to fix AppleGVA warnings on Sandy Bridge.
-        // REMOVED! Implemented more properly in IntelGraphicsFixup:
-        // https://github.com/lvs1974/IntelGraphicsFixup/commit/13c64b0659b8eea24189377ff36be35e73474779
+        // Removed in current version.
 		DeprecatedUnused128        = 128
 	};
 

@@ -16,18 +16,28 @@
 
 #pragma pack(push, 1)
 
+// Additional notes for AppleGraphicsDevicePolicy.kext:
+// agdp=-1 -> force unload AppleGraphicsDevicePolicy.kext
+// agdp=0  -> do nothing basically
+// agdp>0  -> set extra FeatureControl bits:
+//  0x1     -> timeout bit
+//  0x2     -> skip no media enter
+//  0x4     -> special link modes
+//  0x10    -> some aux command
+//  0x40    -> something with timing
+
 enum kAGDCRegisterLinkControlEvent_t {
-    kAGDCRegisterLinkInsert             = 0,
-    kAGDCRegisterLinkRemove             = 1,
-    kAGDCRegisterLinkChange             = 2,
-    kAGDCRegisterLinkChangeMST          = 3,
-    kAGDCRegisterLinkFramebuffer        = 4,                                // V106+
-    // This event is handled by AppleGraphicsDevicePolicy::VendorEventHandler.
-    // The point of this event to validate the timing information, and take decision on what to do with this display.
-    // One of the examples of this event is to merge multiple display ports into one connection for 5K/6K output.
-    // Drivers should interpret modeStatus to decide on whether to continue execution, change the mode, or disable link.
-    kAGDCValidateDetailedTiming         = 10,
-    kAGDCRegisterLinkChangeWakeProbe    = 0x80,
+	kAGDCRegisterLinkInsert             = 0,
+	kAGDCRegisterLinkRemove             = 1,
+	kAGDCRegisterLinkChange             = 2,
+	kAGDCRegisterLinkChangeMST          = 3,
+	kAGDCRegisterLinkFramebuffer        = 4,                                // V106+
+	// This event is handled by AppleGraphicsDevicePolicy::VendorEventHandler.
+	// The point of this event to validate the timing information, and take decision on what to do with this display.
+	// One of the examples of this event is to merge multiple display ports into one connection for 5K/6K output.
+	// Drivers should interpret modeStatus to decide on whether to continue execution, change the mode, or disable link.
+	kAGDCValidateDetailedTiming         = 10,
+	kAGDCRegisterLinkChangeWakeProbe    = 0x80,
 };
 
 struct AGDCDetailedTimingInformation_t
