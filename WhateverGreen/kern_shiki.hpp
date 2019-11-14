@@ -70,7 +70,6 @@ private:
 		// This should technically fix some very old streaming services in Safari, which rely on FairPlay DRM
 		// similar to the one found in iTunes. Newer streaming services require FairPlay 2.0, which is hardware-only,
 		// so nothing could be done about them.
-		// Another way to enable this is to pass -shikifps boot argument.
 		UnlockFP10Streaming        = 64,
 		// Removed in current version.
 		DeprecatedUnused128        = 128
