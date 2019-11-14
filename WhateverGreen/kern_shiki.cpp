@@ -42,11 +42,6 @@ void SHIKI::init() {
 		replaceBoardID          = bootarg & ReplaceBoardID;
 		unlockFP10Streaming     = bootarg & UnlockFP10Streaming;
 	} else {
-		if (PE_parse_boot_argn("-shikigva", &bootarg, sizeof(bootarg))) {
-			SYSLOG("shiki", "-shikigva is deprecated use shikigva %d bit instead", ForceOnlineRenderer);
-			forceOnlineRenderer = true;
-		}
-
 		// Starting with 10.13.4 Apple has fixed AppleGVA to no longer require patching for compatible renderer.
 		if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5) ||
 			getKernelVersion() < KernelVersion::HighSierra) {
@@ -63,11 +58,6 @@ void SHIKI::init() {
 		}
 
 		DBGLOG("shiki", "will autodetect autodetect GPU %d whitelist %d", autodetectGFX, addExecutableWhitelist);
-	}
-
-	if (PE_parse_boot_argn("-shikifps", &bootarg, sizeof(bootarg))) {
-		SYSLOG("shiki", "-shikifps is deprecated use shikigva %d bit instead", UnlockFP10Streaming);
-		unlockFP10Streaming = true;
 	}
 
 	DBGLOG("shiki", "pre-config: online %d, bgra %d, compat %d, whitelist %d, id %d, stream %d",
