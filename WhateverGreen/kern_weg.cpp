@@ -134,7 +134,7 @@ void WEG::init() {
 		lilu.onKextLoadForce(&kextIOGraphics);
 
 	// Perform a black screen fix.
-	if (graphicsDisplayPolicyMod != AGDP_NONE)
+	if (graphicsDisplayPolicyMod != AGDP_NONE_SET)
 		lilu.onKextLoad(&kextAGDPolicy);
 
 	// Disable backlight patches if asked specifically.
@@ -250,7 +250,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			}
 
 			if ((graphicsDisplayPolicyMod & AGDP_DETECT) && isGraphicsPolicyModRequired(devInfo))
-				graphicsDisplayPolicyMod = AGDP_VIT9696 | AGDP_PIKERA;
+				graphicsDisplayPolicyMod = AGDP_VIT9696 | AGDP_PIKERA | AGDP_SET;
 
 			if (devInfo->managementEngine)
 				processManagementEngineProperties(devInfo->managementEngine);
@@ -291,8 +291,8 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		kextIOGraphics.switchOff();
 	}
 
-	if ((graphicsDisplayPolicyMod & AGDP_DETECT) || graphicsDisplayPolicyMod == AGDP_NONE) {
-		graphicsDisplayPolicyMod = AGDP_NONE;
+	if ((graphicsDisplayPolicyMod & AGDP_DETECT) || graphicsDisplayPolicyMod == AGDP_NONE_SET) {
+		graphicsDisplayPolicyMod = AGDP_NONE_SET;
 		kextAGDPolicy.switchOff();
 	}
 
@@ -507,9 +507,9 @@ void WEG::processGraphicsPolicyStr(const char *agdp) {
 	if (strstr(agdp, "detect")) {
 		graphicsDisplayPolicyMod = AGDP_DETECT_SET;
 	} else if (strstr(agdp, "ignore")) {
-		graphicsDisplayPolicyMod = AGDP_NONE;
+		graphicsDisplayPolicyMod = AGDP_NONE_SET;
 	} else {
-		graphicsDisplayPolicyMod = AGDP_NONE;
+		graphicsDisplayPolicyMod = AGDP_NONE_SET;
 		if (strstr(agdp, "vit9696"))
 			graphicsDisplayPolicyMod |= AGDP_VIT9696;
 		if (strstr(agdp, "pikera"))
