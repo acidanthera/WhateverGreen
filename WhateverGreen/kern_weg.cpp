@@ -223,6 +223,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		}
 
 		// Do not inject properties unless non-Apple
+		size_t extNum = devInfo->videoExternal.size();
 		if (devInfo->firmwareVendor != DeviceInfo::FirmwareVendor::Apple) {
 			DBGLOG("weg", "non-apple-fw proceeding with devprops %d", graphicsDisplayPolicyMod);
 			if (devInfo->videoBuiltin) {
@@ -234,7 +235,6 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			}
 
 			// Note, disabled Optimus will make videoExternal 0, so this case checks for active IGPU only.
-			size_t extNum = devInfo->videoExternal.size();
 			if (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0)) {
 				// Either a builtin IGPU is not available, or some external GPU is available.
 				kextBacklight.switchOff();
@@ -254,9 +254,26 @@ void WEG::processKernel(KernelPatcher &patcher) {
 
 			if (devInfo->managementEngine)
 				processManagementEngineProperties(devInfo->managementEngine);
-		} else if (appleBacklightPatch != APPLBKL_ON){
-			// Do not patch AppleBacklight on Apple HW, unless forced.
-			kextBacklight.switchOff();
+		} else {
+			if (appleBacklightPatch != APPLBKL_ON) {
+				// Do not patch AppleBacklight on Apple HW, unless forced.
+				kextBacklight.switchOff();
+			}
+
+			if (checkKernelArgument("-wegtree")) {
+				DBGLOG("weg", "apple-fw proceeding with devprops due to arg");
+
+				if (devInfo->videoBuiltin)
+					processBuiltinProperties(devInfo->videoBuiltin, devInfo);
+
+				for (size_t i = 0; i < extNum; i++) {
+					auto &v = devInfo->videoExternal[i];
+					processExternalProperties(v.video, devInfo, v.vendor);
+				}
+			}
+
+			if (devInfo->managementEngine)
+				processManagementEngineProperties(devInfo->managementEngine);
 		}
 
 		igfx.processKernel(patcher, devInfo);
