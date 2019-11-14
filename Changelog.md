@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.3.5
 - Dropped legacy boot arguments (`-shikigva`, `-shikifps`)
+- Fix handling `agdpmod` GPU property (in IGPUs and in conjunction with boot-arg)
 
 #### v1.3.4
 - Added support for disabled AppleGraphicsDevicePolicy in AMD drivers on 10.15.1

@@ -205,14 +205,17 @@ private:
 	 *  AGDP_VIT9696  null config string size at strcmp
 	 *  AGDP_PIKERA   board-id -> board-ix replace
 	 *  AGDP_CFGMAP   add board-id with none to ConfigMap
+	 *  SET bit is used to distinguish from agpmod=detect.
 	 */
 	enum GraphicsDisplayPolicyMod {
-		AGDP_NONE    = 0,
-		AGDP_DETECT  = 1,
-		AGDP_VIT9696 = 2,
-		AGDP_PIKERA  = 4,
-		AGDP_CFGMAP  = 8,
-		AGDP_PATCHES = AGDP_VIT9696 | AGDP_PIKERA | AGDP_CFGMAP
+		AGDP_SET        = 0x8000,
+		AGDP_NONE       = AGDP_SET | 0,
+		AGDP_DETECT     = 1,
+		AGDP_DETECT_SET = AGDP_SET | AGDP_DETECT,
+		AGDP_VIT9696    = AGDP_SET | 2,
+		AGDP_PIKERA     = AGDP_SET | 4,
+		AGDP_CFGMAP     = AGDP_SET | 8,
+		AGDP_PATCHES    = AGDP_VIT9696 | AGDP_PIKERA | AGDP_CFGMAP
 	};
 
 	/**

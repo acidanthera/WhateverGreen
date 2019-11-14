@@ -187,12 +187,11 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			devInfo->videoExternal.deinit();
 		}
 
-		if (graphicsDisplayPolicyMod == AGDP_DETECT) {
-			size_t extNum = devInfo->videoExternal.size();
-			for (size_t i = 0; i < extNum; i++) {
-				auto prop = devInfo->videoExternal[i].video->getProperty("agdpmod");
+		if (graphicsDisplayPolicyMod == AGDP_DETECT) { /* Default detect only */
+			auto getAgpdMod = [this](IORegistryEntry *device) {
+				auto prop = device->getProperty("agdpmod");
 				if (prop) {
-					DBGLOG("weg", "found agdpmod in external GPU %s", safeString(devInfo->videoExternal[i].video->getName()));
+					DBGLOG("weg", "found agdpmod in external GPU %s", safeString(device->getName()));
 					const char *agdp = nullptr;
 					auto propStr = OSDynamicCast(OSString, prop);
 					auto propData = OSDynamicCast(OSData, prop);
@@ -207,10 +206,20 @@ void WEG::processKernel(KernelPatcher &patcher) {
 					}
 					if (agdp) {
 						processGraphicsPolicyStr(agdp);
-						break;
+						return true;
 					}
 				}
+
+				return false;
+			};
+
+			size_t extNum = devInfo->videoExternal.size();
+			for (size_t i = 0; i < extNum; i++) {
+				if (getAgpdMod(devInfo->videoExternal[i].video))
+					break;
 			}
+			if (devInfo->videoBuiltin != nullptr && graphicsDisplayPolicyMod == AGDP_DETECT) /* Default detect only */
+				getAgpdMod(devInfo->videoBuiltin);
 		}
 
 		// Do not inject properties unless non-Apple
@@ -240,7 +249,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 					resetFramebuffer = FB_ZEROFILL;
 			}
 
-			if (graphicsDisplayPolicyMod == AGDP_DETECT && isGraphicsPolicyModRequired(devInfo))
+			if ((graphicsDisplayPolicyMod & AGDP_DETECT) && isGraphicsPolicyModRequired(devInfo))
 				graphicsDisplayPolicyMod = AGDP_VIT9696 | AGDP_PIKERA;
 
 			if (devInfo->managementEngine)
@@ -265,7 +274,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		kextIOGraphics.switchOff();
 	}
 
-	if (graphicsDisplayPolicyMod == AGDP_DETECT || graphicsDisplayPolicyMod == AGDP_NONE) {
+	if ((graphicsDisplayPolicyMod & AGDP_DETECT) || graphicsDisplayPolicyMod == AGDP_NONE) {
 		graphicsDisplayPolicyMod = AGDP_NONE;
 		kextAGDPolicy.switchOff();
 	}
@@ -479,7 +488,7 @@ void WEG::processManagementEngineProperties(IORegistryEntry *imei) {
 void WEG::processGraphicsPolicyStr(const char *agdp) {
 	DBGLOG("weg", "agdpmod using config %s", agdp);
 	if (strstr(agdp, "detect")) {
-		graphicsDisplayPolicyMod = AGDP_DETECT;
+		graphicsDisplayPolicyMod = AGDP_DETECT_SET;
 	} else if (strstr(agdp, "ignore")) {
 		graphicsDisplayPolicyMod = AGDP_NONE;
 	} else {
