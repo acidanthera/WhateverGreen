@@ -71,8 +71,8 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		for (size_t i = 0; i < info->videoExternal.size(); i++) {
 			auto prop = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty(name));
-			auto propSize = prop->getLength();
-			if (prop && propSize <= size) {
+			auto propSize = prop ? prop->getLength() : 0;
+			if (propSize > 0 && propSize <= size) {
 				lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
 				memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
 				return true;
@@ -81,8 +81,8 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		if (info->videoBuiltin) {
 			auto prop = OSDynamicCast(OSData, info->videoBuiltin->getProperty(name));
-			auto propSize = prop->getLength();
-			if (prop && propSize <= size) {
+			auto propSize = prop ? prop->getLength() : 0;
+			if (propSize > 0 && propSize <= size) {
 				lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
 				memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
 				return true;
