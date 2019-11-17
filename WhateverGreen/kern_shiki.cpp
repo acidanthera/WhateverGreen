@@ -24,6 +24,37 @@ void SHIKI::init() {
 	if (disableShiki)
 		return;
 
+	// Ugly speedhack for different paths on Catalina and others.
+	if (getKernelVersion() >= KernelVersion::Catalina) {
+		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
+			if (strncmp(ADDPR(procInfo)[i].path, "/Applications/QuickTime Player.app/", strlen("/Applications/QuickTime Player.app/")) == 0)
+				ADDPR(procInfo)[i].section = SectionUnused;
+			else if (strncmp(ADDPR(procInfo)[i].path, "/Applications/iTunes.app/", strlen("/Applications/iTunes.app/")) == 0)
+				ADDPR(procInfo)[i].section = SectionUnused;
+		}
+	} else {
+		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
+			if (strncmp(ADDPR(procInfo)[i].path, "/System/Applications/", strlen("/System/Applications/")) == 0)
+				ADDPR(procInfo)[i].section = SectionUnused;
+		}
+	}
+
+	lilu.onProcLoadForce(ADDPR(procInfo), ADDPR(procInfoSize), nullptr, nullptr, ADDPR(binaryMod), ADDPR(binaryModSize));
+}
+
+void SHIKI::deinit() {
+
+}
+
+void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	if (disableShiki)
+		return;
+
+	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
+		// DRMI is just fine on Apple hardware
+		disableSection(SectionNDRMI);
+	}
+
 	bool forceOnlineRenderer     = false;
 	bool allowNonBGRA            = false;
 	bool forceCompatibleRenderer = false;
@@ -33,8 +64,36 @@ void SHIKI::init() {
 
 	cpuGeneration = CPUInfo::getGeneration();
 
+
+	auto getBootArgument = [](DeviceInfo *info, const char *name, void *bootarg, int size) {
+		if (PE_parse_boot_argn(name, bootarg, size))
+			return true;
+
+		for (size_t i = 0; i < info->videoExternal.size(); i++) {
+			auto prop = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty(name));
+			auto propSize = prop->getLength();
+			if (prop && propSize <= size) {
+				lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
+				memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
+				return true;
+			}
+		}
+
+		if (info->videoBuiltin) {
+			auto prop = OSDynamicCast(OSData, info->videoBuiltin->getProperty(name));
+			auto propSize = prop->getLength();
+			if (prop && propSize <= size) {
+				lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
+				memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	int bootarg {0};
-	if (PE_parse_boot_argn("shikigva", &bootarg, sizeof(bootarg))) {
+	if (getBootArgument(info, "shikigva", &bootarg, sizeof(bootarg))) {
 		forceOnlineRenderer     = bootarg & ForceOnlineRenderer;
 		allowNonBGRA            = bootarg & AllowNonBGRA;
 		forceCompatibleRenderer = bootarg & ForceCompatibleRenderer;
@@ -78,24 +137,11 @@ void SHIKI::init() {
 	if (!addExecutableWhitelist)
 		disableSection(SectionWHITELIST);
 
-	// Ugly speedhack for different paths on Catalina and others.
-	if (getKernelVersion() >= KernelVersion::Catalina) {
-		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
-			if (strncmp(ADDPR(procInfo)[i].path, "/Applications/QuickTime Player.app/", strlen("/Applications/QuickTime Player.app/")) == 0)
-				ADDPR(procInfo)[i].section = SectionUnused;
-			else if (strncmp(ADDPR(procInfo)[i].path, "/Applications/iTunes.app/", strlen("/Applications/iTunes.app/")) == 0)
-				ADDPR(procInfo)[i].section = SectionUnused;
-		}
-	} else {
-		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
-			if (strncmp(ADDPR(procInfo)[i].path, "/System/Applications/", strlen("/System/Applications/")) == 0)
-				ADDPR(procInfo)[i].section = SectionUnused;
-		}
-	}
-
 	// Custom board-id may be overridden by a boot-arg
 	if (replaceBoardID) {
-		if (!PE_parse_boot_argn("shiki-id", customBoardID, sizeof(customBoardID)))
+		if (getBootArgument(info, "shiki-id", customBoardID, sizeof(customBoardID)))
+			customBoardID[sizeof(customBoardID)-1] = '\0';
+		else
 			snprintf(customBoardID, sizeof(customBoardID), "Mac-27ADBB7B4CEE8E61"); // iMac14,2
 		DBGLOG("shiki", "requesting %s board-id for gva", customBoardID);
 	} else {
@@ -104,22 +150,6 @@ void SHIKI::init() {
 
 	if (!unlockFP10Streaming)
 		disableSection(SectionNSTREAM);
-
-	lilu.onProcLoadForce(ADDPR(procInfo), ADDPR(procInfoSize), nullptr, nullptr, ADDPR(binaryMod), ADDPR(binaryModSize));
-}
-
-void SHIKI::deinit() {
-
-}
-
-void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
-	if (disableShiki)
-		return;
-
-	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
-		// DRMI is just fine on Apple hardware
-		disableSection(SectionNDRMI);
-	}
 
 	if (autodetectGFX) {
 		bool hasExternalNVIDIA = false;

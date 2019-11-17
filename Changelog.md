@@ -5,6 +5,7 @@ WhateverGreen Changelog
 - Fixed handling `agdpmod` GPU property (in IGPUs and in conjunction with boot-arg)
 - Added `-wegtree` boot argument to force device renaming
 - Fixed FairPlay DRM playback patches on 10.15
+- Added `shikigva` and `shiki-id` aliases in IORegistry
 
 #### v1.3.4
 - Added support for disabled AppleGraphicsDevicePolicy in AMD drivers on 10.15.1
