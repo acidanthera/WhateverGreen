@@ -114,13 +114,13 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k)</string>
+					<string>mov rax/eax,1 : cpuid -&gt;  mov rax/eax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
-					<data>x8ABAAAAD6I=</data>
+					<data>AQAAAA+i</data>
 					<key>Replace</key>
-					<data>x8DCBgIAkJA=</data>
+					<data>wgYCAJCQ</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
@@ -266,7 +266,7 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>board-id -> shiki-id (normally for iMac14,2)</string>
+					<string>board-id -&gt; shiki-id (normally for iMac14,2)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -296,6 +296,18 @@
 		<dict>
 			<key>Path</key>
 			<string>/Applications/QuickTime Player.app/Contents/MacOS/QuickTime Player</string>
+			<key>Section</key>
+			<string>NDRMI</string>
+		</dict>
+		<dict>
+			<key>Path</key>
+			<string>/System/Applications/TV.app/Contents/MacOS/TV</string>
+			<key>Section</key>
+			<string>NDRMI</string>
+		</dict>
+		<dict>
+			<key>Path</key>
+			<string>/System/Applications/QuickTime Player.app/Contents/MacOS/QuickTime Player</string>
 			<key>Section</key>
 			<string>NDRMI</string>
 		</dict>

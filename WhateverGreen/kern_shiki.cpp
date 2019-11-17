@@ -78,6 +78,21 @@ void SHIKI::init() {
 	if (!addExecutableWhitelist)
 		disableSection(SectionWHITELIST);
 
+	// Ugly speedhack for different paths on Catalina and others.
+	if (getKernelVersion() >= KernelVersion::Catalina) {
+		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
+			if (strncmp(ADDPR(procInfo)[i].path, "/Applications/QuickTime Player.app/", strlen("/Applications/QuickTime Player.app/")) == 0)
+				ADDPR(procInfo)[i].section = SectionUnused;
+			else if (strncmp(ADDPR(procInfo)[i].path, "/Applications/iTunes.app/", strlen("/Applications/iTunes.app/")) == 0)
+				ADDPR(procInfo)[i].section = SectionUnused;
+		}
+	} else {
+		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
+			if (strncmp(ADDPR(procInfo)[i].path, "/System/Applications/", strlen("/System/Applications/")) == 0)
+				ADDPR(procInfo)[i].section = SectionUnused;
+		}
+	}
+
 	// Custom board-id may be overridden by a boot-arg
 	if (replaceBoardID) {
 		if (!PE_parse_boot_argn("shiki-id", customBoardID, sizeof(customBoardID)))
