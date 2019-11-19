@@ -307,6 +307,12 @@
 		</dict>
 		<dict>
 			<key>Path</key>
+			<string>/System/Applications/Music.app/Contents/MacOS/Music</string>
+			<key>Section</key>
+			<string>NDRMI</string>
+		</dict>
+		<dict>
+			<key>Path</key>
 			<string>/System/Applications/QuickTime Player.app/Contents/MacOS/QuickTime Player</string>
 			<key>Section</key>
 			<string>NDRMI</string>
