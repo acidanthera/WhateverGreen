@@ -84,12 +84,12 @@ private:
 	/**
 	 *  Current process information
 	 */
-	UserPatcher::ProcInfo *procInfo;
+	UserPatcher::ProcInfo *procInfo {nullptr};
 
 	/**
 	 *  Current process information array size
 	 */
-	size_t procInfoSize;
+	size_t procInfoSize {0};
 
 	/**
 	 *  Automatic GPU detection is required
