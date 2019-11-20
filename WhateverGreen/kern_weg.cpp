@@ -234,11 +234,8 @@ void WEG::processKernel(KernelPatcher &patcher) {
 					resetFramebuffer = FB_COPY;
 			}
 
-			// Note, disabled Optimus will make videoExternal 0, so this case checks for active IGPU only.
-			if (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0)) {
-				// Either a builtin IGPU is not available, or some external GPU is available.
-				kextBacklight.switchOff();
-			}
+			if (appleBacklightPatch == APPLBKL_DETECT && devInfo->videoBuiltin != nullptr)
+				WIOKit::getOSDataValue(devInfo->videoBuiltin, "applbkl", appleBacklightPatch);
 
 			for (size_t i = 0; i < extNum; i++) {
 				auto &v = devInfo->videoExternal[i];
@@ -247,6 +244,15 @@ void WEG::processKernel(KernelPatcher &patcher) {
 				// Assume that AMD GPU is the boot display.
 				if (v.vendor == WIOKit::VendorID::ATIAMD && resetFramebuffer == FB_DETECT)
 					resetFramebuffer = FB_ZEROFILL;
+
+				if (appleBacklightPatch == APPLBKL_DETECT)
+					WIOKit::getOSDataValue(v.video, "applbkl", appleBacklightPatch);
+			}
+
+			// Note, disabled Optimus will make videoExternal 0, so this case checks for active IGPU only.
+			if (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0)) {
+				// Either a builtin IGPU is not available, or some external GPU is available.
+				kextBacklight.switchOff();
 			}
 
 			if ((graphicsDisplayPolicyMod & AGDP_DETECT) && isGraphicsPolicyModRequired(devInfo))
