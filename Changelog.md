@@ -7,6 +7,7 @@ WhateverGreen Changelog
 - Fixed FairPlay DRM playback patches on 10.15
 - Added `shikigva` and `shiki-id` aliases in IORegistry
 - Added `applbkl` aliases to IORegistry (data, 32-bit)
+- Added `applbkl-name` and `applbkl-data` IORegistry data keys to provide custom backlight data
 
 #### v1.3.4
 - Added support for disabled AppleGraphicsDevicePolicy in AMD drivers on 10.15.1

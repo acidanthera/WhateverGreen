@@ -89,9 +89,19 @@ private:
 	};
 
 	/**
-	 *  applbkkl boot-arg controlled AppleBacklight kext patch
+	 *  applbkl boot-arg controlled AppleBacklight kext patch
 	 */
 	uint32_t appleBacklightPatch {APPLBKL_DETECT};
+
+	/**
+	 *  applbkl custom device name if any
+	 */
+	OSData *appleBacklightCustomName {nullptr};
+
+	/**
+	 *  applbkl custom device data if any
+	 */
+	OSData *appleBacklightCustomData {nullptr};
 
 	/**
 	 *  Backlight panel data format
