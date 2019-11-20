@@ -41,8 +41,10 @@ NSString *ResourcePrivHeader {@"\
 #include <stdint.h>                                  \n\n\
 extern UserPatcher::BinaryModInfo ADDPR(binaryMod)[];\n\
 extern const size_t ADDPR(binaryModSize);            \n\n\
-extern UserPatcher::ProcInfo ADDPR(procInfo)[];      \n\
-extern const size_t ADDPR(procInfoSize);             \n\n"
+extern UserPatcher::ProcInfo ADDPR(procInfoModern)[];\n\
+extern const size_t ADDPR(procInfoModernSize);       \n\n\
+extern UserPatcher::ProcInfo ADDPR(procInfoLegacy)[];\n\
+extern const size_t ADDPR(procInfoLegacySize);       \n\n"
 //extern const uint32_t minProcLength;                 \n"
 };
 
@@ -137,24 +139,35 @@ static void generateMods(NSString *file, NSString *header, NSArray *modInfos, NS
 	appendFile(file, modSection);
 }
 
-static void generateComparison(NSString *file, NSArray *binaries, NSMutableDictionary *sections) {
+static void generateComparison(NSString *file, NSArray *binaries, NSMutableDictionary *sections, bool modern) {
 	auto procSection = [[[NSMutableString alloc] initWithUTF8String:"\n// Process list\n"
 						 "using PF = UserPatcher::ProcInfo::ProcFlags;\n\n"] autorelease];
 	NSUInteger minProcLength {PATH_MAX};
 	size_t procCount = 0;
 
-	[procSection appendString:@"UserPatcher::ProcInfo ADDPR(procInfo)[] {\n"];
+	[procSection appendFormat:@"UserPatcher::ProcInfo ADDPR(procInfo%s)[] {\n", modern ? "Modern" : "Legacy"];
 
 	for (NSDictionary *entry in binaries) {
 		if ([entry objectForKey:@"Disable"])
 			continue;
 
+		NSString *type = [entry objectForKey:@"Type"];
+		if (type) {
+			if (modern && ![type isEqualToString:@"Modern"])
+				continue;
+			if (!modern && ![type isEqualToString:@"Legacy"])
+				continue;
+		}
+
 		[sections setObject:@"ok" forKey:[entry objectForKey:@"Section"]];
 
 		auto len = [[entry objectForKey:@"Path"] length];
+		NSString *prefix = [entry objectForKey:modern ? @"ModernPrefix" : @"LegacyPrefix"];
+		if (prefix)
+			len += [prefix length];
 		NSString *flags = [entry objectForKey:@"Flags"];
-		[procSection appendFormat:@"\t{ \"%@\", %lu, Section%@, %@ },\n",
-			[entry objectForKey:@"Path"], len, [entry objectForKey:@"Section"],
+		[procSection appendFormat:@"\t{ \"%@%@\", %lu, Section%@, %@ },\n",
+			prefix ? prefix : @"", [entry objectForKey:@"Path"], len, [entry objectForKey:@"Section"],
 		 flags ? flags : @"PF::MatchExact"];
 		if (len < minProcLength)
 			minProcLength = len;
@@ -162,7 +175,7 @@ static void generateComparison(NSString *file, NSArray *binaries, NSMutableDicti
 		procCount++;
 	}
 	[procSection appendString:@"};\n"];
-	[procSection appendFormat:@"\nconst size_t ADDPR(procInfoSize) {%lu};", procCount];
+	[procSection appendFormat:@"\nconst size_t ADDPR(procInfo%sSize) {%lu};", modern ? "Modern" : "Legacy",  procCount];
 	//[procSection appendFormat:@"\nconst uint32_t minProcLength {%lu};\n",  minProcLength];
 
 
@@ -193,7 +206,8 @@ int main(int argc, const char * argv[]) {
 		appendFile(outputCpp, ResourceHeader);
 		appendFile(outputHpp, ResourcePrivHeader);
 		generateMods(outputCpp, outputHpp, [patches objectForKey:@"Patches"], sections);
-		generateComparison(outputCpp, [patches objectForKey:@"Processes"], sections);
+		generateComparison(outputCpp, [patches objectForKey:@"Processes"], sections, false);
+		generateComparison(outputCpp, [patches objectForKey:@"Processes"], sections, true);
 
 		auto sectionList = [[[NSMutableString alloc] initWithUTF8String:"\n// Section list\n\nenum : uint32_t {\n\tSectionUnused = 0,\n"] autorelease];
 		size_t sectionIndex = 1;

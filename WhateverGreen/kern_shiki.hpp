@@ -11,6 +11,7 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
+#include <Headers/kern_user.hpp>
 
 class SHIKI {
 public:
@@ -79,6 +80,16 @@ private:
 	 *  Current cpu generation
 	 */
 	CPUInfo::CpuGeneration cpuGeneration {CPUInfo::CpuGeneration::Unknown};
+
+	/**
+	 *  Current process information
+	 */
+	UserPatcher::ProcInfo *procInfo;
+
+	/**
+	 *  Current process information array size
+	 */
+	size_t procInfoSize;
 
 	/**
 	 *  Automatic GPU detection is required

@@ -24,22 +24,15 @@ void SHIKI::init() {
 	if (disableShiki)
 		return;
 
-	// Ugly speedhack for different paths on Catalina and others.
 	if (getKernelVersion() >= KernelVersion::Catalina) {
-		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
-			if (strncmp(ADDPR(procInfo)[i].path, "/Applications/QuickTime Player.app/", strlen("/Applications/QuickTime Player.app/")) == 0)
-				ADDPR(procInfo)[i].section = SectionUnused;
-			else if (strncmp(ADDPR(procInfo)[i].path, "/Applications/iTunes.app/", strlen("/Applications/iTunes.app/")) == 0)
-				ADDPR(procInfo)[i].section = SectionUnused;
-		}
+		procInfo = ADDPR(procInfoModern);
+		procInfoSize = ADDPR(procInfoModernSize);
 	} else {
-		for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
-			if (strncmp(ADDPR(procInfo)[i].path, "/System/Applications/", strlen("/System/Applications/")) == 0)
-				ADDPR(procInfo)[i].section = SectionUnused;
-		}
+		procInfo = ADDPR(procInfoLegacy);
+		procInfoSize = ADDPR(procInfoLegacySize);
 	}
 
-	lilu.onProcLoadForce(ADDPR(procInfo), ADDPR(procInfoSize), nullptr, nullptr, ADDPR(binaryMod), ADDPR(binaryModSize));
+	lilu.onProcLoadForce(procInfo, procInfoSize, nullptr, nullptr, ADDPR(binaryMod), ADDPR(binaryModSize));
 }
 
 void SHIKI::deinit() {
@@ -199,9 +192,9 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 }
 
 void SHIKI::disableSection(uint32_t section) {
-	for (size_t i = 0; i < ADDPR(procInfoSize); i++) {
-		if (ADDPR(procInfo)[i].section == section)
-			ADDPR(procInfo)[i].section = SectionUnused;
+	for (size_t i = 0; i < procInfoSize; i++) {
+		if (procInfo[i].section == section)
+			procInfo[i].section = SectionUnused;
 	}
 
 	for (size_t i = 0; i < ADDPR(binaryModSize); i++) {
