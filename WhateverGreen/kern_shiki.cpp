@@ -56,6 +56,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool replaceBoardID          = false;
 	bool unlockFP10Streaming     = false;
 	bool useHwDrmDecoder         = false;
+	bool useLegacyHwDrmDecoder   = false;
 
 	cpuGeneration = CPUInfo::getGeneration();
 
@@ -95,6 +96,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		useHwDrmDecoder         = bootarg & UseHwDrmDecoder;
 		replaceBoardID          = bootarg & ReplaceBoardID;
 		unlockFP10Streaming     = bootarg & UnlockFP10Streaming;
+		useLegacyHwDrmDecoder   = bootarg & UseLegacyHwDrmDecoder;
 
 		if (useHwDrmDecoder && (replaceBoardID || addExecutableWhitelist))
 			PANIC("shiki", "Hardware DRM decoder cannot be used with custom board or whitelist");
@@ -121,13 +123,14 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		   forceOnlineRenderer, allowNonBGRA, forceCompatibleRenderer, addExecutableWhitelist, replaceBoardID,
 		   unlockFP10Streaming, useHwDrmDecoder);
 
-	if (useHwDrmDecoder) {
-		// We do not need NDRMI patches for AMD hardware decoder.
+	// Disable hardware decoder patches when unused
+	if (!useHwDrmDecoder)
+		disableSection(SectionHWDRMID);
+
+	// We do not need NDRMI patches when legacy hardware decoder works.
+	if (useLegacyHwDrmDecoder) {
 		disableSection(SectionNDRMI);
 		disableSection(SectionFCPUID);
-	} else {
-		// Otherwise we do not want hardware decoder.
-		disableSection(SectionHWDRMID);
 	}
 
 	// Disable unused sections

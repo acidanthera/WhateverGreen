@@ -73,6 +73,8 @@ private:
 		// similar to the one found in iTunes. Newer streaming services require FairPlay 2.0, which is hardware-only,
 		// so nothing could be done about them.
 		UnlockFP10Streaming        = 64,
+		// Disables software decoder unlock patches for FairPlay 1.0.
+		UseLegacyHwDrmDecoder      = 128
 	};
 
 	/**
