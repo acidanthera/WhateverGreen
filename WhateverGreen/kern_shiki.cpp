@@ -46,6 +46,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
 		// DRMI is just fine on Apple hardware
 		disableSection(SectionNDRMI);
+		disableSection(SectionFCPUID);
 	}
 
 	bool forceOnlineRenderer     = false;
