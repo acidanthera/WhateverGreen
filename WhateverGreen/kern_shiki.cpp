@@ -44,7 +44,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		return;
 
 	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
-		// DRMI is just fine on Apple hardware
+		// DRM is just fine on Apple hardware
 		disableSection(SectionNDRMI);
 		disableSection(SectionFCPUID);
 	}
@@ -55,9 +55,9 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool addExecutableWhitelist  = false;
 	bool replaceBoardID          = false;
 	bool unlockFP10Streaming     = false;
+	bool useHwDrmDecoder         = false;
 
 	cpuGeneration = CPUInfo::getGeneration();
-
 
 	auto getBootArgument = [](DeviceInfo *info, const char *name, void *bootarg, int size) {
 		if (PE_parse_boot_argn(name, bootarg, size))
@@ -92,8 +92,12 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		allowNonBGRA            = bootarg & AllowNonBGRA;
 		forceCompatibleRenderer = bootarg & ForceCompatibleRenderer;
 		addExecutableWhitelist  = bootarg & AddExecutableWhitelist;
+		useHwDrmDecoder         = bootarg & UseHwDrmDecoder;
 		replaceBoardID          = bootarg & ReplaceBoardID;
 		unlockFP10Streaming     = bootarg & UnlockFP10Streaming;
+
+		if (useHwDrmDecoder && (replaceBoardID || addExecutableWhitelist))
+			PANIC("shiki", "Hardware DRM decoder cannot be used with custom board or whitelist");
 	} else {
 		// Starting with 10.13.4 Apple has fixed AppleGVA to no longer require patching for compatible renderer.
 		if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5) ||
@@ -113,9 +117,18 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		DBGLOG("shiki", "will autodetect autodetect GPU %d whitelist %d", autodetectGFX, addExecutableWhitelist);
 	}
 
-	DBGLOG("shiki", "pre-config: online %d, bgra %d, compat %d, whitelist %d, id %d, stream %d",
+	DBGLOG("shiki", "pre-config: online %d, bgra %d, compat %d, whitelist %d, id %d, stream %d, hwdrm %d",
 		   forceOnlineRenderer, allowNonBGRA, forceCompatibleRenderer, addExecutableWhitelist, replaceBoardID,
-		   unlockFP10Streaming);
+		   unlockFP10Streaming, useHwDrmDecoder);
+
+	if (useHwDrmDecoder) {
+		// We do not need NDRMI patches for AMD hardware decoder.
+		disableSection(SectionNDRMI);
+		disableSection(SectionFCPUID);
+	} else {
+		// Otherwise we do not want hardware decoder.
+		disableSection(SectionHWDRMID);
+	}
 
 	// Disable unused sections
 	if (!forceOnlineRenderer)
@@ -180,11 +193,17 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			   !disableWhitelist, !disableCompatRenderer, cpuGeneration, hasExternalNVIDIA, hasExternalAMD);
 	}
 
-	if (customBoardID[0]) {
+	if (customBoardID[0] || useHwDrmDecoder) {
 		auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
 		if (entry) {
-			DBGLOG("shiki", "changing shiki-id to %s", customBoardID);
-			entry->setProperty("shiki-id", customBoardID, static_cast<uint32_t>(strlen(customBoardID)+1));
+			if (customBoardID[0]) {
+				DBGLOG("shiki", "changing shiki-id to %s", customBoardID);
+				entry->setProperty("shiki-id", customBoardID, static_cast<uint32_t>(strlen(customBoardID)+1));
+			}
+			if (useHwDrmDecoder) {
+				DBGLOG("shiki", "setting hwdrm-id to iMacPro1,1");
+				entry->setProperty("hwdrm-id", const_cast<char *>("Mac-7BA5B2D9E42DDD94"), static_cast<uint32_t>(sizeof("Mac-7BA5B2D9E42DDD94")));
+			}
 			entry->release();
 		} else {
 			SYSLOG("shiki", "failed to obtain iodt tree");

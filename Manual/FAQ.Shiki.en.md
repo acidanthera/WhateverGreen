@@ -126,7 +126,10 @@ To fix it up disable Shiki, reboot, and run `sudo update_dyld_shared_cache -forc
 To check that read `/System/Library/PrivateFrameworks/AppleGVA.framework/Info.plist`, if your mac model or board id is present there, then this model does support hardware video decoding acceleration. You are to select a closest configuration to the one you own. For example, iMac13,1 uses an IGPU/discrete GPU combo whereas iMac13,3 only has an IGPU. If you use a model meant to work with a discrete GPU without a graphical card installed VDA will not work and you are likely to get an error from VDADecoderChecker. To correct this either choose an accurate model or edit the `forceOfflineRenderer` property in the Info.plist, it will need to be set to NO.
 
 - _How can I enable Intel online video decoder when AppleGVA enforces offline?_  
-Add `shikigva=1` argument to boot-args.
+Add `shikigva=1` argument to boot-args or to DeviceProperties in any GPU.
+
+- _How can I enable AMD DRM for Music, Safari, TV, leaving IGPU for other applications?_  
+Add `shikigva=16` argument to boot-args or to DeviceProperties in any GPU.
 
 - _How can I inject IOVARendererID/IOVARendererSubID in certain NVIDIA GPUs?_  
 NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell and Pascal GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  

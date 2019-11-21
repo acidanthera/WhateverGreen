@@ -60,8 +60,9 @@ private:
 		// It is enabled automatically on 10.12 and 10.13 if shikigva is *NOT* passed and ForceCompatibleRenderer or
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
-		// Removed in current version.
-		DisabledUnused16           = 16,
+		// Use hardware decoder (normally AMD) by pretending to be iMacPro in apps that require it.
+		// For example, in Safari for Netflix or in TV.app for TV+.
+		UseHwDrmDecoder            = 16,
 		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
 		// By default Mac-27ADBB7B4CEE8E61 (iMac14,2) will be used, but you can override this via shiki-id boot-arg.
@@ -72,8 +73,6 @@ private:
 		// similar to the one found in iTunes. Newer streaming services require FairPlay 2.0, which is hardware-only,
 		// so nothing could be done about them.
 		UnlockFP10Streaming        = 64,
-		// Removed in current version.
-		DeprecatedUnused128        = 128
 	};
 
 	/**
