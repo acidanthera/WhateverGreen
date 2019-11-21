@@ -82,8 +82,9 @@ static NSString *generatePatchEntries(NSString *file, NSArray *patches) {
 				patchBufIndex++;
 			}
 
-			[pStr appendFormat:@"\t{ %@, patchBuf%zu, patchBuf%zu, %zu, %@, %@, UserPatcher::FileSegment::Segment%@, Section%@ },\n",
+			[pStr appendFormat:@"\t{ %@, %@, patchBuf%zu, patchBuf%zu, %zu, %@, %@, UserPatcher::FileSegment::Segment%@, Section%@ },\n",
 			 [p objectForKey:@"CPU"],
+			 [p objectForKey:@"Flags"] ?: @"0",
 			 patchBufIndex-2,
 			 patchBufIndex-1,
 			 [f[0] length],

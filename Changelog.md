@@ -1,6 +1,7 @@
 WhateverGreen Changelog
 =======================
 #### v1.3.5
+- Added Lilu 1.4.0 support, which is now the minimum supported version
 - Dropped legacy boot arguments (`-shikigva`, `-shikifps`)
 - Fixed handling `agdpmod` GPU property (in IGPUs and in conjunction with boot-arg)
 - Added `-wegtree` boot argument to force device renaming
