@@ -61,7 +61,7 @@ private:
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
 		// Use hardware decoder (normally AMD) by pretending to be iMacPro in apps that require it.
-		// For example, in Safari for Netflix or in TV.app for TV+.
+		// For example, in Music.app or in TV.app for TV+.
 		UseHwDrmDecoder            = 16,
 		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
