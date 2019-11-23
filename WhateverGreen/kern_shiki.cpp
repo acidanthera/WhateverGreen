@@ -43,12 +43,6 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	if (disableShiki)
 		return;
 
-	if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
-		// DRM is just fine on Apple hardware
-		disableSection(SectionNDRMI);
-		disableSection(SectionFCPUID);
-	}
-
 	bool forceOnlineRenderer     = false;
 	bool allowNonBGRA            = false;
 	bool forceCompatibleRenderer = false;
@@ -115,6 +109,12 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				addExecutableWhitelist = getKernelVersion() >= KernelVersion::Sierra;
 			}
 		}
+
+		// DRM is just fine on Apple hardware, unless you are on MacPro5,1 and want to spoof your video.
+		// For QuickTime movie playback (without red screen) along with TV+ on MacPro5,1 use one of the following:
+		// - shikigva=0 and OpenCore spoof to iMacPro1,1 (preferred).
+		// - shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94 without OpenCore.
+		useLegacyHwDrmDecoder = info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
 
 		DBGLOG("shiki", "will autodetect autodetect GPU %d whitelist %d", autodetectGFX, addExecutableWhitelist);
 	}

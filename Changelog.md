@@ -12,6 +12,7 @@ WhateverGreen Changelog
 - Fixed applying CoreFP patches on Apple firmware, when they are not needed
 - Added `shikigva=16` (repurposed) property to use AMD hardware DRM decoder in select apps
 - Added `shikigva=128` (repurposed) property to use hardware decoder for FairPlay 1.0 (can be used as `shikigva=144`)
+- Do not disable DRM patches when `shikigva` is used even on Apple hardware for MacPro5,1 support
 
 #### v1.3.4
 - Added support for disabled AppleGraphicsDevicePolicy in AMD drivers on 10.15.1
