@@ -131,8 +131,8 @@ Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/Wha
 
 - _Как смотреть купленные в iTunes фильмы в QuickTime на MacPro5,1 вместе с Apple TV+?_  
 Для проигрывания фильмов в QuickTime вместе с TV+ на MacPro5,1 используйте одно из двух:  
-`shikigva=0` вместе с подменой модели на iMacPro1,1 через OpenCore (предпочтительно).  
-`shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94` без OpenCore.
+Подмена модели на iMacPro1,1 через OpenCore (предпочтительно).  
+`shikigva=160 shiki-id=Mac-7BA5B2D9E42DDD94` без OpenCore.
 
 - _Как можно сделать инжекцию IOVARendererID/IOVARendererSubID в некоторых видеокартах NVIDIA?_  
 Веб драйвера NVIDIA могут не добавлять эти значения для карт на архитектуре Maxwell и Pascal. Вы можете их добавить в кекст состоящий из одного plist (legacy) сами. Правильными значениями для VP4 графических процессоров являются:  

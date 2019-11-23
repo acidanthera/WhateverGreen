@@ -133,8 +133,8 @@ Add `shikigva=16` argument to boot-args or to DeviceProperties in any GPU.
 
 - _How can I play iTunes purchased videos in QuickTime on MacPro5,1 along with Apple TV+?_  
 For QuickTime movie playback along with TV+ on MacPro5,1 use one of the following:  
-`shikigva=0` and OpenCore spoof to iMacPro1,1 (preferred).  
-`shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94` without OpenCore.
+OpenCore spoof to iMacPro1,1 (preferred).  
+`shikigva=160 shiki-id=Mac-7BA5B2D9E42DDD94` without OpenCore.
 
 - _How can I inject IOVARendererID/IOVARendererSubID in certain NVIDIA GPUs?_  
 NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell and Pascal GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  

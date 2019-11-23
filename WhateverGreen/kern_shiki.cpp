@@ -110,10 +110,10 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			}
 		}
 
-		// DRM is just fine on Apple hardware, unless you are on MacPro5,1 and want to spoof your video.
-		// For QuickTime movie playback (without red screen) along with TV+ on MacPro5,1 use one of the following:
-		// - shikigva=0 and OpenCore spoof to iMacPro1,1 (preferred).
-		// - shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94 without OpenCore.
+		// FairPlay 1.0 DRM is just fine on Apple hardware, as the only reason for it to break is IGPU presence.
+		// For QuickTime movie playback along with TV+ on MacPro5,1 use one of the following:
+		// - OpenCore spoof to iMacPro1,1 (preferred).
+		// - shikigva=160 shiki-id=Mac-7BA5B2D9E42DDD94 without OpenCore.
 		useLegacyHwDrmDecoder = info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
 
 		DBGLOG("shiki", "will autodetect autodetect GPU %d whitelist %d", autodetectGFX, addExecutableWhitelist);
