@@ -1563,7 +1563,7 @@ Enable Clover DSDT fix `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBac
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
   
 **Method 2**  
-Use this ACPI table: [SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) [SSDT-PNLF.aml](https://i.applelife.ru/2019/05/450784_SSDT-PNLF.aml.zip)  
+Use this ACPI table: [SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip)  
   
 **Do not use both methods at the same time!**  
   

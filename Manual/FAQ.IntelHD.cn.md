@@ -1606,7 +1606,7 @@ macOS High Sierra 10.13.6 的特别版本 17G2208 包含对 CFL 平台核显的�
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
 
 **方案二**
-使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/05/450784_SSDT-PNLF.aml.zip))
+使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip))
 
 **两种方案不要同时使用！**
 
