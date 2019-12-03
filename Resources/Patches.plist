@@ -131,8 +131,6 @@
 			</array>
 		</dict>
 		<dict>
-			<key>Disable</key>
-			<true/>
 			<key>Path</key>
 			<string>/System/Library/PrivateFrameworks/CoreLSKD.framework/Versions/A/CoreLSKD</string>
 			<key>Patches</key>
@@ -156,8 +154,6 @@
 			</array>
 		</dict>
 		<dict>
-			<key>Disable</key>
-			<true/>
 			<key>Path</key>
 			<string>/System/Library/PrivateFrameworks/CoreLSKDMSE.framework/Versions/A/CoreLSKDMSE</string>
 			<key>Patches</key>

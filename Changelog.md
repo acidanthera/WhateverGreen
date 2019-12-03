@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.6
+- Enabled CoreLSKD streaming patches by default
+
 #### v1.3.5
 - Added Lilu 1.4.0 support, which is now the minimum supported version
 - Dropped legacy boot arguments (`-shikigva`, `-shikifps`)
