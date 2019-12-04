@@ -609,12 +609,6 @@
 			<key>Type</key>
 			<string>Modern</string>
 		</dict>
-		<dict>
-			<key>Path</key>
-			<string>/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent</string>
-			<key>Section</key>
-			<string>HWDRMID</string>
-		</dict>
 	</array>
 </dict>
 </plist>
