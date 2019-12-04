@@ -114,7 +114,7 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax/eax,1 : cpuid -&gt;  mov rax/eax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k)</string>
+					<string>mov rax/eax,1 : cpuid -&gt;  mov rax/eax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k), used by iTunes (sw)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -137,19 +137,19 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,906EAh : nop : nop (i3 8100B), used by TV+ (hw)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
 					<data>x8ABAAAAD6I=</data>
 					<key>Replace</key>
-					<data>x8DCBgIAkJA=</data>
+					<data>x8DqBgkAkJA=</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
 					<integer>5</integer>
 					<key>Section</key>
-					<string>FCPUID</string>
+					<string>HWDRMID</string>
 				</dict>
 			</array>
 		</dict>
@@ -160,19 +160,19 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,906EAh : nop : nop (i3 8100B), used by Netflix (hw)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
 					<data>x8ABAAAAD6I=</data>
 					<key>Replace</key>
-					<data>x8DCBgIAkJA=</data>
+					<data>x8DqBgkAkJA=</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
 					<integer>2</integer>
 					<key>Section</key>
-					<string>FCPUID</string>
+					<string>HWDRMID</string>
 				</dict>
 			</array>
 		</dict>
@@ -608,6 +608,12 @@
 			<string>HWDRMID</string>
 			<key>Type</key>
 			<string>Modern</string>
+		</dict>
+		<dict>
+			<key>Path</key>
+			<string>/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent</string>
+			<key>Section</key>
+			<string>HWDRMID</string>
 		</dict>
 	</array>
 </dict>
