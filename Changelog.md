@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Enabled CoreLSKD streaming patches by default for AMD hardware DRM on Ivy Bridge
 - Repurposed 64 bit for FP 2.x streaming hardware accelerated streaming patches (can be used as `shikigva=80`)
 - Fixed accelerator name update logic for X4xxx kexts
+- Fixed Verde IOGVACodec injection to make hardware video decoder work
 
 #### v1.3.5
 - Added Lilu 1.4.0 support, which is now the minimum supported version

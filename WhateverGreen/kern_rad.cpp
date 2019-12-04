@@ -233,7 +233,7 @@ void RAD::initHardwareKextMods() {
 
 		// We have nothing to do for these kexts on recent systems
 		if (!fixConfigName && !forceOpenGL) {
-			kextRadeonHardware[IndexRadeonHardwareX4000].switchOff();
+			// X4000 kext is not included in this list as we need to fix GVA properties for most of its GPUs
 			kextRadeonHardware[IndexRadeonHardwareX5000].switchOff();
 			kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 		}
@@ -380,7 +380,8 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 	}
 
 	// Fix reported Accelerator name to support WhateverName.app
-	if (fixConfigName) {
+	// Also fix GVA properties for X4000.
+	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000) {
 		KernelPatcher::RouteRequest request(populateAccelConfigProcNames[hwIndex], wrapPopulateAccelConfig[hwIndex], orgPopulateAccelConfig[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
@@ -691,35 +692,46 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 	}
 }
 
-void RAD::updateAccelConfig(IOService *accelService, const char **accelConfig) {
+void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char **accelConfig) {
 	if (accelService && accelConfig) {
-		auto gpuService = accelService->getParentEntry(gIOServicePlane);
+		if (fixConfigName) {
+			auto gpuService = accelService->getParentEntry(gIOServicePlane);
 
-		if (gpuService) {
-			auto model = OSDynamicCast(OSData, gpuService->getProperty("model"));
-			if (model) {
-				auto modelStr = static_cast<const char *>(model->getBytesNoCopy());
-				if (modelStr) {
-					if (modelStr[0] == 'A' && ((modelStr[1] == 'M' && modelStr[2] == 'D') ||
-											   (modelStr[1] == 'T' && modelStr[2] == 'I')) && modelStr[3] == ' ') {
-						modelStr += 4;
+			if (gpuService) {
+				auto model = OSDynamicCast(OSData, gpuService->getProperty("model"));
+				if (model) {
+					auto modelStr = static_cast<const char *>(model->getBytesNoCopy());
+					if (modelStr) {
+						if (modelStr[0] == 'A' && ((modelStr[1] == 'M' && modelStr[2] == 'D') ||
+												   (modelStr[1] == 'T' && modelStr[2] == 'I')) && modelStr[3] == ' ') {
+							modelStr += 4;
+						}
+
+						DBGLOG("rad", "updateAccelConfig found gpu model %s", modelStr);
+						*accelConfig = modelStr;
+					} else {
+						DBGLOG("rad", "updateAccelConfig found null gpu model");
 					}
-
-					DBGLOG("rad", "updateAccelConfig found gpu model %s", modelStr);
-					*accelConfig = modelStr;
 				} else {
-					DBGLOG("rad", "updateAccelConfig found null gpu model");
+					DBGLOG("rad", "updateAccelConfig failed to find gpu model");
 				}
-			} else {
-				DBGLOG("rad", "updateAccelConfig failed to find gpu model");
-			}
 
-		} else {
-			DBGLOG("rad", "updateAccelConfig failed to find accelerator parent");
+			} else {
+				DBGLOG("rad", "updateAccelConfig failed to find accelerator parent");
+			}
+		}
+
+		if (hwIndex == IndexRadeonHardwareX4000) {
+			auto codec = OSDynamicCast(OSString, accelService->getProperty("IOGVACodec"));
+			if (codec == nullptr) {
+				DBGLOG("rad", "updating X4000 accelerator IOGVACodec to VCE");
+				accelService->setProperty("IOGVACodec", "VCE");
+			} else {
+				DBGLOG("rad", "X4000 accelerator IOGVACodec is already set to %s", safeString(codec->getCStringNoCopy()));
+			}
 		}
 	}
 }
-
 
 bool RAD::wrapSetProperty(IORegistryEntry *that, const char *aKey, void *bytes, unsigned length) {
 	if (length > 10 && aKey && reinterpret_cast<const uint32_t *>(aKey)[0] == 'edom' && reinterpret_cast<const uint16_t *>(aKey)[2] == 'l') {

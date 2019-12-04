@@ -388,7 +388,7 @@ private:
 	static void populdateAccelConfig(IOService *accelService, const char **accelConfig) {
 		if (callbackRAD->orgPopulateAccelConfig[Index]) {
 			FunctionCast(populdateAccelConfig<Index>, callbackRAD->orgPopulateAccelConfig[Index])(accelService, accelConfig);
-			callbackRAD->updateAccelConfig(accelService, accelConfig);
+			callbackRAD->updateAccelConfig(Index, accelService, accelConfig);
 		} else {
 			SYSLOG("rad", "populdateAccelConfig invalid use for %lu", Index);
 		}
@@ -427,10 +427,11 @@ private:
 	/**
 	 *  Update IOAccelConfig with a real GPU model name
 	 *
+	 *  @param hwIndex  hardware kext index
 	 *  @param accelService IOAccelerator service
 	 *  @param accelConfig  IOAccelConfig
 	 */
-	void updateAccelConfig(IOService *accelService, const char **accelConfig);
+	void updateAccelConfig(size_t hwIndex, IOService *accelService, const char **accelConfig);
 
 	/**
 	 *  Wrapped set property function
