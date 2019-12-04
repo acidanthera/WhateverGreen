@@ -74,6 +74,7 @@ private:
 		// Broken GPU driver will just freeze the system with .gpuRestart crash.
 		UseHwDrmStreaming          = 64,
 		// Disables software decoder unlock patches for FairPlay 1.0.
+		// This will use AMD decoder if available, but currently requires IGPU to be either not present or disabled.
 		UseLegacyHwDrmDecoder      = 128
 	};
 

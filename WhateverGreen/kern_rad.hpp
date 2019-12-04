@@ -248,11 +248,11 @@ private:
 	 */
 	t_populateAccelConfig wrapPopulateAccelConfig[MaxRadeonHardware] {
 		[RAD::IndexRadeonHardwareX3000] = populdateAccelConfig<RAD::IndexRadeonHardwareX3000>,
-		[RAD::IndexRadeonHardwareX4100] = populdateAccelConfig<RAD::IndexRadeonHardwareX4000>,
-		[RAD::IndexRadeonHardwareX4150] = populdateAccelConfig<RAD::IndexRadeonHardwareX4100>,
-		[RAD::IndexRadeonHardwareX4200] = populdateAccelConfig<RAD::IndexRadeonHardwareX4150>,
-		[RAD::IndexRadeonHardwareX4250] = populdateAccelConfig<RAD::IndexRadeonHardwareX4200>,
-		[RAD::IndexRadeonHardwareX4000] = populdateAccelConfig<RAD::IndexRadeonHardwareX4250>,
+		[RAD::IndexRadeonHardwareX4000] = populdateAccelConfig<RAD::IndexRadeonHardwareX4000>,
+		[RAD::IndexRadeonHardwareX4100] = populdateAccelConfig<RAD::IndexRadeonHardwareX4100>,
+		[RAD::IndexRadeonHardwareX4150] = populdateAccelConfig<RAD::IndexRadeonHardwareX4150>,
+		[RAD::IndexRadeonHardwareX4200] = populdateAccelConfig<RAD::IndexRadeonHardwareX4200>,
+		[RAD::IndexRadeonHardwareX4250] = populdateAccelConfig<RAD::IndexRadeonHardwareX4250>,
 		[RAD::IndexRadeonHardwareX5000] = populdateAccelConfig<RAD::IndexRadeonHardwareX5000>
 	};
 
@@ -261,11 +261,11 @@ private:
 	 */
 	const char *populateAccelConfigProcNames[MaxRadeonHardware] {
 		[RAD::IndexRadeonHardwareX3000] = "__ZN37AMDRadeonX3000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4100] = "__ZN37AMDRadeonX4000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4150] = "__ZN37AMDRadeonX4100_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4200] = "__ZN37AMDRadeonX4150_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4250] = "__ZN37AMDRadeonX4200_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4000] = "__ZN37AMDRadeonX4250_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4000] = "__ZN37AMDRadeonX4000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4100] = "__ZN37AMDRadeonX4100_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4150] = "__ZN37AMDRadeonX4150_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4200] = "__ZN37AMDRadeonX4200_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4250] = "__ZN37AMDRadeonX4250_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
 		[RAD::IndexRadeonHardwareX5000] = "__ZN37AMDRadeonX5000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig"
 	};
 
