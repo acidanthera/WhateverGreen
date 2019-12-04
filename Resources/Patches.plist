@@ -73,19 +73,19 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,906EAh : nop : nop (i3 8100B), used by TV+ (hw)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,306C3h : nop : nop (i7 4770k), used by TV+ (hw)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
 					<data>x8ABAAAAD6I=</data>
 					<key>Replace</key>
-					<data>x8DqBgkAkJA=</data>
+					<data>x8DDBgMAkJA=</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
 					<integer>5</integer>
 					<key>Section</key>
-					<string>HWDRMID</string>
+					<string>LEGACYHWDRMID</string>
 				</dict>
 			</array>
 		</dict>
@@ -96,19 +96,19 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,906EAh : nop : nop (i3 8100B), used by Netflix (hw)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,306C3h : nop : nop (i7 4770k), used by Netflix (hw)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
 					<data>x8ABAAAAD6I=</data>
 					<key>Replace</key>
-					<data>x8DqBgkAkJA=</data>
+					<data>x8DDBgMAkJA=</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
 					<integer>2</integer>
 					<key>Section</key>
-					<string>HWDRMID</string>
+					<string>LEGACYHWDRMID</string>
 				</dict>
 			</array>
 		</dict>

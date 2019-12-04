@@ -124,8 +124,13 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		   useHwDrmStreaming, useHwDrmDecoder);
 
 	// Disable hardware decoder patches when unused
-	if (!useHwDrmDecoder)
+	if (!useHwDrmDecoder) {
 		disableSection(SectionHWDRMID);
+		disableSection(SectionLEGACYHWDRMID);
+	} else if (cpuGeneration >= CPUInfo::CpuGeneration::Haswell) {
+		// Only Ivy bridge CPUs need LSKD/LSKDMSE CPUID upgrade.
+		disableSection(SectionLEGACYHWDRMID);
+	}
 
 	// We do not need NDRMI patches when legacy hardware decoder works.
 	if (useLegacyHwDrmDecoder) {

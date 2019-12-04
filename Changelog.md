@@ -1,7 +1,7 @@
 WhateverGreen Changelog
 =======================
 #### v1.3.6
-- Enabled CoreLSKD streaming patches by default
+- Enabled CoreLSKD streaming patches by default for AMD hardware DRM on Ivy Bridge
 - Repurposed 64 bit for FP 2.x streaming hardware accelerated streaming patches (can be used as `shikigva=80`)
 
 #### v1.3.5

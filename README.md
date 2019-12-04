@@ -75,7 +75,7 @@ not in the list, the driver's logic is used to determine whether complete modese
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements
 - [hieplpvip](https://github.com/hieplpvip) for initial AppleBacklight patching plugin
-- [igork](https://applelife.ru/members/igork.564/) for power-gating patch discovery
+- [igork](https://applelife.ru/members/igork.564/) for power-gating patch discovery and various FP research
 - [lvs1974](https://applelife.ru/members/lvs1974.53809) for continuous implementation of Intel and NVIDIA fixing code
 - [mologie](https://github.com/mologie/NVWebDriverLibValFix) for creating NVWebDriverLibValFix.kext which forces macOS to recognize NVIDIA's web drivers as platform binaries
 - [PMheart](https://github.com/PMheart) for CoreDisplay patching code and Intel fix backporting
