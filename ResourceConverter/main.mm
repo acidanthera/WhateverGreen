@@ -63,6 +63,9 @@ static NSString *generatePatchEntries(NSString *file, NSArray *patches) {
 		auto pStr = [[[NSMutableString alloc] initWithFormat:@"static UserPatcher::BinaryModPatch patches%zu[] {\n", patchIndex] autorelease];
 		auto pbStr = [[[NSMutableString alloc] init] autorelease];
 		for (NSDictionary *p in patches) {
+			if ([p objectForKey:@"Disable"])
+				continue;
+
 			NSData *f[] = {[p objectForKey:@"Find"], [p objectForKey:@"Replace"]};
 
 			if ([f[0] length] != [f[1] length]) {
