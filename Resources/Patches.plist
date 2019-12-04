@@ -41,70 +41,6 @@
 					<key>Section</key>
 					<string>NDRMI</string>
 				</dict>
-				<dict>
-					<key>Comment</key>
-					<string>qavc -&gt; qavn (disable for GVA decoders)</string>
-					<key>CPU</key>
-					<string>CPU_TYPE_X86_64</string>
-					<key>Find</key>
-					<data>v2N2YXG+kAEAAA==</data>
-					<key>Replace</key>
-					<data>v252YXG+kAEAAA==</data>
-					<key>Skip</key>
-					<integer>0</integer>
-					<key>Count</key>
-					<integer>1</integer>
-					<key>Section</key>
-					<string>NSTREAM</string>
-				</dict>
-				<dict>
-					<key>Comment</key>
-					<string>cavc -&gt; cavn (disable for GVA decoders)</string>
-					<key>CPU</key>
-					<string>CPU_TYPE_X86_64</string>
-					<key>Find</key>
-					<data>v2N2YWO+kAEAAA==</data>
-					<key>Replace</key>
-					<data>v252YWO+kAEAAA==</data>
-					<key>Skip</key>
-					<integer>0</integer>
-					<key>Count</key>
-					<integer>1</integer>
-					<key>Section</key>
-					<string>NSTREAM</string>
-				</dict>
-				<dict>
-					<key>Comment</key>
-					<string>eavc -&gt; eavn (disable for GVA decoders)</string>
-					<key>CPU</key>
-					<string>CPU_TYPE_X86_64</string>
-					<key>Find</key>
-					<data>v2N2YWW+kAEAAA==</data>
-					<key>Replace</key>
-					<data>v252YWW+kAEAAA==</data>
-					<key>Skip</key>
-					<integer>0</integer>
-					<key>Count</key>
-					<integer>1</integer>
-					<key>Section</key>
-					<string>NSTREAM</string>
-				</dict>
-				<dict>
-					<key>Comment</key>
-					<string>zavc -&gt; zavn (disable for GVA decoders)</string>
-					<key>CPU</key>
-					<string>CPU_TYPE_X86_64</string>
-					<key>Find</key>
-					<data>v2N2YXq+kAEAAA==</data>
-					<key>Replace</key>
-					<data>v252YXq+kAEAAA==</data>
-					<key>Skip</key>
-					<integer>0</integer>
-					<key>Count</key>
-					<integer>1</integer>
-					<key>Section</key>
-					<string>NSTREAM</string>
-				</dict>
 			</array>
 		</dict>
 		<dict>
@@ -334,40 +270,6 @@
 			<string>NDRMI</string>
 			<key>Type</key>
 			<string>Modern</string>
-		</dict>
-		<dict>
-			<key>Path</key>
-			<string>/Applications/Safari.app/Contents/MacOS/Safari</string>
-			<key>Section</key>
-			<string>NSTREAM</string>
-			<key>ModernPrefix</key>
-			<string>/System</string>
-		</dict>
-		<dict>
-			<key>Path</key>
-			<string>/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent</string>
-			<key>Section</key>
-			<string>NSTREAM</string>
-		</dict>
-		<dict>
-			<key>Disable</key>
-			<true/>
-			<key>Path</key>
-			<string>/Applications/iTunes.app/Contents/MacOS/iTunes</string>
-			<key>Section</key>
-			<string>NSTREAM</string>
-			<key>Type</key>
-			<string>Legacy</string>
-		</dict>
-		<dict>
-			<key>Disable</key>
-			<true/>
-			<key>Path</key>
-			<string>/Applications/QuickTime Player.app/Contents/MacOS/QuickTime Player</string>
-			<key>Section</key>
-			<string>NSTREAM</string>
-			<key>ModernPrefix</key>
-			<string>/System</string>
 		</dict>
 		<dict>
 			<key>Path</key>
@@ -608,6 +510,12 @@
 			<string>HWDRMID</string>
 			<key>Type</key>
 			<string>Modern</string>
+		</dict>
+		<dict>
+			<key>Path</key>
+			<string>/System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent</string>
+			<key>Section</key>
+			<string>NSTREAM</string>
 		</dict>
 	</array>
 </dict>

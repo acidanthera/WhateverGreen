@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.3.6
 - Enabled CoreLSKD streaming patches by default
+- Repurposed 64 bit for FP 2.x streaming hardware accelerated streaming patches (can be used as `shikigva=80`)
 
 #### v1.3.5
 - Added Lilu 1.4.0 support, which is now the minimum supported version

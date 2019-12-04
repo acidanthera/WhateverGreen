@@ -48,7 +48,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool forceCompatibleRenderer = false;
 	bool addExecutableWhitelist  = false;
 	bool replaceBoardID          = false;
-	bool unlockFP10Streaming     = false;
+	bool useHwDrmStreaming       = false;
 	bool useHwDrmDecoder         = false;
 	bool useLegacyHwDrmDecoder   = false;
 
@@ -89,7 +89,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		addExecutableWhitelist  = bootarg & AddExecutableWhitelist;
 		useHwDrmDecoder         = bootarg & UseHwDrmDecoder;
 		replaceBoardID          = bootarg & ReplaceBoardID;
-		unlockFP10Streaming     = bootarg & UnlockFP10Streaming;
+		useHwDrmStreaming       = bootarg & UseHwDrmStreaming;
 		useLegacyHwDrmDecoder   = bootarg & UseLegacyHwDrmDecoder;
 
 		if (useHwDrmDecoder && (replaceBoardID || addExecutableWhitelist))
@@ -121,7 +121,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 	DBGLOG("shiki", "pre-config: online %d, bgra %d, compat %d, whitelist %d, id %d, stream %d, hwdrm %d",
 		   forceOnlineRenderer, allowNonBGRA, forceCompatibleRenderer, addExecutableWhitelist, replaceBoardID,
-		   unlockFP10Streaming, useHwDrmDecoder);
+		   useHwDrmStreaming, useHwDrmDecoder);
 
 	// Disable hardware decoder patches when unused
 	if (!useHwDrmDecoder)
@@ -158,8 +158,36 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		disableSection(SectionBOARDID);
 	}
 
-	if (!unlockFP10Streaming)
+	if (!useHwDrmStreaming) {
 		disableSection(SectionNSTREAM);
+	} else if (useHwDrmStreaming && useHwDrmDecoder) {
+		// Let's look the patch up first.
+		UserPatcher::BinaryModPatch *hwDrmPatch {nullptr};
+		for (size_t i = 0; i < ADDPR(binaryModSize); i++) {
+			auto patches = ADDPR(binaryMod)[i].patches;
+			for (size_t j = 0; j < ADDPR(binaryMod)[i].count; j++) {
+				if (patches[j].section == SectionHWDRMID) {
+					hwDrmPatch = &patches[j];
+					DBGLOG("shiki", "found hwdrm-id at %lu:%lu with size %lu", i, j, hwDrmPatch->size);
+					break;
+				}
+			}
+		}
+
+		if (hwDrmPatch) {
+			static uint8_t iMacProBoardId[21] = {"Mac-7BA5B2D9E42DDD94"};
+			static uint8_t selfBoardId[21] = {};
+
+			if (WIOKit::getComputerInfo(nullptr, 0, reinterpret_cast<char *>(selfBoardId), sizeof(selfBoardId)) && selfBoardId[0] != '\0') {
+				hwDrmPatch->find = iMacProBoardId;
+				hwDrmPatch->replace = selfBoardId;
+				hwDrmPatch->size = sizeof(selfBoardId);
+				DBGLOG("shiki", "using partial hwdrm-id patch from %s to %s", reinterpret_cast<char *>(iMacProBoardId), reinterpret_cast<char *>(selfBoardId));
+			}
+		} else {
+			SYSLOG("shiki", "no hwdrm-id patch found");
+		}
+	}
 
 	if (autodetectGFX) {
 		bool hasExternalNVIDIA = false;

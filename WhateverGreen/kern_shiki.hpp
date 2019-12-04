@@ -68,11 +68,11 @@ private:
 		// By default Mac-27ADBB7B4CEE8E61 (iMac14,2) will be used, but you can override this via shiki-id boot-arg.
 		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
 		ReplaceBoardID             = 32,
-		// Attempt to support fps.1_0 (FairPlay 1.0) in Safari.
-		// This should technically fix some very old streaming services in Safari, which rely on FairPlay DRM
-		// similar to the one found in iTunes. Newer streaming services require FairPlay 2.0, which is hardware-only,
-		// so nothing could be done about them.
-		UnlockFP10Streaming        = 64,
+		// Attempt to support fps.2_1 (FairPlay 2.x) in Safari with hardware decoder. Works on most modern AMD GPUs.
+		// Note, AMD Polaris Ellesmere is broken in 10.15 (e.g. RX 590), whereas AMD Polaris Baffin (e.g. RX 460) is fine.
+		// Easiest check is to run WebKitMediaKeys.isTypeSupported("com.apple.fps.2_1", "video/mp4") in Safari Web Console.
+		// Broken GPU driver will just freeze the system with .gpuRestart crash.
+		UseHwDrmStreaming          = 64,
 		// Disables software decoder unlock patches for FairPlay 1.0.
 		UseLegacyHwDrmDecoder      = 128
 	};
