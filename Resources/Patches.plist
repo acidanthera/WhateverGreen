@@ -11,7 +11,7 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>drmi -&gt; drmn (disable for VP3 decoders)</string>
+					<string>drmi -&gt; drmn (disable VP3 decoders, forcing software decoding for iTunes trailers and movies)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -27,7 +27,7 @@
 				</dict>
 				<dict>
 					<key>Comment</key>
-					<string>drmi -&gt; drmn (disable for GVA decoders)</string>
+					<string>drmi -&gt; drmn (disable GVA decoders, forcing software decoding for iTunes trailers and movies)</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -41,6 +41,24 @@
 					<key>Section</key>
 					<string>NDRMI</string>
 				</dict>
+				<dict>
+					<key>Comment</key>
+					<string>MacPro5,1\0MacPro6,1\0 -&gt; (assume external GPU slots for current model, removing hardware HDCP requirements in e.g. TV+)</string>
+					<key>CPU</key>
+					<string>CPU_TYPE_X86_64</string>
+					<key>Find</key>
+					<data>TWFjUHJvNSwxAE1hY1BybzYsMQA=</data>
+					<key>Replace</key>
+					<data>AAAAAAAAAAAAAAAAAAAAAAAAAAA=</data>
+					<key>Skip</key>
+					<integer>0</integer>
+					<key>Count</key>
+					<integer>1</integer>
+					<key>Section</key>
+					<string>EXTSLOTS</string>
+					<key>Segment</key>
+					<string>TextCstring</string>
+				</dict>
 			</array>
 		</dict>
 		<dict>
@@ -50,7 +68,7 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax/eax,1 : cpuid -&gt;  mov rax/eax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k), used by iTunes (sw)</string>
+					<string>mov rax/eax,1 : cpuid -&gt;  mov rax/eax,206C2h : nop : nop (Xeon E5620) or 206A7 (i7 2600k), allow software decoding for iTunes trailers and movies</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -73,7 +91,7 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,306C3h : nop : nop (i7 4770k), used by TV+ (hw)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,306C3h : nop : nop (i7 4770k), allow hardware decoding for TV+ on models older than Haswell</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -89,7 +107,7 @@
 				</dict>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), used by TV+ (sw)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), allow software decoding for TV+ on models newer than Penryn</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -112,7 +130,7 @@
 			<array>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,306C3h : nop : nop (i7 4770k), used by Netflix (hw)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,306C3h : nop : nop (i7 4770k), allow hardware decoding for Netflix on models older than Haswell</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -128,7 +146,7 @@
 				</dict>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), used by browser streaming (sw)</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), allow software decoding for unknown software on models newer than Penryn</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
@@ -223,7 +241,7 @@
 				</dict>
 				<dict>
 					<key>Comment</key>
-					<string>board-id -&gt; hwdrm-id (normally for iMacPro1,1)</string>
+					<string>board-id -&gt; hwdrm-id (normally for iMacPro1,1, this enables selective dGPU hardware decoder on per-app basis)</string>
 					<key>Flags</key>
 					<string>UserPatcher::BinaryModPatchFlags::LocalOnly</string>
 					<key>CPU</key>

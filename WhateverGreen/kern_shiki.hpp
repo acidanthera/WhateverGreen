@@ -27,7 +27,7 @@ public:
 	void processKernel(KernelPatcher &patcher, DeviceInfo *info);
 
 private:
-	// Aside generic DRM unlock patches, which are always on, Shiki also provides a set of patches
+	// Aside generic DRM unlock patches, Shiki also provides a set of patches
 	// to workaround various issues with hardware video acceleration support.
 	// These are set as a shikigva boot-arg bitmask.
 	// For example, to enable ForceOnlineRenderer, ExecutableWhitelist, and ReplaceBoardID
@@ -60,8 +60,8 @@ private:
 		// It is enabled automatically on 10.12 and 10.13 if shikigva is *NOT* passed and ForceCompatibleRenderer or
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
-		// Use hardware decoder (normally AMD) by pretending to be iMacPro in apps that require it.
-		// For example, in Music.app or in TV.app for TV+.
+		// Use hardware DRM decoder (normally AMD) by pretending to be iMacPro in apps that require it.
+		// For example, in Music.app or TV.app for TV+.
 		UseHwDrmDecoder            = 16,
 		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
@@ -106,7 +106,22 @@ private:
 	/**
 	 *  Custom board-id set to /shiki-id IOReg to be used by AppleGVA
 	 */
-	char customBoardID[64] {};
+	char customBoardID[21] {};
+
+	/**
+	 *  iMacPro1,1 board-id used for find-replace (thus the size).
+	 */
+	uint8_t iMacProBoardId[21] = {"Mac-7BA5B2D9E42DDD94"};
+
+	/**
+	 *  Self board-id used for find-replace (thus the size).
+	 */
+	uint8_t selfBoardId[21] = {};
+
+	/**
+	 *  Self mac model for find-replace (thus the size).
+	 */
+	uint8_t selfMacModel[20] {};
 
 	/**
 	 *  Remove requested patches
@@ -121,6 +136,16 @@ private:
 	 *  @return true on success
 	 */
 	bool setCompatibleRendererPatch();
+
+	/**
+	 *  Get overridable boot argument from kernel args (priority) and GPU properties
+	 */
+	bool getBootArgument(DeviceInfo *info, const char *name, void *bootarg, int size);
+
+	/**
+	 *  Get patch by section
+	 */
+	UserPatcher::BinaryModPatch *getPatchSection(uint32_t section);
 };
 
 #endif /* kern_shiki_hpp */

@@ -5,7 +5,7 @@ WhateverGreen Changelog
 - Repurposed 64 bit for FP 2.x streaming hardware accelerated streaming patches (can be used as `shikigva=80`)
 - Fixed accelerator name update logic for X4xxx kexts
 - Fixed Verde IOGVACodec injection to make hardware video decoder work
-- Enable software TV+ decoding on MacPro5,1 and MacPro6,1 on all CPUs by default (without `shikigva`)
+- Enable software TV+ decoding on all CPUs without IGPU by default (without `shikigva`)
 
 #### v1.3.5
 - Added Lilu 1.4.0 support, which is now the minimum supported version
