@@ -87,6 +87,22 @@
 					<key>Section</key>
 					<string>LEGACYHWDRMID</string>
 				</dict>
+				<dict>
+					<key>Comment</key>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), used by TV+ (sw)</string>
+					<key>CPU</key>
+					<string>CPU_TYPE_X86_64</string>
+					<key>Find</key>
+					<data>x8ABAAAAD6I=</data>
+					<key>Replace</key>
+					<data>x8B3BgEAkJA=</data>
+					<key>Skip</key>
+					<integer>0</integer>
+					<key>Count</key>
+					<integer>5</integer>
+					<key>Section</key>
+					<string>LEGACYSWDRMID</string>
+				</dict>
 			</array>
 		</dict>
 		<dict>
@@ -109,6 +125,22 @@
 					<integer>2</integer>
 					<key>Section</key>
 					<string>LEGACYHWDRMID</string>
+				</dict>
+				<dict>
+					<key>Comment</key>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), used by browser streaming (sw)</string>
+					<key>CPU</key>
+					<string>CPU_TYPE_X86_64</string>
+					<key>Find</key>
+					<data>x8ABAAAAD6I=</data>
+					<key>Replace</key>
+					<data>x8B3BgEAkJA=</data>
+					<key>Skip</key>
+					<integer>0</integer>
+					<key>Count</key>
+					<integer>2</integer>
+					<key>Section</key>
+					<string>LEGACYSWDRMID</string>
 				</dict>
 			</array>
 		</dict>

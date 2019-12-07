@@ -138,6 +138,10 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		disableSection(SectionFCPUID);
 	}
 
+	// TV+ is slightly different from the usual FP10, as it cannot be forced not to use hardware decoding through VideoToolBox patch.
+	if (useLegacyHwDrmDecoder || useHwDrmDecoder)
+		disableSection(SectionLEGACYSWDRMID);
+
 	// Disable unused sections
 	if (!forceOnlineRenderer)
 		disableSection(SectionOFFLINE);
