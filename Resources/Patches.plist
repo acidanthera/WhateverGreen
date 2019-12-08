@@ -107,13 +107,13 @@
 				</dict>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), allow software decoding for TV+ on models newer than Penryn</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,206C2h : nop : nop (Xeon E5620), allow software decoding for TV+ on models newer than Penryn</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
 					<data>x8ABAAAAD6I=</data>
 					<key>Replace</key>
-					<data>x8B3BgEAkJA=</data>
+					<data>x8DCBgIAkJA=</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
@@ -136,7 +136,7 @@
 					<key>Find</key>
 					<data>x8ABAAAAD6I=</data>
 					<key>Replace</key>
-					<data>x8DDBgMAkJA=</data>
+					<data>x8DCBgIAkJA=</data>
 					<key>Skip</key>
 					<integer>0</integer>
 					<key>Count</key>
@@ -146,7 +146,7 @@
 				</dict>
 				<dict>
 					<key>Comment</key>
-					<string>mov rax,1 : cpuid -&gt;  mov rax,10677h : nop : nop (Core2Quad Q9450), allow software decoding for unknown software on models newer than Penryn</string>
+					<string>mov rax,1 : cpuid -&gt;  mov rax,206C2h : nop : nop (Xeon E5620), allow software decoding for unknown software on models newer than Penryn</string>
 					<key>CPU</key>
 					<string>CPU_TYPE_X86_64</string>
 					<key>Find</key>
