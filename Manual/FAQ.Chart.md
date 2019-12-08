@@ -19,3 +19,7 @@
 - HW2 - hardware FairPlay 1.0 decoder (CoreFP), requires HDCP and select AMD GPUs
 - HW3 - hardware FairPlay 2.0/3.0 decoder (CoreLSKDMSE), requires HDCP and select AMD GPUs
 - HW4 - hardware FairPlay 4.0 decoder (CoreLSKD), requires HDCP and select AMD GPUs
+
+- IM/MM - iMac/Macmini models with IGPU, IGPU must have connector-less framebuffer-id when AMD/NV is used.
+- IMP/MP - iMacPro/MacPro models without IGPU.
+- Other configurations are used at your own risk, use `-shikioff` to disable modifications
