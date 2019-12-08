@@ -89,6 +89,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool useHwDrmStreaming       = false;
 	bool useHwDrmDecoder         = false;
 	bool useLegacyHwDrmDecoder   = false;
+	bool useSwDrmDecoder         = false;
 
 	cpuGeneration = CPUInfo::getGeneration();
 	if (!WIOKit::getComputerInfo(reinterpret_cast<char *>(selfMacModel), sizeof(selfMacModel),
@@ -107,9 +108,12 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		replaceBoardID          = bootarg & ReplaceBoardID;
 		useHwDrmStreaming       = bootarg & UseHwDrmStreaming;
 		useLegacyHwDrmDecoder   = bootarg & UseLegacyHwDrmDecoder;
+		useSwDrmDecoder         = bootarg & UseSwDrmDecoder;
 
 		if (useHwDrmDecoder && (replaceBoardID || addExecutableWhitelist))
 			PANIC("shiki", "Hardware DRM decoder cannot be used with custom board or whitelist");
+		if (useSwDrmDecoder && useHwDrmDecoder)
+			PANIC("shiki", "Hardware and software DRM decoders cannot be used at the same time");
 	} else {
 		// Starting with 10.13.4 Apple has fixed AppleGVA to no longer require patching for compatible renderer.
 		if ((getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() < 5) ||
@@ -135,26 +139,29 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		DBGLOG("shiki", "will autodetect autodetect GPU %d whitelist %d", autodetectGFX, addExecutableWhitelist);
 	}
 
-	DBGLOG("shiki", "pre-config: online %d, bgra %d, compat %d, whitelist %d, id %d, stream %d, hwdrm %d",
+	DBGLOG("shiki", "pre-config: online %d, bgra %d, compat %d, whitelist %d, id %d, stream %d, hwdrm %d swdrm %d",
 		   forceOnlineRenderer, allowNonBGRA, forceCompatibleRenderer, addExecutableWhitelist, replaceBoardID,
-		   useHwDrmStreaming, useHwDrmDecoder);
+		   useHwDrmStreaming, useHwDrmDecoder, useSwDrmDecoder);
 
 	// Disable hardware decoder patches when unused
 	if (!useHwDrmDecoder) {
 		disableSection(SectionHWDRMID);
 		disableSection(SectionLEGACYHWDRMID);
-	} else if (cpuGeneration >= CPUInfo::CpuGeneration::Haswell) {
-		// Only Ivy bridge CPUs need LSKD/LSKDMSE CPUID upgrade.
-		disableSection(SectionLEGACYHWDRMID);
 	}
 
-	// We do not need NDRMI patches when legacy hardware decoder works.
+	// Disable hardware decoder LSKD/LSKDMSE CPUID upgrade patches on Haswell and above (they are not needed).
+	if (useHwDrmDecoder && cpuGeneration >= CPUInfo::CpuGeneration::Haswell)
+		disableSection(SectionLEGACYHWDRMID);
+
+	// Disable legacy software decoder unlock patches when legacy hardware decoder is used (and believed to work).
 	if (useLegacyHwDrmDecoder) {
 		disableSection(SectionNDRMI);
 		disableSection(SectionFCPUID);
 		disableSection(SectionEXTSLOTS);
-	} else {
-		// Loosen obfuscation by setting IsSlotted.
+	}
+
+	// Loosen obfuscation by setting IsSlotted.
+	if (!useLegacyHwDrmDecoder) {
 		auto slotsPatch = getPatchSection(SectionEXTSLOTS);
 		if (slotsPatch) {
 			PANIC_COND(slotsPatch->size != sizeof (selfMacModel), "shiki", "invalid slotsPatch->size mismatch with selfMacModel");
@@ -162,8 +169,8 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		}
 	}
 
-	// TV+ is slightly different from the usual FP10, as it cannot be forced not to use hardware decoding through VideoToolBox patch.
-	if (useLegacyHwDrmDecoder || useHwDrmDecoder)
+	// Disable legacy software decoder unlock patches unless it is explicitly requested.
+	if (!useSwDrmDecoder)
 		disableSection(SectionLEGACYSWDRMID);
 
 	// Disable unused sections
