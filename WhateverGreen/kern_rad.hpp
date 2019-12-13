@@ -425,6 +425,13 @@ private:
 	void processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_address_t address, size_t size);
 
 	/**
+	 *  Update IOAccelConfig with a GVA properties
+	 *
+	 *  @param accelService IOAccelerator service
+	 */
+	void setGvaProperties(IOService *accelService);
+
+	/**
 	 *  Update IOAccelConfig with a real GPU model name
 	 *
 	 *  @param hwIndex  hardware kext index

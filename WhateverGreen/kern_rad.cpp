@@ -692,6 +692,137 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 	}
 }
 
+void RAD::setGvaProperties(IOService *accelService) {
+	auto codecStr = OSDynamicCast(OSString, accelService->getProperty("IOGVACodec"));
+	if (codecStr == nullptr) {
+		DBGLOG("rad", "updating X4000 accelerator IOGVACodec to VCE");
+		accelService->setProperty("IOGVACodec", "VCE");
+	} else {
+		auto codec = codecStr->getCStringNoCopy();
+		DBGLOG("rad", "X4000 accelerator IOGVACodec is already set to %s", safeString(codec));
+		if (codec != nullptr && strncmp(codec, "AMD", strlen("AMD")) == 0) {
+			bool needsDecode = accelService->getProperty("IOGVAHEVCDecode") == nullptr;
+			bool needsEncode = accelService->getProperty("IOGVAHEVCEncode") == nullptr;
+			if (needsDecode) {
+				OSObject *VTMaxDecodeLevel = OSNumber::withNumber(153, 32);
+				OSString *VTMaxDecodeLevelKey  = OSString::withCString("VTMaxDecodeLevel");
+				OSDictionary *VTPerProfileDetailsInner = OSDictionary::withCapacity(1);
+				OSDictionary *VTPerProfileDetails = OSDictionary::withCapacity(3);
+				OSString *VTPerProfileDetailsKey1 = OSString::withCString("1");
+				OSString *VTPerProfileDetailsKey2 = OSString::withCString("2");
+				OSString *VTPerProfileDetailsKey3 = OSString::withCString("3");
+
+				OSArray *VTSupportedProfileArray = OSArray::withCapacity(3);
+				OSNumber *VTSupportedProfileArray1 = OSNumber::withNumber(1, 32);
+				OSNumber *VTSupportedProfileArray2 = OSNumber::withNumber(2, 32);
+				OSNumber *VTSupportedProfileArray3 = OSNumber::withNumber(3, 32);
+
+				OSDictionary *IOGVAHEVCDecodeCapabilities = OSDictionary::withCapacity(2);
+				OSString *VTPerProfileDetailsKey = OSString::withCString("VTPerProfileDetails");
+				OSString *VTSupportedProfileArrayKey = OSString::withCString("VTSupportedProfileArray");
+
+				if (VTMaxDecodeLevel != nullptr && VTMaxDecodeLevelKey != nullptr && VTPerProfileDetailsInner != nullptr &&
+					VTPerProfileDetails != nullptr && VTPerProfileDetailsKey1 != nullptr && VTPerProfileDetailsKey2 != nullptr &&
+					VTPerProfileDetailsKey3 != nullptr && VTSupportedProfileArrayKey != nullptr && VTSupportedProfileArray1 != nullptr &&
+					VTSupportedProfileArray2 != nullptr && VTSupportedProfileArray3 != nullptr && VTSupportedProfileArray != nullptr &&
+					VTPerProfileDetailsKey != nullptr && IOGVAHEVCDecodeCapabilities != nullptr) {
+					VTPerProfileDetailsInner->setObject(VTMaxDecodeLevelKey, VTMaxDecodeLevel);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey1, VTPerProfileDetailsInner);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey2, VTPerProfileDetailsInner);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey3, VTPerProfileDetailsInner);
+
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray1);
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray2);
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray3);
+
+					IOGVAHEVCDecodeCapabilities->setObject(VTPerProfileDetailsKey, VTPerProfileDetails);
+					IOGVAHEVCDecodeCapabilities->setObject(VTSupportedProfileArrayKey, VTSupportedProfileArray);
+
+					accelService->setProperty("IOGVAHEVCDecode", "1");
+					accelService->setProperty("IOGVAHEVCDecodeCapabilities", IOGVAHEVCDecodeCapabilities);
+
+					DBGLOG("rad", "recovering IOGVAHEVCDecode");
+				} else {
+					SYSLOG("rad", "allocation failure in IOGVAHEVCDecode");
+				}
+
+				OSSafeReleaseNULL(VTMaxDecodeLevel);
+				OSSafeReleaseNULL(VTMaxDecodeLevelKey);
+				OSSafeReleaseNULL(VTPerProfileDetailsInner);
+				OSSafeReleaseNULL(VTPerProfileDetails);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey1);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey2);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey3);
+				OSSafeReleaseNULL(VTSupportedProfileArrayKey);
+				OSSafeReleaseNULL(VTSupportedProfileArray1);
+				OSSafeReleaseNULL(VTSupportedProfileArray2);
+				OSSafeReleaseNULL(VTSupportedProfileArray3);
+				OSSafeReleaseNULL(VTSupportedProfileArray);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey);
+				OSSafeReleaseNULL(IOGVAHEVCDecodeCapabilities);
+			}
+
+			if (needsEncode) {
+				OSObject *VTMaxEncodeLevel = OSNumber::withNumber(153, 32);
+				OSString *VTMaxEncodeLevelKey  = OSString::withCString("VTMaxEncodeLevel");
+
+				OSDictionary *VTPerProfileDetailsInner = OSDictionary::withCapacity(1);
+				OSDictionary *VTPerProfileDetails = OSDictionary::withCapacity(1);
+				OSString *VTPerProfileDetailsKey1 = OSString::withCString("1");
+
+				OSArray *VTSupportedProfileArray = OSArray::withCapacity(1);
+				OSNumber *VTSupportedProfileArray1 = OSNumber::withNumber(1, 32);
+
+				OSDictionary *IOGVAHEVCEncodeCapabilities = OSDictionary::withCapacity(4);
+				OSString *VTPerProfileDetailsKey = OSString::withCString("VTPerProfileDetails");
+				OSString *VTQualityRatingKey = OSString::withCString("VTQualityRating");
+				OSNumber *VTQualityRating = OSNumber::withNumber(50, 32);
+				OSString *VTRatingKey = OSString::withCString("VTRating");
+				OSNumber *VTRating = OSNumber::withNumber(350, 32);
+				OSString *VTSupportedProfileArrayKey = OSString::withCString("VTSupportedProfileArray");
+
+				if (VTMaxEncodeLevel != nullptr && VTMaxEncodeLevelKey != nullptr && VTPerProfileDetailsInner != nullptr &&
+					VTPerProfileDetails != nullptr && VTPerProfileDetailsKey1 != nullptr && VTSupportedProfileArrayKey != nullptr &&
+					VTSupportedProfileArray1 != nullptr && VTSupportedProfileArray != nullptr && VTPerProfileDetailsKey != nullptr &&
+					VTQualityRatingKey != nullptr && VTQualityRating != nullptr && VTRatingKey != nullptr && VTRating != nullptr &&
+					IOGVAHEVCEncodeCapabilities != nullptr) {
+
+					VTPerProfileDetailsInner->setObject(VTMaxEncodeLevelKey, VTMaxEncodeLevel);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey1, VTPerProfileDetailsInner);
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray1);
+
+					IOGVAHEVCEncodeCapabilities->setObject(VTPerProfileDetailsKey, VTPerProfileDetails);
+					IOGVAHEVCEncodeCapabilities->setObject(VTQualityRatingKey, VTQualityRating);
+					IOGVAHEVCEncodeCapabilities->setObject(VTRatingKey, VTRating);
+					IOGVAHEVCEncodeCapabilities->setObject(VTSupportedProfileArrayKey, VTSupportedProfileArray);
+
+					accelService->setProperty("IOGVAHEVCEncode", "1");
+					accelService->setProperty("IOGVAHEVCEncodeCapabilities", IOGVAHEVCEncodeCapabilities);
+
+					DBGLOG("rad", "recovering IOGVAHEVCEncode");
+				} else {
+					SYSLOG("rad", "allocation failure in IOGVAHEVCEncode");
+				}
+
+				OSSafeReleaseNULL(VTMaxEncodeLevel);
+				OSSafeReleaseNULL(VTMaxEncodeLevelKey);
+				OSSafeReleaseNULL(VTPerProfileDetailsInner);
+				OSSafeReleaseNULL(VTPerProfileDetails);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey1);
+				OSSafeReleaseNULL(VTSupportedProfileArrayKey);
+				OSSafeReleaseNULL(VTSupportedProfileArray1);
+				OSSafeReleaseNULL(VTSupportedProfileArray);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey);
+				OSSafeReleaseNULL(VTQualityRatingKey);
+				OSSafeReleaseNULL(VTQualityRating);
+				OSSafeReleaseNULL(VTRatingKey);
+				OSSafeReleaseNULL(VTRating);
+				OSSafeReleaseNULL(IOGVAHEVCEncodeCapabilities);
+			}
+		}
+	}
+}
+
 void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char **accelConfig) {
 	if (accelService && accelConfig) {
 		if (fixConfigName) {
@@ -722,13 +853,7 @@ void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char 
 		}
 
 		if (hwIndex == IndexRadeonHardwareX4000) {
-			auto codec = OSDynamicCast(OSString, accelService->getProperty("IOGVACodec"));
-			if (codec == nullptr) {
-				DBGLOG("rad", "updating X4000 accelerator IOGVACodec to VCE");
-				accelService->setProperty("IOGVACodec", "VCE");
-			} else {
-				DBGLOG("rad", "X4000 accelerator IOGVACodec is already set to %s", safeString(codec->getCStringNoCopy()));
-			}
+			setGvaProperties(accelService);
 		}
 	}
 }

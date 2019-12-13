@@ -6,6 +6,7 @@ WhateverGreen Changelog
 - Fixed accelerator name update logic for X4xxx kexts
 - Fixed Verde IOGVACodec injection to make hardware video decoder work
 - Enable software TV+ decoding on all CPUs without IGPU (`shikigva=256`)
+- Added HEVC capabilities to AMD6 decoders for all GPUs
 
 #### v1.3.5
 - Added Lilu 1.4.0 support, which is now the minimum supported version
