@@ -139,12 +139,17 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool hasAMD = false;
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
-			hasAMD = true;
+			enableGvaSupport = hasAMD = true;
+			if (info->videoExternal[i].video->getProperty("disable-gva-support"))
+				enableGvaSupport = false;
 			break;
 		}
 	}
 
 	if (hasAMD) {
+		if (checkKernelArgument("-radnogva"))
+			enableGvaSupport = false;
+
 		KernelPatcher::RouteRequest requests[] {
 			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
 			KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
@@ -852,7 +857,7 @@ void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char 
 			}
 		}
 
-		if (hwIndex == IndexRadeonHardwareX4000) {
+		if (enableGvaSupport && hwIndex == IndexRadeonHardwareX4000) {
 			setGvaProperties(accelService);
 		}
 	}

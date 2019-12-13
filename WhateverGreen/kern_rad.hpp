@@ -295,6 +295,11 @@ private:
 	bool fixConfigName {false};
 
 	/**
+	 *  Enable gva decoding and encoding support
+	 */
+	bool enableGvaSupport {false};
+
+	/**
 	 *  Boot ATI/AMD graphics without acceleration
 	 */
 	bool forceVesaMode {false};
