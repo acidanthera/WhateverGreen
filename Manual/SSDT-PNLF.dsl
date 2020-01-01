@@ -177,7 +177,7 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
             {
                 // CoffeeLake identifiers from AppleIntelCFLGraphicsFramebuffer.kext
                 0x3e9b, 0x3ea5, 0x3e92, 0x3e91,
-                // Canon Lake
+                // Comet Lake
                 0x9B41,
             }, MEQ, Local0, MTR, 0, 0))
             {
