@@ -177,6 +177,8 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
             {
                 // CoffeeLake identifiers from AppleIntelCFLGraphicsFramebuffer.kext
                 0x3e9b, 0x3ea5, 0x3e92, 0x3e91,
+                // Canon Lake
+                0x9B41,
             }, MEQ, Local0, MTR, 0, 0))
             {
                 if (Ones == Local2) { Local2 = COFFEELAKE_PWMMAX }
