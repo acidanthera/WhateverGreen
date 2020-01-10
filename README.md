@@ -27,6 +27,7 @@ WhateverGreen
 - Fixes the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on Skylake, Kaby Lake and Coffee Lake platforms.
 - Implements the driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on some platforms with Intel IGPU.
 - Enforces complete modeset on non-built-in displays on Kaby Lake and newer to fix booting to black screen.
+- Allows non-supported cards to use HW video encoder (`-radcodec`)
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
@@ -40,6 +41,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-igfxvesa` to boot Intel graphics without hardware acceleration (VESA mode).
 - `-rad24` to enforce 24-bit display mode.
 - `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).
+- `-radcodec` to force the spoofed PID to be used in AMDRadeonVADriver
 - `radpg=15` to disable several power-gating modes (see FAQ, required for Cape Verde GPUs).
 - `agdpmod=vit9696` disables check for `board-id` (or add `agdpmod` property to external GPU).
 - `agdpmod=pikera` replaces `board-id` with `board-ix`

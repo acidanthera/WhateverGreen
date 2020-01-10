@@ -208,6 +208,11 @@ private:
 	mach_vm_address_t orgPopulateAccelConfig[MaxRadeonHardware] {};
 
 	/**
+	 *  Original getHWInfo functions
+	 */
+	mach_vm_address_t orgGetHWInfo[MaxRadeonHardware] {};
+
+	/**
 	 *  Max framebuffer base functions per kext
 	 */
 	static constexpr size_t MaxGetFrameBufferProcs = 3;
@@ -270,6 +275,43 @@ private:
 	};
 
 	/**
+	 *  getHWInfo function type
+	 */
+	using t_getHWInfo = int (*)(IOService *accelVideoCtx, void *hwInfo);
+
+	/**
+	 *  getHWInfo wrapping functions used for AppleGVA enable patch
+	 */
+	template <size_t Index>
+	static int populateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
+		if (callbackRAD->orgGetHWInfo[Index]) {
+			int ret = FunctionCast(populateGetHWInfo<Index>, callbackRAD->orgGetHWInfo[Index])(accelVideoCtx, hwInfo);
+			callbackRAD->updateGetHWInfo(accelVideoCtx, hwInfo);
+			return ret;
+		} else {
+			SYSLOG("rad", "populateGetHWInfo invalid use for %lu", Index);
+		}
+		return 1;
+	}
+
+	/**
+	 *  Wrapped getHWInfo functions
+	 */
+	t_getHWInfo wrapGetHWInfo[MaxRadeonHardware] {
+		[RAD::IndexRadeonHardwareX4000] = populateGetHWInfo<RAD::IndexRadeonHardwareX4000>,
+		[RAD::IndexRadeonHardwareX5000] = populateGetHWInfo<RAD::IndexRadeonHardwareX5000>
+	};
+
+
+	/**
+	 *  Register read function names
+	 */
+	const char *getHWInfoProcNames[MaxRadeonHardware] {
+		[RAD::IndexRadeonHardwareX4000] = "__ZN35AMDRadeonX4000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
+		[RAD::IndexRadeonHardwareX5000] = "__ZN35AMDRadeonX5000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo"
+	};
+
+	/**
 	 *  Enforce 24-bit output
 	 */
 	bool force24BppMode {false};
@@ -303,6 +345,11 @@ private:
 	 *  Boot ATI/AMD graphics without acceleration
 	 */
 	bool forceVesaMode {false};
+
+	/**
+	 *  Force getHWInfo call to return spoofed PID for codec support
+	 */
+	bool forceCodecInfo {false};
 
 	/**
 	 *  Current max used hardware kexts
@@ -488,6 +535,11 @@ private:
 	 *  Wrapped VRAM testing method
 	 */
 	static bool doNotTestVram(IOService *ctrl, uint32_t reg, bool retryOnFail);
+	
+	/**
+	 *  Wrapped codec hw info method
+	 */
+	static void updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo);
 };
 
 #endif /* kern_rad_hpp */

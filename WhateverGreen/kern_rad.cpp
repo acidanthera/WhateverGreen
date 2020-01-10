@@ -107,6 +107,9 @@ void RAD::init() {
 
 	// Broken drivers can still let us boot in vesa mode
 	forceVesaMode = checkKernelArgument("-radvesa");
+	
+	// Fix codec PID to be spoofed PID if requested
+	forceCodecInfo = checkKernelArgument("-radcodec");
 
 	// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
 	lilu.onKextLoadForce(&kextRadeonSupport);
@@ -408,6 +411,12 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 			patcher.applyLookupPatch(&p);
 			patcher.clearError();
 		}
+	}
+
+	// Patch AppleGVA support for non-supported models
+	if (forceCodecInfo) {
+		KernelPatcher::RouteRequest request(getHWInfoProcNames[hwIndex], wrapGetHWInfo[hwIndex], orgGetHWInfo[hwIndex]);
+		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
 }
 
@@ -1080,4 +1089,23 @@ bool RAD::wrapNotifyLinkChange(void *atiDeviceControl, kAGDCRegisterLinkControlE
 	}
 
 	return ret;
+}
+
+void RAD::updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
+	IOService *accel, *pciDev;
+	accel = OSDynamicCast(IOService, accelVideoCtx->getParentEntry(gIOServicePlane));
+	if (accel == NULL) {
+		SYSLOG("rad", "getHWInfo: no parent found for accelVideoCtx!");
+		return;
+	}
+	pciDev = OSDynamicCast(IOService, accel->getParentEntry(gIOServicePlane));
+	if (pciDev == NULL) {
+		SYSLOG("rad", "getHWInfo: no parent found for accel!");
+		return;
+	}
+	uint16_t org = *(uint16_t *)((char *)hwInfo + 0x4);
+	uint32_t dev;
+	WIOKit::getOSDataValue(pciDev, "device-id", dev);
+	DBGLOG("rad", "getHWInfo: original PID: 0x%04X, replaced PID: 0x%04X", org, dev);
+	*(uint16_t *)((char *)hwInfo + 0x4) = dev;
 }
