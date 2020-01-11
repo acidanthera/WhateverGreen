@@ -1104,7 +1104,7 @@ void RAD::updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
 		return;
 	}
 	uint16_t &org = getMember<uint16_t>(hwInfo, 0x4);
-	uint32_t dev;
+	uint32_t dev = org;
 	if (!WIOKit::getOSDataValue(pciDev, "codec-device-id", dev)) {
 		// fallback to device-id only if we do not have codec-device-id
 		WIOKit::getOSDataValue(pciDev, "device-id", dev);
