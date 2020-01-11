@@ -240,7 +240,7 @@ void RAD::initHardwareKextMods() {
 			getFrameBufferProcNames[IndexRadeonHardwareX4000][i] = nullptr;
 
 		// We have nothing to do for these kexts on recent systems
-		if (!fixConfigName && !forceOpenGL) {
+		if (!fixConfigName && !forceOpenGL && !forceCodecInfo) {
 			// X4000 kext is not included in this list as we need to fix GVA properties for most of its GPUs
 			kextRadeonHardware[IndexRadeonHardwareX5000].switchOff();
 			kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
@@ -414,7 +414,7 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 	}
 
 	// Patch AppleGVA support for non-supported models
-	if (forceCodecInfo) {
+	if (forceCodecInfo && getHWInfoProcNames[hwIndex] != nullptr) {
 		KernelPatcher::RouteRequest request(getHWInfoProcNames[hwIndex], wrapGetHWInfo[hwIndex], orgGetHWInfo[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
@@ -1103,9 +1103,12 @@ void RAD::updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
 		SYSLOG("rad", "getHWInfo: no parent found for accel!");
 		return;
 	}
-	uint16_t org = *(uint16_t *)((char *)hwInfo + 0x4);
+	uint16_t &org = getMember<uint16_t>(hwInfo, 0x4);
 	uint32_t dev;
-	WIOKit::getOSDataValue(pciDev, "device-id", dev);
+	if (!WIOKit::getOSDataValue(pciDev, "codec-device-id", dev)) {
+		// fallback to device-id only if we do not have codec-device-id
+		WIOKit::getOSDataValue(pciDev, "device-id", dev);
+	}
 	DBGLOG("rad", "getHWInfo: original PID: 0x%04X, replaced PID: 0x%04X", org, dev);
-	*(uint16_t *)((char *)hwInfo + 0x4) = dev;
+	org = (uint16_t)dev;
 }

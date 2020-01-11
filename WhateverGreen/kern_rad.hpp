@@ -277,13 +277,13 @@ private:
 	/**
 	 *  getHWInfo function type
 	 */
-	using t_getHWInfo = int (*)(IOService *accelVideoCtx, void *hwInfo);
+	using t_getHWInfo = IOReturn (*)(IOService *accelVideoCtx, void *hwInfo);
 
 	/**
 	 *  getHWInfo wrapping functions used for AppleGVA enable patch
 	 */
 	template <size_t Index>
-	static int populateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
+	static IOReturn populateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
 		if (callbackRAD->orgGetHWInfo[Index]) {
 			int ret = FunctionCast(populateGetHWInfo<Index>, callbackRAD->orgGetHWInfo[Index])(accelVideoCtx, hwInfo);
 			callbackRAD->updateGetHWInfo(accelVideoCtx, hwInfo);
@@ -308,7 +308,8 @@ private:
 	 */
 	const char *getHWInfoProcNames[MaxRadeonHardware] {
 		[RAD::IndexRadeonHardwareX4000] = "__ZN35AMDRadeonX4000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
-		[RAD::IndexRadeonHardwareX5000] = "__ZN35AMDRadeonX5000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo"
+		[RAD::IndexRadeonHardwareX5000] = "__ZN35AMDRadeonX5000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
+		[RAD::IndexRadeonHardwareX6000] = "__ZN35AMDRadeonX6000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo"
 	};
 
 	/**
