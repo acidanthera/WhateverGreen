@@ -7,6 +7,7 @@ WhateverGreen Changelog
 - Fixed Verde IOGVACodec injection to make hardware video decoder work
 - Enable software TV+ decoding on all CPUs without IGPU (`shikigva=256`)
 - Added HEVC capabilities to AMD6 decoders for all GPUs (disabled by `-radnogva` or `disable-gva-support`)
+- Added HW decoder device-id spoofing via `-radcodec` boot-arg, by @osy86
 
 #### v1.3.5
 - Added Lilu 1.4.0 support, which is now the minimum supported version
