@@ -1110,5 +1110,5 @@ void RAD::updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
 		WIOKit::getOSDataValue(pciDev, "device-id", dev);
 	}
 	DBGLOG("rad", "getHWInfo: original PID: 0x%04X, replaced PID: 0x%04X", org, dev);
-	org = (uint16_t)dev;
+	org = static_cast<uint16_t>(dev);
 }

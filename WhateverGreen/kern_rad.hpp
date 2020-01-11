@@ -291,7 +291,7 @@ private:
 		} else {
 			SYSLOG("rad", "populateGetHWInfo invalid use for %lu", Index);
 		}
-		return 1;
+		return kIOReturnInvalid;
 	}
 
 	/**
@@ -299,7 +299,8 @@ private:
 	 */
 	t_getHWInfo wrapGetHWInfo[MaxRadeonHardware] {
 		[RAD::IndexRadeonHardwareX4000] = populateGetHWInfo<RAD::IndexRadeonHardwareX4000>,
-		[RAD::IndexRadeonHardwareX5000] = populateGetHWInfo<RAD::IndexRadeonHardwareX5000>
+		[RAD::IndexRadeonHardwareX5000] = populateGetHWInfo<RAD::IndexRadeonHardwareX5000>,
+		[RAD::IndexRadeonHardwareX6000] = populateGetHWInfo<RAD::IndexRadeonHardwareX6000>
 	};
 
 
