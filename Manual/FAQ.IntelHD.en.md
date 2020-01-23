@@ -1777,7 +1777,7 @@ Additionally, you can find these properties injected by the driver under the cor
 - Compatibility with discrete cards in unsupported configurations (NVIDIA + SNB/SKL/KBL; AMD + IVY), for some applications is fixed by *WEG*. Starting with macOS 10.13.4 the problem is gone.  
 - Viewing protected iTunes content is fixed by *WEG*. Starting with macOS 10.12 on Ivy Bridge and newer viewing HD movies on iTunes is not possible without a discrete card.  
 
-A [VDADecoderChecker](https://i.applelife.ru/2018/12/442759_VDADecoderChecker.zip) output for integrated graphics using non-empty connectors must look like this:  
+A [VDADecoderChecker](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) output for integrated graphics using non-empty connectors must look like this:  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/vda.png)  
   
 In case of special IGPU, IMEI and HDEF device locations, [gfxutil](https://github.com/acidanthera/gfxutil) may be used: `gfxutil -f IGPU`, `gfxutil -f IMEI`, `gfxutil -f HDEF`. IGPU and IMEI device locations - usually standardly.  

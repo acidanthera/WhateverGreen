@@ -1855,7 +1855,7 @@ igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
 - 在不受支持的配置（NVIDIA + SNB/SKL/KBL; AMD + Ivy）上，与独显的兼容问题已由 *WEG* 修复，从 macOS 10.13.4 起，该问题已被 Apple 官方解决。
 - 受保护的 iTunes 内容问题已由 *WEG* 修复。从 macOS 10.12 起，在 Ivy 或更新平台的核显上，在 iTunes 上观看高清电影时不能没有独显。
 
-在核显非空端口输出下使用 [VDADecoderChecker](https://i.applelife.ru/2018/12/442759_VDADecoderChecker.zip) 的输出必须类似如下图：
+在核显非空端口输出下使用 [VDADecoderChecker](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) 的输出必须类似如下图：
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/vda.png)  
 
