@@ -129,7 +129,7 @@ To check that read `/System/Library/PrivateFrameworks/AppleGVA.framework/Info.pl
 Add `shikigva=1` argument to boot-args or to DeviceProperties in any GPU.
 
 - _How can I enable AMD DRM for Music, Safari, TV, leaving IGPU for other applications?_  
-Add `shikigva=80` argument to boot-args or to DeviceProperties in any GPU. If this causes freezes, fallback to `shikigva=16`. Please note that not all DRM types are available in different configurations, follow [check list](https://applelife.ru/posts/846582) to diagnose DRM support.
+Add `shikigva=80` argument to boot-args or to DeviceProperties in any GPU. If this causes freezes (partially fixed in 10.15.4+), fallback to `shikigva=16`. Please note that not all DRM types are available in different configurations, follow [check list](https://applelife.ru/posts/846582) to diagnose DRM support.
 
 - _How can I play iTunes purchased videos in QuickTime on MacPro5,1 along with Apple TV+?_  
 For QuickTime movie playback along with TV+ on MacPro5,1 use one of the following:  
