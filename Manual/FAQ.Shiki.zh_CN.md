@@ -130,7 +130,7 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 请加入 `shikigva=1` 到 `boot-args` 或者任何 `GPU` 的 `DeviceProperties` 下启动系统。
 
 - _如何只为 Music, Safari 以及 TV 启用 AMD DRM，并且对其他应用仅使用 `IGPU`?_  
-请加入 `shikigva=80` 到 `boot-args` 或者任何 `GPU` 的 `DeviceProperties` 下启动系统。如果此方法引起了冻屏，则使用
+请加入 `shikigva=80` 到 `boot-args` 或者任何 `GPU` 的 `DeviceProperties` 下启动系统。如果此方法引起了冻屏（注意：Apple 官方已在 10.15.4+ 部分修正此问题），则使用
 `shikigva=16`。
 注意：在不同配置的机器上，并非所有 DRM 种类均可用。请查阅 [此处](https://applelife.ru/posts/846582) 以获取详细信息。
 
