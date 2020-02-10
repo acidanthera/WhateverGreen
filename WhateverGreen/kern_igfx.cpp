@@ -755,10 +755,10 @@ IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t ad
 
 	// Guard: Check the DPCD register address
 	// The first 16 fields of the receiver capabilities reside at 0x0 (DPCD Register Address)
-	if (address != 0)
+	if (address != DPCD_DEFAULT_ADDRESS && address != DPCD_EXTENDED_ADDRESS)
 		return retVal;
 
-	// The driver tries to read the first 16 bytes from DPCD
+	// The driver tries to read the first 16 bytes from DPCD (0x0000) or extended DPCD (0x2200)
 	// Get the current framebuffer index (An UInt32 field at 0x1dc in a framebuffer instance)
 	// We read the value of "IOFBDependentIndex" instead of accessing that field directly
 	uint32_t index;

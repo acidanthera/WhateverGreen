@@ -1668,6 +1668,8 @@ Or instead of this property, use the boot-arg `-wegnoegpu`
 ## Fix the invalid maximum link rate issue on some laptops (Dell XPS 15 9570, etc.)
 Add the `enable-dpcd-max-link-rate-fix` property to `IGPU`, otherwise a kernel panic would happen due to a division-by-zero.  
 Or instead of this property, use the boot-arg `-igfxmlr`.  
+Starting from v1.3.7, it also fixes the invalid max link rate value read from the extended DPCD buffer.  
+This fixes the kernel panic on new laptops, such as Dell Inspiron 7590 with Sharp display.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)  
 You could also manually specify a maximum link rate value via the `dpcd-max-link-rate` for the builtin display.  
 Typically use `0x14` for 4K display and `0x0A` for 1080p display.  

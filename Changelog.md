@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.7
+- Improved the maximum link rate fix: Now correct the value read from extended DPCD as well. (by @0xFireWolf)
+
 #### v1.3.6
 - Enabled CoreLSKD streaming patches by default for AMD hardware DRM on Ivy Bridge
 - Repurposed 64 bit for FP 2.x streaming hardware accelerated streaming patches (can be used as `shikigva=80`)
