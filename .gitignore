@@ -11,4 +11,5 @@ Tools/BoardHash/BoardHash
 Tools/GPUInfo/gpuinfo
 Tools/HookMac/libHookMac.dylib
 Tools/WhateverName/WhateverName.app/Contents/MacOS/libWhateverName.dylib
-
+.svace-dir
+cov-int

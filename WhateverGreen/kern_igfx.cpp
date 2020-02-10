@@ -100,6 +100,7 @@ void IGFX::init() {
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -111,12 +112,14 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
 			loadGuCFirmware = canLoadGuC > 0;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
+			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
@@ -124,6 +127,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
+			forceCompleteModeset.enable = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -162,19 +166,35 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (checkKernelArgument("-igfxfbdump"))
 			dumpPlatformTable = true;
 #endif
-		
+
+		if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+			forceCompleteModeset.enable = false; // may interfere with FV2
+
+		if (forceCompleteModeset.enable) {
+			uint64_t fbs;
+
+			if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
+				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers",
+					fbs)) {
+				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
+					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
+
+				forceCompleteModeset.customised = true;
+			}
+		}
+
 		// Enable the fix for computing HDMI dividers on SKL, KBL, CFL platforms if the corresponding boot argument is found
 		hdmiP0P1P2Patch = checkKernelArgument("-igfxhdmidivs");
 		// Of if "enable-hdmi-dividers-fix" is set in IGPU property
 		if (!hdmiP0P1P2Patch)
 			hdmiP0P1P2Patch = info->videoBuiltin->getProperty("enable-hdmi-dividers-fix") != nullptr;
-		
+
 		// Enable the LSPCON driver support if the corresponding boot argument is found
 		supportLSPCON = checkKernelArgument("-igfxlspcon");
 		// Or if "enable-lspcon-support" is set in IGPU property
 		if (!supportLSPCON)
 			supportLSPCON = info->videoBuiltin->getProperty("enable-lspcon-support") != nullptr;
-		
+
 		// Read the user-defined IGPU properties to know whether a connector has an onboard LSPCON chip
 		if (supportLSPCON) {
 			char name[48];
@@ -182,23 +202,23 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			for (size_t index = 0; index < arrsize(lspcons); index++) {
 				bzero(name, sizeof(name));
 				snprintf(name, sizeof(name), "framebuffer-con%lu-has-lspcon", index);
-				WIOKit::getOSDataValue(info->videoBuiltin, name, lspcons[index].hasLSPCON);
+				(void)WIOKit::getOSDataValue(info->videoBuiltin, name, lspcons[index].hasLSPCON);
 				snprintf(name, sizeof(name), "framebuffer-con%lu-preferred-lspcon-mode", index);
-				WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
+				(void)WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
 				// Assuming PCON mode if invalid mode value (i.e. > 1) specified by the user
 				lspcons[index].preferredMode = LSPCON::parseMode(pmode != 0);
 			}
 		}
-		
+
 		// Enable the verbose output in I2C-over-AUX transactions if the corresponding boot argument is found
 		verboseI2C = checkKernelArgument("-igfxi2cdbg");
-		
+
 		// Enable maximum link rate patch if the corresponding boot argument is found
 		maxLinkRatePatch = checkKernelArgument("-igfxmlr");
 		// Or if "enable-dpcd-max-link-rate-fix" is set in IGPU property
 		if (!maxLinkRatePatch)
 			maxLinkRatePatch = info->videoBuiltin->getProperty("enable-dpcd-max-link-rate-fix") != nullptr;
-		
+
 		// Read the custom maximum link rate if present
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "dpcd-max-link-rate", maxLinkRate)) {
 			// Guard: Verify the custom link rate before using it
@@ -210,7 +230,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				case 0x06: // RBR  1.62 Gbps
 					DBGLOG("igfx", "MLR: Found a valid custom maximum link rate value 0x%02x", maxLinkRate);
 					break;
-					
+
 				default:
 					// Invalid link rate value
 					SYSLOG("igfx", "MLR: Found an invalid custom maximum link rate value. Will use 0x14 as a fallback value.");
@@ -220,7 +240,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		} else {
 			DBGLOG("igfx", "MLR: No custom max link rate specified. Will use 0x14 as the default value.");
 		}
-		
+
 		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
 		int bkl = 0;
 		if (PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl)))
@@ -253,14 +273,14 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
 
-		// Starting from 10.14.4b1 KabyLake graphics randomly kernel panics on GPU usage
-		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::KabyLake && getKernelVersion() >= KernelVersion::Mojave;
+		// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
+		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
 
 		// Automatically enable HDMI -> DP patches
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON;
+		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON && !forceCompleteModeset.enable;
 		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -310,18 +330,23 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// On 10.15 GraphicsSchedulerSelect 2 is removed, so we disable it by manually patching default flags.
 		if (avoidFirmwareLoading && getKernelVersion() > KernelVersion::Mojave) {
 			auto sym = patcher.solveSymbol<uint8_t *>(index, "__ZN16IntelAccelerator19populateAccelConfigEP13IOAccelConfig", address, size);
-			for (size_t i = 0; i < 4096; i++, sym++) {
-				if (sym[0] == 0x00 && sym[1] == 0x00 && sym[2] == 0x18 && sym[3] == 0x00) {
-					DBGLOG("igfx", "found GuC accel config at " PRIKADDR, CASTKADDR(sym));
-					auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
-					if (status == KERN_SUCCESS) {
-						sym[2] = 0x28;
-						MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
-					} else {
-						SYSLOG("igfx", "GuC accel config protection upgrade failure %d", status);
+			if (sym) {
+				for (size_t i = 0; i < 4096; i++, sym++) {
+					if (sym[0] == 0x00 && sym[1] == 0x00 && sym[2] == 0x18 && sym[3] == 0x00) {
+						DBGLOG("igfx", "found GuC accel config at " PRIKADDR, CASTKADDR(sym));
+						auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
+						if (status == KERN_SUCCESS) {
+							sym[2] = 0x28;
+							MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
+						} else {
+							SYSLOG("igfx", "GuC accel config protection upgrade failure %d", status);
+						}
+						break;
 					}
-					break;
 				}
+			} else {
+				SYSLOG("igfx", "failed to solve populateAccelConfig");
+				patcher.clearError();
 			}
 		}
 
@@ -375,7 +400,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			auto regRead = patcher.solveSymbol<decltype(orgCflReadRegister32)>
 				(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			auto regWrite = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
-			if (regWrite) {
+			if (regRead && regWrite) {
 				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = regRead;
 
 				patcher.eraseCoverageInstPrefix(regWrite);
@@ -390,39 +415,39 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
+				patcher.clearError();
 			}
 		}
-		
+
 		if (maxLinkRatePatch) {
 			auto readAUXAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
 			if (readAUXAddress) {
 				patcher.eraseCoverageInstPrefix(readAUXAddress);
 				orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(patcher.routeFunction(readAUXAddress, reinterpret_cast<mach_vm_address_t>(wrapReadAUX), true));
 				if (orgReadAUX) {
-					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully.");
+					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully");
 				} else {
 					patcher.clearError();
-					SYSLOG("igfx", "MLR: Failed to route ReadAUX().");
+					SYSLOG("igfx", "MLR: Failed to route ReadAUX()");
 				}
 			} else {
-				SYSLOG("igfx", "MLR: Failed to find ReadAUX().");
+				SYSLOG("igfx", "MLR: Failed to find ReadAUX()");
+				patcher.clearError();
 			}
 		}
-		
+
+		if (forceCompleteModeset.enable) {
+			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
+			if (!patcher.routeMultiple(index, &request, 1, address, size))
+				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
+		}
+
 		if (hdmiP0P1P2Patch) {
-			auto ppp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", address, size);
-			if (ppp) {
-				if (patcher.routeFunction(ppp, reinterpret_cast<mach_vm_address_t>(wrapComputeHdmiP0P1P2))) {
-					patcher.clearError();
-					SYSLOG("igfx", "SC: Failed to route ComputeHdmiP0P1P2().");
-				} else {
-					DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() has been routed successfully.");
-				}
-			} else {
-				SYSLOG("igfx", "SC: Failed to find ComputeHdmiP0P1P2().");
-			}
+			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController17ComputeHdmiP0P1P2EjP21AppleIntelDisplayPathPNS_10CRTCParamsE", wrapComputeHdmiP0P1P2);
+			if (!patcher.routeMultiple(index, &request, 1, address, size))
+				SYSLOG("igfx", "failed to route ComputeHdmiP0P1P2");
 		}
-		
+
 		if (supportLSPCON) {
 			auto roa = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14ReadI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhbh", address, size);
 			auto woa = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhb", address, size);
@@ -435,16 +460,17 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				orgWriteI2COverAUX = reinterpret_cast<decltype(orgWriteI2COverAUX)>(patcher.routeFunction(woa, reinterpret_cast<mach_vm_address_t>(wrapWriteI2COverAUX), true));
 				orgGetDPCDInfo = reinterpret_cast<decltype(orgGetDPCDInfo)>(patcher.routeFunction(gdi, reinterpret_cast<mach_vm_address_t>(wrapGetDPCDInfo), true));
 				if (orgReadI2COverAUX && orgWriteI2COverAUX && orgGetDPCDInfo) {
-					DBGLOG("igfx", "SC: ReadI2COverAUX(), etc. have been routed successfully.");
+					DBGLOG("igfx", "SC: ReadI2COverAUX(), etc. have been routed successfully");
 				} else {
 					patcher.clearError();
-					SYSLOG("igfx", "SC: ReadI2COverAUX(), etc. cannot be routed.");
+					SYSLOG("igfx", "SC: ReadI2COverAUX(), etc. cannot be routed");
 				}
 			} else {
-				SYSLOG("igfx", "SC: Failed to find ReadI2COverAUX(), etc.");
+				SYSLOG("igfx", "SC: Failed to find ReadI2COverAUX(), etc");
+				patcher.clearError();
 			}
 		}
-		
+
 		if (blackScreenPatch) {
 			bool foundSymbol = false;
 
@@ -661,11 +687,51 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
 }
 
+bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo) {
+	// The framebuffer controller can perform panel fitter, partial, or a
+	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
+	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
+	// boot: it was observed that for HDMI framebuffer a complete modeset
+	// eventually occured, but for DVI it never did until after sleep and wake
+	// sequence.
+	//
+	// Function AppleIntelFramebufferController::hwRegsNeedUpdate checks
+	// whether a complete modeset needs to be issued. It does so by comparing
+	// sets of pipes and transcoder parameters. For some reason, the result was
+	// never true in the above scenario, so a complete modeset never occured.
+	// Consequently, AppleIntelFramebufferController::LightUpTMDS was never
+	// called for that framebuffer.
+	//
+	// Patching hwRegsNeedUpdate to always return true seems to be a rather
+	// safe solution to that. Note that the root cause of the problem is
+	// somewhere deeper.
+
+	// Either this framebuffer is in override list
+	if (callbackIGFX->forceCompleteModeset.customised) {
+		return callbackIGFX->forceCompleteModeset.inList(framebuffer)
+		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
+			controller, framebuffer, displayPath, crtParams, detailedInfo);
+	}
+
+	// FIXME:
+	// A similar function exists in Skylake:
+	// __ZN31AppleIntelFramebufferController13hwSetupMemoryEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEb
+	// However, it does not use framebuffer argument and thus the compiler does not pass it to the target function.
+	// Since the fix is not very beneficial for Skylake, for the time being we do not care fixing it.
+
+	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
+	// this framebuffer.
+	// Note we need to check this at every invocation, as this property may reappear
+	return !framebuffer->getProperty("built-in")
+		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
+		controller, framebuffer, displayPath, crtParams, detailedInfo);
+}
+
 /**
  *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
  */
 IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
-	
+
 	//
 	// Abstract:
 	//
@@ -683,15 +749,15 @@ IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t ad
 	// If you are interested in the story behind this fix, take a look at my blog posts.
 	// Phase 1: https://www.firewolf.science/2018/10/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-compromise-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
 	// Phase 2: https://www.firewolf.science/2018/11/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-nearly-ultimate-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
-	
+
 	// Call the original ReadAUX() function to read from DPCD
 	IOReturn retVal = callbackIGFX->orgReadAUX(that, framebuffer, address, length, buffer, displayPath);
-	
+
 	// Guard: Check the DPCD register address
 	// The first 16 fields of the receiver capabilities reside at 0x0 (DPCD Register Address)
 	if (address != 0)
 		return retVal;
-	
+
 	// The driver tries to read the first 16 bytes from DPCD
 	// Get the current framebuffer index (An UInt32 field at 0x1dc in a framebuffer instance)
 	// We read the value of "IOFBDependentIndex" instead of accessing that field directly
@@ -701,21 +767,21 @@ IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t ad
 		SYSLOG("igfx", "MLR: wrapReadAUX: Failed to read the current framebuffer index.");
 		return retVal;
 	}
-	
+
 	// Guard: Check the framebuffer index
 	// By default, FB 0 refers the builtin display
 	if (index != 0)
 		// The driver is reading DPCD for an external display
 		return retVal;
-	
+
 	// The driver tries to read the receiver capabilities for the builtin display
 	auto caps = reinterpret_cast<DPCDCap16*>(buffer);
-	
+
 	// Set the custom maximum link rate value
 	caps->maxLinkRate = callbackIGFX->maxLinkRate;
-	
+
 	DBGLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
-	
+
 	return retVal;
 }
 
@@ -724,7 +790,7 @@ void IGFX::populateP0P1P2(struct ProbeContext *context) {
 	uint32_t p0 = 0;
 	uint32_t p1 = 0;
 	uint32_t p2 = 0;
-	
+
 	// Even divider
 	if (p % 2 == 0) {
 		uint32_t half = p / 2;
@@ -768,7 +834,7 @@ void IGFX::populateP0P1P2(struct ProbeContext *context) {
 		p1 = 1;
 		p2 = 5;
 	}
-	
+
 	context->pdiv = p0;
 	context->qdiv = p1;
 	context->kdiv = p2;
@@ -809,9 +875,9 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 	// - FireWolf
 	// - 2019.06
 	//
-	
+
 	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Called with pixel clock = %d Hz.", pixelClock);
-	
+
 	/// All possible dividers
 	static constexpr uint32_t dividers[] = {
 		// Even dividers
@@ -819,26 +885,26 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 		24, 28, 30, 32, 36, 40, 42, 44, 48,
 		52, 54, 56, 60, 64, 66, 68, 70, 72,
 		76, 78, 80, 84, 88, 90, 92, 96, 98,
-		
+
 		// Odd dividers
 		3, 5, 7, 9, 15, 21, 35
 	};
-	
+
 	/// All possible central frequency values
 	static constexpr uint64_t centralFrequencies[3] = {8400000000ULL, 9000000000ULL, 9600000000ULL};
-	
+
 	// Calculate the AFE clock
-	uint64_t afeClock = pixelClock * 5;
-	
+	uint64_t afeClock = static_cast<uint64_t>(pixelClock) * 5;
+
 	// Prepare the context for probing P0, P1 and P2
 	ProbeContext context {};
-	
+
 	// Apple chooses 400 as the initial minimum deviation
 	// However 400 is too small for a pixel clock like 533.25 MHz (HDMI 2.0 4K @ 60Hz)
 	// Raise the value to UInt64 MAX
 	// It's OK because the deviation is still bound by MAX_POS_DEV and MAX_NEG_DEV.
 	context.minDeviation = UINT64_MAX;
-	
+
 	for (auto divider : dividers) {
 		for (auto central : centralFrequencies) {
 			// Calculate the current DCO frequency
@@ -846,19 +912,19 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 			// Calculate the deviation
 			uint64_t deviation = (frequency > central ? frequency - central : central - frequency) * 10000 / central;
 			DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Dev = %6llu; Central = %10llu Hz; DCO Freq = %12llu Hz; Divider = %2d.\n", deviation, central, frequency, divider);
-			
+
 			// Guard: Positive deviation is within the allowed range
 			if (frequency >= central && deviation >= SKL_DCO_MAX_POS_DEVIATION)
 				continue;
-			
+
 			// Guard: Negative deviation is within the allowed range
 			if (frequency < central && deviation >= SKL_DCO_MAX_NEG_DEVIATION)
 				continue;
-			
+
 			// Guard: Less than the current minimum deviation value
 			if (deviation >= context.minDeviation)
 				continue;
-			
+
 			// Found a better one
 			// Update the value
 			context.minDeviation = deviation;
@@ -866,11 +932,11 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 			context.frequency = frequency;
 			context.divider = divider;
 			DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: FOUND: Min Dev = %8llu; Central = %10llu Hz; Freq = %12llu Hz; Divider = %d\n", deviation, central, frequency, divider);
-			
+
 			// Guard: Check whether the new minmimum deviation has been reduced to 0
 			if (deviation != 0)
 				continue;
-			
+
 			// Guard: An even divider is preferred
 			if (divider % 2 == 0) {
 				DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Found an even divider [%d] with deviation 0.\n", divider);
@@ -878,17 +944,17 @@ int IGFX::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPa
 			}
 		}
 	}
-	
+
 	// Guard: A valid divider has been found
 	if (context.divider == 0) {
 		SYSLOG("igfx", "SC: ComputeHdmiP0P1P2() Error: Cannot find a valid divider for the given pixel clock %d Hz.\n", pixelClock);
 		return 0;
 	}
-	
+
 	// Calculate the p,q,k dividers
 	populateP0P1P2(&context);
 	DBGLOG("igfx", "SC: ComputeHdmiP0P1P2() DInfo: Divider = %d --> P0 = %d; P1 = %d; P2 = %d.\n", context.divider, context.pdiv, context.qdiv, context.kdiv);
-	
+
 	// Calculate the CRTC parameters
 	uint32_t multiplier = (uint32_t) (context.frequency / 24000000);
 	uint32_t fraction = (uint32_t) (context.frequency - multiplier * 24000000);
@@ -918,7 +984,7 @@ IOReturn IGFX::LSPCON::probe() {
 		SYSLOG("igfx", "SC: LSPCON::probe() Error: [FB%d] Failed to read the LSPCON adapter info. RV = 0x%llx.", index, retVal);
 		return retVal;
 	}
-	
+
 	// Start to parse the adapter info
 	auto info = reinterpret_cast<DisplayPortDualModeAdapterInfo*>(buffer);
 	// Guard: Check whether this is a LSPCON adapter
@@ -926,12 +992,12 @@ IOReturn IGFX::LSPCON::probe() {
 		SYSLOG("igfx", "SC: LSPCON::probe() Error: [FB%d] Not a LSPCON DP-HDMI adapter. AdapterID = 0x%02x.", index, info->adapterID);
 		return kIOReturnNotFound;
 	}
-	
+
 	// Parse the chip vendor
 	char device[8] {};
 	lilu_os_memcpy(device, info->deviceID, 6);
 	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] Found the LSPCON adapter: %s %s.", index, getVendorString(parseVendor(info)), device);
-	
+
 	// Parse the current adapter mode
 	Mode mode = parseMode(info->lspconCurrentMode);
 	DBGLOG("igfx", "SC: LSPCON::probe() DInfo: [FB%d] The current adapter mode is %s.", index, getModeString(mode));
@@ -942,7 +1008,7 @@ IOReturn IGFX::LSPCON::probe() {
 
 IOReturn IGFX::LSPCON::getMode(Mode *mode) {
 	IOReturn retVal = kIOReturnAborted;
-	
+
 	// Guard: The given `mode` pointer cannot be NULL
 	if (mode != nullptr) {
 		// Try to read the current mode from the adapter at most 5 times
@@ -950,20 +1016,20 @@ IOReturn IGFX::LSPCON::getMode(Mode *mode) {
 			// Read from the adapter @ 0x40; offset = 0x41
 			uint8_t hwModeValue;
 			retVal = callbackIGFX->advReadI2COverAUX(controller, framebuffer, displayPath, DP_DUAL_MODE_ADAPTER_I2C_ADDR, DP_DUAL_MODE_LSPCON_CURRENT_MODE, 1, &hwModeValue, 0);
-			
+
 			// Guard: Can read the current adapter mode successfully
 			if (retVal == kIOReturnSuccess) {
 				DBGLOG("igfx", "SC: LSPCON::getMode() DInfo: [FB%d] The current mode value is 0x%02x.", index, hwModeValue);
 				*mode = parseMode(hwModeValue);
 				break;
 			}
-			
+
 			// Sleep 1 ms just in case the adapter
 			// is busy processing other I2C requests
 			IOSleep(1);
 		}
 	}
-	
+
 	return retVal;
 }
 
@@ -971,7 +1037,7 @@ IOReturn IGFX::LSPCON::setMode(Mode newMode) {
 	// Guard: The given new mode must be valid
 	if (newMode == Mode::Invalid)
 		return kIOReturnAborted;
-	
+
 	// Guard: Write the new mode
 	uint8_t hwModeValue = getModeValue(newMode);
 	IOReturn retVal = callbackIGFX->advWriteI2COverAUX(controller, framebuffer, displayPath, DP_DUAL_MODE_ADAPTER_I2C_ADDR, DP_DUAL_MODE_LSPCON_CHANGE_MODE, 1, &hwModeValue, 0);
@@ -979,7 +1045,7 @@ IOReturn IGFX::LSPCON::setMode(Mode newMode) {
 		SYSLOG("igfx", "SC: LSPCON::setMode() Error: [FB%d] Failed to set the new adapter mode. RV = 0x%llx.", index, retVal);
 		return retVal;
 	}
-	
+
 	// Read the register again and verify the mode
 	uint32_t timeout = 200;
 	Mode mode = Mode::Invalid;
@@ -998,7 +1064,7 @@ IOReturn IGFX::LSPCON::setMode(Mode newMode) {
 		timeout -= 20;
 		IOSleep(20);
 	}
-	
+
 	SYSLOG("igfx", "SC: LSPCON::setMode() Error: [FB%d] Timed out while waiting for the new mode to be effective. Last RV = 0x%llx.", index, retVal);
 	return retVal;
 }
@@ -1008,7 +1074,7 @@ IOReturn IGFX::LSPCON::setModeIfNecessary(Mode newMode) {
 		DBGLOG("igfx", "SC: LSPCON::setModeIfNecessary() DInfo: [FB%d] The adapter is already running in %s mode. No need to update.", index, getModeString(newMode));
 		return kIOReturnSuccess;
 	}
-	
+
 	return setMode(newMode);
 }
 
@@ -1055,13 +1121,13 @@ IOReturn IGFX::advSeekI2COverAUX(void *that, IORegistryEntry *framebuffer, void 
 	// if they are invalid, the underlying RunAUXCommand() will return an error
 	// First start the transaction by performing an empty write
 	IOReturn retVal = wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, true);
-	
+
 	// Guard: Check the START transaction
 	if (retVal != kIOReturnSuccess) {
 		SYSLOG("igfx", "SC: AdvSeekI2COverAUX() Error: Failed to start the I2C transaction. Return value = 0x%x.\n", retVal);
 		return retVal;
 	}
-	
+
 	// Write a single byte to the given I2C slave
 	// and set the Middle-of-Transaction bit to 1
 	return wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 1, reinterpret_cast<uint8_t*>(&offset), true);
@@ -1073,42 +1139,42 @@ IOReturn IGFX::advReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void 
 		SYSLOG("igfx", "SC: AdvReadI2COverAUX() Error: Buffer length must be non-zero.");
 		return kIOReturnInvalid;
 	}
-	
+
 	// Guard: Check the buffer
 	if (buffer == nullptr) {
 		SYSLOG("igfx", "SC: AdvReadI2COverAUX() Error: Buffer cannot be NULL.");
 		return kIOReturnInvalid;
 	}
-	
+
 	// Guard: Start the transaction and set the access offset successfully
 	IOReturn retVal = advSeekI2COverAUX(that, framebuffer, displayPath, address, offset, flags);
 	if (retVal != kIOReturnSuccess) {
 		SYSLOG("igfx", "SC: AdvReadI2COverAUX() Error: Failed to set the data offset.");
 		return retVal;
 	}
-	
+
 	// Process the read request
 	// ReadI2COverAUX() can only process up to 16 bytes in one AUX transaction
 	// because the burst data size is 20 bytes, in which the first 4 bytes are used for the AUX message header
 	while (length != 0) {
 		// Calculate the new length for this I2C-over-AUX transaction
 		uint16_t newLength = length >= 16 ? 16 : length;
-		
+
 		// This is an intermediate transaction
 		retVal = wrapReadI2COverAUX(that, framebuffer, displayPath, address, newLength, buffer, true, flags);
-		
+
 		// Guard: The intermediate transaction succeeded
 		if (retVal != kIOReturnSuccess) {
 			// Terminate the transaction
 			wrapReadI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false, flags);
 			return retVal;
 		}
-		
+
 		// Update the buffer position and length
 		length -= newLength;
 		buffer += newLength;
 	}
-	
+
 	// All intermediate transactions succeeded
 	// Terminate the transaction
 	return wrapReadI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false, flags);
@@ -1120,42 +1186,42 @@ IOReturn IGFX::advWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void
 		SYSLOG("igfx", "SC: AdvWriteI2COverAUX() Error: Buffer length must be non-zero.");
 		return kIOReturnInvalid;
 	}
-	
+
 	// Guard: Check the buffer
 	if (buffer == nullptr) {
 		SYSLOG("igfx", "SC: AdvWriteI2COverAUX() Error: Buffer cannot be NULL.");
 		return kIOReturnInvalid;
 	}
-	
+
 	// Guard: Start the transaction and set the access offset successfully
 	IOReturn retVal = advSeekI2COverAUX(that, framebuffer, displayPath, address, offset, flags);
 	if (retVal != kIOReturnSuccess) {
 		SYSLOG("igfx", "SC: AdvWriteI2COverAUX() Error: Failed to set the data offset.");
 		return retVal;
 	}
-	
+
 	// Process the write request
 	// WriteI2COverAUX() can only process up to 16 bytes in one AUX transaction
 	// because the burst data size is 20 bytes, in which the first 4 bytes are used for the AUX message header
 	while (length != 0) {
 		// Calculate the new length for this I2C-over-AUX transaction
 		uint16_t newLength = length >= 16 ? 16 : length;
-		
+
 		// This is an intermediate transaction
 		retVal = wrapWriteI2COverAUX(that, framebuffer, displayPath, address, newLength, buffer, true);
-		
+
 		// Guard: The intermediate transaction succeeded
 		if (retVal != kIOReturnSuccess) {
 			// Terminate the transaction
 			wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false);
 			return retVal;
 		}
-		
+
 		// Update the buffer position and length
 		length -= newLength;
 		buffer += newLength;
 	}
-	
+
 	// All intermediate transactions succeeded
 	// Terminate the transaction
 	return wrapWriteI2COverAUX(that, framebuffer, displayPath, address, 0, nullptr, false);
@@ -1169,7 +1235,7 @@ void IGFX::framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void
 		return;
 	}
 	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] called with controller at 0x%llx and framebuffer at 0x%llx.", index, that, framebuffer);
-	
+
 	// Retrieve the user preference
 	LSPCON *lspcon = nullptr;
 	auto pmode = framebufferLSPCONGetPreferredMode(index);
@@ -1177,14 +1243,14 @@ void IGFX::framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void
 	framebuffer->setProperty("fw-framebuffer-has-lspcon", framebufferHasLSPCON(index));
 	framebuffer->setProperty("fw-framebuffer-preferred-lspcon-mode", LSPCON::getModeValue(pmode), 8);
 #endif
-	
+
 	// Guard: Check whether this framebuffer connector has an onboard LSPCON chip
 	if (!framebufferHasLSPCON(index)) {
 		// No LSPCON chip associated with this connector
 		DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] No LSPCON chip associated with this framebuffer.", index);
 		return;
 	}
-	
+
 	// Guard: Check whether the LSPCON driver has already been initialized for this framebuffer
 	if (framebufferHasLSPCONInitialized(index)) {
 		// Already initialized
@@ -1200,7 +1266,7 @@ void IGFX::framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void
 		}
 		return;
 	}
-	
+
 	// User has specified the existence of onboard LSPCON
 	// Guard: Initialize the driver for this framebuffer
 	lspcon = LSPCON::create(that, framebuffer, displayPath);
@@ -1208,7 +1274,7 @@ void IGFX::framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void
 		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] Failed to initialize the LSPCON driver.", index);
 		return;
 	}
-	
+
 	// Guard: Attempt to probe the onboard LSPCON chip
 	if (lspcon->probe() != kIOReturnSuccess) {
 		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] Failed to probe the LSPCON adapter.", index);
@@ -1218,11 +1284,11 @@ void IGFX::framebufferSetupLSPCON(void *that, IORegistryEntry *framebuffer, void
 		return;
 	}
 	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] LSPCON driver has detected the onboard chip successfully.", index);
-	
+
 	// LSPCON driver has been initialized successfully
 	framebufferSetLSPCON(index, lspcon);
 	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] LSPCON driver has been initialized successfully.", index);
-	
+
 	// Guard: Set the preferred adapter mode if necessary
 	if (lspcon->setModeIfNecessary(pmode) != kIOReturnSuccess) {
 		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] The adapter is not running in preferred mode. Failed to set the %s mode.", index,  LSPCON::getModeString(pmode));
@@ -1271,12 +1337,12 @@ IOReturn IGFX::wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *d
 	// - FireWolf
 	// - 2019.06
 	//
-	
+
 	// Configure the LSPCON adapter for the given framebuffer
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Start to configure the LSPCON adapter.");
 	framebufferSetupLSPCON(that, framebuffer, displayPath);
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Finished configuring the LSPCON adapter.");
-	
+
 	// Call the original method
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Will call the original method.");
 	IOReturn retVal = callbackIGFX->orgGetDPCDInfo(that, framebuffer, displayPath);
@@ -1384,7 +1450,7 @@ bool IGFX::wrapGetOSInformation(void *that) {
 #ifdef DEBUG
 	if (callbackIGFX->dumpFramebufferToDisk) {
 		char name[64];
-		snprintf(name, sizeof(name), "/AppleIntelFramebuffer_%d_%d.%d", callbackIGFX->cpuGeneration, getKernelVersion(), getKernelMinorVersion());
+		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", callbackIGFX->cpuGeneration, getKernelVersion(), getKernelMinorVersion());
 		FileIO::writeBufferToFile(name, callbackIGFX->framebufferStart, callbackIGFX->framebufferSize);
 		SYSLOG("igfx", "dumping framebuffer information to %s", name);
 	}
@@ -1703,7 +1769,7 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 		snprintf(name, sizeof(name), "framebuffer-patch%lu-replace", i);
 		auto framebufferPatchReplace = OSDynamicCast(OSData, igpu->getProperty(name));
 		snprintf(name, sizeof(name), "framebuffer-patch%lu-count", i);
-		WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
+		(void)WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
 
 		if (!framebufferPatchFind || !framebufferPatchReplace)
 			continue;
@@ -2026,9 +2092,9 @@ void IGFX::applyFramebufferPatches() {
 			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
 		else if (cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
 			// FIXME: Need to address possible circumstance of both ICL kexts loaded at the same time
-			if (callbackIGFX->currentFramebuffer->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
+			if (callbackIGFX->currentFramebuffer->loadIndex != KernelPatcher::KextInfo::Unloaded)
 				success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferICLLP *>(gPlatformInformationList));
-			else if (callbackIGFX->currentFramebufferOpt->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
+			else if (callbackIGFX->currentFramebufferOpt->loadIndex != KernelPatcher::KextInfo::Unloaded)
 				success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferICLHP *>(gPlatformInformationList));
 		}
 
@@ -2102,12 +2168,12 @@ void IGFX::applyHdmiAutopatch() {
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
 		// FIXME: Need to address possible circumstance of both ICL kexts loaded at the same time
-		if (callbackIGFX->currentFramebuffer->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
+		if (callbackIGFX->currentFramebuffer->loadIndex != KernelPatcher::KextInfo::Unloaded)
 			success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferICLLP *>(gPlatformInformationList));
-		else if (callbackIGFX->currentFramebufferOpt->loadIndex == KernelPatcher::KextInfo::SysFlags::Loaded)
+		else if (callbackIGFX->currentFramebufferOpt->loadIndex != KernelPatcher::KextInfo::Unloaded)
 			success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferICLHP *>(gPlatformInformationList));
 	}
-	
+
 	if (success)
 		DBGLOG("igfx", "hdmi patching framebufferId 0x%08X successful", framebufferId);
 	else

@@ -26,6 +26,7 @@ static const char *pathRadeonX4150[]        { "/System/Library/Extensions/AMDRad
 static const char *pathRadeonX4200[]        { "/System/Library/Extensions/AMDRadeonX4200.kext/Contents/MacOS/AMDRadeonX4200" };
 static const char *pathRadeonX4250[]        { "/System/Library/Extensions/AMDRadeonX4250.kext/Contents/MacOS/AMDRadeonX4250" };
 static const char *pathRadeonX5000[]        { "/System/Library/Extensions/AMDRadeonX5000.kext/Contents/MacOS/AMDRadeonX5000" };
+static const char *pathRadeonX6000[]        { "/System/Library/Extensions/AMDRadeonX6000.kext/Contents/MacOS/AMDRadeonX6000" };
 static const char *patchPolarisController[] { "/System/Library/Extensions/AMD9500Controller.kext/Contents/MacOS/AMD9500Controller" };
 
 static const char *idRadeonX3000New {"com.apple.kext.AMDRadeonX3000"};
@@ -35,6 +36,7 @@ static const char *idRadeonX4150New {"com.apple.kext.AMDRadeonX4150"};
 static const char *idRadeonX4200New {"com.apple.kext.AMDRadeonX4200"};
 static const char *idRadeonX4250New {"com.apple.kext.AMDRadeonX4250"};
 static const char *idRadeonX5000New {"com.apple.kext.AMDRadeonX5000"};
+static const char *idRadeonX6000New {"com.apple.kext.AMDRadeonX6000"};
 static const char *idRadeonX3000Old {"com.apple.AMDRadeonX3000"};
 static const char *idRadeonX4000Old {"com.apple.AMDRadeonX4000"};
 
@@ -56,7 +58,8 @@ static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX4200] = { idRadeonX4200New, pathRadeonX4200, arrsize(pathRadeonX4200), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4250] = { idRadeonX4250New, pathRadeonX4250, arrsize(pathRadeonX4250), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4000] = { idRadeonX4000New, pathRadeonX4000, arrsize(pathRadeonX4000), {}, {}, KernelPatcher::KextInfo::Unloaded },
-	[RAD::IndexRadeonHardwareX5000] = { idRadeonX5000New, pathRadeonX5000, arrsize(pathRadeonX5000), {}, {}, KernelPatcher::KextInfo::Unloaded }
+	[RAD::IndexRadeonHardwareX5000] = { idRadeonX5000New, pathRadeonX5000, arrsize(pathRadeonX5000), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	[RAD::IndexRadeonHardwareX6000] = { idRadeonX6000New, pathRadeonX6000, arrsize(pathRadeonX6000), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 /**
@@ -82,8 +85,11 @@ void RAD::init() {
 	currentPropProvider.init();
 	currentLegacyPropProvider.init();
 
+	force24BppMode = checkKernelArgument("-rad24");
+	useCustomAgdpDecision = getKernelVersion() >= KernelVersion::Catalina;
+
 	// Certain displays do not support 32-bit colour output, so we have to force 24-bit.
-	if (getKernelVersion() >= KernelVersion::Sierra && checkKernelArgument("-rad24")) {
+	if (getKernelVersion() >= KernelVersion::Sierra && force24BppMode) {
 		lilu.onKextLoadForce(&kextRadeonFramebuffer);
 		// Mojave dropped legacy GPU support (5xxx and 6xxx).
 		if (getKernelVersion() < KernelVersion::Mojave)
@@ -101,6 +107,9 @@ void RAD::init() {
 
 	// Broken drivers can still let us boot in vesa mode
 	forceVesaMode = checkKernelArgument("-radvesa");
+	
+	// Fix codec PID to be spoofed PID if requested
+	forceCodecInfo = checkKernelArgument("-radcodec");
 
 	// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
 	lilu.onKextLoadForce(&kextRadeonSupport);
@@ -133,17 +142,25 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool hasAMD = false;
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
-			hasAMD = true;
+			enableGvaSupport = hasAMD = true;
+			if (info->videoExternal[i].video->getProperty("disable-gva-support"))
+				enableGvaSupport = false;
 			break;
 		}
 	}
 
 	if (hasAMD) {
+		if (checkKernelArgument("-radnogva"))
+			enableGvaSupport = false;
+
 		KernelPatcher::RouteRequest requests[] {
 			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
 			KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
 		};
 		patcher.routeMultiple(KernelPatcher::KernelID, requests);
+
+		if (useCustomAgdpDecision && info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+			useCustomAgdpDecision = false;
 	} else {
 		kextRadeonFramebuffer.switchOff();
 		kextRadeonLegacyFramebuffer.switchOff();
@@ -157,17 +174,31 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	if (kextRadeonFramebuffer.loadIndex == index) {
-		process24BitOutput(patcher, kextRadeonFramebuffer, address, size);
+		if (force24BppMode)
+			process24BitOutput(patcher, kextRadeonFramebuffer, address, size);
 		return true;
 	}
 
 	if (kextRadeonLegacyFramebuffer.loadIndex == index) {
-		process24BitOutput(patcher, kextRadeonLegacyFramebuffer, address, size);
+		if (force24BppMode)
+			process24BitOutput(patcher, kextRadeonLegacyFramebuffer, address, size);
 		return true;
 	}
 
 	if (kextRadeonSupport.loadIndex == index) {
 		processConnectorOverrides(patcher, address, size, true);
+
+		if (getKernelVersion() > KernelVersion::Mojave ||
+			(getKernelVersion() == KernelVersion::Mojave && getKernelMinorVersion() >= 5)) {
+			KernelPatcher::RouteRequest request("__ZN13ATIController8TestVRAME13PCI_REG_INDEXb", doNotTestVram);
+			patcher.routeMultiple(index, &request, 1, address, size);
+		}
+
+		if (useCustomAgdpDecision) {
+			KernelPatcher::RouteRequest request("__ZN16AtiDeviceControl16notifyLinkChangeE31kAGDCRegisterLinkControlEvent_tmj", wrapNotifyLinkChange, orgNotifyLinkChange);
+			patcher.routeMultiple(index, &request, 1, address, size);
+		}
+
 		return true;
 	}
 
@@ -193,9 +224,12 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 void RAD::initHardwareKextMods() {
 	// Decide on kext amount present for optimal performance.
+	// 10.15+   has X4000, X5000, and X6000
 	// 10.14+   has X4000 and X5000
 	// 10.13.4+ has X3000, X4000, and X5000
-	if (getKernelVersion() >= KernelVersion::Mojave)
+	if (getKernelVersion() >= KernelVersion::Catalina)
+		maxHardwareKexts = MaxRadeonHardwareCatalina;
+	else if (getKernelVersion() >= KernelVersion::Mojave)
 		maxHardwareKexts = MaxRadeonHardwareMojave;
 	else if (getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 5)
 		maxHardwareKexts = MaxRadeonHardwareModernHighSierra;
@@ -206,10 +240,15 @@ void RAD::initHardwareKextMods() {
 			getFrameBufferProcNames[IndexRadeonHardwareX4000][i] = nullptr;
 
 		// We have nothing to do for these kexts on recent systems
-		if (!fixConfigName && !forceOpenGL) {
-			kextRadeonHardware[IndexRadeonHardwareX4000].switchOff();
+		if (!fixConfigName && !forceOpenGL && !forceCodecInfo) {
+			// X4000 kext is not included in this list as we need to fix GVA properties for most of its GPUs
 			kextRadeonHardware[IndexRadeonHardwareX5000].switchOff();
+			kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 		}
+	}
+
+	if (getKernelVersion() < KernelVersion::Catalina) {
+		kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 	}
 
 	if (getKernelVersion() < KernelVersion::HighSierra) {
@@ -256,6 +295,7 @@ void RAD::process24BitOutput(KernelPatcher &patcher, KernelPatcher::KextInfo &in
 		}
 	} else {
 		SYSLOG("rad", "failed to find BITS_PER_COMPONENT");
+		patcher.clearError();
 	}
 
 	DBGLOG("rad", "fixing pixel types");
@@ -348,7 +388,8 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 	}
 
 	// Fix reported Accelerator name to support WhateverName.app
-	if (fixConfigName) {
+	// Also fix GVA properties for X4000.
+	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000) {
 		KernelPatcher::RouteRequest request(populateAccelConfigProcNames[hwIndex], wrapPopulateAccelConfig[hwIndex], orgPopulateAccelConfig[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
@@ -370,6 +411,12 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 			patcher.applyLookupPatch(&p);
 			patcher.clearError();
 		}
+	}
+
+	// Patch AppleGVA support for non-supported models
+	if (forceCodecInfo && getHWInfoProcNames[hwIndex] != nullptr) {
+		KernelPatcher::RouteRequest request(getHWInfoProcNames[hwIndex], wrapGetHWInfo[hwIndex], orgGetHWInfo[hwIndex]);
+		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
 }
 
@@ -455,7 +502,7 @@ void RAD::mergeProperties(OSDictionary *props, const char *prefix, IOService *pr
 	} else {
 		SYSLOG("rad", "prop merge failed to get properties");
 	}
-	
+
 	if (!strcmp(prefix, "CAIL,")) {
 		for (size_t i = 0; i < arrsize(powerGatingFlags); i++) {
 			if (powerGatingFlags[i] && props->getObject(powerGatingFlags[i])) {
@@ -553,17 +600,17 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 			DBGLOG("rad", "autocorrectConnectors not encoder %X at %u", displayPaths[i].usGraphicObjIds, i);
 			continue;
 		}
-		
+
 		uint8_t txmit = 0, enc = 0;
 		if (!getTxEnc(displayPaths[i].usGraphicObjIds, txmit, enc))
 			continue;
-		
+
 		uint8_t sense = getSenseID(baseAddr + connectorObjects[i].usRecordOffset);
 		if (!sense) {
 			DBGLOG("rad", "autocorrectConnectors failed to detect sense for %u connector", i);
 			continue;
 		}
-		
+
 		DBGLOG("rad", "autocorrectConnectors found txmit %02X enc %02X sense %02X for %u connector", txmit, enc, sense, i);
 
 		autocorrectConnector(getConnectorID(displayPaths[i].usConnObjectId), sense, txmit, enc, connectors, sz);
@@ -578,7 +625,7 @@ void RAD::autocorrectConnector(uint8_t connector, uint8_t sense, uint8_t txmit, 
 	// in AtiAtomBiosDce60::getPropertiesForConnectorObject for DVI DL and TITFP513 this value is conjuncted with 0xCF,
 	// which makes it wrong: 0x10 -> 0, 0x11 -> 1. As a result one gets black screen when connecting multiple displays.
 	// getPropertiesForEncoderObject takes usGraphicObjIds and getPropertiesForConnectorObject takes usConnObjectId
-	
+
 	if (callbackRAD->dviSingleLink) {
 		if (connector != CONNECTOR_OBJECT_ID_DUAL_LINK_DVI_I &&
 			connector != CONNECTOR_OBJECT_ID_DUAL_LINK_DVI_D &&
@@ -586,7 +633,7 @@ void RAD::autocorrectConnector(uint8_t connector, uint8_t sense, uint8_t txmit, 
 			DBGLOG("rad", "autocorrectConnector found unsupported connector type %02X", connector);
 			return;
 		}
-		
+
 		auto fixTransmit = [](auto &con, uint8_t idx, uint8_t sense, uint8_t txmit) {
 			if (con.sense == sense) {
 				if (con.transmitter != txmit && (con.transmitter & 0xCF) == con.transmitter) {
@@ -598,7 +645,7 @@ void RAD::autocorrectConnector(uint8_t connector, uint8_t sense, uint8_t txmit, 
 			}
 			return false;
 		};
-		
+
 		bool isModern = RADConnectors::modern();
 		for (uint8_t j = 0; j < sz; j++) {
 			if (isModern) {
@@ -625,7 +672,7 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 		RADConnectors::ConnectorVGA
 	};
 	static constexpr uint8_t typeNum {static_cast<uint8_t>(arrsize(typeList))};
-	
+
 	bool isModern = RADConnectors::modern();
 	uint16_t priCount = 1;
 	// Automatically detected connectors have equal priority (0), which often results in black screen
@@ -651,7 +698,7 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 				}
 				return false;
 			};
-			
+
 			if ((isModern && reorder((&connectors->modern)[j])) ||
 				(!isModern && reorder((&connectors->legacy)[j])))
 				break;
@@ -659,35 +706,171 @@ void RAD::reprioritiseConnectors(const uint8_t *senseList, uint8_t senseNum, RAD
 	}
 }
 
-void RAD::updateAccelConfig(IOService *accelService, const char **accelConfig) {
-	if (accelService && accelConfig) {
-		auto gpuService = accelService->getParentEntry(gIOServicePlane);
+void RAD::setGvaProperties(IOService *accelService) {
+	auto codecStr = OSDynamicCast(OSString, accelService->getProperty("IOGVACodec"));
+	if (codecStr == nullptr) {
+		DBGLOG("rad", "updating X4000 accelerator IOGVACodec to VCE");
+		accelService->setProperty("IOGVACodec", "VCE");
+	} else {
+		auto codec = codecStr->getCStringNoCopy();
+		DBGLOG("rad", "X4000 accelerator IOGVACodec is already set to %s", safeString(codec));
+		if (codec != nullptr && strncmp(codec, "AMD", strlen("AMD")) == 0) {
+			bool needsDecode = accelService->getProperty("IOGVAHEVCDecode") == nullptr;
+			bool needsEncode = accelService->getProperty("IOGVAHEVCEncode") == nullptr;
+			if (needsDecode) {
+				OSObject *VTMaxDecodeLevel = OSNumber::withNumber(153, 32);
+				OSString *VTMaxDecodeLevelKey  = OSString::withCString("VTMaxDecodeLevel");
+				OSDictionary *VTPerProfileDetailsInner = OSDictionary::withCapacity(1);
+				OSDictionary *VTPerProfileDetails = OSDictionary::withCapacity(3);
+				OSString *VTPerProfileDetailsKey1 = OSString::withCString("1");
+				OSString *VTPerProfileDetailsKey2 = OSString::withCString("2");
+				OSString *VTPerProfileDetailsKey3 = OSString::withCString("3");
 
-		if (gpuService) {
-			auto model = OSDynamicCast(OSData, gpuService->getProperty("model"));
-			if (model) {
-				auto modelStr = static_cast<const char *>(model->getBytesNoCopy());
-				if (modelStr) {
-					if (modelStr[0] == 'A' && ((modelStr[1] == 'M' && modelStr[2] == 'D') ||
-											   (modelStr[1] == 'T' && modelStr[2] == 'I')) && modelStr[3] == ' ') {
-						modelStr += 4;
-					}
+				OSArray *VTSupportedProfileArray = OSArray::withCapacity(3);
+				OSNumber *VTSupportedProfileArray1 = OSNumber::withNumber(1, 32);
+				OSNumber *VTSupportedProfileArray2 = OSNumber::withNumber(2, 32);
+				OSNumber *VTSupportedProfileArray3 = OSNumber::withNumber(3, 32);
 
-					DBGLOG("rad", "updateAccelConfig found gpu model %s", modelStr);
-					*accelConfig = modelStr;
+				OSDictionary *IOGVAHEVCDecodeCapabilities = OSDictionary::withCapacity(2);
+				OSString *VTPerProfileDetailsKey = OSString::withCString("VTPerProfileDetails");
+				OSString *VTSupportedProfileArrayKey = OSString::withCString("VTSupportedProfileArray");
+
+				if (VTMaxDecodeLevel != nullptr && VTMaxDecodeLevelKey != nullptr && VTPerProfileDetailsInner != nullptr &&
+					VTPerProfileDetails != nullptr && VTPerProfileDetailsKey1 != nullptr && VTPerProfileDetailsKey2 != nullptr &&
+					VTPerProfileDetailsKey3 != nullptr && VTSupportedProfileArrayKey != nullptr && VTSupportedProfileArray1 != nullptr &&
+					VTSupportedProfileArray2 != nullptr && VTSupportedProfileArray3 != nullptr && VTSupportedProfileArray != nullptr &&
+					VTPerProfileDetailsKey != nullptr && IOGVAHEVCDecodeCapabilities != nullptr) {
+					VTPerProfileDetailsInner->setObject(VTMaxDecodeLevelKey, VTMaxDecodeLevel);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey1, VTPerProfileDetailsInner);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey2, VTPerProfileDetailsInner);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey3, VTPerProfileDetailsInner);
+
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray1);
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray2);
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray3);
+
+					IOGVAHEVCDecodeCapabilities->setObject(VTPerProfileDetailsKey, VTPerProfileDetails);
+					IOGVAHEVCDecodeCapabilities->setObject(VTSupportedProfileArrayKey, VTSupportedProfileArray);
+
+					accelService->setProperty("IOGVAHEVCDecode", "1");
+					accelService->setProperty("IOGVAHEVCDecodeCapabilities", IOGVAHEVCDecodeCapabilities);
+
+					DBGLOG("rad", "recovering IOGVAHEVCDecode");
 				} else {
-					DBGLOG("rad", "updateAccelConfig found null gpu model");
+					SYSLOG("rad", "allocation failure in IOGVAHEVCDecode");
 				}
-			} else {
-				DBGLOG("rad", "updateAccelConfig failed to find gpu model");
+
+				OSSafeReleaseNULL(VTMaxDecodeLevel);
+				OSSafeReleaseNULL(VTMaxDecodeLevelKey);
+				OSSafeReleaseNULL(VTPerProfileDetailsInner);
+				OSSafeReleaseNULL(VTPerProfileDetails);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey1);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey2);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey3);
+				OSSafeReleaseNULL(VTSupportedProfileArrayKey);
+				OSSafeReleaseNULL(VTSupportedProfileArray1);
+				OSSafeReleaseNULL(VTSupportedProfileArray2);
+				OSSafeReleaseNULL(VTSupportedProfileArray3);
+				OSSafeReleaseNULL(VTSupportedProfileArray);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey);
+				OSSafeReleaseNULL(IOGVAHEVCDecodeCapabilities);
 			}
 
-		} else {
-			DBGLOG("rad", "updateAccelConfig failed to find accelerator parent");
+			if (needsEncode) {
+				OSObject *VTMaxEncodeLevel = OSNumber::withNumber(153, 32);
+				OSString *VTMaxEncodeLevelKey  = OSString::withCString("VTMaxEncodeLevel");
+
+				OSDictionary *VTPerProfileDetailsInner = OSDictionary::withCapacity(1);
+				OSDictionary *VTPerProfileDetails = OSDictionary::withCapacity(1);
+				OSString *VTPerProfileDetailsKey1 = OSString::withCString("1");
+
+				OSArray *VTSupportedProfileArray = OSArray::withCapacity(1);
+				OSNumber *VTSupportedProfileArray1 = OSNumber::withNumber(1, 32);
+
+				OSDictionary *IOGVAHEVCEncodeCapabilities = OSDictionary::withCapacity(4);
+				OSString *VTPerProfileDetailsKey = OSString::withCString("VTPerProfileDetails");
+				OSString *VTQualityRatingKey = OSString::withCString("VTQualityRating");
+				OSNumber *VTQualityRating = OSNumber::withNumber(50, 32);
+				OSString *VTRatingKey = OSString::withCString("VTRating");
+				OSNumber *VTRating = OSNumber::withNumber(350, 32);
+				OSString *VTSupportedProfileArrayKey = OSString::withCString("VTSupportedProfileArray");
+
+				if (VTMaxEncodeLevel != nullptr && VTMaxEncodeLevelKey != nullptr && VTPerProfileDetailsInner != nullptr &&
+					VTPerProfileDetails != nullptr && VTPerProfileDetailsKey1 != nullptr && VTSupportedProfileArrayKey != nullptr &&
+					VTSupportedProfileArray1 != nullptr && VTSupportedProfileArray != nullptr && VTPerProfileDetailsKey != nullptr &&
+					VTQualityRatingKey != nullptr && VTQualityRating != nullptr && VTRatingKey != nullptr && VTRating != nullptr &&
+					IOGVAHEVCEncodeCapabilities != nullptr) {
+
+					VTPerProfileDetailsInner->setObject(VTMaxEncodeLevelKey, VTMaxEncodeLevel);
+					VTPerProfileDetails->setObject(VTPerProfileDetailsKey1, VTPerProfileDetailsInner);
+					VTSupportedProfileArray->setObject(VTSupportedProfileArray1);
+
+					IOGVAHEVCEncodeCapabilities->setObject(VTPerProfileDetailsKey, VTPerProfileDetails);
+					IOGVAHEVCEncodeCapabilities->setObject(VTQualityRatingKey, VTQualityRating);
+					IOGVAHEVCEncodeCapabilities->setObject(VTRatingKey, VTRating);
+					IOGVAHEVCEncodeCapabilities->setObject(VTSupportedProfileArrayKey, VTSupportedProfileArray);
+
+					accelService->setProperty("IOGVAHEVCEncode", "1");
+					accelService->setProperty("IOGVAHEVCEncodeCapabilities", IOGVAHEVCEncodeCapabilities);
+
+					DBGLOG("rad", "recovering IOGVAHEVCEncode");
+				} else {
+					SYSLOG("rad", "allocation failure in IOGVAHEVCEncode");
+				}
+
+				OSSafeReleaseNULL(VTMaxEncodeLevel);
+				OSSafeReleaseNULL(VTMaxEncodeLevelKey);
+				OSSafeReleaseNULL(VTPerProfileDetailsInner);
+				OSSafeReleaseNULL(VTPerProfileDetails);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey1);
+				OSSafeReleaseNULL(VTSupportedProfileArrayKey);
+				OSSafeReleaseNULL(VTSupportedProfileArray1);
+				OSSafeReleaseNULL(VTSupportedProfileArray);
+				OSSafeReleaseNULL(VTPerProfileDetailsKey);
+				OSSafeReleaseNULL(VTQualityRatingKey);
+				OSSafeReleaseNULL(VTQualityRating);
+				OSSafeReleaseNULL(VTRatingKey);
+				OSSafeReleaseNULL(VTRating);
+				OSSafeReleaseNULL(IOGVAHEVCEncodeCapabilities);
+			}
 		}
 	}
 }
 
+void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char **accelConfig) {
+	if (accelService && accelConfig) {
+		if (fixConfigName) {
+			auto gpuService = accelService->getParentEntry(gIOServicePlane);
+
+			if (gpuService) {
+				auto model = OSDynamicCast(OSData, gpuService->getProperty("model"));
+				if (model) {
+					auto modelStr = static_cast<const char *>(model->getBytesNoCopy());
+					if (modelStr) {
+						if (modelStr[0] == 'A' && ((modelStr[1] == 'M' && modelStr[2] == 'D') ||
+												   (modelStr[1] == 'T' && modelStr[2] == 'I')) && modelStr[3] == ' ') {
+							modelStr += 4;
+						}
+
+						DBGLOG("rad", "updateAccelConfig found gpu model %s", modelStr);
+						*accelConfig = modelStr;
+					} else {
+						DBGLOG("rad", "updateAccelConfig found null gpu model");
+					}
+				} else {
+					DBGLOG("rad", "updateAccelConfig failed to find gpu model");
+				}
+
+			} else {
+				DBGLOG("rad", "updateAccelConfig failed to find accelerator parent");
+			}
+		}
+
+		if (enableGvaSupport && hwIndex == IndexRadeonHardwareX4000) {
+			setGvaProperties(accelService);
+		}
+	}
+}
 
 bool RAD::wrapSetProperty(IORegistryEntry *that, const char *aKey, void *bytes, unsigned length) {
 	if (length > 10 && aKey && reinterpret_cast<const uint32_t *>(aKey)[0] == 'edom' && reinterpret_cast<const uint16_t *>(aKey)[2] == 'l') {
@@ -753,7 +936,7 @@ uint32_t RAD::wrapGetConnectorsInfoV1(void *that, RADConnectors::Connector *conn
 	} else {
 		DBGLOG("rad", "getConnectorsInfoV1 failed %X or undefined %d", code, props == nullptr);
 	}
-	
+
 	return code;
 }
 
@@ -783,14 +966,14 @@ uint32_t RAD::wrapLegacyGetConnectorsInfo(void *that, RADConnectors::Connector *
 
 uint32_t RAD::wrapTranslateAtomConnectorInfoV1(void *that, RADConnectors::AtomConnectorInfo *info, RADConnectors::Connector *connector) {
 	uint32_t code = FunctionCast(wrapTranslateAtomConnectorInfoV1, callbackRAD->orgTranslateAtomConnectorInfoV1)(that, info, connector);
-	
+
 	if (code == 0 && info && connector) {
 		RADConnectors::print(connector, 1);
-		
+
 		uint8_t sense = getSenseID(info->i2cRecord);
 		if (sense) {
 			DBGLOG("rad", "translateAtomConnectorInfoV1 got sense id %02X", sense);
-			
+
 			// We need to extract usGraphicObjIds from info->hpdRecord, which is of type ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT:
 			// struct ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT {
 			//   uint8_t ucNumberOfSrc;
@@ -799,7 +982,7 @@ uint32_t RAD::wrapTranslateAtomConnectorInfoV1(void *that, RADConnectors::AtomCo
 			//   uint16_t usDstObjectID[ucNumberOfDst];
 			// };
 			// The value we need is in usSrcObjectID. The structure is byte-packed.
-			
+
 			uint8_t ucNumberOfSrc = info->hpdRecord[0];
 			for (uint8_t i = 0; i < ucNumberOfSrc; i++) {
 				auto usSrcObjectID = *reinterpret_cast<uint16_t *>(info->hpdRecord + sizeof(uint8_t) + i * sizeof(uint16_t));
@@ -811,22 +994,22 @@ uint32_t RAD::wrapTranslateAtomConnectorInfoV1(void *that, RADConnectors::AtomCo
 					break;
 				}
 			}
-			
-			
+
+
 		} else {
 			DBGLOG("rad", "translateAtomConnectorInfoV1 failed to detect sense for translated connector");
 		}
 	}
-	
+
 	return code;
 }
 
 uint32_t RAD::wrapTranslateAtomConnectorInfoV2(void *that, RADConnectors::AtomConnectorInfo *info, RADConnectors::Connector *connector) {
 	uint32_t code = FunctionCast(wrapTranslateAtomConnectorInfoV2, callbackRAD->orgTranslateAtomConnectorInfoV2)(that, info, connector);
-	
+
 	if (code == 0 && info && connector) {
 		RADConnectors::print(connector, 1);
-		
+
 		uint8_t sense = getSenseID(info->i2cRecord);
 		if (sense) {
 			DBGLOG("rad", "translateAtomConnectorInfoV2 got sense id %02X", sense);
@@ -837,7 +1020,7 @@ uint32_t RAD::wrapTranslateAtomConnectorInfoV2(void *that, RADConnectors::AtomCo
 			DBGLOG("rad", "translateAtomConnectorInfoV2 failed to detect sense for translated connector");
 		}
 	}
-	
+
 	return code;
 }
 
@@ -876,4 +1059,56 @@ IOReturn RAD::findProjectByPartNumber(IOService *ctrl, void *properties) {
 	// 113-4E353BU, 113-4E3531U, 113-C94002A1XTA
 	// Despite this looking sane, at least with Sapphire 113-4E353BU-O50 (RX 580) these framebuffers break connectors.
 	return kIOReturnNotFound;
+}
+
+bool RAD::doNotTestVram(IOService *ctrl, uint32_t reg, bool retryOnFail) {
+	// Based on vladie's patch description:
+	// TestVRAM fills memory with 0xaa55aa55 bytes (it's magenta pixels visible onscreen),
+	// and it tries to test too much of address space, writing this bytes to framebuffer memory.
+	// If you have verbose mode enabled (as i have), there is a possibility that framebuffer
+	// will scroll during this test, and TestVRAM will write 0xaa55aa55, but read 0x00000000
+	// (because magenta-colored pixels are scrolled up) causing kernel panic.
+	//
+	// Here we just do not do video memory testing for simplicity.
+	return true;
+}
+
+bool RAD::wrapNotifyLinkChange(void *atiDeviceControl, kAGDCRegisterLinkControlEvent_t event, void *eventData, uint32_t eventFlags) {
+	auto ret = FunctionCast(wrapNotifyLinkChange, callbackRAD->orgNotifyLinkChange)(atiDeviceControl, event, eventData, eventFlags);
+
+	if (event == kAGDCValidateDetailedTiming) {
+		auto cmd = static_cast<AGDCValidateDetailedTiming_t *>(eventData);
+		DBGLOG("rad", "AGDCValidateDetailedTiming %u -> %d (%u)", cmd->framebufferIndex, ret, cmd->modeStatus);
+		// While we have this condition below, the only actual value we get is ret = true, cmd->modeStatus = 0.
+		// This is because AGDP is disabled, and starting from 10.15.1b2 AMDFramebuffer no longer accepts 0 in
+		// __ZN14AMDFramebuffer22validateDetailedTimingEPvy
+		if (ret == false || cmd->modeStatus < 1 || cmd->modeStatus > 3) {
+			cmd->modeStatus = 2;
+			ret = true;
+		}
+	}
+
+	return ret;
+}
+
+void RAD::updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
+	IOService *accel, *pciDev;
+	accel = OSDynamicCast(IOService, accelVideoCtx->getParentEntry(gIOServicePlane));
+	if (accel == NULL) {
+		SYSLOG("rad", "getHWInfo: no parent found for accelVideoCtx!");
+		return;
+	}
+	pciDev = OSDynamicCast(IOService, accel->getParentEntry(gIOServicePlane));
+	if (pciDev == NULL) {
+		SYSLOG("rad", "getHWInfo: no parent found for accel!");
+		return;
+	}
+	uint16_t &org = getMember<uint16_t>(hwInfo, 0x4);
+	uint32_t dev = org;
+	if (!WIOKit::getOSDataValue(pciDev, "codec-device-id", dev)) {
+		// fallback to device-id only if we do not have codec-device-id
+		WIOKit::getOSDataValue(pciDev, "device-id", dev);
+	}
+	DBGLOG("rad", "getHWInfo: original PID: 0x%04X, replaced PID: 0x%04X", org, dev);
+	org = static_cast<uint16_t>(dev);
 }

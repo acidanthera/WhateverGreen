@@ -1,8 +1,45 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.6
+- Enabled CoreLSKD streaming patches by default for AMD hardware DRM on Ivy Bridge
+- Repurposed 64 bit for FP 2.x streaming hardware accelerated streaming patches (can be used as `shikigva=80`)
+- Fixed accelerator name update logic for X4xxx kexts
+- Fixed Verde IOGVACodec injection to make hardware video decoder work
+- Enable software TV+ decoding on all CPUs without IGPU (`shikigva=256`)
+- Added HEVC capabilities to AMD6 decoders for all GPUs (disabled by `-radnogva` or `disable-gva-support`)
+- Added HW decoder device-id spoofing via `-radcodec` boot-arg, by @osy86
+
+#### v1.3.5
+- Added Lilu 1.4.0 support, which is now the minimum supported version
+- Dropped legacy boot arguments (`-shikigva`, `-shikifps`)
+- Fixed handling `agdpmod` GPU property (in IGPUs and in conjunction with boot-arg)
+- Added `-wegtree` boot argument to force device renaming
+- Fixed FairPlay DRM playback patches on 10.15
+- Added `shikigva` and `shiki-id` aliases in IORegistry
+- Added `applbkl` aliases to IORegistry (data, 32-bit)
+- Added `applbkl-name` and `applbkl-data` IORegistry data keys to provide custom backlight data
+- Fixed applying CoreFP patches on Apple firmware, when they are not needed
+- Added `shikigva=16` (repurposed) property to use AMD hardware DRM decoder in select apps
+- Added `shikigva=128` (repurposed) property to use hardware decoder for FairPlay 1.0 (can be used as `shikigva=144`)
+- Do not disable DRM patches when `shikigva` is used even on Apple hardware for MacPro5,1 support
+
+#### v1.3.4
+- Added support for disabled AppleGraphicsDevicePolicy in AMD drivers on 10.15.1
+- Added basic support for `-radcfg` and `-radgl` on AMD Navi GPUs
+
+#### v1.3.3
+- Rework backlight panel info injection to fix Mac issues
+
+#### v1.3.2
+- Added more GPUs for detection
+- Enable IGPU graphics kernel panic workaround on 10.14.4+ on SKL
+
 #### v1.3.1
 - Fixed an issue that LSPCON driver fails to set the mode after the adapter power is off, i.e. sleep/wake up cycle.
 - Unified release archive names
+- Enforce complete IGPU modeset on Kaby Lake and newer (overridable by igfxfcmsfbs bootarg or
+complete-modeset-framebuffers device property)
+- Disable VRAM testing on AMD GPUs on 10.14.4+ (based on vladie's patch)
 
 #### v1.3.0
 - Fixed custom connector support for Radeon GPUs, thx @lwfitzgerald

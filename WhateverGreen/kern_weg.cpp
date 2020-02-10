@@ -37,6 +37,65 @@ static KernelPatcher::KextInfo kextAGDPolicy  { "com.apple.driver.AppleGraphicsD
 // Note: initially marked as reloadable, but I doubt it needs to be.
 static KernelPatcher::KextInfo kextBacklight { "com.apple.driver.AppleBacklight", pathBacklight, arrsize(pathBacklight), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 
+WEG::ApplePanelData WEG::appleBacklightData[] {
+	{
+		"F14Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x00, 0x00, 0x34, 0x00, 0x52, 0x00, 0x73, 0x00, 0x94, 0x00, 0xBE, 0x00, 0xFA,
+			0x01, 0x36, 0x01, 0x72, 0x01, 0xC5, 0x02, 0x2F, 0x02, 0xB9, 0x03, 0x60, 0x04, 0x1A, 0x05, 0x0A,
+			0x06, 0x0E, 0x07, 0x10
+		}
+	},
+	{
+		"F15Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x00, 0x00, 0x36, 0x00, 0x54, 0x00, 0x7D, 0x00, 0xB2, 0x00, 0xF5, 0x01, 0x49,
+			0x01, 0xB1, 0x02, 0x2B, 0x02, 0xB8, 0x03, 0x59, 0x04, 0x13, 0x04, 0xEC, 0x05, 0xF3, 0x07, 0x34,
+			0x08, 0xAF, 0x0A, 0xD9
+		}
+	},
+	{
+		"F16Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x00, 0x00, 0x18, 0x00, 0x27, 0x00, 0x3A, 0x00, 0x52, 0x00, 0x71, 0x00, 0x96,
+			0x00, 0xC4, 0x00, 0xFC, 0x01, 0x40, 0x01, 0x93, 0x01, 0xF6, 0x02, 0x6E, 0x02, 0xFE, 0x03, 0xAA,
+			0x04, 0x78, 0x05, 0x6C
+		}
+	},
+	{
+		"F17Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x00, 0x00, 0x1F, 0x00, 0x34, 0x00, 0x4F, 0x00, 0x71, 0x00, 0x9B, 0x00, 0xCF,
+			0x01, 0x0E, 0x01, 0x5D, 0x01, 0xBB, 0x02, 0x2F, 0x02, 0xB9, 0x03, 0x60, 0x04, 0x29, 0x05, 0x1E,
+			0x06, 0x44, 0x07, 0xA1
+		}
+	},
+	{
+		"F18Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x00, 0x00, 0x53, 0x00, 0x8C, 0x00, 0xD5, 0x01, 0x31, 0x01, 0xA2, 0x02, 0x2E,
+			0x02, 0xD8, 0x03, 0xAE, 0x04, 0xAC, 0x05, 0xE5, 0x07, 0x59, 0x09, 0x1C, 0x0B, 0x3B, 0x0D, 0xD0,
+			0x10, 0xEA, 0x14, 0x99
+		}
+	},
+	{
+		"F19Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x00, 0x02, 0x8F, 0x03, 0x53, 0x04, 0x5A, 0x05, 0xA1, 0x07, 0xAE, 0x0A, 0x3D,
+			0x0E, 0x14, 0x13, 0x74, 0x1A, 0x5E, 0x24, 0x18, 0x31, 0xA9, 0x44, 0x59, 0x5E, 0x76, 0x83, 0x11,
+			0xB6, 0xC7, 0xFF, 0x7B
+		}
+	},
+	{
+		"F24Txxxx",
+		{
+			0x00, 0x11, 0x00, 0x01, 0x00, 0x34, 0x00, 0x52, 0x00, 0x73, 0x00, 0x94, 0x00, 0xBE, 0x00, 0xFA,
+			0x01, 0x36, 0x01, 0x72, 0x01, 0xC5, 0x02, 0x2F, 0x02, 0xB9, 0x03, 0x60, 0x04, 0x1A, 0x05, 0x0A,
+			0x06, 0x0E, 0x07, 0x10
+		}
+	}
+};
+
 WEG *WEG::callbackWEG;
 
 void WEG::init() {
@@ -75,7 +134,7 @@ void WEG::init() {
 		lilu.onKextLoadForce(&kextIOGraphics);
 
 	// Perform a black screen fix.
-	if (graphicsDisplayPolicyMod != AGDP_NONE)
+	if (graphicsDisplayPolicyMod != AGDP_NONE_SET)
 		lilu.onKextLoad(&kextAGDPolicy);
 
 	// Disable backlight patches if asked specifically.
@@ -128,12 +187,11 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			devInfo->videoExternal.deinit();
 		}
 
-		if (graphicsDisplayPolicyMod == AGDP_DETECT) {
-			size_t extNum = devInfo->videoExternal.size();
-			for (size_t i = 0; i < extNum; i++) {
-				auto prop = devInfo->videoExternal[i].video->getProperty("agdpmod");
+		if (graphicsDisplayPolicyMod == AGDP_DETECT) { /* Default detect only */
+			auto getAgpdMod = [this](IORegistryEntry *device) {
+				auto prop = device->getProperty("agdpmod");
 				if (prop) {
-					DBGLOG("weg", "found agdpmod in external GPU %s", safeString(devInfo->videoExternal[i].video->getName()));
+					DBGLOG("weg", "found agdpmod in external GPU %s", safeString(device->getName()));
 					const char *agdp = nullptr;
 					auto propStr = OSDynamicCast(OSString, prop);
 					auto propData = OSDynamicCast(OSData, prop);
@@ -148,13 +206,24 @@ void WEG::processKernel(KernelPatcher &patcher) {
 					}
 					if (agdp) {
 						processGraphicsPolicyStr(agdp);
-						break;
+						return true;
 					}
 				}
+
+				return false;
+			};
+
+			size_t extNum = devInfo->videoExternal.size();
+			for (size_t i = 0; i < extNum; i++) {
+				if (getAgpdMod(devInfo->videoExternal[i].video))
+					break;
 			}
+			if (devInfo->videoBuiltin != nullptr && graphicsDisplayPolicyMod == AGDP_DETECT) /* Default detect only */
+				getAgpdMod(devInfo->videoBuiltin);
 		}
 
 		// Do not inject properties unless non-Apple
+		size_t extNum = devInfo->videoExternal.size();
 		if (devInfo->firmwareVendor != DeviceInfo::FirmwareVendor::Apple) {
 			DBGLOG("weg", "non-apple-fw proceeding with devprops %d", graphicsDisplayPolicyMod);
 			if (devInfo->videoBuiltin) {
@@ -165,11 +234,14 @@ void WEG::processKernel(KernelPatcher &patcher) {
 					resetFramebuffer = FB_COPY;
 			}
 
-			// Note, disabled Optimus will make videoExternal 0, so this case checks for active IGPU only.
-			size_t extNum = devInfo->videoExternal.size();
-			if (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0)) {
-				// Either a builtin IGPU is not available, or some external GPU is available.
-				kextBacklight.switchOff();
+			if (appleBacklightPatch == APPLBKL_DETECT && devInfo->videoBuiltin != nullptr)
+				WIOKit::getOSDataValue(devInfo->videoBuiltin, "applbkl", appleBacklightPatch);
+
+			if (appleBacklightCustomName == nullptr && devInfo->videoBuiltin != nullptr) {
+				appleBacklightCustomName = OSDynamicCast(OSData, devInfo->videoBuiltin->getProperty("applbkl-name"));
+				appleBacklightCustomData = OSDynamicCast(OSData, devInfo->videoBuiltin->getProperty("applbkl-data"));
+				if (appleBacklightCustomName == nullptr || appleBacklightCustomData == nullptr)
+					appleBacklightCustomName = appleBacklightCustomData = nullptr;
 			}
 
 			for (size_t i = 0; i < extNum; i++) {
@@ -179,16 +251,49 @@ void WEG::processKernel(KernelPatcher &patcher) {
 				// Assume that AMD GPU is the boot display.
 				if (v.vendor == WIOKit::VendorID::ATIAMD && resetFramebuffer == FB_DETECT)
 					resetFramebuffer = FB_ZEROFILL;
+
+				if (appleBacklightPatch == APPLBKL_DETECT)
+					WIOKit::getOSDataValue(v.video, "applbkl", appleBacklightPatch);
+
+				if (appleBacklightCustomName == nullptr) {
+					appleBacklightCustomName = OSDynamicCast(OSData, v.video->getProperty("applbkl-name"));
+					appleBacklightCustomData = OSDynamicCast(OSData, v.video->getProperty("applbkl-data"));
+					if (appleBacklightCustomName == nullptr || appleBacklightCustomData == nullptr)
+						appleBacklightCustomName = appleBacklightCustomData = nullptr;
+				}
 			}
 
-			if (graphicsDisplayPolicyMod == AGDP_DETECT && isGraphicsPolicyModRequired(devInfo))
-				graphicsDisplayPolicyMod = AGDP_VIT9696 | AGDP_PIKERA;
+			// Note, disabled Optimus will make videoExternal 0, so this case checks for active IGPU only.
+			if (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0)) {
+				// Either a builtin IGPU is not available, or some external GPU is available.
+				kextBacklight.switchOff();
+			}
+
+			if ((graphicsDisplayPolicyMod & AGDP_DETECT) && isGraphicsPolicyModRequired(devInfo))
+				graphicsDisplayPolicyMod = AGDP_VIT9696 | AGDP_PIKERA | AGDP_SET;
 
 			if (devInfo->managementEngine)
 				processManagementEngineProperties(devInfo->managementEngine);
-		} else if (appleBacklightPatch != APPLBKL_ON){
-			// Do not patch AppleBacklight on Apple HW, unless forced.
-			kextBacklight.switchOff();
+		} else {
+			if (appleBacklightPatch != APPLBKL_ON) {
+				// Do not patch AppleBacklight on Apple HW, unless forced.
+				kextBacklight.switchOff();
+			}
+
+			if (checkKernelArgument("-wegtree")) {
+				DBGLOG("weg", "apple-fw proceeding with devprops due to arg");
+
+				if (devInfo->videoBuiltin)
+					processBuiltinProperties(devInfo->videoBuiltin, devInfo);
+
+				for (size_t i = 0; i < extNum; i++) {
+					auto &v = devInfo->videoExternal[i];
+					processExternalProperties(v.video, devInfo, v.vendor);
+				}
+			}
+
+			if (devInfo->managementEngine)
+				processManagementEngineProperties(devInfo->managementEngine);
 		}
 
 		igfx.processKernel(patcher, devInfo);
@@ -206,8 +311,8 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		kextIOGraphics.switchOff();
 	}
 
-	if (graphicsDisplayPolicyMod == AGDP_DETECT || graphicsDisplayPolicyMod == AGDP_NONE) {
-		graphicsDisplayPolicyMod = AGDP_NONE;
+	if ((graphicsDisplayPolicyMod & AGDP_DETECT) || graphicsDisplayPolicyMod == AGDP_NONE_SET) {
+		graphicsDisplayPolicyMod = AGDP_NONE_SET;
 		kextAGDPolicy.switchOff();
 	}
 
@@ -248,11 +353,14 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	}
 
 	if (kextBacklight.loadIndex == index) {
-		const uint8_t find[]    = {"F%uT%04x"};
-		const uint8_t replace[] = {"F%uTxxxx"};
-		KernelPatcher::LookupPatch patch = {&kextBacklight, find, replace, sizeof(find), 1};
-		DBGLOG("weg", "applying backlight patch");
-		patcher.applyLookupPatch(&patch);
+		KernelPatcher::RouteRequest request("__ZN15AppleIntelPanel10setDisplayEP9IODisplay", wrapApplePanelSetDisplay, orgApplePanelSetDisplay);
+		if (patcher.routeMultiple(kextBacklight.loadIndex, &request, 1, address, size)) {
+			const uint8_t find[]    = {"F%uT%04x"};
+			const uint8_t replace[] = {"F%uTxxxx"};
+			KernelPatcher::LookupPatch patch = {&kextBacklight, find, replace, sizeof(find), 1};
+			DBGLOG("weg", "applying backlight patch");
+			patcher.applyLookupPatch(&patch);
+		}
 	}
 
 	if (igfx.processKext(patcher, index, address, size))
@@ -417,11 +525,11 @@ void WEG::processManagementEngineProperties(IORegistryEntry *imei) {
 void WEG::processGraphicsPolicyStr(const char *agdp) {
 	DBGLOG("weg", "agdpmod using config %s", agdp);
 	if (strstr(agdp, "detect")) {
-		graphicsDisplayPolicyMod = AGDP_DETECT;
+		graphicsDisplayPolicyMod = AGDP_DETECT_SET;
 	} else if (strstr(agdp, "ignore")) {
-		graphicsDisplayPolicyMod = AGDP_NONE;
+		graphicsDisplayPolicyMod = AGDP_NONE_SET;
 	} else {
-		graphicsDisplayPolicyMod = AGDP_NONE;
+		graphicsDisplayPolicyMod = AGDP_NONE_SET;
 		if (strstr(agdp, "vit9696"))
 			graphicsDisplayPolicyMod |= AGDP_VIT9696;
 		if (strstr(agdp, "pikera"))
@@ -647,6 +755,54 @@ bool WEG::wrapGraphicsPolicyStart(IOService *that, IOService *provider) {
 
 	bool result = FunctionCast(wrapGraphicsPolicyStart, callbackWEG->orgGraphicsPolicyStart)(that, provider);
 	DBGLOG("weg", "agdp start returned %d", result);
+
+	return result;
+}
+
+bool WEG::wrapApplePanelSetDisplay(IOService *that, IODisplay *display) {
+	if (!callbackWEG->applePanelDisplaySet) {
+		callbackWEG->applePanelDisplaySet = true;
+		auto panels = OSDynamicCast(OSDictionary, that->getProperty("ApplePanels"));
+		if (panels) {
+			auto rawPanels = panels->copyCollection();
+			panels = OSDynamicCast(OSDictionary, rawPanels);
+
+			if (panels) {
+				const char *customName = nullptr;
+				if (callbackWEG->appleBacklightCustomName != nullptr) {
+					auto length = callbackWEG->appleBacklightCustomName->getLength();
+					const char *customNameBytes = static_cast<const char *>(callbackWEG->appleBacklightCustomName->getBytesNoCopy());
+					if (length > 0 && customNameBytes[length - 1] == '\0')
+						customName = customNameBytes;
+				}
+
+				for (auto &entry : appleBacklightData) {
+					if (customName != nullptr && strcmp(customName, entry.deviceName) == 0) {
+						panels->setObject(entry.deviceName, callbackWEG->appleBacklightCustomData);
+						DBGLOG("weg", "using custom panel data for %s device", entry.deviceName);
+					} else {
+						auto pd = OSData::withBytes(entry.deviceData, sizeof(entry.deviceData));
+						if (pd) {
+							panels->setObject(entry.deviceName, pd);
+							// No release required by current AppleBacklight implementation.
+						} else {
+							SYSLOG("weg", "panel start cannot allocate %s data", entry.deviceName);
+						}
+					}
+				}
+				that->setProperty("ApplePanels", panels);
+			}
+
+			if (rawPanels) {
+				rawPanels->release();
+			}
+		} else {
+			SYSLOG("weg", "panel start has no panels");
+		}
+	}
+
+	bool result = FunctionCast(wrapApplePanelSetDisplay, callbackWEG->orgApplePanelSetDisplay)(that, display);
+	DBGLOG("weg", "panel display set returned %d", result);
 
 	return result;
 }

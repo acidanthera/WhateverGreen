@@ -11,6 +11,7 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
+#include <Headers/kern_user.hpp>
 
 class SHIKI {
 public:
@@ -26,7 +27,7 @@ public:
 	void processKernel(KernelPatcher &patcher, DeviceInfo *info);
 
 private:
-	// Aside generic DRM unlock patches, which are always on, Shiki also provides a set of patches
+	// Aside generic DRM unlock patches, Shiki also provides a set of patches
 	// to workaround various issues with hardware video acceleration support.
 	// These are set as a shikigva boot-arg bitmask.
 	// For example, to enable ForceOnlineRenderer, ExecutableWhitelist, and ReplaceBoardID
@@ -59,25 +60,41 @@ private:
 		// It is enabled automatically on 10.12 and 10.13 if shikigva is *NOT* passed and ForceCompatibleRenderer or
 		// FixSandyBridgeClassName are automatically enabled.
 		AddExecutableWhitelist     = 8,
-		DisabledUnused16           = 16,
+		// Use hardware DRM decoder (normally AMD) by pretending to be iMacPro in apps that require it.
+		// For example, in Music.app or TV.app for TV+.
+		UseHwDrmDecoder            = 16,
 		// Replace board-id used by AppleGVA and AppleVPA by a different board-id.
 		// Sometimes it is feasible to use different GPU acceleration settings from the main mac model.
 		// By default Mac-27ADBB7B4CEE8E61 (iMac14,2) will be used, but you can override this via shiki-id boot-arg.
 		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
 		ReplaceBoardID             = 32,
-		// Attempt to support fps.1_0 (FairPlay 1.0) in Safari.
-		// This should technically fix some very old streaming services in Safari, which rely on FairPlay DRM
-		// similar to the one found in iTunes. Newer streaming services require FairPlay 2.0, which is hardware-only,
-		// so nothing could be done about them.
-		// Another way to enable this is to pass -shikifps boot argument.
-		UnlockFP10Streaming        = 64,
-		DeprecatedUnused128        = 128
+		// Attempt to support fps.2_1 (FairPlay 2.x) in Safari with hardware decoder. Works on most modern AMD GPUs.
+		// Note, AMD Polaris Ellesmere is broken in 10.15 (e.g. RX 590), whereas AMD Polaris Baffin (e.g. RX 460) is fine.
+		// Easiest check is to run WebKitMediaKeys.isTypeSupported("com.apple.fps.2_1", "video/mp4") in Safari Web Console.
+		// Broken GPU driver will just freeze the system with .gpuRestart crash.
+		UseHwDrmStreaming          = 64,
+		// Disables software decoder unlock patches for FairPlay 1.0.
+		// This will use AMD decoder if available, but currently requires IGPU to be either not present or disabled.
+		UseLegacyHwDrmDecoder      = 128,
+		// Enables software decoder unlock patches for FairPlay 4.0.
+		// This will use software decoder, but currently requires IGPU to be either not present or disabled.
+		UseSwDrmDecoder            = 256,
 	};
 
 	/**
 	 *  Current cpu generation
 	 */
 	CPUInfo::CpuGeneration cpuGeneration {CPUInfo::CpuGeneration::Unknown};
+
+	/**
+	 *  Current process information
+	 */
+	UserPatcher::ProcInfo *procInfo {nullptr};
+
+	/**
+	 *  Current process information array size
+	 */
+	size_t procInfoSize {0};
 
 	/**
 	 *  Automatic GPU detection is required
@@ -92,7 +109,22 @@ private:
 	/**
 	 *  Custom board-id set to /shiki-id IOReg to be used by AppleGVA
 	 */
-	char customBoardID[64] {};
+	char customBoardID[21] {};
+
+	/**
+	 *  iMacPro1,1 board-id used for find-replace (thus the size).
+	 */
+	uint8_t iMacProBoardId[21] = {"Mac-7BA5B2D9E42DDD94"};
+
+	/**
+	 *  Self board-id used for find-replace (thus the size).
+	 */
+	uint8_t selfBoardId[21] = {};
+
+	/**
+	 *  Self mac model for find-replace (thus the size).
+	 */
+	uint8_t selfMacModel[20] {};
 
 	/**
 	 *  Remove requested patches
@@ -107,6 +139,16 @@ private:
 	 *  @return true on success
 	 */
 	bool setCompatibleRendererPatch();
+
+	/**
+	 *  Get overridable boot argument from kernel args (priority) and GPU properties
+	 */
+	bool getBootArgument(DeviceInfo *info, const char *name, void *bootarg, int size);
+
+	/**
+	 *  Get patch by section
+	 */
+	UserPatcher::BinaryModPatch *getPatchSection(uint32_t section);
 };
 
 #endif /* kern_shiki_hpp */

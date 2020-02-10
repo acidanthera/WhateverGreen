@@ -52,7 +52,7 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 然后在 控制台 中 过滤 栏中输入 iTunes ，您会看到一个影片预告片的地址，像下面这样:
 `... <<< CFByteFlume >>> FigCFHTTPCheckCacheValidator: Comparing dictUrl = http://.....m4v, url = http://......m4v`  
 粘贴到浏览器中，即可下载此影片。
-或者，这里有一个例子，您可以直接下载[此影片](http://rgho.st/download/private/7df2dy85Y/8e91160b88b19984abda5dbd9247d579/cb78ad46934391d67ab638718f6dd466267a217c/1.m4v)。
+或者，这里有一个例子，您可以直接下载[此影片](https://drive.google.com/file/d/12pQ5FFpdHdGOVV6jvbqEq2wmkpMKxsOF/view)。
 
 - _为什么 DRM 播放一段时间后开始出现一些错乱?_  
 从测试中来看这似乎是 Apple DRM 解码器的问题，并且在某些白苹果上也存在。
@@ -127,7 +127,17 @@ Shiki 现已成为 [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 请查阅 `/System/Library/PrivateFrameworks/AppleGVA.framework/Info.plist`, 如果您看到了您的机型, 则表明这个机型支持硬件解码加速。 您应该选择一个与您机器配备最接近的型号。 比如， iMac13,1 配备一个核芯显卡和一个独立显卡，然而 iMac13,3 只有一个核芯显卡。如果您使用的机型使用独立显卡，但没有核芯显卡，VDA 将不会工作，并且您可能会从 VDADecoderChecker 看到错误信息。欲修正此错误，您可以选择一个正确的机型，或是修改 Info.plist 中的 `forceOfflineRenderer` 项，它需要被设为 `NO` 。
 
 - _如何启用 Intel 在线解码器如果 AppleGVA 强制将其设置为离线模式?_  
-请加入 `shikigva=1` 启动系统。
+请加入 `shikigva=1` 到 `boot-args` 或者任何 `GPU` 的 `DeviceProperties` 下启动系统。
+
+- _如何只为 Music, Safari 以及 TV 启用 AMD DRM，并且对其他应用仅使用 `IGPU`?_  
+请加入 `shikigva=80` 到 `boot-args` 或者任何 `GPU` 的 `DeviceProperties` 下启动系统。如果此方法引起了冻屏（注意：Apple 官方已在 10.15.4+ 部分修正此问题），则使用
+`shikigva=16`。
+注意：在不同配置的机器上，并非所有 DRM 种类均可用。请查阅 [此处](https://applelife.ru/posts/846582) 以获取详细信息。
+
+- _如何在 `MacPro5,1` 上使用 `QuickTime` 配合 `Apple TV+` 播放 `iTunes` 已购买视频?_  
+使用以下两种方法之一:
+使用 `OpenCore` 伪装成 `iMacPro1,1` (推荐)
+不使用 `Opencore` 并配合参数 `shikigva=160 shiki-id=Mac-7BA5B2D9E42DDD94`
 
 - _如何为某些 NVIDIA 显卡注入 IOVARendererID/IOVARendererSubID 属性?_
 NVIDIA 显卡驱动没有正确加入这些对 Maxwell / Pascal 架构显卡来说必要的用于 VDA 解码的键值，您可以通过一个 Info 空壳来加入它们。以下是正确的值：
@@ -146,7 +156,7 @@ VP3 需要一个不同的 IOVARendererID → `<04 00 04 01>`.
 某些 AMD 显卡如 HD 7750，支持硬件加速解码，但无法解码 DRM 视频。原因不明，请正常使用 Shiki 。
 
 - _[BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash) 是做什么的?_  
-BoardHash 可以用来生成 board-id 的哈希值，类似于 CoreAUC.framework 中的 _PsZXJ2EK7ifxrtgc 函数。
+BoardHash 可以用来生成 board-id 的哈希值，类似于 CoreAUC.framework 中的 `_PsZXJ2EK7ifxrtgc` 函数。
 比如， Mac-F221BEC8 (MacPro5,1) 对应 5f571162ce99350785007863627a096bfa11c81b.  
 目前已知 MacPro5,1 可以无视解码器状态而直接允许 HD 4000 播放高清视频。
 

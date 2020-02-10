@@ -119,6 +119,7 @@ static const uint8_t frameworkNewRepl[] {
 
 static UserPatcher::BinaryModPatch frameworkPatchOld {
 	CPU_TYPE_X86_64,
+	0,
 	frameworkOldFind,
 	frameworkOldRepl,
 	arrsize(frameworkOldFind),
@@ -130,6 +131,7 @@ static UserPatcher::BinaryModPatch frameworkPatchOld {
 
 static UserPatcher::BinaryModPatch frameworkPatchNew {
 	CPU_TYPE_X86_64,
+	0,
 	frameworkNewFind,
 	frameworkNewRepl,
 	arrsize(frameworkNewFind),

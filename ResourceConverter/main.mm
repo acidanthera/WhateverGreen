@@ -41,8 +41,10 @@ NSString *ResourcePrivHeader {@"\
 #include <stdint.h>                                  \n\n\
 extern UserPatcher::BinaryModInfo ADDPR(binaryMod)[];\n\
 extern const size_t ADDPR(binaryModSize);            \n\n\
-extern UserPatcher::ProcInfo ADDPR(procInfo)[];      \n\
-extern const size_t ADDPR(procInfoSize);             \n\n"
+extern UserPatcher::ProcInfo ADDPR(procInfoModern)[];\n\
+extern const size_t ADDPR(procInfoModernSize);       \n\n\
+extern UserPatcher::ProcInfo ADDPR(procInfoLegacy)[];\n\
+extern const size_t ADDPR(procInfoLegacySize);       \n\n"
 //extern const uint32_t minProcLength;                 \n"
 };
 
@@ -56,32 +58,36 @@ static void appendFile(NSString *file, NSString *data) {
 static NSString *generatePatchEntries(NSString *file, NSArray *patches) {
 	static size_t patchIndex {0};
 	static size_t patchBufIndex {0};
-	
+
 	if (patches) {
 		auto pStr = [[[NSMutableString alloc] initWithFormat:@"static UserPatcher::BinaryModPatch patches%zu[] {\n", patchIndex] autorelease];
 		auto pbStr = [[[NSMutableString alloc] init] autorelease];
 		for (NSDictionary *p in patches) {
+			if ([p objectForKey:@"Disable"])
+				continue;
+
 			NSData *f[] = {[p objectForKey:@"Find"], [p objectForKey:@"Replace"]};
-			
+
 			if ([f[0] length] != [f[1] length]) {
 				[pStr appendString:@"#error not matching patch lengths\n"];
 				continue;
 			}
-			
+
 			for (auto d : f) {
 				[pbStr appendString:[[[NSString alloc] initWithFormat:@"alignas(8) static const uint8_t patchBuf%zu[] { ", patchBufIndex] autorelease]];
-				
+
 				for (size_t b = 0; b < [d length]; b++) {
 					[pbStr appendString:[[[NSString alloc] initWithFormat:@"0x%0.2X, ", reinterpret_cast<const uint8_t *>([d bytes])[b]] autorelease]];
 				}
-				
+
 				[pbStr appendString:@"};\n"];
-				
+
 				patchBufIndex++;
 			}
-			
-			[pStr appendFormat:@"\t{ %@, patchBuf%zu, patchBuf%zu, %zu, %@, %@, UserPatcher::FileSegment::Segment%@, Section%@ },\n",
+
+			[pStr appendFormat:@"\t{ %@, %@, patchBuf%zu, patchBuf%zu, %zu, %@, %@, UserPatcher::FileSegment::Segment%@, Section%@ },\n",
 			 [p objectForKey:@"CPU"],
+			 [p objectForKey:@"Flags"] ?: @"0",
 			 patchBufIndex-2,
 			 patchBufIndex-1,
 			 [f[0] length],
@@ -92,13 +98,13 @@ static NSString *generatePatchEntries(NSString *file, NSArray *patches) {
 			 ];
 		}
 		[pStr appendString:@"};\n"];
-		
+
 		appendFile(file, pbStr);
 		appendFile(file, pStr);
 		patchIndex++;
 		return [[[NSString alloc] initWithFormat:@"patches%zu, %lu", patchIndex-1, [patches count]] autorelease];
 	}
-	
+
 	return @"nullptr, 0";
 }
 
@@ -108,64 +114,75 @@ static void generateMods(NSString *file, NSString *header, NSArray *modInfos, NS
 	for (NSDictionary *entry in modInfos) {
 		if ([entry objectForKey:@"Disable"])
 			continue;
-		
+
 		NSArray *patches = [entry objectForKey:@"Patches"];
 		for (NSDictionary *patch in patches)
 			[sections setObject:@"ok" forKey:[patch objectForKey:@"Section"]];
 	}
-	
+
 	appendFile(file, @"\n// Patch section\n\n");
-	
+
 	auto modSection = [[[NSMutableString alloc] initWithUTF8String:"\n// Mod section\n\n"] autorelease];
 	[modSection appendString:@"UserPatcher::BinaryModInfo ADDPR(binaryMod)[] {\n"];
-	
+
 	size_t modCount = 0;
-	
+
 	for (NSDictionary *entry in modInfos) {
 		if ([entry objectForKey:@"Disable"])
 			continue;
-		
+
 		NSArray *patches = [entry objectForKey:@"Patches"];
 		[modSection appendFormat:@"\t{ \"%@\", %@ },\n",
 			[entry objectForKey:@"Path"], generatePatchEntries(file, patches)];
-		
+
 		modCount++;
 	}
-	
+
 	[modSection appendString:@"};\n"];
 	[modSection appendFormat:@"\nconst size_t ADDPR(binaryModSize) {%lu};\n", modCount];
 	appendFile(file, modSection);
 }
 
-static void generateComparison(NSString *file, NSArray *binaries, NSMutableDictionary *sections) {
+static void generateComparison(NSString *file, NSArray *binaries, NSMutableDictionary *sections, bool modern) {
 	auto procSection = [[[NSMutableString alloc] initWithUTF8String:"\n// Process list\n"
 						 "using PF = UserPatcher::ProcInfo::ProcFlags;\n\n"] autorelease];
 	NSUInteger minProcLength {PATH_MAX};
 	size_t procCount = 0;
-	
-	[procSection appendString:@"UserPatcher::ProcInfo ADDPR(procInfo)[] {\n"];
-	
+
+	[procSection appendFormat:@"UserPatcher::ProcInfo ADDPR(procInfo%s)[] {\n", modern ? "Modern" : "Legacy"];
+
 	for (NSDictionary *entry in binaries) {
 		if ([entry objectForKey:@"Disable"])
 			continue;
 
+		NSString *type = [entry objectForKey:@"Type"];
+		if (type) {
+			if (modern && ![type isEqualToString:@"Modern"])
+				continue;
+			if (!modern && ![type isEqualToString:@"Legacy"])
+				continue;
+		}
+
 		[sections setObject:@"ok" forKey:[entry objectForKey:@"Section"]];
-		
+
 		auto len = [[entry objectForKey:@"Path"] length];
+		NSString *prefix = [entry objectForKey:modern ? @"ModernPrefix" : @"LegacyPrefix"];
+		if (prefix)
+			len += [prefix length];
 		NSString *flags = [entry objectForKey:@"Flags"];
-		[procSection appendFormat:@"\t{ \"%@\", %lu, Section%@, %@ },\n",
-			[entry objectForKey:@"Path"], len, [entry objectForKey:@"Section"],
+		[procSection appendFormat:@"\t{ \"%@%@\", %lu, Section%@, %@ },\n",
+			prefix ? prefix : @"", [entry objectForKey:@"Path"], len, [entry objectForKey:@"Section"],
 		 flags ? flags : @"PF::MatchExact"];
 		if (len < minProcLength)
 			minProcLength = len;
-		
+
 		procCount++;
 	}
 	[procSection appendString:@"};\n"];
-	[procSection appendFormat:@"\nconst size_t ADDPR(procInfoSize) {%lu};", procCount];
+	[procSection appendFormat:@"\nconst size_t ADDPR(procInfo%sSize) {%lu};", modern ? "Modern" : "Legacy",  procCount];
 	//[procSection appendFormat:@"\nconst uint32_t minProcLength {%lu};\n",  minProcLength];
-	
-	
+
+
 	appendFile(file, procSection);
 }
 
@@ -173,17 +190,17 @@ int main(int argc, const char * argv[]) {
 	@autoreleasepool {
 		if (argc != 4)
 			ERROR("Invalid usage");
-		
+
 		auto basePath = [[[NSString alloc] initWithUTF8String:argv[1]] autorelease];
 		auto patchesCfg = [[[NSString alloc] initWithFormat:@"%@/Patches.plist", basePath] autorelease];
 		auto outputCpp = [[[NSString alloc] initWithUTF8String:argv[2]] autorelease];
 		auto outputHpp = [[[NSString alloc] initWithUTF8String:argv[3]] autorelease];
-		
+
 		NSDictionary *patches = [NSDictionary dictionaryWithContentsOfFile:patchesCfg];
-		
+
 		if (!patches)
 			ERROR("Missing resource data");
-		
+
 		// Create a file
 		[[NSFileManager defaultManager] createFileAtPath:outputCpp contents:nil attributes:nil];
 		[[NSFileManager defaultManager] createFileAtPath:outputHpp contents:nil attributes:nil];
@@ -193,7 +210,8 @@ int main(int argc, const char * argv[]) {
 		appendFile(outputCpp, ResourceHeader);
 		appendFile(outputHpp, ResourcePrivHeader);
 		generateMods(outputCpp, outputHpp, [patches objectForKey:@"Patches"], sections);
-		generateComparison(outputCpp, [patches objectForKey:@"Processes"], sections);
+		generateComparison(outputCpp, [patches objectForKey:@"Processes"], sections, false);
+		generateComparison(outputCpp, [patches objectForKey:@"Processes"], sections, true);
 
 		auto sectionList = [[[NSMutableString alloc] initWithUTF8String:"\n// Section list\n\nenum : uint32_t {\n\tSectionUnused = 0,\n"] autorelease];
 		size_t sectionIndex = 1;

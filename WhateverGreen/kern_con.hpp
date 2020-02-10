@@ -26,7 +26,7 @@ namespace RADConnectors {
 		uint8_t hotplug;
 		uint8_t sense;
 	};
-	
+
 	/**
 	 *  Connectors from AMDSupport since 10.12
 	 */
@@ -42,7 +42,7 @@ namespace RADConnectors {
 		uint8_t sense;
 		uint32_t reserved2;
 	};
-	
+
 	/**
 	 *  Internal atom connector struct since 10.13
 	 */
@@ -53,17 +53,17 @@ namespace RADConnectors {
 		uint8_t *hpdRecord;
 		uint8_t *i2cRecord;
 	};
-	
+
 	/**
 	 *  Opaque connector type for simplicity
 	 */
 	union Connector {
 		LegacyConnector legacy;
 		ModernConnector modern;
-		
+
 		static_assert(sizeof(LegacyConnector) == 16, "LegacyConnector has wrong size");
 		static_assert(sizeof(ModernConnector) == 24, "ModernConnector has wrong size");
-		
+
 		/**
 		 *  Assigns connector from one to another
 		 *
@@ -83,7 +83,7 @@ namespace RADConnectors {
 			out.sense = in.sense;
 		}
 	};
-	
+
 	/**
 	 *  Connector types available in the drivers
 	 */
@@ -96,7 +96,7 @@ namespace RADConnectors {
 		ConnectorHDMI = 0x800,
 		ConnectorAnalogDVI = 0x2000
 	};
-	
+
 	/**
 	 *  Prints connector type
 	 *
@@ -122,7 +122,7 @@ namespace RADConnectors {
 				return "UNKN";
 		}
 	}
-	
+
 	/**
 	 *  Prints connector
 	 *
@@ -137,7 +137,7 @@ namespace RADConnectors {
 				 connector.flags, connector.features, connector.priority, connector.transmitter, connector.encoder, connector.hotplug, connector.sense);
 		return out;
 	}
-	
+
 	/**
 	 *  Is modern system
 	 *
@@ -146,7 +146,7 @@ namespace RADConnectors {
 	inline bool modern() {
 		return getKernelVersion() >= KernelVersion::Sierra;
 	}
-	
+
 	/**
 	 *  Prints connectors
 	 *
@@ -162,7 +162,7 @@ namespace RADConnectors {
 		}
 #endif
 	}
-	
+
 	/**
 	 *  Sanity check connector size
 	 *
@@ -187,7 +187,7 @@ namespace RADConnectors {
 	inline void copy(RADConnectors::Connector *out, uint8_t num, const RADConnectors::Connector *in, uint32_t size) {
 		bool outModern = modern();
 		bool inModern = size % sizeof(ModernConnector) == 0 && size / sizeof(ModernConnector) == num;
-		
+
 		for (uint8_t i = 0; i < num; i++) {
 			if (outModern) {
 				if (inModern)
@@ -200,7 +200,7 @@ namespace RADConnectors {
 				else
 					Connector::assign((&out->legacy)[i], (&in->legacy)[i]);
 			}
-			
+
 		}
 	}
 };

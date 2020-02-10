@@ -14,6 +14,94 @@
 #include "kern_atom.hpp"
 #include "kern_con.hpp"
 
+#pragma pack(push, 1)
+
+// Additional notes for AppleGraphicsDevicePolicy.kext:
+// agdp=-1 -> force unload AppleGraphicsDevicePolicy.kext
+// agdp=0  -> do nothing basically
+// agdp>0  -> set extra FeatureControl bits:
+//  0x1     -> timeout bit
+//  0x2     -> skip no media enter
+//  0x4     -> special link modes
+//  0x10    -> some aux command
+//  0x40    -> something with timing
+
+enum kAGDCRegisterLinkControlEvent_t {
+	kAGDCRegisterLinkInsert             = 0,
+	kAGDCRegisterLinkRemove             = 1,
+	kAGDCRegisterLinkChange             = 2,
+	kAGDCRegisterLinkChangeMST          = 3,
+	kAGDCRegisterLinkFramebuffer        = 4,                                // V106+
+	// This event is handled by AppleGraphicsDevicePolicy::VendorEventHandler.
+	// The point of this event to validate the timing information, and take decision on what to do with this display.
+	// One of the examples of this event is to merge multiple display ports into one connection for 5K/6K output.
+	// Drivers should interpret modeStatus to decide on whether to continue execution, change the mode, or disable link.
+	kAGDCValidateDetailedTiming         = 10,
+	kAGDCRegisterLinkChangeWakeProbe    = 0x80,
+};
+
+struct AGDCDetailedTimingInformation_t
+{
+	uint32_t      horizontalScaledInset;          // pixels
+	uint32_t      verticalScaledInset;            // lines
+
+	uint32_t      scalerFlags;
+	uint32_t      horizontalScaled;
+	uint32_t      verticalScaled;
+
+	uint32_t      signalConfig;
+	uint32_t      signalLevels;
+
+	uint64_t      pixelClock;                     // Hz
+
+	uint64_t      minPixelClock;                  // Hz - With error what is slowest actual clock
+	uint64_t      maxPixelClock;                  // Hz - With error what is fasted actual clock
+
+	uint32_t      horizontalActive;               // pixels
+	uint32_t      horizontalBlanking;             // pixels
+	uint32_t      horizontalSyncOffset;           // pixels
+	uint32_t      horizontalSyncPulseWidth;       // pixels
+
+	uint32_t      verticalActive;                 // lines
+	uint32_t      verticalBlanking;               // lines
+	uint32_t      verticalSyncOffset;             // lines
+	uint32_t      verticalSyncPulseWidth;         // lines
+
+	uint32_t      horizontalBorderLeft;           // pixels
+	uint32_t      horizontalBorderRight;          // pixels
+	uint32_t      verticalBorderTop;              // lines
+	uint32_t      verticalBorderBottom;           // lines
+
+	uint32_t      horizontalSyncConfig;
+	uint32_t      horizontalSyncLevel;            // Future use (init to 0)
+	uint32_t      verticalSyncConfig;
+	uint32_t      verticalSyncLevel;              // Future use (init to 0)
+	uint32_t      numLinks;
+	uint32_t      verticalBlankingExtension;
+	uint16_t      pixelEncoding;
+	uint16_t      bitsPerColorComponent;
+	uint16_t      colorimetry;
+	uint16_t      dynamicRange;
+	uint16_t      dscCompressedBitsPerPixel;
+	uint16_t      dscSliceHeight;
+	uint16_t      dscSliceWidth;
+};
+
+struct AGDCValidateDetailedTiming_t
+{
+	uint32_t                         framebufferIndex;     // IOFBDependentIndex
+	AGDCDetailedTimingInformation_t  timing;
+	uint16_t                         padding1[5];
+	void                             *cfgInfo;             // AppleGraphicsDevicePolicy configuration
+	int32_t                          frequency;
+	uint16_t                         padding2[6];
+	uint32_t                         modeStatus;           // 1 - invalid, 2 - success, 3 - change timing
+	uint16_t                         padding3[2];
+};
+
+#pragma pack(pop)
+
+
 class RAD {
 public:
 	void init();
@@ -25,12 +113,14 @@ public:
 	enum HardwareIndex {
 		IndexRadeonHardwareX4000,
 		IndexRadeonHardwareX5000,
+		IndexRadeonHardwareX6000,
 		IndexRadeonHardwareX3000,
 		IndexRadeonHardwareX4100,
 		IndexRadeonHardwareX4150,
 		IndexRadeonHardwareX4200,
 		IndexRadeonHardwareX4250,
 		MaxRadeonHardware,
+		MaxRadeonHardwareCatalina = IndexRadeonHardwareX6000 + 1,
 		MaxRadeonHardwareMojave = IndexRadeonHardwareX5000 + 1,
 		MaxRadeonHardwareModernHighSierra = IndexRadeonHardwareX3000 + 1
 	};
@@ -102,6 +192,11 @@ private:
 	mach_vm_address_t orgLegacyATIControllerStart {};
 
 	/**
+	 *  Original AGDP handler
+	 */
+	mach_vm_address_t orgNotifyLinkChange {};
+
+	/**
 	 *  Current controller property provider, 8 for max GPUs at once.
 	 */
 	ThreadLocal<IOService *, 8> currentPropProvider;
@@ -111,6 +206,11 @@ private:
 	 *  Original populateAccelConfig functions
 	 */
 	mach_vm_address_t orgPopulateAccelConfig[MaxRadeonHardware] {};
+
+	/**
+	 *  Original getHWInfo functions
+	 */
+	mach_vm_address_t orgGetHWInfo[MaxRadeonHardware] {};
 
 	/**
 	 *  Max framebuffer base functions per kext
@@ -153,11 +253,11 @@ private:
 	 */
 	t_populateAccelConfig wrapPopulateAccelConfig[MaxRadeonHardware] {
 		[RAD::IndexRadeonHardwareX3000] = populdateAccelConfig<RAD::IndexRadeonHardwareX3000>,
-		[RAD::IndexRadeonHardwareX4100] = populdateAccelConfig<RAD::IndexRadeonHardwareX4000>,
-		[RAD::IndexRadeonHardwareX4150] = populdateAccelConfig<RAD::IndexRadeonHardwareX4100>,
-		[RAD::IndexRadeonHardwareX4200] = populdateAccelConfig<RAD::IndexRadeonHardwareX4150>,
-		[RAD::IndexRadeonHardwareX4250] = populdateAccelConfig<RAD::IndexRadeonHardwareX4200>,
-		[RAD::IndexRadeonHardwareX4000] = populdateAccelConfig<RAD::IndexRadeonHardwareX4250>,
+		[RAD::IndexRadeonHardwareX4000] = populdateAccelConfig<RAD::IndexRadeonHardwareX4000>,
+		[RAD::IndexRadeonHardwareX4100] = populdateAccelConfig<RAD::IndexRadeonHardwareX4100>,
+		[RAD::IndexRadeonHardwareX4150] = populdateAccelConfig<RAD::IndexRadeonHardwareX4150>,
+		[RAD::IndexRadeonHardwareX4200] = populdateAccelConfig<RAD::IndexRadeonHardwareX4200>,
+		[RAD::IndexRadeonHardwareX4250] = populdateAccelConfig<RAD::IndexRadeonHardwareX4250>,
 		[RAD::IndexRadeonHardwareX5000] = populdateAccelConfig<RAD::IndexRadeonHardwareX5000>
 	};
 
@@ -166,13 +266,62 @@ private:
 	 */
 	const char *populateAccelConfigProcNames[MaxRadeonHardware] {
 		[RAD::IndexRadeonHardwareX3000] = "__ZN37AMDRadeonX3000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4100] = "__ZN37AMDRadeonX4000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4150] = "__ZN37AMDRadeonX4100_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4200] = "__ZN37AMDRadeonX4150_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4250] = "__ZN37AMDRadeonX4200_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
-		[RAD::IndexRadeonHardwareX4000] = "__ZN37AMDRadeonX4250_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4000] = "__ZN37AMDRadeonX4000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4100] = "__ZN37AMDRadeonX4100_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4150] = "__ZN37AMDRadeonX4150_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4200] = "__ZN37AMDRadeonX4200_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
+		[RAD::IndexRadeonHardwareX4250] = "__ZN37AMDRadeonX4250_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
 		[RAD::IndexRadeonHardwareX5000] = "__ZN37AMDRadeonX5000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig"
 	};
+
+	/**
+	 *  getHWInfo function type
+	 */
+	using t_getHWInfo = IOReturn (*)(IOService *accelVideoCtx, void *hwInfo);
+
+	/**
+	 *  getHWInfo wrapping functions used for AppleGVA enable patch
+	 */
+	template <size_t Index>
+	static IOReturn populateGetHWInfo(IOService *accelVideoCtx, void *hwInfo) {
+		if (callbackRAD->orgGetHWInfo[Index]) {
+			int ret = FunctionCast(populateGetHWInfo<Index>, callbackRAD->orgGetHWInfo[Index])(accelVideoCtx, hwInfo);
+			callbackRAD->updateGetHWInfo(accelVideoCtx, hwInfo);
+			return ret;
+		} else {
+			SYSLOG("rad", "populateGetHWInfo invalid use for %lu", Index);
+		}
+		return kIOReturnInvalid;
+	}
+
+	/**
+	 *  Wrapped getHWInfo functions
+	 */
+	t_getHWInfo wrapGetHWInfo[MaxRadeonHardware] {
+		[RAD::IndexRadeonHardwareX4000] = populateGetHWInfo<RAD::IndexRadeonHardwareX4000>,
+		[RAD::IndexRadeonHardwareX5000] = populateGetHWInfo<RAD::IndexRadeonHardwareX5000>,
+		[RAD::IndexRadeonHardwareX6000] = populateGetHWInfo<RAD::IndexRadeonHardwareX6000>
+	};
+
+
+	/**
+	 *  Register read function names
+	 */
+	const char *getHWInfoProcNames[MaxRadeonHardware] {
+		[RAD::IndexRadeonHardwareX4000] = "__ZN35AMDRadeonX4000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
+		[RAD::IndexRadeonHardwareX5000] = "__ZN35AMDRadeonX5000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
+		[RAD::IndexRadeonHardwareX6000] = "__ZN35AMDRadeonX6000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo"
+	};
+
+	/**
+	 *  Enforce 24-bit output
+	 */
+	bool force24BppMode {false};
+
+	/**
+	 *  Take AGDP decisions on our own
+	 */
+	bool useCustomAgdpDecision {false};
 
 	/**
 	 *  Limit DVI resolution to single link
@@ -190,9 +339,19 @@ private:
 	bool fixConfigName {false};
 
 	/**
+	 *  Enable gva decoding and encoding support
+	 */
+	bool enableGvaSupport {false};
+
+	/**
 	 *  Boot ATI/AMD graphics without acceleration
 	 */
 	bool forceVesaMode {false};
+
+	/**
+	 *  Force getHWInfo call to return spoofed PID for codec support
+	 */
+	bool forceCodecInfo {false};
 
 	/**
 	 *  Current max used hardware kexts
@@ -283,7 +442,7 @@ private:
 	static void populdateAccelConfig(IOService *accelService, const char **accelConfig) {
 		if (callbackRAD->orgPopulateAccelConfig[Index]) {
 			FunctionCast(populdateAccelConfig<Index>, callbackRAD->orgPopulateAccelConfig[Index])(accelService, accelConfig);
-			callbackRAD->updateAccelConfig(accelService, accelConfig);
+			callbackRAD->updateAccelConfig(Index, accelService, accelConfig);
 		} else {
 			SYSLOG("rad", "populdateAccelConfig invalid use for %lu", Index);
 		}
@@ -320,36 +479,44 @@ private:
 	void processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_address_t address, size_t size);
 
 	/**
+	 *  Update IOAccelConfig with a GVA properties
+	 *
+	 *  @param accelService IOAccelerator service
+	 */
+	void setGvaProperties(IOService *accelService);
+
+	/**
 	 *  Update IOAccelConfig with a real GPU model name
 	 *
+	 *  @param hwIndex  hardware kext index
 	 *  @param accelService IOAccelerator service
 	 *  @param accelConfig  IOAccelConfig
 	 */
-	void updateAccelConfig(IOService *accelService, const char **accelConfig);
+	void updateAccelConfig(size_t hwIndex, IOService *accelService, const char **accelConfig);
 
 	/**
 	 *  Wrapped set property function
 	 */
 	static bool wrapSetProperty(IORegistryEntry *that, const char *aKey, void *bytes, unsigned length);
-	
+
 	/**
 	 *  Wrapped get property function
 	 */
 	static OSObject *wrapGetProperty(IORegistryEntry *that, const char *aKey);
-	
+
 	/**
 	 *  Wrapped get connectors info functions
 	 */
 	static uint32_t wrapGetConnectorsInfoV1(void *that, RADConnectors::Connector *connectors, uint8_t *sz);
 	static uint32_t wrapGetConnectorsInfoV2(void *that, RADConnectors::Connector *connectors, uint8_t *sz);
 	static uint32_t wrapLegacyGetConnectorsInfo(void *that, RADConnectors::Connector *connectors, uint8_t *sz);
-	
+
 	/**
 	 *  Wrapped translate atom connector into modern connector functions
 	 */
 	static uint32_t wrapTranslateAtomConnectorInfoV1(void *that, RADConnectors::AtomConnectorInfo *info, RADConnectors::Connector *connector);
 	static uint32_t wrapTranslateAtomConnectorInfoV2(void *that, RADConnectors::AtomConnectorInfo *info, RADConnectors::Connector *connector);
-	
+
 	/**
 	 *  Wrapped ATIController start functions
 	 */
@@ -357,9 +524,24 @@ private:
 	static bool wrapLegacyATIControllerStart(IOService *ctrl, IOService *provider);
 
 	/**
+	 * Wrapped AGDP handler
+	 */
+	static bool wrapNotifyLinkChange(void *atiDeviceControl, kAGDCRegisterLinkControlEvent_t event, void *eventData, uint32_t eventFlags);
+
+	/**
 	 *  Wrapped polaris controller project creator
 	 */
 	static IOReturn findProjectByPartNumber(IOService *ctrl, void *properties);
+
+	/**
+	 *  Wrapped VRAM testing method
+	 */
+	static bool doNotTestVram(IOService *ctrl, uint32_t reg, bool retryOnFail);
+	
+	/**
+	 *  Wrapped codec hw info method
+	 */
+	static void updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo);
 };
 
 #endif /* kern_rad_hpp */

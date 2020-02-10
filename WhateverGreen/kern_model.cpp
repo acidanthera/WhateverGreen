@@ -399,6 +399,7 @@ static constexpr Model dev67c7[] {
 };
 
 static constexpr Model dev67df[] {
+	{Model::DetectAll, 0x1462, 0x341E, 0x00cf, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e1, "Radeon RX 590"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 580"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c2, "Radeon RX 570"},
@@ -407,7 +408,7 @@ static constexpr Model dev67df[] {
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c6, "Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon RX 480"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 470"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 470/570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00d7, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon RX 470"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon RX 580"},
@@ -425,11 +426,12 @@ static constexpr Model dev67e3[] {
 };
 
 static constexpr Model dev67ef[] {
+	{Model::DetectAll, 0x1787, 0x3000, 0x00cf, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "Radeon Pro 460/560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "Radeon RX 460"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c5, "Radeon RX 460"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c7, "Radeon Pro 455/555"},
-	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 460"},
+	{Model::DetectRev, 0x0000, 0x0000, 0x00cf, "Radeon RX 460/560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e0, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e5, "Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e7, "Radeon RX 560"},
@@ -593,6 +595,11 @@ static constexpr Model dev6861[] {
 
 static constexpr Model dev6863[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Vega Frontier Edition"}
+};
+
+static constexpr Model dev6868[] {
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon Pro WX 8200"},
+	{Model::DetectDef, 0x1002, 0x0a0c, 0x0000, "Radeon Pro WX 8200"}
 };
 
 static constexpr Model dev687f[] {
@@ -807,6 +814,7 @@ static constexpr DevicePair devices[] {
 	{0x6841, dev6841, arrsize(dev6841)},
 	{0x6861, dev6861, arrsize(dev6861)},
 	{0x6863, dev6863, arrsize(dev6863)},
+	{0x6868, dev6868, arrsize(dev6868)},	
 	{0x687f, dev687f, arrsize(dev687f)},
 	{0x6898, dev6898, arrsize(dev6898)},
 	{0x6899, dev6899, arrsize(dev6899)},
@@ -938,6 +946,7 @@ static BuiltinModel devIntel[] {
 	{ 0x3E91, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E92, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E93, 0x3E92, "Intel UHD Graphics 610" },
+	{ 0x3E96, 0x3E92, "Intel UHD Graphics P630" },
 	{ 0x3E98, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E9B, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3EA5, 0x0000, "Intel Iris Plus Graphics 655" },
@@ -963,18 +972,18 @@ const char *WEG::getRadeonModel(uint16_t dev, uint16_t rev, uint16_t subven, uin
 		if (device.dev == dev) {
 			for (size_t j = 0; j < device.modelNum; j++) {
 				auto &model = device.models[j];
-				
+
 				if (model.mode & Model::DetectSub && (model.subven != subven || model.sub != sub))
 					continue;
-				
+
 				if (model.mode & Model::DetectRev && (model.rev != rev))
 					continue;
-				
+
 				return model.name;
 			}
 			break;
 		}
 	}
-	
+
 	return nullptr;
 }

@@ -1371,7 +1371,7 @@ Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/kbl-r_igpu.png)
  
 
-## UHD 630（[Coffee Lake](https://zh.wikipedia.org/zh-cn/Coffee_Lake微架构) 微架构，下文简称 CFL）
+## UHD 610-655（[Coffee Lake](https://zh.wikipedia.org/zh-cn/Coffee_Lake微架构) 微架构，下文简称 CFL）
 支持 macOS 10.14 或更新版本。
 
 CFL 平台可用的 FB 列表：
@@ -1386,6 +1386,7 @@ CFL 平台可用的 FB 列表：
 - 0x3EA50005 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3EA60005 (移动版，3 端口，无 FBMEM，58 MB)
 - 0x3E9B0006 (移动版，1 端口，无 FBMEM，39 MB)
+- 0x3E9B0008 (移动版，1 端口，无 FBMEM, 58 MB)
 - 0x3E9B0007 (桌面版，3 端口，无 FBMEM，58 MB)
 - 0x3E920003 (桌面版，无端口，无 FBMEM，1 MB)
 - 0x3E910003 (桌面版，无端口，无 FBMEM，1 MB)
@@ -1494,7 +1495,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 
 ID: 0x3EA50005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)
-Model name: Intel HD Graphics CFL
+Model name: Intel Iris Plus Graphics 655
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS
@@ -1506,7 +1507,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0x3EA60005, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00E30B0A
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)
-Model name: Intel HD Graphics CFL
+Model name: Intel Iris Plus Graphics 645
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS
@@ -1518,15 +1519,23 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
 
 ID: 0x3E9B0006, STOLEN: 38 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00131302  
 TOTAL STOLEN: 39 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 39 MB, MAX OVERALL: 39 MB (41422848 bytes)  
-Model name: Intel Graphics UHD 630  
+Model name: Intel UHD Graphics 630  
 Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000498 - ConnectorLVDS  
 00000800 02000000 98040000  
-  
+
+ID: 0x3E9B0008, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00031302  
+TOTAL STOLEN: 58 MB, TOTAL CURSOR: 512 KB, MAX STOLEN: 58 MB, MAX OVERALL: 58 MB (61345792 bytes)  
+Model name: Intel HD Graphics CFL  
+Camelia: CameliaV3 (3), Freq: 0 Hz, FreqMax: 0 Hz  
+Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1  
+[0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000098 - ConnectorLVDS  
+00000800 02000000 98000000
+
 ID: 0x3E9B0007, STOLEN: 57 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00801302  
 TOTAL STOLEN: 58 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 172 MB, MAX OVERALL: 173 MB (181940224 bytes)  
-Model name: Intel HD Graphics CFL  
+Model name: Intel UHD Graphics 630  
 Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x000003C7 - ConnectorDP  
@@ -1597,7 +1606,7 @@ macOS High Sierra 10.13.6 的特别版本 17G2208 包含对 CFL 平台核显的�
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
 
 **方案二**
-使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/05/450784_SSDT-PNLF.aml.zip))
+使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip))
 
 **两种方案不要同时使用！**
 
@@ -1687,7 +1696,7 @@ framebuffer-conX-YYYYYYYY-alldata (**在当前 FB 与 YYYYYY 匹配时完全替�
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ifbt.png)
 
-macOS 10.14 下，对于 SKL 或更新平台，要取得适合脚本的导出数据，可以使用 *WEG* 的 Debug 版本并加入 `-igfxdump` 启动参数。导出的数据将保存在系统分区的根目录中。
+macOS 10.14 下，对于 SKL 或更新平台，要取得适合脚本的导出数据，可以使用 *WEG* 的 Debug 版本并加入 `-igfxdump` 启动参数。导出的数据将保存在 `/var/log`目录中。
 
 原始与修补的导出数据可通过使用 *WEG* 的 Debug 版本、使用 `-igfxfbdump` 启动参数，并在 IOReg 中的 `IOService:/IOResources/WhateverGreen` 位置取得。
 
@@ -1717,7 +1726,9 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 某些时候，导出的 EDID 可能与 macOS 不兼容并导致失真。这时，对于一些 EDID 可以使用 [此脚本](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/edid-gen.sh)，它能修正 EDID 并保存到桌面上。
 
 ## HDMI 高分屏 60 fps 方案
+#### 除了解决 HDMI 问题，此方案或许对某些型号如 ThinkPad P71/7700HQ/HD630/4K 卡死在 `gIOScreenLockState3` 的情况有所帮助。
 为核显添加 `enable-hdmi20` 属性，或使用 `-cdfon` 启动参数代替，**否则将会黑屏**。
+
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hdmi20.png) 
 
@@ -1844,7 +1855,7 @@ igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
 - 在不受支持的配置（NVIDIA + SNB/SKL/KBL; AMD + Ivy）上，与独显的兼容问题已由 *WEG* 修复，从 macOS 10.13.4 起，该问题已被 Apple 官方解决。
 - 受保护的 iTunes 内容问题已由 *WEG* 修复。从 macOS 10.12 起，在 Ivy 或更新平台的核显上，在 iTunes 上观看高清电影时不能没有独显。
 
-在核显非空端口输出下使用 [VDADecoderChecker](https://i.applelife.ru/2018/12/442759_VDADecoderChecker.zip) 的输出必须类似如下图：
+在核显非空端口输出下使用 [VDADecoderChecker](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) 的输出必须类似如下图：
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/vda.png)  
 

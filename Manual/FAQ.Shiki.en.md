@@ -51,7 +51,7 @@ It is opensource starting with version 2.0.0.
 Enable coremedia tracing: `defaults write com.apple.coremedia cfbyteflume_trace 1`  
 Afterwards you will see a trailer URL in Console.app if you filter the output by 'iTunes' keyword.  
 `... <<< CFByteFlume >>> FigCFHTTPCheckCacheValidator: Comparing dictUrl = http://.....m4v, url = http://......m4v`  
-Paste it into your browser, and you will be able to download the trailer file ([example](https://applelife.ru/threads/chernye-trejlery-itunes.42290/page-11#post-583709)).  
+Paste it into your browser, and you will be able to download the trailer file ([example](https://drive.google.com/file/d/12pQ5FFpdHdGOVV6jvbqEq2wmkpMKxsOF/view)).  
 
 - _DRM playback starts to produce garbled frames after a while, why does it happen?_  
 From the tests it happens to be a bug in Apple DRM decoder, and the issue supposedly exists on Apple hardware as well.  
@@ -126,7 +126,15 @@ To fix it up disable Shiki, reboot, and run `sudo update_dyld_shared_cache -forc
 To check that read `/System/Library/PrivateFrameworks/AppleGVA.framework/Info.plist`, if your mac model or board id is present there, then this model does support hardware video decoding acceleration. You are to select a closest configuration to the one you own. For example, iMac13,1 uses an IGPU/discrete GPU combo whereas iMac13,3 only has an IGPU. If you use a model meant to work with a discrete GPU without a graphical card installed VDA will not work and you are likely to get an error from VDADecoderChecker. To correct this either choose an accurate model or edit the `forceOfflineRenderer` property in the Info.plist, it will need to be set to NO.
 
 - _How can I enable Intel online video decoder when AppleGVA enforces offline?_  
-Add `shikigva=1` argument to boot-args.
+Add `shikigva=1` argument to boot-args or to DeviceProperties in any GPU.
+
+- _How can I enable AMD DRM for Music, Safari, TV, leaving IGPU for other applications?_  
+Add `shikigva=80` argument to boot-args or to DeviceProperties in any GPU. If this causes freezes (partially fixed in 10.15.4+), fallback to `shikigva=16`. Please note that not all DRM types are available in different configurations, follow [check list](https://applelife.ru/posts/846582) to diagnose DRM support.
+
+- _How can I play iTunes purchased videos in QuickTime on MacPro5,1 along with Apple TV+?_  
+For QuickTime movie playback along with TV+ on MacPro5,1 use one of the following:  
+OpenCore spoof to iMacPro1,1 (preferred).  
+`shikigva=160 shiki-id=Mac-7BA5B2D9E42DDD94` without OpenCore.
 
 - _How can I inject IOVARendererID/IOVARendererSubID in certain NVIDIA GPUs?_  
 NVIDIA drivers do not properly add these values necessary for VDA decoding for Maxwell and Pascal GPUs in their Web drivers. You could add them with a plist-only kext. The correct values for VP4 GPUs are:  
@@ -144,7 +152,7 @@ Prioritising Intel and using connector-full platform-id (e.g. `<03 00 66 01>` fo
 Certain AMD GPUs, e. g. HD 7750, do support hardware accelerated video decoding but fail to decode DRM video. The cause is unknown. Use Shiki normally.
 
 - _What is [BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash) tool for?_  
-BoardHash tool can generate mac board id hashes similar to the ones present in CoreAUC.framework (_PsZXJ2EK7ifxrtgc function).  
+BoardHash tool can generate mac board id hashes similar to the ones present in CoreAUC.framework (`_PsZXJ2EK7ifxrtgc` function).  
 For example, Mac-F221BEC8 (MacPro5,1) stands for 5f571162ce99350785007863627a096bfa11c81b.  
 It seems to have hashes of the macs with special HDCP permissions. E. g. it is known that MacPro5,1 model makes HD movies work on HD 4000 regardless of decoder state. 
 
@@ -182,6 +190,5 @@ Consider using [WhateverGreen](https://github.com/acidanthera/WhateverGreen) to 
   Hardware video decoding acceleration does not work with these CPUs and to boot you need to fake your CPUID.  
   Disable IGPU completely or rename it to some random name (e.g. IGFX) and install Shiki, it should work for you.
   It is not fully explored what preferences are needed but it is known that disabled hardware acceleration by AppleGVA plist editing/MacPro5,1 model setting helps to view HD movies sometimes.  
-  
 
 _Thanks to: 07151129, Andrey1970, Сашко666, chrome, family1232009, garcon, iDark Soul, igork, lvs1974, m-dudarev, Mieze, Quadie, savvas, tatur_sn, and certain others._

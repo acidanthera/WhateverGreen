@@ -18,6 +18,7 @@
 #include "kern_shiki.hpp"
 
 class IOFramebuffer;
+class IODisplay;
 
 class WEG {
 public:
@@ -88,9 +89,32 @@ private:
 	};
 
 	/**
-	 *  applbkkl boot-arg controlled AppleBacklight kext patch
+	 *  applbkl boot-arg controlled AppleBacklight kext patch
 	 */
 	uint32_t appleBacklightPatch {APPLBKL_DETECT};
+
+	/**
+	 *  applbkl custom device name if any
+	 */
+	OSData *appleBacklightCustomName {nullptr};
+
+	/**
+	 *  applbkl custom device data if any
+	 */
+	OSData *appleBacklightCustomData {nullptr};
+
+	/**
+	 *  Backlight panel data format
+	 */
+	struct ApplePanelData {
+		const char *deviceName;
+		uint8_t deviceData[36];
+	};
+
+	/**
+	 *  Backlight panel data
+	 */
+	static ApplePanelData appleBacklightData[];
 
 	/**
 	 *  Console info structure, taken from osfmk/console/video_console.h
@@ -145,6 +169,16 @@ private:
 	mach_vm_address_t orgGraphicsPolicyStart {0};
 
 	/**
+	 *  Original AppleIntelPanel set display handler
+	 */
+	mach_vm_address_t orgApplePanelSetDisplay {0};
+
+	/**
+	 *  vinfo presence status
+	 */
+	bool applePanelDisplaySet {false};
+
+	/**
 	 *  vinfo presence status
 	 */
 	bool gotConsoleVinfo {false};
@@ -181,14 +215,17 @@ private:
 	 *  AGDP_VIT9696  null config string size at strcmp
 	 *  AGDP_PIKERA   board-id -> board-ix replace
 	 *  AGDP_CFGMAP   add board-id with none to ConfigMap
+	 *  SET bit is used to distinguish from agpmod=detect.
 	 */
 	enum GraphicsDisplayPolicyMod {
-		AGDP_NONE    = 0,
-		AGDP_DETECT  = 1,
-		AGDP_VIT9696 = 2,
-		AGDP_PIKERA  = 4,
-		AGDP_CFGMAP  = 8,
-		AGDP_PATCHES = AGDP_VIT9696 | AGDP_PIKERA | AGDP_CFGMAP
+		AGDP_SET        = 0x8000,
+		AGDP_NONE_SET   = AGDP_SET | 0,
+		AGDP_DETECT     = 1,
+		AGDP_DETECT_SET = AGDP_SET | AGDP_DETECT,
+		AGDP_VIT9696    = 2,
+		AGDP_PIKERA     = 4,
+		AGDP_CFGMAP     = 8,
+		AGDP_PATCHES    = AGDP_VIT9696 | AGDP_PIKERA | AGDP_CFGMAP
 	};
 
 	/**
@@ -308,6 +345,16 @@ private:
 	 *  @return agdp start status
 	 */
 	static bool wrapGraphicsPolicyStart(IOService *that, IOService *provider);
+
+	/**
+	 *  AppleIntelPanel start wrapper used for extra panel injection
+	 *
+	 *  @param that      backlight panel instance
+	 *  @param display  backlight panel display
+	 *
+	 *  @return backlight panel start status
+	 */
+	static bool wrapApplePanelSetDisplay(IOService *that, IODisplay *display);
 };
 
 #endif /* kern_weg_hpp */
