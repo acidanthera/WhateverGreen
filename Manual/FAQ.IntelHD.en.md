@@ -1576,6 +1576,8 @@ The actual connection may be of any type (HDMI / DVI / DP), but for the digital 
   
   
 ## Custom framebuffer and connectors patches with WEG  
+Credit by [@headkaze](https://github.com/headkaze)
+
 In most cases, no patches are required!  
 In 10.14 for SKL and newer it is impossible to obtain information about the framebuffers and connectors directly from the kext binary - it is necessary to dump the binary from memory, so binary framebuffer patches in Clover are impossible. It is, however, possible to make semantic (prefered) and binary patches by using *WEG*. On older OS'es and older IGPU - this works too. By default, the current framebuffer is patched.  
 Patches are placed in the `Properties` section of IGPU.  
