@@ -3,6 +3,7 @@ WhateverGreen Changelog
 #### v1.3.7
 - Improved the maximum link rate fix: Now correct the value read from extended DPCD as well. (by @0xFireWolf)
 - Improved firmware loading handling on 10.15.4 (may fix booting issues on KBL+)
+- Improved support for Comet Lake IGPUs (thx @stormbirds)
 
 #### v1.3.6
 - Enabled CoreLSKD streaming patches by default for AMD hardware DRM on Ivy Bridge
