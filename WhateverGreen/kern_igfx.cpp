@@ -129,6 +129,18 @@ void IGFX::init() {
 			currentFramebufferOpt = &kextIntelICLHPFb;
 			forceCompleteModeset.enable = true;
 			break;
+		case CPUInfo::CpuGeneration::CometLake:
+			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
+			loadGuCFirmware = canLoadGuC > 0;
+			currentGraphics = &kextIntelKBL;
+			currentFramebuffer = &kextIntelCFLFb;
+			// Allow faking ask KBL
+			currentFramebufferOpt = &kextIntelKBLFb;
+			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
+			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
+			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
+			forceCompleteModeset.enable = true;
+			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
 			break;
