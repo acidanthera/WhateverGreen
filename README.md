@@ -35,7 +35,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 #### Boot arguments
 - `-wegdbg` to enable debug printing (available in DEBUG binaries).
 - `-wegoff` to disable WhateverGreen.
-- `-wegbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).
+- `-wegbeta` to enable WhateverGreen on unsupported os versions (10.15 and below are enabled by default).
 - `-wegnoegpu` to disable external GPU (or add `disable-external-gpu` property to IGPU).
 - `-radvesa` to disable ATI/AMD video acceleration completely.
 - `-rad24` to enforce 24-bit display mode.
