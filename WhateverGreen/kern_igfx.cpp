@@ -57,10 +57,6 @@ IGFX *IGFX::callbackIGFX;
 void IGFX::init() {
 	callbackIGFX = this;
 
-	int canLoadGuC = 0;
-	if (getKernelVersion() >= KernelVersion::HighSierra)
-		PE_parse_boot_argn("igfxfw", &canLoadGuC, sizeof(canLoadGuC));
-
 	uint32_t family = 0, model = 0;
 	cpuGeneration = CPUInfo::getGeneration(&family, &model);
 	switch (cpuGeneration) {
@@ -90,21 +86,18 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelBDWFb;
 			break;
 		case CPUInfo::CpuGeneration::Skylake:
-			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
-			loadGuCFirmware = canLoadGuC > 0;
+			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
-			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
-			loadGuCFirmware = canLoadGuC > 0;
+			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
-			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
-			loadGuCFirmware = canLoadGuC > 0;
+			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelCFLFb;
 			// Allow faking ask KBL
@@ -115,23 +108,20 @@ void IGFX::init() {
 			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
-			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
-			loadGuCFirmware = canLoadGuC > 0;
+			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
 			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
-			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
-			loadGuCFirmware = canLoadGuC > 0;
+			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
 			forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
-			avoidFirmwareLoading = getKernelVersion() >= KernelVersion::HighSierra;
-			loadGuCFirmware = canLoadGuC > 0;
+			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelCFLFb;
 			// Allow faking ask KBL
@@ -193,6 +183,15 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 				forceCompleteModeset.customised = true;
 			}
+		}
+
+		if (supportsGuCFirmware && getKernelVersion() >= KernelVersion::HighSierra) {
+			if (!PE_parse_boot_argn("igfxfw", &fwLoadMode, sizeof(fwLoadMode)))
+				WIOKit::getOSDataValue<int32_t>(info->videoBuiltin, "igfxfw", fwLoadMode);
+			if (fwLoadMode == FW_AUTO)
+				fwLoadMode = info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple ? FW_APPLE : FW_DISABLE;
+		} else {
+			fwLoadMode = FW_APPLE; /* Do nothing, GuC is either unsupported due to low OS or Apple */
 		}
 
 		// Enable the fix for computing HDMI dividers on SKL, KBL, CFL platforms if the corresponding boot argument is found
@@ -274,10 +273,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			blackScreenPatch = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 		}
 
-		// GuC firmware is just fine on Apple hardware
-		if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
-			avoidFirmwareLoading = false;
-
 		// PAVP patch is only necessary when we have no discrete GPU
 		pavpDisablePatch = !connectorLessFrame && info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 
@@ -293,7 +288,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		// Disable kext patching if we have nothing to do.
 		switchOffFramebuffer = !blackScreenPatch && !applyFramebufferPatch && !dumpFramebufferToDisk && !dumpPlatformTable && !hdmiAutopatch && cflBacklightPatch == CoffeeBacklightPatch::Off && !maxLinkRatePatch && !hdmiP0P1P2Patch && !supportLSPCON && !forceCompleteModeset.enable;
-		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && !avoidFirmwareLoading && !readDescriptorPatch;
+		switchOffGraphics = !pavpDisablePatch && !forceOpenGL && !moderniseAccelerator && fwLoadMode != FW_APPLE && !readDescriptorPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
 	}
@@ -327,7 +322,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (forceOpenGL || moderniseAccelerator || avoidFirmwareLoading) {
+		if (forceOpenGL || moderniseAccelerator || fwLoadMode != FW_APPLE) {
 			auto startSym = "__ZN16IntelAccelerator5startEP9IOService";
 			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
 				startSym = "__ZN16IntelAccelerator5startEP9IOService";
@@ -335,7 +330,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest request(startSym, wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
 
-			if (loadGuCFirmware && getKernelVersion() <= KernelVersion::Mojave)
+			if (fwLoadMode == FW_GENERIC && getKernelVersion() <= KernelVersion::Mojave)
 				loadIGScheduler4Patches(patcher, index, address, size);
 		}
 
@@ -639,7 +634,9 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	// On 10.13 there is an option to ignore/load a generic firmware, which we set here.
 	// On 10.12 it is not necessary.
 	// On 10.15 an option is differently named but still there.
-	if (callbackIGFX->avoidFirmwareLoading) {
+	// There are some laptops that support Apple firmware, for them we want it to be loaded explicitly.
+	// REF: https://github.com/acidanthera/bugtracker/issues/748
+	if (callbackIGFX->fwLoadMode != FW_APPLE) {
 		auto dev = OSDynamicCast(OSDictionary, that->getProperty("Development"));
 		if (dev && dev->getObject("GraphicsSchedulerSelect")) {
 			auto rawDev = dev->copyCollection();
@@ -652,7 +649,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 					// 4 - Reference Scheduler
 					// 5 - Host Preemptive (as of 10.15)
 					uint32_t scheduler;
-					if (callbackIGFX->loadGuCFirmware)
+					if (callbackIGFX->fwLoadMode == FW_GENERIC)
 						scheduler = 4;
 					else if (getKernelVersion() >= KernelVersion::Catalina)
 						scheduler = 5;
@@ -1474,7 +1471,7 @@ bool IGFX::wrapGetOSInformation(void *that) {
 bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
 	bool r = false;
 	DBGLOG("igfx", "attempting to load firmware for %d scheduler for cpu gen %d",
-		   callbackIGFX->loadGuCFirmware, callbackIGFX->cpuGeneration);
+		   callbackIGFX->fwLoadMode, callbackIGFX->cpuGeneration);
 
 	if (callbackIGFX->firmwareSizePointer)
 		callbackIGFX->performingFirmwareLoad = true;
@@ -1526,7 +1523,7 @@ bool IGFX::wrapInitSchedControl(void *that, void *ctrl) {
 	bool r = FunctionCast(wrapInitSchedControl, callbackIGFX->orgInitSchedControl)(that, ctrl);
 
 #ifdef DEBUG
-	if (callbackIGFX->loadGuCFirmware) {
+	if (callbackIGFX->fwLoadMode == FW_GENERIC) {
 		struct ParamRegs {
 			uint32_t bak[35];
 			uint32_t params[10];

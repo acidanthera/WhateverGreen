@@ -335,9 +335,19 @@ private:
 	bool moderniseAccelerator {false};
 
 	/**
+	 *  GuC firmware loading scheme
+	 */
+	enum FirmwareLoad {
+		FW_AUTO    = -1 /* Use as is for Apple, disable for others */,
+		FW_DISABLE = 0, /* Use host scheduler without GuC */
+		FW_GENERIC = 1, /* Use reference scheduler with GuC */
+		FW_APPLE   = 2, /* Use Apple GuC scheduler */
+	};
+
+	/**
 	 *  Set to true to avoid incompatible GPU firmware loading
 	 */
-	bool avoidFirmwareLoading {false};
+	FirmwareLoad fwLoadMode {FW_AUTO};
 
 	/**
 	 *  Requires framebuffer modifications
@@ -378,9 +388,9 @@ private:
 	bool hdmiAutopatch {false};
 
 	/**
-	 *  Load GuC firmware
+	 *  Supports GuC firmware
 	 */
-	bool loadGuCFirmware {false};
+	bool supportsGuCFirmware {false};
 
 	/**
 	 *  Currently loading GuC firmware
