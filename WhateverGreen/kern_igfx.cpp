@@ -274,7 +274,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		}
 
 		// PAVP patch is only necessary when we have no discrete GPU
-		pavpDisablePatch = !connectorLessFrame && info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
+		int pavpMode = connectorLessFrame || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
+		if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
+			WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
+		pavpDisablePatch = pavpMode == 0;
 
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));

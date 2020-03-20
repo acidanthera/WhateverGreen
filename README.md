@@ -52,13 +52,15 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `gfxrst=4` to disable framebuffer init interaction during 2nd boot stage.
 - `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).
 - `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.
-- `igfxgl=0` to disable Metal support on Intel.
+- `igfxgl=0` boot argument (and `disable-metal` property) to disable Metal support on Intel.
+- `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
+- `igfxfw=2` boot argument (and `igfxfw` property) to force loading of Apple GuC firmware
 - `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 - `-igfxdump` to dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries).
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 - `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
-- `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)
+- `applbkl=0` boot argument (and `applbkl` property) to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)
 - `-igfxmlr` boot argument (and `enable-dpcd-max-link-rate-fix` property) to apply the maximum link rate fix.
 - `-igfxhdmidivs` boot argument (and `enable-hdmi-dividers-fix` property) to fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms.
 - `-igfxlspcon` boot argument (and `enable-lspcon-support` property) to enable the driver support for onboard LSPCON chips. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)
