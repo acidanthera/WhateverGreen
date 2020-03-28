@@ -56,7 +56,6 @@ IGFX *IGFX::callbackIGFX;
 
 void IGFX::init() {
 	callbackIGFX = this;
-
 	uint32_t family = 0, model = 0;
 	cpuGeneration = CPUInfo::getGeneration(&family, &model);
 	switch (cpuGeneration) {
@@ -89,12 +88,13 @@ void IGFX::init() {
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
+			forceCompleteModeset.supported = forceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
-			forceCompleteModeset.enable = true;
+			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -105,20 +105,20 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset.enable = true;
+			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
-			forceCompleteModeset.enable = true;
+			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
-			forceCompleteModeset.enable = true;
+			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
 			supportsGuCFirmware = true;
@@ -129,7 +129,7 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset.enable = true;
+			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -169,8 +169,17 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			dumpPlatformTable = true;
 #endif
 
-		if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
+		uint32_t forceCompleteModeSet = 0;
+		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
+			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
+			DBGLOG("weg", "force complete-modeset overriden by boot-argument %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
+		} else if (WIOKit::getOSDataValue<int32_t>(info->videoBuiltin, "complete-modeset", forceCompleteModeSet)) {
+			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
+			DBGLOG("weg", "force complete-modeset overriden by device property %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
+		} else if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
 			forceCompleteModeset.enable = false; // may interfere with FV2
+			DBGLOG("weg", "force complete-modeset overriden by Apple firmware -> %d", forceCompleteModeset.enable);
+		}
 
 		if (forceCompleteModeset.enable) {
 			uint64_t fbs;
@@ -424,7 +433,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (forceCompleteModeset.enable) {
-			KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2", wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
+			const char *sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2";
+			if (forceCompleteModeset.legacy)
+				sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE";
+			KernelPatcher::RouteRequest request(sym, wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
 				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
 		}
@@ -703,18 +715,18 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 	// safe solution to that. Note that the root cause of the problem is
 	// somewhere deeper.
 
+	// On older Skylake versions this function has no detailedInfo and does not use framebuffer argument.
+	// As a result the compiler does not pass framebuffer to the target function. Since the fix is disabled
+	// by default for Skylake, just force complete modeset on all framebuffers when actually requested.
+	if (callbackIGFX->forceCompleteModeset.legacy)
+		return true;
+
 	// Either this framebuffer is in override list
 	if (callbackIGFX->forceCompleteModeset.customised) {
 		return callbackIGFX->forceCompleteModeset.inList(framebuffer)
 		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
 			controller, framebuffer, displayPath, crtParams, detailedInfo);
 	}
-
-	// FIXME:
-	// A similar function exists in Skylake:
-	// __ZN31AppleIntelFramebufferController13hwSetupMemoryEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEb
-	// However, it does not use framebuffer argument and thus the compiler does not pass it to the target function.
-	// Since the fix is not very beneficial for Skylake, for the time being we do not care fixing it.
 
 	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
 	// this framebuffer.

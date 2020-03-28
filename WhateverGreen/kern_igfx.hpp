@@ -236,6 +236,11 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
+	 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
+	 */
+	mach_vm_address_t orgHwRegsNeedUpdate {};
+
+	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
@@ -363,6 +368,8 @@ private:
 	 * Ensure each modeset is a complete modeset.
 	 */
 	struct {
+		bool supported {false}; // compatible CPU
+		bool legacy {false}; // legacy CPU (Skylake)
 		bool enable {false}; // enable the patch
 		bool customised {false}; // override default patch behaviour
 		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
@@ -530,7 +537,7 @@ private:
 	 * See function definition for explanation
 	 */
 	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
-	mach_vm_address_t orgHwRegsNeedUpdate {0};
+
 
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct
