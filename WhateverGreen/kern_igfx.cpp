@@ -1462,12 +1462,10 @@ void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 }
 
 bool IGFX::wrapGetOSInformation(void *that) {
-	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
-
 #ifdef DEBUG
 	if (callbackIGFX->dumpFramebufferToDisk) {
 		char name[64];
-		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", cpuGeneration, getKernelVersion(), getKernelMinorVersion());
+		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", BaseDeviceInfo::get().cpuGeneration, getKernelVersion(), getKernelMinorVersion());
 		FileIO::writeBufferToFile(name, callbackIGFX->framebufferStart, callbackIGFX->framebufferSize);
 		SYSLOG("igfx", "dumping framebuffer information to %s", name);
 	}
@@ -1492,11 +1490,9 @@ bool IGFX::wrapGetOSInformation(void *that) {
 }
 
 bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
-	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
-
 	bool r = false;
 	DBGLOG("igfx", "attempting to load firmware for %d scheduler for cpu gen %d",
-		   callbackIGFX->fwLoadMode, cpuGeneration);
+		   callbackIGFX->fwLoadMode, BaseDeviceInfo::get().cpuGeneration);
 
 	if (callbackIGFX->firmwareSizePointer)
 		callbackIGFX->performingFirmwareLoad = true;
@@ -1510,9 +1506,7 @@ bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
 }
 
 bool IGFX::wrapLoadFirmware(IOService *that) {
-	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
-
-	DBGLOG("igfx", "load firmware setting sleep overrides %d", cpuGeneration);
+	DBGLOG("igfx", "load firmware setting sleep overrides %d", BaseDeviceInfo::get().cpuGeneration);
 
 	// We have to patch the virtual table, because the original methods are very short.
 	// See __ZN12IGScheduler415systemWillSleepEv and __ZN12IGScheduler413systemDidWakeEv
