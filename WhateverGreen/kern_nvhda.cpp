@@ -9,7 +9,10 @@
 
 #include <Headers/kern_util.hpp>
 #include <libkern/libkern.h>
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
 #include <IOKit/pci/IOPCIDevice.h>
+#pragma clang diagnostic pop
 #include <IOKit/IODeviceTreeSupport.h>
 
 // Workaround for systems with BIOSes that default-disable the HD Audio function on their NVIDIA GPUs.
