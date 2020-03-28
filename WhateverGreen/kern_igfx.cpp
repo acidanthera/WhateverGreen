@@ -56,9 +56,11 @@ IGFX *IGFX::callbackIGFX;
 
 void IGFX::init() {
 	callbackIGFX = this;
-	uint32_t family = 0, model = 0;
-	cpuGeneration = CPUInfo::getGeneration(&family, &model);
-	switch (cpuGeneration) {
+	auto &bdi = BaseDeviceInfo::get();
+	auto generation = bdi.cpuGeneration;
+	auto family = bdi.cpuFamily;
+	auto model = bdi.cpuModel;
+	switch (generation) {
 		case CPUInfo::CpuGeneration::Penryn:
 		case CPUInfo::CpuGeneration::Nehalem:
 		case CPUInfo::CpuGeneration::Westmere:
@@ -157,6 +159,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool switchOffGraphics = false;
 	bool switchOffFramebuffer = false;
 	framebufferPatch.framebufferId = info->reportedFramebufferId;
+
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	if (info->videoBuiltin) {
 		applyFramebufferPatch = loadPatchesFromDevice(info->videoBuiltin, info->reportedFramebufferId);
@@ -267,7 +271,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			cflBacklightPatch = bkl == 1 ? CoffeeBacklightPatch::On : CoffeeBacklightPatch::Off;
 		else if (info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
 			cflBacklightPatch = CoffeeBacklightPatch::On;
-		else if (currentFramebuffer == &kextIntelCFLFb && WIOKit::getComputerModel() == WIOKit::ComputerModel::ComputerLaptop)
+		else if (currentFramebuffer == &kextIntelCFLFb && BaseDeviceInfo::get().modelType == WIOKit::ComputerModel::ComputerLaptop)
 			cflBacklightPatch = CoffeeBacklightPatch::Auto;
 
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
@@ -322,6 +326,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 }
 
 bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
+
 	if (currentGraphics && currentGraphics->loadIndex == index) {
 		if (pavpDisablePatch) {
 			auto callbackSym = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_tjPjb";
@@ -1456,10 +1462,12 @@ void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 }
 
 bool IGFX::wrapGetOSInformation(void *that) {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
+
 #ifdef DEBUG
 	if (callbackIGFX->dumpFramebufferToDisk) {
 		char name[64];
-		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", callbackIGFX->cpuGeneration, getKernelVersion(), getKernelMinorVersion());
+		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", cpuGeneration, getKernelVersion(), getKernelMinorVersion());
 		FileIO::writeBufferToFile(name, callbackIGFX->framebufferStart, callbackIGFX->framebufferSize);
 		SYSLOG("igfx", "dumping framebuffer information to %s", name);
 	}
@@ -1484,9 +1492,11 @@ bool IGFX::wrapGetOSInformation(void *that) {
 }
 
 bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
+
 	bool r = false;
 	DBGLOG("igfx", "attempting to load firmware for %d scheduler for cpu gen %d",
-		   callbackIGFX->fwLoadMode, callbackIGFX->cpuGeneration);
+		   callbackIGFX->fwLoadMode, cpuGeneration);
 
 	if (callbackIGFX->firmwareSizePointer)
 		callbackIGFX->performingFirmwareLoad = true;
@@ -1500,7 +1510,9 @@ bool IGFX::wrapLoadGuCBinary(void *that, bool flag) {
 }
 
 bool IGFX::wrapLoadFirmware(IOService *that) {
-	DBGLOG("igfx", "load firmware setting sleep overrides %d", callbackIGFX->cpuGeneration);
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
+
+	DBGLOG("igfx", "load firmware setting sleep overrides %d", cpuGeneration);
 
 	// We have to patch the virtual table, because the original methods are very short.
 	// See __ZN12IGScheduler415systemWillSleepEv and __ZN12IGScheduler413systemDidWakeEv
@@ -1555,20 +1567,21 @@ bool IGFX::wrapInitSchedControl(void *that, void *ctrl) {
 }
 
 void *IGFX::wrapIgBufferWithOptions(void *accelTask, unsigned long size, unsigned int type, unsigned int flags) {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 	void *r = nullptr;
 
 	if (callbackIGFX->performingFirmwareLoad) {
 		// Allocate a dummy buffer
 		callbackIGFX->dummyFirmwareBuffer = Buffer::create<uint8_t>(size);
 		// Select the latest firmware to upload
-		DBGLOG("igfx", "preparing firmware for cpu gen %d with range 0x%lX", callbackIGFX->cpuGeneration, size);
+		DBGLOG("igfx", "preparing firmware for cpu gen %d with range 0x%lX", cpuGeneration, size);
 
 		const void *fw = nullptr;
 		const void *fwsig = nullptr;
 		size_t fwsize = 0;
 		size_t fwsigsize = 0;
 
-		if (callbackIGFX->cpuGeneration == CPUInfo::CpuGeneration::Skylake) {
+		if (cpuGeneration == CPUInfo::CpuGeneration::Skylake) {
 			fw = GuCFirmwareSKL;
 			fwsig = GuCFirmwareSKLSignature;
 			fwsize = GuCFirmwareSKLSize;
@@ -2078,6 +2091,7 @@ bool IGFX::applyDPtoHDMIPatch(uint32_t framebufferId, T *platformInformationList
 }
 
 void IGFX::applyFramebufferPatches() {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 	uint32_t framebufferId = framebufferPatch.framebufferId;
 
 	// Not tested prior to 10.10.5, and definitely different on 10.9.5 at least.
@@ -2155,6 +2169,7 @@ void IGFX::applyFramebufferPatches() {
 }
 
 void IGFX::applyHdmiAutopatch() {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 	uint32_t framebufferId = framebufferPatch.framebufferId;
 
 	DBGLOG("igfx", "applyHdmiAutopatch framebufferId %X cpugen %X", framebufferId, cpuGeneration);

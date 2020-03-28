@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware
 - Added `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
 - Added `igfxfcms=1` boot argument (and `complete-modeset` property) on Skylake and Apple
+- Improved performance with Lilu 1.4.3 APIs
 
 #### v1.3.7
 - Improved the maximum link rate fix: Now correct the value read from extended DPCD as well. (by @0xFireWolf)

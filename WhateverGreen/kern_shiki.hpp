@@ -82,11 +82,6 @@ private:
 	};
 
 	/**
-	 *  Current cpu generation
-	 */
-	CPUInfo::CpuGeneration cpuGeneration {CPUInfo::CpuGeneration::Unknown};
-
-	/**
 	 *  Current process information
 	 */
 	UserPatcher::ProcInfo *procInfo {nullptr};

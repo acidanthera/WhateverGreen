@@ -91,12 +91,10 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool useLegacyHwDrmDecoder   = false;
 	bool useSwDrmDecoder         = false;
 
-	cpuGeneration = CPUInfo::getGeneration();
-	if (!WIOKit::getComputerInfo(reinterpret_cast<char *>(selfMacModel), sizeof(selfMacModel),
-								 reinterpret_cast<char *>(selfBoardId), sizeof(selfBoardId)) || selfMacModel[0] == '\0' || selfBoardId[0] == '\0') {
-		SYSLOG("shiki", "Cannot obtain current board-id %s / mac model %s, will fail", selfBoardId, selfMacModel);
-		// Should we PANIC here?
-	}
+	auto &bdi = BaseDeviceInfo::get();
+	auto cpuGeneration = bdi.cpuGeneration;
+	lilu_os_strlcpy(reinterpret_cast<char *>(selfMacModel), bdi.modelIdentifier, sizeof(selfMacModel));
+	lilu_os_strlcpy(reinterpret_cast<char *>(selfBoardId), bdi.boardIdentifier, sizeof(selfBoardId));
 
 	int bootarg {0};
 	if (getBootArgument(info, "shikigva", &bootarg, sizeof(bootarg))) {
@@ -339,6 +337,7 @@ bool SHIKI::setCompatibleRendererPatch() {
 	// More details are outlined in https://www.applelife.ru/posts/716793.
 
 	// This patch makes AppleGVA believe that we use Haswell, which is not restricted to any modern GPU
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 	if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge) {
 		*reinterpret_cast<int32_t *>(&yosemitePatchReplace[YosemitePatchOff]) += (0x1080004 - 0x1080001);
 		*reinterpret_cast<int32_t *>(&sierraPatchReplace[SierraPatchOff])     += (0x1080004 - 0x1080001);

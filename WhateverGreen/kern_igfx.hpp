@@ -273,11 +273,6 @@ private:
 	IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *);
 
 	/**
-	 *  Detected CPU generation of the host system
-	 */
-	CPUInfo::CpuGeneration cpuGeneration {};
-
-	/**
 	 *  Set to true if a black screen ComputeLaneCount patch is required
 	 */
 	bool blackScreenPatch {false};
