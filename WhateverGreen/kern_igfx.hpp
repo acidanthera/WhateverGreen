@@ -533,7 +533,6 @@ private:
 	 */
 	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
 
-
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct
 	 *
