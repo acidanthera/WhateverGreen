@@ -14,7 +14,7 @@
 #include <Headers/kern_file.hpp>
 #include <Headers/kern_iokit.hpp>
 
-#if defined(DEBUG) && 1  /* enable this to trace IGFX framebuffer */
+#if defined(DEBUG) && 0  /* enable this to trace IGFX framebuffer */
 
 #define FRAMEBUFFER_DEBUG 0
 #include <IOKit/graphics/IOFramebuffer.h>
