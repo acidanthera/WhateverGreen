@@ -241,6 +241,11 @@ private:
 	mach_vm_address_t orgHwRegsNeedUpdate {};
 
 	/**
+	 *  Original IntelFBClientControl::doAttribute function
+	 */
+	mach_vm_address_t orgFBClientDoAttribute {};
+
+	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
@@ -333,6 +338,11 @@ private:
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};
+
+	/**
+	 *  Disable AGDC configuration
+	 */
+	bool disableAGDC {false};
 
 	/**
 	 *  GuC firmware loading scheme
@@ -1331,6 +1341,11 @@ private:
 	 *  IGMappedBuffer::getGPUVirtualAddress wrapper to trick GuC firmware virtual addresses
 	 */
 	static uint64_t wrapIgBufferGetGpuVirtualAddress(void *that);
+
+	/**
+	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
+	 */
+	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
 
 	/**
 	 *  Load GuC-specific patches and hooks

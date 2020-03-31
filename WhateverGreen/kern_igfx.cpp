@@ -8,6 +8,7 @@
 #include "kern_igfx.hpp"
 #include "kern_fb.hpp"
 #include "kern_guc.hpp"
+#include "kern_agdc.hpp"
 
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_cpu.hpp>
@@ -294,6 +295,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
 
+		int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
+		PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
+		disableAGDC = agdc == 0;
+
 		// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
 		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
 
@@ -316,6 +321,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (supportLSPCON)
 				return true;
 			if (forceCompleteModeset.enable)
+				return true;
+			if (disableAGDC)
 				return true;
 			return false;
 		};
@@ -477,6 +484,12 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest request(sym, wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
 				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
+		}
+
+		if (disableAGDC) {
+			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
+			if (!patcher.routeMultiple(index, &request, 1, address, size))
+				SYSLOG("igfx", "failed to route FBClientControl::doAttribute");
 		}
 
 		if (debugFramebuffer)
@@ -777,9 +790,15 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 		controller, framebuffer, displayPath, crtParams, detailedInfo);
 }
 
-/**
- *  ReadAUX wrapper to modify the maximum link rate valud in the DPCD buffer
- */
+IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
+	if (attribute == kAGDCRegisterCallback) {
+		DBGLOG("igfx", "Ignoring AGDC registration in FBClientControl::doAttribute");
+		return kIOReturnUnsupported;
+	}
+
+	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
+}
+
 IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
 
 	//
