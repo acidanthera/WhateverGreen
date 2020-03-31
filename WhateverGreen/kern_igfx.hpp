@@ -360,6 +360,11 @@ private:
 	bool dumpFramebufferToDisk {false};
 
 	/**
+	 *  Trace framebuffer logic
+	 */
+	bool debugFramebuffer {false};
+
+	/**
 	 * Ensure each modeset is a complete modeset.
 	 */
 	struct {
@@ -1336,6 +1341,16 @@ private:
 	 *  @param size    kinfo memory size
 	 */
 	void loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+	/**
+	 *  Enable framebuffer debugging
+	 *
+	 *  @param patcher KernelPatcher instance
+	 *  @param index   kinfo handle
+	 *  @param address kinfo load address
+	 *  @param size    kinfo memory size
+	 */
+	void loadFramebufferDebug(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 	/**
 	 *  Load user-specified arguments from IGPU device
