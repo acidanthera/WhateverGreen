@@ -8,9 +8,10 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
-#include <kern_igfx.hpp>
 #include <Library/LegacyIOService.h>
 #include <IOKit/graphics/IOFramebuffer.h>
+#include "kern_agdc.hpp"
+#include "kern_igfx.hpp"
 
 #ifdef DEBUG
 
@@ -216,45 +217,93 @@ static IOReturn fbdebugWrapFBClientDoAttribute(void *fbclient, uint32_t attribut
 		uint32_t attr;
 		const char *name;
 	} mapping[] = {
-		{ 0x1,   "_id" },
-		{ 0x120, "pmtGetGPUInfo" },
-		{ 0x121, "pmtGetPStateFreqTable" },
-		{ 0x122, "pmtGetPStateResidency" },
-		{ 0x123, "pmtGetCStateNames" },
-		{ 0x124, "pmtGetCStateResidency" },
-		{ 0x125, "pmtGetMiscCntrNum" },
-		{ 0x126, "pmtGetMiscCntrInfo" },
-		{ 0x127, "pmtGetMiscCntr" },
-		{ 0x128, "pmtTakeCPStateResidencySnapshot" },
-		{ 0x129, "pmtGetPStateResidencyDiff" },
-		{ 0x12A, "pmtGetCStateResidencyDiff" },
-		{ 0x12B, "pmtGetPStateResidencyDiffAbs" },
-		{ 0x701, "SetFbStatusOnNextProbe" },
-		{ 0x704, "AGDCInjectEvent" },
-		{ 0x707, "FBSetEDID" },
-		{ 0x710, "getDisplayPipeCapability" },
-		{ 0x711, "getDisplayPipeCapabilityExtended" },
-		{ 0x920, "ApplyMultiLinkConfig" },
-		{ 0x921, "GetLinkConfig" },
-		{ 0x922, "command???" },
-		{ 0x923, "RegisterAGDCCallback" },
-		{ 0x924, "command???" },
-		{ 0x925, "GetPortStatus" },
-		{ 0x926, "ConfigureAudio" },
-		{ 0x927, "???" },
-		{ 0x928, "AGDCStreamSleepControl" },
-		{ 0x940, "AGDCPortEnable" },
-		{ 0x941, "GetPortCapability" },
-		{ 0x980, "GetGPUCapability" },
-		{ 0x981, "Get/SetStreamAssociation" },
-		{ 0x982, "GetStreamRequest" },
-		{ 0x983, "StreamAccessI2C" },
-		{ 0x984, "???" },
-		{ 0x985, "GetStreamAccessAUX" },
-		{ 0x986, "StreamGetEDID" },
-		{ 0x987, "SetStreamState" },
-		{ 0x988, "Get/SetStreamConfig" },
-		{ 0x989, "AGDCEnableController" },
+		{ kAGDCVendorInfo, "kAGDCVendorInfo" },
+		{ kAGDCVendorEnableController, "kAGDCVendorEnableController" },
+		{ kAGDCPMInfo, "kAGDCPMInfo" },
+		{ kAGDCPMStateCeiling, "kAGDCPMStateCeiling" },
+		{ kAGDCPMStateFloor, "kAGDCPMStateFloor" },
+		{ kAGDCPMPState, "kAGDCPMPState" },
+		{ kAGDCPMPowerLimit, "kAGDCPMPowerLimit" },
+		{ kAGDCPMGetGPUInfo, "kAGDCPMGetGPUInfo" },
+		{ kAGDCPMGetPStateFreqTable, "kAGDCPMGetPStateFreqTable" },
+		{ kAGDCPMGetPStateResidency, "kAGDCPMGetPStateResidency" },
+		{ kAGDCPMGetCStateNames, "kAGDCPMGetCStateNames" },
+		{ kAGDCPMGetCStateResidency, "kAGDCPMGetCStateResidency" },
+		{ kAGDCPMGetMiscCntrNum, "kAGDCPMGetMiscCntrNum" },
+		{ kAGDCPMGetMiscCntrInfo, "kAGDCPMGetMiscCntrInfo" },
+		{ kAGDCPMGetMiscCntr, "kAGDCPMGetMiscCntr" },
+		{ kAGDCPMTakeCPStateResidencySnapshot, "kAGDCPMTakeCPStateResidencySnapshot" },
+		{ kAGDCPMGetPStateResidencyDiff, "kAGDCPMGetPStateResidencyDiff" },
+		{ kAGDCPMGetCStateResidencyDiff, "kAGDCPMGetCStateResidencyDiff" },
+		{ kAGDCPMGetPStateResidencyDiffAbs, "kAGDCPMGetPStateResidencyDiffAbs" },
+		{ kAGDCFBPerFramebufferCMD, "kAGDCFBPerFramebufferCMD" },
+		{ kAGDCFBOnline, "kAGDCFBOnline" },
+		{ kAGDCFBSetEDID, "kAGDCFBSetEDID" },
+		{ kAGDCFBSetMode, "kAGDCFBSetMode" },
+		{ kAGDCFBInjectEvent, "kAGDCFBInjectEvent" },
+		{ kAGDCFBDoControl, "kAGDCFBDoControl" },
+		{ kAGDCFBDPLinkConfig, "kAGDCFBDPLinkConfig" },
+		{ kAGDCFBSetEDIDEx, "kAGDCFBSetEDIDEx" },
+		{ kAGDCFBGetCapability, "kAGDCFBGetCapability" },
+		{ kAGDCFBGetCapabilityEx, "kAGDCFBGetCapabilityEx" },
+		{ kAGDCMultiLinkConfig, "kAGDCMultiLinkConfig" },
+		{ kAGDCLinkConfig, "kAGDCLinkConfig" },
+		{ kAGDCRegisterCallback, "kAGDCRegisterCallback" },
+		{ kAGDCGetPortStatus, "kAGDCGetPortStatus" },
+		{ kAGDCConfigureAudio, "kAGDCConfigureAudio" },
+		{ kAGDCCallbackCapability, "kAGDCCallbackCapability" },
+		{ kAGDCStreamSleepControl, "kAGDCStreamSleepControl" },
+		{ kAGDCPortEnable, "kAGDCPortEnable" },
+		{ kAGDCPortCapability, "kAGDCPortCapability" },
+		{ kAGDCDiagnoseGetDevicePropertySize, "kAGDCDiagnoseGetDevicePropertySize" },
+		{ kAGDCDiagnoseGetDeviceProperties, "kAGDCDiagnoseGetDeviceProperties" },
+		{ kAGDCGPUCapability, "kAGDCGPUCapability" },
+		{ kAGDCStreamAssociate, "kAGDCStreamAssociate" },
+		{ kAGDCStreamRequest, "kAGDCStreamRequest" },
+		{ kAGDCStreamAccessI2C, "kAGDCStreamAccessI2C" },
+		{ kAGDCStreamAccessI2CCapability, "kAGDCStreamAccessI2CCapability" },
+		{ kAGDCStreamAccessAUX, "kAGDCStreamAccessAUX" },
+		{ kAGDCStreamGetEDID, "kAGDCStreamGetEDID" },
+		{ kAGDCStreamSetState, "kAGDCStreamSetState" },
+		{ kAGDCStreamConfig, "kAGDCStreamConfig" },
+		{ kAGDCEnableController, "kAGDCEnableController" },
+		{ kAGDCTrainingBegin, "kAGDCTrainingBegin" },
+		{ kAGDCTrainingAttempt, "kAGDCTrainingAttempt" },
+		{ kAGDCTrainingEnd, "kAGDCTrainingEnd" },
+		{ kAGDCTestConfiguration, "kAGDCTestConfiguration" },
+		{ kAGDCCommitConfiguration, "kAGDCCommitConfiguration" },
+		{ kAGDCReleaseConfiguration, "kAGDCReleaseConfiguration" },
+		{ kAGDCPluginMetricsPlug, "kAGDCPluginMetricsPlug" },
+		{ kAGDCPluginMetricsUnPlug, "kAGDCPluginMetricsUnPlug" },
+		{ kAGDCPluginMetricsHPD, "kAGDCPluginMetricsHPD" },
+		{ kAGDCPluginMetricsSPI, "kAGDCPluginMetricsSPI" },
+		{ kAGDCPluginMetricsSyncLT, "kAGDCPluginMetricsSyncLT" },
+		{ kAGDCPluginMetricsSyncLTEnd, "kAGDCPluginMetricsSyncLTEnd" },
+		{ kAGDCPluginMetricsLTBegin, "kAGDCPluginMetricsLTBegin" },
+		{ kAGDCPluginMetricsLTEnd, "kAGDCPluginMetricsLTEnd" },
+		{ kAGDCPluginMetricsDisplayInfo, "kAGDCPluginMetricsDisplayInfo" },
+		{ kAGDCPluginMetricsMonitorInfo, "kAGDCPluginMetricsMonitorInfo" },
+		{ kAGDCPluginMetricsLightUpDp, "kAGDCPluginMetricsLightUpDp" },
+		{ kAGDCPluginMetricsHDCPStart, "kAGDCPluginMetricsHDCPStart" },
+		{ kAGDCPluginMetricsFirstPhaseComplete, "kAGDCPluginMetricsFirstPhaseComplete" },
+		{ kAGDCPluginMetricsLocalityCheck, "kAGDCPluginMetricsLocalityCheck" },
+		{ kAGDCPluginMetricsRepeaterAuthenticatio, "kAGDCPluginMetricsRepeaterAuthenticatio" },
+		{ kAGDCPluginMetricsHDCPEncryption, "kAGDCPluginMetricsHDCPEncryption" },
+		{ kAGDCPluginMetricsHPDSinktoTB, "kAGDCPluginMetricsHPDSinktoTB" },
+		{ kAGDCPluginMetricsHPDTBtoGPU, "kAGDCPluginMetricsHPDTBtoGPU" },
+		{ kAGDCPluginMetricsVersion, "kAGDCPluginMetricsVersion" },
+		{ kAGDCPluginMetricsGetMetricInfo, "kAGDCPluginMetricsGetMetricInfo" },
+		{ kAGDCPluginMetricsGetMetricData, "kAGDCPluginMetricsGetMetricData" },
+		{ kAGDCPluginMetricsMarker, "kAGDCPluginMetricsMarker" },
+		{ kAGDCPluginMetricsGetMessageTracer, "kAGDCPluginMetricsGetMessageTracer" },
+		{ kAGDCPluginMetricsXgDiscovery, "kAGDCPluginMetricsXgDiscovery" },
+		{ kAGDCPluginMetricsXgDriversStart, "kAGDCPluginMetricsXgDriversStart" },
+		{ kAGDCPluginMetricsXgPublished, "kAGDCPluginMetricsXgPublished" },
+		{ kAGDCPluginMetricsXgResetPort, "kAGDCPluginMetricsXgResetPort" },
+		{ kAGDCPluginMetricsPowerOff, "kAGDCPluginMetricsPowerOff" },
+		{ kAGDCPluginMetricsPowerOn, "kAGDCPluginMetricsPowerOn" },
+		{ kAGDCPluginMetricsSPIData, "kAGDCPluginMetricsSPIData" },
+		{ kAGDCPluginMetricsEFIData, "kAGDCPluginMetricsEFIData" },
 	};
 
 	const char *name = "<unknown>";
@@ -266,7 +315,7 @@ static IOReturn fbdebugWrapFBClientDoAttribute(void *fbclient, uint32_t attribut
 	}
 
 	//FIXME: we are just getting rid of AGDC.
-	if (attribute == 0x923) {
+	if (attribute == kAGDCRegisterCallback) {
 		SYSLOG("igfx", "[HACK] FBClientDoAttribute -> disabling AGDC!");
 		return kIOReturnUnsupported;
 	}
@@ -280,6 +329,10 @@ static IOReturn fbdebugWrapFBClientDoAttribute(void *fbclient, uint32_t attribut
 
 void IGFX::loadFramebufferDebug(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	SYSLOG("igfx", "using framebuffer debug r15");
+
+	if (disableAGDC)
+		PANIC("igfx", "igfxagdc=0 is not compatible with framebuffer debugging");
+
 	KernelPatcher::RouteRequest requests[] = {
 		{"__ZN21AppleIntelFramebuffer16enableControllerEv", fbdebugWrapEnableController, fbdebugOrgEnableController},
 		{"__ZN21AppleIntelFramebuffer25setAttributeForConnectionEijm", fbdebugWrapSetAttribute, fbdebugOrgSetAttribute},

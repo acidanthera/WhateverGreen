@@ -31,6 +31,7 @@
 		CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5C20EE825A00BA842F /* kern_weg.cpp */; };
 		CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEA03B5D20EE825A00BA842F /* kern_weg.hpp */; };
 		CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB402A41F17F5C400716912 /* kern_con.hpp */; };
+		CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC0863524331E9B00F5B701 /* kern_agdc.hpp */; };
 		CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */; };
 		CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */; };
 		E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */; };
@@ -123,6 +124,7 @@
 		CEAEA1191F26905A00918651 /* Sample.dsl */ = {isa = PBXFileReference; lastKnownFileType = text; path = Sample.dsl; sourceTree = "<group>"; };
 		CEB402A41F17F5C400716912 /* kern_con.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_con.hpp; sourceTree = "<group>"; };
 		CEB402A71F181D8300716912 /* kern_atom.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atom.hpp; sourceTree = "<group>"; };
+		CEC0863524331E9B00F5B701 /* kern_agdc.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_agdc.hpp; sourceTree = "<group>"; usesTabs = 0; };
 		CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_cdf.cpp; sourceTree = "<group>"; };
 		CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cdf.hpp; sourceTree = "<group>"; };
 		CEEF190A239CFDB1005B3BE8 /* FAQ.Chart.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Chart.md; sourceTree = "<group>"; };
@@ -174,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
+				CEC0863524331E9B00F5B701 /* kern_agdc.hpp */,
 				CEB402A71F181D8300716912 /* kern_atom.hpp */,
 				CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */,
 				CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */,
@@ -300,6 +303,7 @@
 				CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */,
 				CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */,
 				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
+				CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */,
 				CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */,
 				1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */,
 				CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */,
