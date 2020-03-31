@@ -246,6 +246,11 @@ private:
 	mach_vm_address_t orgFBClientDoAttribute {};
 
 	/**
+	 *  Original AppleIntelFramebuffer::getDisplayStatus function
+	 */
+	mach_vm_address_t orgGetDisplayStatus {};
+
+	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
@@ -375,9 +380,9 @@ private:
 	bool debugFramebuffer {false};
 
 	/**
-	 * Ensure each modeset is a complete modeset.
+	 * Per-framebuffer helper script.
 	 */
-	struct {
+	struct FramebufferModifer {
 		bool supported {false}; // compatible CPU
 		bool legacy {false}; // legacy CPU (Skylake)
 		bool enable {false}; // enable the patch
@@ -392,7 +397,17 @@ private:
 						return true;
 			return false;
 		}
-	} forceCompleteModeset;
+	};
+
+	/**
+	 * Ensure each modeset is a complete modeset.
+	 */
+	FramebufferModifer forceCompleteModeset;
+
+	/**
+	 * Ensure each display is online.
+	 */
+	FramebufferModifer forceOnlineDisplay;
 
 	/**
 	 *  Perform platform table dump to ioreg
@@ -1346,6 +1361,11 @@ private:
 	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
 	 */
 	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
+
+	/**
+	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
+	 */
+	static bool wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
 
 	/**
 	 *  Load GuC-specific patches and hooks

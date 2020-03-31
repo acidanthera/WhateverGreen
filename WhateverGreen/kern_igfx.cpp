@@ -176,7 +176,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
 			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
 			DBGLOG("weg", "force complete-modeset overriden by boot-argument %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
-		} else if (WIOKit::getOSDataValue<int32_t>(info->videoBuiltin, "complete-modeset", forceCompleteModeSet)) {
+		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset", forceCompleteModeSet)) {
 			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
 			DBGLOG("weg", "force complete-modeset overriden by device property %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
 		} else if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
@@ -186,14 +186,30 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		if (forceCompleteModeset.enable) {
 			uint64_t fbs;
-
 			if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
-				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers",
-					fbs)) {
+				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers", fbs)) {
 				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
 					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
-
 				forceCompleteModeset.customised = true;
+			}
+		}
+
+		uint32_t forceOnline = 0;
+		if (PE_parse_boot_argn("igfxonln", &forceOnline, sizeof(forceOnline))) {
+			forceOnlineDisplay.enable = forceOnline != 0;
+			DBGLOG("weg", "force online display overriden by boot-argument %d", forceOnline);
+		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "force-online", forceOnline)) {
+			forceOnlineDisplay.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
+			DBGLOG("weg", "force online display overriden by device property %d", forceOnline);
+		}
+
+		if (forceOnlineDisplay.enable) {
+			uint64_t fbs;
+			if (PE_parse_boot_argn("igfxonlnfbs", &fbs, sizeof(fbs)) ||
+				WIOKit::getOSDataValue(info->videoBuiltin, "force-online-framebuffers", fbs)) {
+				for (size_t i = 0; i < arrsize(forceOnlineDisplay.fbs); i++)
+					forceOnlineDisplay.fbs[i] = (fbs >> (8 * i)) & 0xffU;
+				forceOnlineDisplay.customised = true;
 			}
 		}
 
@@ -321,6 +337,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (supportLSPCON)
 				return true;
 			if (forceCompleteModeset.enable)
+				return true;
+			if (forceOnlineDisplay.enable)
 				return true;
 			if (disableAGDC)
 				return true;
@@ -484,6 +502,12 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest request(sym, wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
 				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
+		}
+
+		if (forceOnlineDisplay.enable) {
+			KernelPatcher::RouteRequest request("__ZN21AppleIntelFramebuffer16getDisplayStatusEP21AppleIntelDisplayPath", wrapGetDisplayStatus, orgGetDisplayStatus);
+			if (!patcher.routeMultiple(index, &request, 1, address, size))
+				SYSLOG("igfx", "failed to route getDisplayStatus");
 		}
 
 		if (disableAGDC) {
@@ -792,11 +816,25 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 
 IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
 	if (attribute == kAGDCRegisterCallback) {
-		DBGLOG("igfx", "Ignoring AGDC registration in FBClientControl::doAttribute");
+		DBGLOG("igfx", "ignoring AGDC registration in FBClientControl::doAttribute");
 		return kIOReturnUnsupported;
 	}
 
 	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
+}
+
+bool IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
+	bool ret = FunctionCast(wrapGetDisplayStatus, callbackIGFX->orgGetDisplayStatus)(framebuffer, displayPath);
+	if (ret)
+		return true;
+
+	if (callbackIGFX->forceOnlineDisplay.customised)
+		ret = callbackIGFX->forceCompleteModeset.inList(framebuffer);
+	else
+		ret = true;
+
+	DBGLOG("igfx", "getDisplayStatus forces %d", ret);
+	return ret;
 }
 
 IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
