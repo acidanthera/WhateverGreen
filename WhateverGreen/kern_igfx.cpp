@@ -199,7 +199,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			forceOnlineDisplay.enable = forceOnline != 0;
 			DBGLOG("weg", "force online display overriden by boot-argument %d", forceOnline);
 		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "force-online", forceOnline)) {
-			forceOnlineDisplay.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
+			forceOnlineDisplay.enable = forceOnline != 0;
 			DBGLOG("weg", "force online display overriden by device property %d", forceOnline);
 		}
 
