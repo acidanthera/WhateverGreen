@@ -1365,7 +1365,7 @@ private:
 	/**
 	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
 	 */
-	static bool wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
+	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
 
 	/**
 	 *  Load GuC-specific patches and hooks

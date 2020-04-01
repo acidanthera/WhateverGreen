@@ -128,12 +128,12 @@ static IOReturn fbdebugWrapConnectionProbe(IOService *framebuffer, uint8_t unk1,
 	return ret;
 }
 
-static bool fbdebugWrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
+static uint32_t fbdebugWrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
 	auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
 	int idx = (idxnum != nullptr) ? (int) idxnum->unsigned32BitValue() : -1;
 	SYSLOG("igfx", "getDisplayStatus %d start", idx);
-	bool ret = FunctionCast(fbdebugWrapGetDisplayStatus, fbdebugOrgGetDisplayStatus)(framebuffer, displayPath);
-	SYSLOG("igfx", "getDisplayStatus %d end - %d", idx, ret);
+	uint32_t ret = FunctionCast(fbdebugWrapGetDisplayStatus, fbdebugOrgGetDisplayStatus)(framebuffer, displayPath);
+	SYSLOG("igfx", "getDisplayStatus %d end - %u", idx, ret);
 	//FIXME: This is just a hack.
 	SYSLOG("igfx", "[HACK] forcing STATUS 1");
 	ret = 1;

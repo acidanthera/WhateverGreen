@@ -197,10 +197,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		uint32_t forceOnline = 0;
 		if (PE_parse_boot_argn("igfxonln", &forceOnline, sizeof(forceOnline))) {
 			forceOnlineDisplay.enable = forceOnline != 0;
-			DBGLOG("weg", "force online display overriden by boot-argument %d", forceOnline);
+			DBGLOG("weg", "force online overriden by boot-argument %u", forceOnline);
 		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "force-online", forceOnline)) {
 			forceOnlineDisplay.enable = forceOnline != 0;
-			DBGLOG("weg", "force online display overriden by device property %d", forceOnline);
+			DBGLOG("weg", "force online overriden by device property %u", forceOnline);
 		}
 
 		if (forceOnlineDisplay.enable) {
@@ -823,17 +823,17 @@ IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsig
 	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
 }
 
-bool IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
-	bool ret = FunctionCast(wrapGetDisplayStatus, callbackIGFX->orgGetDisplayStatus)(framebuffer, displayPath);
-	if (ret)
-		return true;
+uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
+	// 0 - offline, 1 - online, 2 - empty dongle.
+	uint32_t ret = FunctionCast(wrapGetDisplayStatus, callbackIGFX->orgGetDisplayStatus)(framebuffer, displayPath);
+	if (ret != 1) {
+		if (callbackIGFX->forceOnlineDisplay.customised)
+			ret = callbackIGFX->forceOnlineDisplay.inList(framebuffer) ? 1 : ret;
+		else
+			ret = 1;
+	}
 
-	if (callbackIGFX->forceOnlineDisplay.customised)
-		ret = callbackIGFX->forceCompleteModeset.inList(framebuffer);
-	else
-		ret = true;
-
-	DBGLOG("igfx", "getDisplayStatus forces %d", ret);
+	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
 	return ret;
 }
 
