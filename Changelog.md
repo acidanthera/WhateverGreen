@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.3.9
+- Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms
+
 #### v1.3.8
 - Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware
 - Added `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
