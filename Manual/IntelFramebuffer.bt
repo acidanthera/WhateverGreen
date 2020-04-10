@@ -486,7 +486,8 @@ struct FramebufferCFL {
 
 /* Not sure what it is, in CNL value2 is a pointer, and value1 could be size.  */
 struct FramebufferCNLCurrents {
-    uint64_t value1;
+    uint32_t value1;
+    uint32_t pad;
     uint64_t valu2;
 };
 
@@ -600,20 +601,22 @@ struct FramebufferICLLP {
     /* This is for boot framebuffer from what I can understand */
     uint32_t fFramebufferMemorySize <read=bytesToPrintable>;
     uint32_t fUnifiedMemorySize <read=bytesToPrintable>;
-    uint32_t pad1[2];
-    Assert(pad1[0] == 0 && pad1[1] == 0, "Non-zero sequence");
-    ConnectorInfoICL connectors[3] <read=wideConnectorToPrintable, optimize=false>;
-    FramebufferFlags flags <read=framebufferFlagsToPrintable>;
-    FramebufferCNLCurrents currents[8];
-    uint32_t unk2[5];
+    ConnectorInfoICL connectors[6] <optimize=false>;
+    /* Flags are quite different in ICL now */
+    uint32_t flags;
+    uint32_t unk2;
+    FramebufferCNLCurrents currents[3];
+    uint32_t unk3[2];
     uint32_t camelliaVersion <read=camelliaToPrintable>;
-    uint32_t unk3[6];
-    /* Defaults to 14, used when UseVideoTurbo bit is set */
+    uint32_t unk4[3];
     uint32_t fNumTransactionsThreshold;
+    /* Defaults to 14, used when UseVideoTurbo bit is set */
     uint32_t fVideoTurboFreq;
     uint32_t fSliceCount;
     uint32_t fEuCount;
-    uint32_t unk4;
+    uint32_t unk5;
+    uint8_t unk6;
+    uint8_t pad[3];
     local uint32_t fBacklightFrequency <read=frequencyToPrintable> = 0 ;
     local uint32_t fBacklightMax <read=frequencyToPrintable> = 0;
 };
@@ -636,6 +639,17 @@ uint32_t calculateStolenSkylake(FramebufferFlags &flags, uint32_t fStolenMemoryS
     else
         fTotalStolen += fStolenMemorySize * fFBMemoryCount;
     if (flags.bits.FBFramebufferCompression)
+        fTotalStolen += fFramebufferMemorySize;
+    return fTotalStolen;
+}
+
+uint32_t calculateStolenIceLake(uint32_t flags, uint32_t fStolenMemorySize, uint32_t fFBMemoryCount, uint32_t fFramebufferMemorySize) {
+    local uint32_t fTotalStolen = 0x100000; /* a constant */
+    if (flags & 0x2 /* FBFramebufferCommonMemory */)
+        fTotalStolen += fStolenMemorySize;
+    else
+        fTotalStolen += fStolenMemorySize * fFBMemoryCount;
+    if (flags & 0x4 /* FBFramebufferCompression */)
         fTotalStolen += fFramebufferMemorySize;
     return fTotalStolen;
 }
@@ -786,8 +800,8 @@ string framebufferICLHPToPrintable(FramebufferICLHP &fb) {
 
 string framebufferICLLPToPrintable(FramebufferICLLP &fb) {
     local string out;
-    SPrintf(out, "0x%08X (%s, %d connectors%s, %s)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
-        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenSkylake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
+    SPrintf(out, "0x%08X (%s, %d connectors%s, %s?)", fb.framebufferId, fb.fMobile ? "mobile" : "desktop",
+        fb.fPortCount, fb.fFramebufferMemorySize == 0 ? ", no fbmem" : "", bytesToPrintable(calculateStolenIceLake(fb.flags, fb.fStolenMemorySize, fb.fFBMemoryCount, fb.fFramebufferMemorySize)));
     return out;
 }
 
@@ -855,20 +869,27 @@ while (pos < size) {
         }
         Printf("ID: %s, STOLEN: %s, FBMEM: %s, VRAM: %s, Flags: 0x%08X\n", frameIdFromIndex(frames[i].framebufferId, i),
             bytesToPrintable(frames[i].fStolenMemorySize), bytesToPrintable(frames[i].fFramebufferMemorySize), 
-            bytesToPrintable(frames[i].fUnifiedMemorySize), firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId ? 0 : frames[i].flags.value);
+            bytesToPrintable(frames[i].fUnifiedMemorySize),
+            firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId ? 0 :
+            firstId == FirstIceLakeId ? frames[i].flags : frames[i].flags.value);
         if (firstId == FirstSandyBridgeId || firstId == FirstIvyBridgeId) {
             fMaxStolen = frames[i].fFramebufferMemorySize * frames[i].fFBMemoryCount;
             fTotalStolen = frames[i].fFramebufferMemorySize; /* the assert here does not multiply, why? */
         } else if (firstId == FirstHaswellId || firstId == FirstBroadwellId) {
             fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
             fTotalStolen = calculateStolenHaswell(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
+        } else if (firstId == FirstIceLakeId) {
+            fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
+            fTotalStolen = calculateStolenIceLake(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
         } else {
             fMaxStolen = frames[i].fStolenMemorySize * frames[i].fFBMemoryCount + frames[i].fFramebufferMemorySize + 0x100000;
             fTotalStolen = calculateStolenSkylake(frames[i].flags, frames[i].fStolenMemorySize, frames[i].fFBMemoryCount, frames[i].fFramebufferMemorySize);
         }
         fTotalCursor = frames[i].fPipeCount * 0x80000;
         fMaxOverall = fTotalCursor + fMaxStolen + frames[i].fPortCount * 0x1000;
-        Printf("TOTAL STOLEN: %s, TOTAL CURSOR: %s, MAX STOLEN: %s, MAX OVERALL: %s\n", bytesToPrintable(fTotalStolen), bytesToPrintable(fTotalCursor), bytesToPrintable(fMaxStolen), bytesToPrintable(fMaxOverall));
+        Printf("TOTAL STOLEN: %s%s, TOTAL CURSOR: %s, MAX STOLEN: %s, MAX OVERALL: %s\n",
+            bytesToPrintable(fTotalStolen), firstId == FirstIceLakeId ? "?" : "",
+            bytesToPrintable(fTotalCursor), bytesToPrintable(fMaxStolen), bytesToPrintable(fMaxOverall));
         if (frames[i].fModelNameAddr != 0)
             Printf("Model name: %s\n", modelNameAddrToPrintable(frames[i].fModelNameAddr));
         Printf("Camellia: %s, Freq: %s, FreqMax: %s\n", camelliaToPrintable(frames[i].camelliaVersion), 

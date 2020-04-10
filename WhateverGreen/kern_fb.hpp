@@ -10,7 +10,7 @@
 
 #include <Headers/kern_util.hpp>
 
-static constexpr size_t MaxFramebufferConnectorCount = 4;
+static constexpr size_t MaxFramebufferConnectorCount = 6;
 
 union FramebufferFlags {
 	struct FramebufferFlagBits {
@@ -223,7 +223,7 @@ struct PACKED FramebufferSNB {
 	/* 0 means unused. */
 	uint32_t fBacklightFrequency;
 	uint32_t fBacklightMax;
-	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	ConnectorInfo connectors[4];
 };
 
 struct PACKED FramebufferIVB {
@@ -240,7 +240,7 @@ struct PACKED FramebufferIVB {
 	uint32_t unk1[2];
 	uint32_t unk2[2];
 	uint32_t unk3;
-	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	ConnectorInfo connectors[4];
 	uint32_t pad2[26];
 };
 
@@ -258,7 +258,7 @@ struct PACKED FramebufferHSW {
 	uint32_t fBacklightFrequency;
 	uint32_t fBacklightMax;
 	uint32_t pad[2];
-	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	ConnectorInfo connectors[4];
 	FramebufferFlags flags;
 	uint8_t  unk1[3];
 	uint8_t  camelliaVersion;
@@ -280,7 +280,7 @@ struct PACKED FramebufferBDW {
 	uint32_t fBacklightFrequency;
 	uint32_t fBacklightMax;
 	uint32_t pad[3];
-	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	ConnectorInfo connectors[4];
 	FramebufferFlags flags;
 	uint32_t unk1;
 	uint32_t camelliaVersion;
@@ -311,7 +311,7 @@ struct PACKED FramebufferSKL {
 	uint32_t fBacklightFrequency;
 	uint32_t fBacklightMax;
 	uint32_t pad2[2];
-	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	ConnectorInfo connectors[4];
 	FramebufferFlags flags;
 	/* Check DDI Buffer Translations in Linux driver for details. */
 	uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
@@ -351,7 +351,7 @@ struct PACKED FramebufferCFL {
 	uint32_t fFramebufferMemorySize;
 	uint32_t fUnifiedMemorySize;
 	uint32_t pad2[2];
-	ConnectorInfo connectors[MaxFramebufferConnectorCount];
+	ConnectorInfo connectors[4];
 	FramebufferFlags flags;
 	/* Check DDI Buffer Translations in Linux driver for details. */
 	uint8_t fBTTableOffsetIndexSlice; /* FBEnableSliceFeatures = 1 */
@@ -374,7 +374,8 @@ struct PACKED FramebufferCFL {
 
 /* Not sure what it is, in CNL value2 is a pointer, and value1 could be size.  */
 struct PACKED FramebufferCNLCurrents {
-	uint64_t value1;
+	uint32_t value1;
+	uint32_t pad;
 	uint64_t valu2;
 };
 
@@ -444,19 +445,22 @@ struct PACKED FramebufferICLLP {
 	/* This is for boot framebuffer from what I can understand */
 	uint32_t fFramebufferMemorySize;
 	uint32_t fUnifiedMemorySize;
-	uint32_t pad1[2];
-	ConnectorInfoICL connectors[3];
-	FramebufferFlags flags;
-	FramebufferCNLCurrents currents[8];
-	uint32_t unk2[5];
+	ConnectorInfoICL connectors[6];
+	/* Flags are quite different in ICL now */
+	union { uint32_t value; } flags;
+	uint32_t unk2;
+	FramebufferCNLCurrents currents[3];
+	uint32_t unk3[2];
 	uint32_t camelliaVersion;
-	uint32_t unk3[6];
-	/* Defaults to 14, used when UseVideoTurbo bit is set */
+	uint32_t unk4[3];
 	uint32_t fNumTransactionsThreshold;
+	/* Defaults to 14, used when UseVideoTurbo bit is set */
 	uint32_t fVideoTurboFreq;
 	uint32_t fSliceCount;
 	uint32_t fEuCount;
-	uint32_t unk4;
+	uint32_t unk5;
+	uint8_t unk6;
+	uint8_t pad[3];
 };
 
 struct PACKED FramebufferICLHP {
