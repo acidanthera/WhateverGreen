@@ -110,7 +110,7 @@ private:
 	/**
 	 *  Framebuffer hard-code patch
 	 */
-	FramebufferCFL framebufferPatch {};
+	FramebufferICLLP framebufferPatch {};
 
 	/**
 	 *  Patch value for fCursorMemorySize in Haswell framebuffer
