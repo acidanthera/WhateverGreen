@@ -65,7 +65,8 @@ Common `Properties` templates for `IGPU` and `IMEI` sections are described below
 **Attention!** Do not leave empty property values. For example, if a certain property is not required, delete the entire line! Remove `PciRoot` dictionary entirely if it has no properties.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/basic.png)
   
-**Choosing a framebuffer.** First try the recommended one. If it is not successful, then try the others one by one, excluding the "empty framebuffers" (0 connectors), which are described in a separate [topic](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/).  
+**Choosing a framebuffer**  
+First try the recommended one. If it is not successful, then try the others one by one, excluding the "empty framebuffers" (0 connectors), which are described in a separate [topic](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/).  
 When looking for a suitable framebuffer you can set it with a boot argument (boot-arg), in which case the framebuffer set in the `Properties` section is ignored.
 For example: `igfxframe=0x0166000B`  
 **Attention!** Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.  
@@ -2054,12 +2055,12 @@ Use this ACPI table: [SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthe
 ## Digital Audio (HDMI / DVI / DP)  
 To enable digital audio it is necessary to set the `hda-gfx` properties and patches the connectors.  
 To enable audio in general and HDMI in particular use *WEG* along with [AppleALC.kext](https://github.com/acidanthera/AppleALC). AppleALC automatically injects missing `hda-gfx` properties.  
-On 10.10.5 and above, *WEG* automatically changes the `connector-type` of DP (00040000) to HDMI (00080000) if no custom patches are used. Physical connection may be of any type (HDMI, DVI, DP), but for the digital audio `connector-type` must explicitly be HDMI.  
+On 10.10.5 and above, *WEG* automatically changes the `connector-type` of DP (00040000) to HDMI (00080000) if not used Intel framebuffer patching using WEG. Physical connection may be of any type (HDMI, DVI, DP), but for the digital audio `connector-type` must explicitly be HDMI.  
   
   
-## Custom framebuffer and connectors patches with WEG  
+## Intel framebuffer patching using WEG  
 In most cases, no patches are required!  
-In 10.14 for SKL and newer it is impossible to obtain information about the framebuffers and connectors directly from the kext binary - it is necessary to dump the binary from memory, so binary framebuffer patches in Clover are impossible. It is, however, possible to make semantic (prefered) and binary patches by using *WEG*. On older OS'es and older IGPU - this works too. By default, the current framebuffer is patched.  
+In 10.14 for SKL and newer it is impossible to obtain information about the framebuffers and connectors directly from the kext binary - it is necessary to dump the binary from memory, so binary framebuffer patches in bootloader are impossible. It is, however, possible to make semantic (prefered) and binary patches by using *WEG*. On older OS'es and older IGPU - this works too. By default, the current framebuffer is patched.  
 Patches are placed in the `Properties` section of IGPU.  
 
 Example of a binary patch using WEG.  
@@ -2072,7 +2073,6 @@ Example of a semantic patch for bios with DVMT Pre-Alloc 32MB when higher is req
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/sem.png)  
   
 [This series of patches](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) are the full equivalent of AzulPatcher4600.kext, for those who have previously used it. (on [some](https://github.com/coderobe/AzulPatcher4600#tested-on) Haswell laptops with framebuffer `0x0A260006` helps to get rid of the artifacts).  
-  
   
 **All possible WEG custom patches**  
 Semantic:  
