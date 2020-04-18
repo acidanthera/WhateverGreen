@@ -142,10 +142,20 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool hasAMD = false;
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
-			enableGvaSupport = hasAMD = true;
+			if (!hasAMD) {
+				enableGvaSupport = true;
+				hasAMD = true;
+			}
+
 			if (info->videoExternal[i].video->getProperty("disable-gva-support"))
 				enableGvaSupport = false;
-			break;
+
+			// When injecting values into device properties one cannot specify boolean tyeps.
+			// Provide special support for Force_Load_FalconSMUFW.
+			auto smufw = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty("Force_Load_FalconSMUFW"));
+			if (smufw && smufw->getLength() == 1)
+				info->videoExternal[i].video->setProperty("Force_Load_FalconSMUFW",
+					*static_cast<const uint8_t *>(smufw->getBytesNoCopy()) ? kOSBooleanTrue : kOSBooleanFalse);
 		}
 	}
 

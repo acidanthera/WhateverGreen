@@ -3,6 +3,7 @@ WhateverGreen Changelog
 #### v1.3.9
 - Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms
 - Partially fix ICL framebuffer patching
+- Add support to inecting `Force_Load_FalconSMUFW` from OpenCore
 
 #### v1.3.8
 - Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware

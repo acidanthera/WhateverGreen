@@ -80,3 +80,9 @@ This is a bug Apple added by fixing another bug of incorrect connector detection
 
 - _Why can a highres DisplayPort-connected display fail to wake (e.g. some LG 4K models)?_  
 Sometimes AGDC configuration preference could be the case. For 4K and lower it makes sense to try disabling it by passing `CFG,CFG_USE_AGDC` — False (`00`) via SSDT or similar.
+
+- _How can I configure workload policy?_  
+Workload policy is a performance optimisation profile used by your GPU. Depending on the workload policy your GPU can consume less power or be more responsive. To configure workload policy specify `PP,PP_WorkLoadPolicyMask` with a corresponding bitmask: `0x01` — DEFAULT_WORKLOAD (default), `0x02` — FULLSCREEN3D_WORKLOAD, `0x04` — POWERSAVING_WORKLOAD, `0x08` — VIDEO_WORKLOAD, `0x10` — VR_WORKLOAD, `0x20` — COMPUTE_WORKLOAD, `0x40` — CUSTOM_WORKLOAD.
+
+- _How can I force-enable SMU firmware?_  
+SMU is an IP unit present present in some newer GPUs (X5000 series and newer). This unit is responsible for handling select power management tasks and requires a firmware to be loaded by the driver. The firmware is loaded when `ATY,EFIVersion` property is specified with any value (i.e. it is a GPU with Apple-made firmware) or when `Force_Load_FalconSMUFW` property is specified with `kOSBooleanTrue` value (with WEG one can also specify a single byte: `01`).
