@@ -1560,7 +1560,7 @@ bool IGFX::wrapGetOSInformation(void *that) {
 		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", BaseDeviceInfo::get().cpuGeneration, getKernelVersion(), getKernelMinorVersion());
 		FileIO::writeBufferToFile(name, callbackIGFX->framebufferStart, callbackIGFX->framebufferSize);
 		SYSLOG("igfx", "dumping framebuffer information to %s", name);
-		uint32_t delay = 15000;
+		uint32_t delay = 20000;
 		PE_parse_boot_argn("igfxdumpdelay", &delay, sizeof(delay));
 		IOSleep(delay);
 	}
