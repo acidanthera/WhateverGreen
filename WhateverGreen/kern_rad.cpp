@@ -150,7 +150,7 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (info->videoExternal[i].video->getProperty("disable-gva-support"))
 				enableGvaSupport = false;
 
-			// When injecting values into device properties one cannot specify boolean tyeps.
+			// When injecting values into device properties one cannot specify boolean types.
 			// Provide special support for Force_Load_FalconSMUFW.
 			auto smufw = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty("Force_Load_FalconSMUFW"));
 			if (smufw && smufw->getLength() == 1)
