@@ -5,6 +5,7 @@ WhateverGreen Changelog
 - Partially fix ICL framebuffer patching
 - Add support to injecting `Force_Load_FalconSMUFW` from OpenCore
 - Disabled automatic enabling of GVA for Polaris on 10.13 and lower
+- Replaced -radnogva argument with radgva=0/1 to force GVA for Polaris
 
 #### v1.3.8
 - Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware

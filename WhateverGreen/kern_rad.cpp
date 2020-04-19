@@ -160,8 +160,9 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	}
 
 	if (hasAMD) {
-		if (checkKernelArgument("-radnogva"))
-			enableGvaSupport = false;
+		int gva;
+		if (PE_parse_boot_argn("radgva", &gva, sizeof(gva)))
+			enableGvaSupport = gva != 0;
 
 		KernelPatcher::RouteRequest requests[] {
 			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
