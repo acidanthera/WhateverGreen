@@ -143,7 +143,7 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
 			if (!hasAMD) {
-				enableGvaSupport = true;
+				enableGvaSupport = getKernelVersion() >= KernelVersion::Mojave;
 				hasAMD = true;
 			}
 

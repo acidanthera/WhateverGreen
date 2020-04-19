@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms
 - Partially fix ICL framebuffer patching
 - Add support to injecting `Force_Load_FalconSMUFW` from OpenCore
+- Disabled automatic enabling of GVA for Polaris on 10.13 and lower
 
 #### v1.3.8
 - Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware
