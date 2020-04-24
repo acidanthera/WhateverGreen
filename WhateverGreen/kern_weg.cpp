@@ -280,22 +280,24 @@ void WEG::processKernel(KernelPatcher &patcher) {
 				kextBacklight.switchOff();
 			}
 
-			bool rebuidTree = false;
-			if (checkKernelArgument("-wegtree"))
-				rebuidTree = true;
-			
-			if (devInfo->videoBuiltin)
-				if (devInfo->videoBuiltin->getProperty("rebuild-device-tree"))
-					rebuidTree = true;
+			// Support legacy -wegtree argument.
+			bool rebuidTree = checkKernelArgument("-wegtree");
 
-			size_t extNum = devInfo->videoExternal.size();
-			for (size_t i = 0; i < extNum; i++) {
-				if (devInfo->videoExternal[i].video->getProperty("rebuild-device-tree")) {
-					rebuidTree = true;
-					break;
+			// Support device properties.
+			if (!rebuidTree) {
+				if (devInfo->videoBuiltin)
+					rebuidTree = devInfo->videoBuiltin->getProperty("rebuild-device-tree") != nullptr;
+
+				size_t extNum = devInfo->videoExternal.size();
+				for (size_t i = 0; i < extNum; i++) {
+					if (devInfo->videoExternal[i].video->getProperty("rebuild-device-tree")) {
+						rebuidTree = true;
+						break;
+					}
 				}
 			}
-			
+
+			// Override with modern wegtree argument.
 			int tree;
 			if (PE_parse_boot_argn("wegtree", &tree, sizeof(tree)))
 				rebuidTree = tree != 0;
