@@ -284,18 +284,11 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			bool rebuidTree = checkKernelArgument("-wegtree");
 
 			// Support device properties.
-			if (!rebuidTree) {
-				if (devInfo->videoBuiltin)
-					rebuidTree = devInfo->videoBuiltin->getProperty("rebuild-device-tree") != nullptr;
+			if (!rebuidTree && devInfo->videoBuiltin)
+				rebuidTree = devInfo->videoBuiltin->getProperty("rebuild-device-tree") != nullptr;
 
-				size_t extNum = devInfo->videoExternal.size();
-				for (size_t i = 0; i < extNum; i++) {
-					if (devInfo->videoExternal[i].video->getProperty("rebuild-device-tree")) {
-						rebuidTree = true;
-						break;
-					}
-				}
-			}
+			for (size_t i = 0; !rebuidTree && i < extNum; i++)
+				rebuidTree = devInfo->videoExternal[i].video->getProperty("rebuild-device-tree") != nullptr;
 
 			// Override with modern wegtree argument.
 			int tree;
