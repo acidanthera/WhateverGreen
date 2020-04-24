@@ -280,9 +280,24 @@ void WEG::processKernel(KernelPatcher &patcher) {
 				kextBacklight.switchOff();
 			}
 
-			if (checkKernelArgument("-wegtree")) {
-				DBGLOG("weg", "apple-fw proceeding with devprops due to arg");
+			// Support legacy -wegtree argument.
+			bool rebuidTree = checkKernelArgument("-wegtree");
 
+			// Support device properties.
+			if (!rebuidTree && devInfo->videoBuiltin)
+				rebuidTree = devInfo->videoBuiltin->getProperty("rebuild-device-tree") != nullptr;
+
+			for (size_t i = 0; !rebuidTree && i < extNum; i++)
+				rebuidTree = devInfo->videoExternal[i].video->getProperty("rebuild-device-tree") != nullptr;
+
+			// Override with modern wegtree argument.
+			int tree;
+			if (PE_parse_boot_argn("wegtree", &tree, sizeof(tree)))
+				rebuidTree = tree != 0;
+			
+			if (rebuidTree) {
+				DBGLOG("weg", "apple-fw proceeding with devprops by request");
+				
 				if (devInfo->videoBuiltin)
 					processBuiltinProperties(devInfo->videoBuiltin, devInfo);
 
