@@ -15,7 +15,7 @@ The general concept of enabling Intel graphics cards:
 At this point, paragraphs 1 and 4 are automated by [WhateverGreen](https://github.com/acidanthera/WhateverGreen) and [AppleALC](https://github.com/acidanthera/AppleALC). It works in OS X 10.8 and later, and greatly simplifies graphics enabling in macOS.  
   
 ## General recommendations  
-1. Select the required amount in BIOS for Graphics Memory Allocation (DVMT Pre-Allocated): 32MB, 64MB, 96MB, etc. depending on the framebuffer.  
+1. Select the required amount in BIOS for Graphics Memory Allocation (DVMT Pre-Allocated): 32MB, 64MB, 96MB, etc. depending on the framebuffer (Look value TOTAL STOLEN in framebuffer list).  
 For the total amount of memory DVMT (DVMT Total) select: MAX.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/bios.png)  
 Some faulty BIOSes show a higher value, but actually allocate less. In such cases select a value a step higher. This is common with Dell laptops, their BIOS reports 64MB, but actually allocates 32MB and there is no way to change it. Such case will be shown in this manual.  
@@ -92,7 +92,7 @@ SNB framebuffer list:
   
 ID: SNB0 0x10000, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 1 MB, MAX STOLEN: 0 bytes, MAX OVERALL: 1 MB (1064960 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 2, PortCount: 4, FBMemoryCount: 0  
 [5] busId: 0x03, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000007 - ConnectorDP  
@@ -105,14 +105,14 @@ Mobile: 1, PipeCount: 2, PortCount: 4, FBMemoryCount: 0
   
 ID: SNB1 0x20000, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 1 MB, MAX STOLEN: 0 bytes, MAX OVERALL: 1 MB (1052672 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 2, PortCount: 1, FBMemoryCount: 0  
 [5] busId: 0x03, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 05030000 02000000 30000000  
 
 ID: SNB2 0x30010 or 0x30020, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 1 MB, MAX STOLEN: 0 bytes, MAX OVERALL: 1 MB (1060864 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 0 Hz, FreqMax: -1 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 0 Hz, FreqMax: -1 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 0  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000007 - ConnectorDP  
 [3] busId: 0x04, pipe: 0, type: 0x00000400, flags: 0x00000009 - ConnectorDP  
@@ -123,12 +123,12 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 0
   
 ID: SNB3 0x30030, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 0 bytes, MAX STOLEN: 0 bytes, MAX OVERALL: 0 bytes  
-Camelia: CameliaUnsupported (255), Freq: 0 Hz, FreqMax: 0 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: SNB4 0x40000, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 1 MB, MAX STOLEN: 0 bytes, MAX OVERALL: 1 MB (1060864 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 2, PortCount: 3, FBMemoryCount: 0  
 [1] busId: 0x00, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000007 - ConnectorDP  
@@ -139,17 +139,17 @@ Mobile: 1, PipeCount: 2, PortCount: 3, FBMemoryCount: 0
   
 ID: SNB5 0x50000, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 0 bytes, MAX STOLEN: 0 bytes, MAX OVERALL: 0 bytes  
-Camelia: CameliaUnsupported (255), Freq: 0 Hz, FreqMax: 0 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: SNB6 Not addressible, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 512 KB, MAX STOLEN: 0 bytes, MAX OVERALL: 512 KB  
-Camelia: CameliaUnsupported (255), Freq: 0 Hz, FreqMax: 0 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 1, PortCount: 0, FBMemoryCount: 0  
   
 ID: SNB7 Not addressible, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 0 bytes, MAX OVERALL: 1 MB (1589248 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 0  
 [1] busId: 0x00, pipe: 0, type: 0x00000400, flags: 0x00000030 - ConnectorDP  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000007 - ConnectorDP  
@@ -161,7 +161,7 @@ Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 0
 04060000 00080000 06000000  
   
 Default SNB, DVMT: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 0  
 [1] busId: 0x00, pipe: 0, type: 0x00000400, flags: 0x00000030 - ConnectorDP  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000007 - ConnectorDP  
@@ -227,7 +227,7 @@ Capri framebuffer list:
   
 ID: 01660000, STOLEN: 96 MB, FBMEM: 24 MB, VRAM: 1024 MB, Flags: 0x00000000  
 TOTAL STOLEN: 24 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 72 MB, MAX OVERALL: 73 MB (77086720 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 4, FBMemoryCount: 3  
 [1] busId: 0x00, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000007 - ConnectorDP  
@@ -240,17 +240,17 @@ Mobile: 0, PipeCount: 3, PortCount: 4, FBMemoryCount: 3
   
 ID: 01620006, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 256 MB, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 0 bytes, MAX STOLEN: 0 bytes, MAX OVERALL: 0 bytes  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: 01620007, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 256 MB, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 0 bytes, MAX STOLEN: 0 bytes, MAX OVERALL: 0 bytes  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: 01620005, STOLEN: 32 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 32 MB, MAX OVERALL: 33 MB (34615296 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000011 - ConnectorDP  
 [3] busId: 0x04, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -261,7 +261,7 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2
   
 ID: 01660001, STOLEN: 96 MB, FBMEM: 24 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 24 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 72 MB, MAX OVERALL: 73 MB (77086720 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3  
 [1] busId: 0x00, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000800, flags: 0x00000006 - ConnectorHDMI  
@@ -274,14 +274,14 @@ Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3
   
 ID: 01660002, STOLEN: 64 MB, FBMEM: 24 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 24 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 24 MB, MAX OVERALL: 25 MB (26742784 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1  
 [1] busId: 0x00, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 01000000 02000000 30000000  
   
 ID: 01660008, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 48 MB, MAX OVERALL: 49 MB (51916800 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x00, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -292,7 +292,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 01660009, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 48 MB, MAX OVERALL: 49 MB (51916800 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x00, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -303,7 +303,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 01660003, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 32 MB, MAX OVERALL: 33 MB (34619392 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 2, PortCount: 4, FBMemoryCount: 2  
 [5] busId: 0x03, pipe: 0, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000407 - ConnectorDP  
@@ -316,14 +316,14 @@ Mobile: 1, PipeCount: 2, PortCount: 4, FBMemoryCount: 2
   
 ID: 01660004, STOLEN: 32 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 16 MB, MAX OVERALL: 17 MB (18354176 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1  
 [5] busId: 0x03, pipe: 0, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 05030000 02000000 30020000  
   
 ID: 0166000A, STOLEN: 32 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 32 MB, MAX OVERALL: 33 MB (34615296 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
 [3] busId: 0x04, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -334,7 +334,7 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2
   
 ID: 0166000B, STOLEN: 32 MB, FBMEM: 16 MB, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 16 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 32 MB, MAX OVERALL: 33 MB (34615296 bytes)  
-Camelia: CameliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
+Camellia: CamelliaUnsupported (255), Freq: 1808 Hz, FreqMax: 1808 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2  
 [2] busId: 0x05, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
 [3] busId: 0x04, pipe: 0, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -388,7 +388,7 @@ Azul framebuffer list:
   
 ID: 0C060000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -399,7 +399,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0C160000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -410,7 +410,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0C260000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -421,7 +421,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 04060000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -432,7 +432,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 04160000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -443,7 +443,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 04260000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -454,7 +454,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0D260000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -465,7 +465,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A160000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
+Camellia: CamelliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -476,7 +476,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A260000, STOLEN: 64 MB, FBMEM: 16 MB, VRAM: 1024 MB, Flags: 0x00000004  
 TOTAL STOLEN: 209 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 209 MB, MAX OVERALL: 210 MB (220737536 bytes)  
-Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
+Camellia: CamelliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -487,7 +487,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A260005, STOLEN: 32 MB, FBMEM: 19 MB, VRAM: 1536 MB, Flags: 0x0000000F  
 TOTAL STOLEN: 52 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 116 MB, MAX OVERALL: 117 MB (123219968 bytes)  
-Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
+Camellia: CamelliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000087 - ConnectorDP  
@@ -498,7 +498,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A260006, STOLEN: 32 MB, FBMEM: 19 MB, VRAM: 1536 MB, Flags: 0x0000000F  
 TOTAL STOLEN: 52 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 116 MB, MAX OVERALL: 117 MB (123219968 bytes)  
-Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
+Camellia: CamelliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000087 - ConnectorDP  
@@ -509,7 +509,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A2E0008, STOLEN: 64 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000021E  
 TOTAL STOLEN: 99 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 227 MB, MAX OVERALL: 228 MB (239611904 bytes)  
-Camelia: CameliaV1 (1), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV1 (1), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -520,7 +520,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A16000C, STOLEN: 64 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000001E  
 TOTAL STOLEN: 99 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 227 MB, MAX OVERALL: 228 MB (239611904 bytes)  
-Camelia: CameliaDisabled (0), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaDisabled (0), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -531,7 +531,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0D260007, STOLEN: 64 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000031E  
 TOTAL STOLEN: 99 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 227 MB, MAX OVERALL: 228 MB (239616000 bytes)  
-Camelia: CameliaDisabled (0), Freq: 1953 Hz, FreqMax: 1953 Hz  
+Camellia: CamelliaDisabled (0), Freq: 1953 Hz, FreqMax: 1953 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 11, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -544,7 +544,7 @@ Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3
   
 ID: 0D220003, STOLEN: 32 MB, FBMEM: 19 MB, VRAM: 1536 MB, Flags: 0x00000402  
 TOTAL STOLEN: 52 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 116 MB, MAX OVERALL: 117 MB (123219968 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000087 - ConnectorDP  
 [2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x00000087 - ConnectorDP  
@@ -555,7 +555,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A2E000A, STOLEN: 32 MB, FBMEM: 19 MB, VRAM: 1536 MB, Flags: 0x000000D6  
 TOTAL STOLEN: 52 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 116 MB, MAX OVERALL: 117 MB (123219968 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000011 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000087 - ConnectorDP  
@@ -566,7 +566,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A26000A, STOLEN: 32 MB, FBMEM: 19 MB, VRAM: 1536 MB, Flags: 0x000000D6  
 TOTAL STOLEN: 52 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 116 MB, MAX OVERALL: 117 MB (123219968 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000011 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000087 - ConnectorDP  
@@ -577,7 +577,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 0A2E000D, STOLEN: 96 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000040E  
 TOTAL STOLEN: 131 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 227 MB, MAX OVERALL: 228 MB (239607808 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 2, FBMemoryCount: 2  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
 [2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -586,7 +586,7 @@ Mobile: 0, PipeCount: 3, PortCount: 2, FBMemoryCount: 2
   
 ID: 0A26000D, STOLEN: 96 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000040E  
 TOTAL STOLEN: 131 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 227 MB, MAX OVERALL: 228 MB (239607808 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 2, FBMemoryCount: 2  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
 [2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -595,24 +595,24 @@ Mobile: 0, PipeCount: 3, PortCount: 2, FBMemoryCount: 2
   
 ID: 04120004, STOLEN: 32 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
-Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
+Camellia: CamelliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: 0412000B, STOLEN: 32 MB, FBMEM: 0 bytes, VRAM: 1536 MB, Flags: 0x00000000  
 TOTAL STOLEN: 1 MB, TOTAL CURSOR: 0 bytes, MAX STOLEN: 1 MB, MAX OVERALL: 1 MB  
-Camelia: CameliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
+Camellia: CamelliaDisabled (0), Freq: 0 Hz, FreqMax: 0 Hz  
 Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0  
   
 ID: 0D260009, STOLEN: 64 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000001E
 TOTAL STOLEN: 99 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 99 MB, MAX OVERALL: 100 MB (105385984 bytes)  
-Camelia: CameliaDisabled (0), Freq: 1953 Hz, FreqMax: 1953 Hz  
+Camellia: CamelliaDisabled (0), Freq: 1953 Hz, FreqMax: 1953 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 00000800 02000000 30000000  
   
 ID: 0D26000E, STOLEN: 96 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000031E  
 TOTAL STOLEN: 131 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 323 MB, MAX OVERALL: 324 MB (340279296 bytes)  
-Camelia: CameliaV2 (2), Freq: 1953 Hz, FreqMax: 1953 Hz  
+Camellia: CamelliaV2 (2), Freq: 1953 Hz, FreqMax: 1953 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 11, type: 0x00000400, flags: 0x00000107 - ConnectorDP  
@@ -625,7 +625,7 @@ Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3
   
 ID: 0D26000F, STOLEN: 96 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x0000001E  
 TOTAL STOLEN: 131 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 131 MB, MAX OVERALL: 132 MB (138940416 bytes)  
-Camelia: CameliaV2 (2), Freq: 1953 Hz, FreqMax: 1953 Hz  
+Camellia: CamelliaV2 (2), Freq: 1953 Hz, FreqMax: 1953 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 00000800 02000000 30000000  
@@ -671,7 +671,7 @@ BDW framebuffer list:
   
 ID: 16060000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -682,7 +682,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 160E0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000706  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -693,7 +693,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16160000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -704,7 +704,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 161E0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000716  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -715,7 +715,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16260000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -726,7 +726,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 162B0000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x00000B06  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -737,7 +737,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16220000, STOLEN: 16 MB, FBMEM: 15 MB, VRAM: 1024 MB, Flags: 0x0000110E  
 TOTAL STOLEN: 32 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 64 MB, MAX OVERALL: 65 MB (68694016 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000004, flags: 0x00000004 - ConnectorDigitalDVI  
@@ -748,7 +748,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 160E0001, STOLEN: 38 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000702  
 TOTAL STOLEN: 60 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 136 MB, MAX OVERALL: 137 MB (144191488 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00001001 - ConnectorDP  
@@ -759,7 +759,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 161E0001, STOLEN: 38 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000702  
 TOTAL STOLEN: 60 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 136 MB, MAX OVERALL: 137 MB (144191488 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00001001 - ConnectorDP  
@@ -770,7 +770,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16060002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B02  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -781,7 +781,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16160002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B02  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -792,7 +792,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16260002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -803,7 +803,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16220002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -814,7 +814,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 162B0002, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00004B0A  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
+Camellia: CamelliaV2 (2), Freq: 1388 Hz, FreqMax: 1388 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -825,7 +825,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16120003, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00001306  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131612672 bytes)  
-Camelia: CameliaV1 (1), Freq: 1953 Hz, FreqMax: 1953 Hz  
+Camellia: CamelliaV1 (1), Freq: 1953 Hz, FreqMax: 1953 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 11, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -838,7 +838,7 @@ Mobile: 1, PipeCount: 3, PortCount: 4, FBMemoryCount: 3
   
 ID: 162B0004, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00040B46  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000211 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -849,7 +849,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16260004, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00040B46  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000211 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -860,7 +860,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16220007, STOLEN: 38 MB, FBMEM: 38 MB, VRAM: 1536 MB, Flags: 0x000BB306  
 TOTAL STOLEN: 77 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 153 MB, MAX OVERALL: 154 MB (162017280 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
 [2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -871,7 +871,7 @@ Mobile: 0, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16260005, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000B0B  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
+Camellia: CamelliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 11, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -882,7 +882,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 16260006, STOLEN: 34 MB, FBMEM: 21 MB, VRAM: 1536 MB, Flags: 0x00000B0B  
 TOTAL STOLEN: 56 MB, TOTAL CURSOR: 1 MB (1572864 bytes), MAX STOLEN: 124 MB, MAX OVERALL: 125 MB (131608576 bytes)  
-Camelia: CameliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
+Camellia: CamelliaDisabled (0), Freq: 2777 Hz, FreqMax: 2777 Hz  
 Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3  
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000230 - ConnectorLVDS  
 [1] busId: 0x05, pipe: 11, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -893,7 +893,7 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 ID: 162B0008, STOLEN: 34 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x00002B0E  
 TOTAL STOLEN: 69 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 103 MB, MAX OVERALL: 104 MB (109060096 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
 [2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -902,7 +902,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
   
 ID: 16260008, STOLEN: 34 MB, FBMEM: 34 MB, VRAM: 1536 MB, Flags: 0x00002B0E  
 TOTAL STOLEN: 69 MB, TOTAL CURSOR: 1 MB, MAX STOLEN: 103 MB, MAX OVERALL: 104 MB (109060096 bytes)  
-Camelia: CameliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
+Camellia: CamelliaDisabled (0), Freq: 5273 Hz, FreqMax: 5273 Hz  
 Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2  
 [1] busId: 0x05, pipe: 9, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
 [2] busId: 0x04, pipe: 10, type: 0x00000400, flags: 0x00000507 - ConnectorDP  
@@ -2055,10 +2055,10 @@ Use this ACPI table: [SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthe
 ## Digital Audio (HDMI / DVI / DP)  
 To enable digital audio it is necessary to set the `hda-gfx` properties and patches the connectors.  
 To enable audio in general and HDMI in particular use *WEG* along with [AppleALC.kext](https://github.com/acidanthera/AppleALC). AppleALC automatically injects missing `hda-gfx` properties.  
-On 10.10.5 and above, *WEG* automatically changes the `connector-type` of DP (00040000) to HDMI (00080000) if not used Intel framebuffer patching using WEG. Physical connection may be of any type (HDMI, DVI, DP), but for the digital audio `connector-type` must explicitly be HDMI.  
+On 10.10.5 and above, *WEG* automatically changes the `connector-type` of DP (00040000) to HDMI (00080000), only if not used **Custom patching**. Physical connection may be of any type (HDMI, DVI, DP), but for the digital audio `connector-type` must explicitly be HDMI.  
   
   
-## Intel framebuffer patching using WEG  
+## Custom patching  
 In most cases, no patches are required!  
 In 10.14 for SKL and newer it is impossible to obtain information about the framebuffers and connectors directly from the kext binary - it is necessary to dump the binary from memory, so binary framebuffer patches in bootloader are impossible. It is, however, possible to make semantic (prefered) and binary patches by using *WEG*. On older OS'es and older IGPU - this works too. By default, the current framebuffer is patched.  
 Patches are placed in the `Properties` section of IGPU.  
