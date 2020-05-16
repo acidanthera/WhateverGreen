@@ -581,7 +581,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.9;
+				MODULE_VERSION = 1.4.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -626,7 +626,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.9;
+				MODULE_VERSION = 1.4.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -756,7 +756,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.9;
+				MODULE_VERSION = 1.4.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
