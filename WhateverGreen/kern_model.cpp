@@ -942,6 +942,8 @@ static BuiltinModel devIntel[] {
 	{ 0x5923, 0x0000, "Intel HD Graphics 635" },
 	{ 0x5926, 0x0000, "Intel Iris Plus Graphics 640" },
 	{ 0x5927, 0x0000, "Intel Iris Plus Graphics 650" },
+	{ 0x87C0, 0x0000, "Intel UHD Graphics 617" },
+	// Reserved/unused/generic Kaby Lake },
 	{ 0x3E90, 0x3E92, "Intel UHD Graphics 610" },
 	{ 0x3E91, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E92, 0x0000, "Intel UHD Graphics 630" },
@@ -949,14 +951,16 @@ static BuiltinModel devIntel[] {
 	{ 0x3E96, 0x3E92, "Intel UHD Graphics P630" },
 	{ 0x3E98, 0x0000, "Intel UHD Graphics 630" },
 	{ 0x3E9B, 0x0000, "Intel UHD Graphics 630" },
-	{ 0x3EA5, 0x0000, "Intel Iris Plus Graphics 655" },
 	{ 0x3EA0, 0x3EA5, "Intel UHD Graphics 620" },
-	{ 0x87C0, 0x0000, "Intel UHD Graphics 617" },
-	// Reserved/unused/generic Kaby Lake / Coffee Lake },
+	{ 0x3EA5, 0x0000, "Intel Iris Plus Graphics 655" },
+	{ 0x3EA6, 0x0000, "Intel Iris Plus Graphics 645" },
+	// Reserved/unused/generic Coffee Lake },
 	{ 0x8A51, 0x0000, "Intel Iris Plus Graphics" },
 	{ 0x8A52, 0x0000, "Intel Iris Plus Graphics" },
+	{ 0x8A53, 0x0000, "Intel Iris Plus Graphics" },
 	{ 0x8A5A, 0x0000, "Intel Iris Plus Graphics" },
 	{ 0x8A5C, 0x0000, "Intel Iris Plus Graphics" },
+	// Reserved/unused/generic Ice Lake },
 };
 
 const char *WEG::getIntelModel(uint32_t dev, uint32_t &fakeId) {
