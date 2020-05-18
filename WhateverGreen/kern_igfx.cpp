@@ -1827,8 +1827,8 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 			}
 			if (allData) {
 				auto allDataSize = allData->getLength();
-				auto replaceCount = allDataSize / sizeof(framebufferPatch.connectors[0]);
-				if (0 == allDataSize % sizeof(framebufferPatch.connectors[0]) && i + replaceCount <= arrsize(framebufferPatch.connectors)) {
+				auto replaceCount = allDataSize / sizeof(ConnectorInfo);
+				if (0 == allDataSize % sizeof(ConnectorInfo) && i + replaceCount <= arrsize(framebufferPatch.connectors)) {
 					auto replacementConnectors = reinterpret_cast<const ConnectorInfo*>(allData->getBytesNoCopy());
 					for (size_t j = 0; j < replaceCount; j++) {
 						framebufferPatch.connectors[i+j].index = replacementConnectors[j].index;

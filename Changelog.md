@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.4.0
 - Added 0x3EA6 and 0x8A53 IGPU device-id
+- Fixed `framebuffer-conX-alldata` patching regression
 
 #### v1.3.9
 - Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms
