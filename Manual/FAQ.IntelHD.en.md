@@ -86,7 +86,7 @@ SNB framebuffer list:
 — 0x00040000 (mobile, 3 connectors, no fbmem)  
 — 0x00050000 (desktop, 0 connectors, no fbmem)  
   
-Supported IGPU DevIDs: 0x0106, 0x1106, 0x1601, 0x0116, 0x0126, 0x0102.  
+Native supported DevIDs: `0x0106`, `0x1106`, `0x1601`, `0x0116`, `0x0126`, `0x0102`.  
 <details>
 <summary>Spoiler: SNB connectors</summary>
   
@@ -190,7 +190,7 @@ Mac-942B59F58194171B -> SNB5 (iMac12,2) -> no ports
 </details>
   
 ####
-*Recommended framebuffers:* for desktop - 0x00030010 (default); for laptop - 0x00010000 (default); "empty framebuffer" -  0x00050000 (default).  
+*Recommended framebuffers:* for desktop - `0x00030010` (default); for laptop - `0x00010000` (default); "empty framebuffer" -  `0x00050000` (default).  
 
 HD2000 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD3000 can work with a display.  
   
@@ -223,7 +223,7 @@ Capri framebuffer list:
 — 0x0166000A (desktop, 3 connectors, 16 MB)  
 — 0x0166000B (desktop, 3 connectors, 16 MB)  
   
-Supported IGPU DevIDs: 0x0152, 0x0156, 0x0162, 0x0166.  
+Native supported DevIDs: `0x0152`, `0x0156`, `0x0162`, `0x0166`.  
 <details>
 <summary>Spoiler: Capri connectors</summary>
   
@@ -349,7 +349,7 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2
 </details>
   
 ####
-*Recommended framebuffers* : for desktop - 0x0166000A (default), 0x01620005; for laptop - 0x01660003 (default), 0x01660009, 0x01660004; "empty framebuffer" -  0x01620007 (default).  
+*Recommended framebuffers* : for desktop - `0x0166000A` (default), `0x01620005`; for laptop - `0x01660003` (default), `0x01660009`, `0x01660004`; "empty framebuffer" -  `0x01620007` (default).  
 
 HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD4000 can work with a display.  
 
@@ -386,7 +386,7 @@ Azul framebuffer list:
 — 0x0D26000E (mobile, 4 connectors, 131 MB)  
 — 0x0D26000F (mobile, 1 connectors, 131 MB)  
   
-Supported IGPU DevIDs: 0x0d26, 0x0a26, 0x0a2e, 0x0d22, 0x0412.  
+Native supported DevIDs: `0x0d26`, `0x0a26`, `0x0a2e`, `0x0d22`, `0x0412`.  
 <details>
 <summary>Spoiler: Azul connectors</summary>
   
@@ -638,7 +638,7 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 </details>
   
 ####
-*Recommended framebuffers* : for desktop - 0x0D220003 (default); for laptop - 0x0A160000 (default), 0x0A260005 (recommended), 0x0A260006 (recommended); "empty framebuffer" -  0x04120004 (default).  
+*Recommended framebuffers* : for desktop - `0x0D220003` (default); for laptop - `0x0A160000` (default), `0x0A260005` (recommended), `0x0A260006` (recommended); "empty framebuffer" -  `0x04120004` (default).  
   
 For desktop HD4400 and all the mobile fake the `device-id` `12040000` for `IGPU`.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hsw_igpu.png)  
@@ -671,7 +671,7 @@ BDW framebuffer list:
 — 0x162B0008 (desktop, 2 connectors, 69 MB)  
 — 0x16260008 (desktop, 2 connectors, 69 MB)  
   
-Supported IGPU DevIDs: 0x0BD1, 0x0BD2, 0x0BD3, 0x1606, 0x160e, 0x1616, 0x161e, 0x1626, 0x1622, 0x1612, 0x162b.  
+Native supported DevIDs: `0x0BD1`, `0x0BD2`, `0x0BD3`, `0x1606`, `0x160e`, `0x1616`, `0x161e`, `0x1626`, `0x1622`, `0x1612`, `0x162b`.  
 <details>
 <summary>Spoiler: BDW connectors</summary>
   
@@ -919,7 +919,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 </details>
   
 ####
-*Recommended framebuffers*: for desktop - 0x16220007 (default); for laptop - 0x16260006 (default).  
+*Recommended framebuffers*: for desktop - `0x16220007` (default); for laptop - `0x16260006` (default).  
   
   
 ## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)))  
@@ -946,7 +946,7 @@ SKL framebuffer list:
 — 0x191B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
 — 0x19260007 (mobile, 3 connectors, no fbmem, 35 MB)  
   
-Supported IGPU DevIDs: 0x1916, 0x191E, 0x1926, 0x1927, 0x1912, 0x1932, 0x1902, 0x1917, 0x193B, 0x191B.  
+Native supported DevIDs: `0x1916`, `0x191E`, `0x1926`, `0x1927`, `0x1912`, `0x1932`, `0x1902`, `0x1917`, `0x193B`, `0x191B`.  
 <details>
 <summary>Spoiler: SKL connectors</summary>
   
@@ -1158,11 +1158,11 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 </details>
   
 ####
-*Recommended framebuffers* : for desktop - 0x19120000 (default); for laptop - 0x19160000 (default); "empty framebuffer" -  0x19120001 (default).  
+*Recommended framebuffers* : for desktop - `0x19120000` (default); for laptop - `0x19160000` (default); "empty framebuffer" -  `0x19120001` (default).  
   
   
 ## Intel (U)HD Graphics 610-650 ([Kaby Lake](https://en.wikipedia.org/wiki/Kaby_Lake) and [Amber Lake](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Amber_Lake_Y_processors) processors)  
-Supported since macOS 10.12.6 (UHD617 Amber Lake supported since macOS 10.14.1)  
+Supported since macOS 10.12.6 (`UHD617 Amber Lake` supported since macOS 10.14.1)  
   
 KBL framebuffer list:  
 — 0x591E0000 (mobile, 3 connectors, no fbmem, 35 MB)  
@@ -1185,7 +1185,7 @@ KBL framebuffer list:
 — 0x591C0005 (mobile, 3 connectors, no fbmem, 58 MB)  
 — 0x591B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
   
-Supported IGPU DevIDs: 0x5912, 0x5916, 0x591B, 0x591C, 0x591E, 0x5926, 0x5927, 0x5923, 0x87C0.  
+Native supported DevIDs: `0x5912`, `0x5916`, `0x591B`, `0x591C`, `0x591E`, `0x5926`, `0x5927`, `0x5923`, `0x87C0`.  
 <details>
 <summary>Spoiler: KBL connectors</summary>
   
@@ -1407,14 +1407,14 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 59160000
 </details>
   
 ####
-*Recommended framebuffers*: for desktop - 0x59160000 (default), 0x59120000 (recommended); for laptop - 0x591B0000 (default); "empty framebuffer" -  0x59120003 (default).  
+*Recommended framebuffers*: for desktop - `0x59160000` (default), `0x59120000` (recommended); for laptop - `0x591B0000` (default); "empty framebuffer" -  `0x59120003` (default).  
   
 For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Kaby_Lake_R_processors)) fake `device-id` `16590000` for `IGPU`.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/kbl-r_igpu.png)  
   
   
 ## Intel UHD Graphics 610-655 ([Coffee Lake](https://en.wikipedia.org/wiki/Coffee_Lake) and [Comet Lake](https://en.wikipedia.org/wiki/Comet_Lake) processors)  
-Supported since macOS 10.14 (UHD630 Comet Lake supported since macOS 10.15.4)  
+Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4)  
   
 CFL framebuffer list:   
 — 0x3EA50009 (mobile, 3 connectors, no fbmem, 58 MB)  
@@ -1437,7 +1437,7 @@ CFL framebuffer list:
 — 0x9BC50003 (desktop, 0 connectors, no fbmem, 1 MB)  
 — 0x9BC40003 (desktop, 0 connectors, no fbmem, 1 MB)  
   
-Supported IGPU DevIDs: 0x3E9B, 0x3EA5, 0x3EA6, 0x3E92, 0x3E91, 0x3E98, 0x9BC8, 0x9BC5, 0x9BC4.  
+Native supported DevIDs: `0x3E9B`, `0x3EA5`, `0x3EA6`, `0x3E92`, `0x3E91`, `0x3E98`, `0x9BC8`, `0x9BC5`, `0x9BC4`.  
 <details>
 <summary>Spoiler: CFL connectors</summary>
   
@@ -1631,7 +1631,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 </details>
   
 ####
-*Recommended framebuffers*: for desktop - 0x3EA50000 (default), 0x3E9B0007 (recommended); for laptop - 0x3EA50009 (default); "empty framebuffer" -  0x3E910003 (default).  
+*Recommended framebuffers*: for desktop - `0x3EA50000` (default), `0x3E9B0007` (recommended); for laptop - `0x3EA50009` (default); "empty framebuffer" -  `0x3E910003` (default).  
   
 If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 the fake is not necessary.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/cfl-r_igpu.png)  
@@ -1682,7 +1682,7 @@ ICL framebuffer list:
 — 0x8A520002 (mobile, 5 connectors, no fbmem, 193 MB?)  
 — 0x8A530002 (mobile, 5 connectors, no fbmem, 193 MB?)  
   
-Supported IGPU DevIDs: 0xff05, 0x8A70, 0x8A71, 0x8A51, 0x8A5C, 0x8A5D, 0x8A52, 0x8A53, 0x8A5A, 0x8A5B.  
+Native supported DevIDs: `0xff05`, `0x8A70`, `0x8A71`, `0x8A51`, `0x8A5C`, `0x8A5D`, `0x8A52`, `0x8A53`, `0x8A5A`, `0x8A5B`.  
 <details>
 <summary>Spoiler: ICL connectors</summary>
   
@@ -2055,7 +2055,7 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 </details>
   
 ####
-*Recommended framebuffers*: for laptop - 0x8A520000 (default).  
+*Recommended framebuffers*: for laptop - `0x8A520000` (default).  
   
 ## Adjusting the brightness on a laptop  
 **Method 1**  
