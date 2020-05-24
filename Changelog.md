@@ -1,7 +1,7 @@
 WhateverGreen Changelog
 =======================
 #### v1.4.0
-- Added 0x3EA6 and 0x8A53 IGPU device-id
+- Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id
 - Fixed `framebuffer-conX-alldata` patching regression
 
 #### v1.3.9
