@@ -1414,7 +1414,7 @@ For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_
   
   
 ## Intel UHD Graphics 610-655 ([Coffee Lake](https://en.wikipedia.org/wiki/Coffee_Lake) and [Comet Lake](https://en.wikipedia.org/wiki/Comet_Lake) processors)  
-Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4)  
+Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4, recommended 10.15.5)  
   
 CFL framebuffer list:   
 — 0x3EA50009 (mobile, 3 connectors, no fbmem, 58 MB)  
