@@ -3,6 +3,7 @@ WhateverGreen Changelog
 #### v1.4.0
 - Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id
 - Fixed `framebuffer-conX-alldata` patching regression
+- Added `disable-hdmi-patches` device property alias to `-igfxnohdmi`
 
 #### v1.3.9
 - Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms

@@ -319,7 +319,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
 
 		// Automatically enable HDMI -> DP patches
-		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi");
+		bool nohdmi = info->videoBuiltin->getProperty("disable-hdmi-patches") != nullptr;
+		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi") && !nohdmi;
 
 		auto requresFramebufferPatches = [this]() {
 			if (blackScreenPatch)

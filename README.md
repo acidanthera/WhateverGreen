@@ -55,7 +55,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `igfxgl=0` boot argument (and `disable-metal` property) to disable Metal support on Intel.
 - `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
 - `igfxfw=2` boot argument (and `igfxfw` property) to force loading of Apple GuC firmware
-- `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
+- `-igfxnohdmi` boot argument (and `disable-hdmi-patches`) to disable DP to HDMI conversion patches for digital sound.
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 - `-igfxdump` to dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries).
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
