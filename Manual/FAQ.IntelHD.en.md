@@ -1161,8 +1161,8 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 *Recommended framebuffers* : for desktop - `0x19120000` (default); for laptop - `0x19160000` (default); "empty framebuffer" -  `0x19120001` (default).  
   
   
-## Intel (U)HD Graphics 610-650 ([Kaby Lake](https://en.wikipedia.org/wiki/Kaby_Lake) and [8th Gen Amber Lake Y](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Amber_Lake_Y_processors) processors)  
-Supported since macOS 10.12.6 (`UHD617 8th Gen Amber Lake Y` supported since macOS 10.14.1)  
+## Intel (U)HD Graphics 610-650 ([Kaby Lake](https://en.wikipedia.org/wiki/Kaby_Lake) and [Amber Lake Y](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Amber_Lake_Y_processors) processors)  
+Supported since macOS 10.12.6 (`UHD617 Amber Lake Y` supported since macOS 10.14.1)  
   
 KBL framebuffer list:  
 — 0x591E0000 (mobile, 3 connectors, no fbmem, 35 MB)  
