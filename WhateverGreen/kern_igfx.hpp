@@ -338,6 +338,11 @@ private:
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
+	
+	/**
+	 *  Set to true to enable Metal support for offline rendering
+	 */
+	bool forceMetal {false};
 
 	/**
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
