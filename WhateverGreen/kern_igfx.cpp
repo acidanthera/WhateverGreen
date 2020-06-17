@@ -2206,6 +2206,8 @@ void IGFX::applyFramebufferPatches() {
 			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
 		else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
 			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
+		else if (cpuGeneration == CPUInfo::CpuGeneration::CometLake)
+			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
 		else if (cpuGeneration == CPUInfo::CpuGeneration::CannonLake)
 			success = applyPlatformInformationListPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
 		else if (cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
@@ -2282,6 +2284,8 @@ void IGFX::applyHdmiAutopatch() {
 			 (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake && static_cast<FramebufferSKL *>(gPlatformInformationList)->framebufferId == 0x591E0000))
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferSKL *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::CoffeeLake)
+		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
+	else if (cpuGeneration == CPUInfo::CpuGeneration::CometLake)
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCFL *>(gPlatformInformationList));
 	else if (cpuGeneration == CPUInfo::CpuGeneration::CannonLake)
 		success = applyDPtoHDMIPatch(framebufferId, static_cast<FramebufferCNL *>(gPlatformInformationList));
