@@ -310,6 +310,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
+		
+		int metal = info->videoBuiltin->getProperty("enable-metal") != nullptr;
+		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
+		forceMetal = metal == 1;
 
 		int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
 		PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
@@ -350,6 +354,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (pavpDisablePatch)
 				return true;
 			if (forceOpenGL)
+				return true;
+			if (forceMetal)
 				return true;
 			if (moderniseAccelerator)
 				return true;
@@ -398,7 +404,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (forceOpenGL || moderniseAccelerator || fwLoadMode != FW_APPLE) {
+		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE) {
 			auto startSym = "__ZN16IntelAccelerator5startEP9IOService";
 			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
 				startSym = "__ZN16IntelAccelerator5startEP9IOService";
@@ -761,6 +767,11 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 
 		}
 	}
+	
+	OSObject *metalPluginName = that->getProperty("MetalPluginName");
+	if (metalPluginName) {
+		metalPluginName->retain();
+	}
 
 	if (callbackIGFX->forceOpenGL) {
 		DBGLOG("igfx", "disabling metal support");
@@ -772,7 +783,17 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->moderniseAccelerator)
 		that->setName("IntelAccelerator");
 
-	return FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
+	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
+	
+	if (metalPluginName) {
+		if (callbackIGFX->forceMetal) {
+			DBGLOG("igfx", "enabling metal support");
+			that->setProperty("MetalPluginName", metalPluginName);
+		}
+		metalPluginName->release();
+	}
+	
+	return ret;
 }
 
 bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo) {

@@ -52,7 +52,8 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `gfxrst=4` to disable framebuffer init interaction during 2nd boot stage.
 - `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).
 - `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.
-- `igfxgl=0` boot argument (and `disable-metal` property) to disable Metal support on Intel.
+- `igfxgl=1` boot argument (and `disable-metal` property) to disable Metal support on Intel.
+- `igfxmetal=1` boot argument (and `enable-metal` property) to force enable Metal support on Intel for offline rendering.
 - `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
 - `igfxfw=2` boot argument (and `igfxfw` property) to force loading of Apple GuC firmware
 - `-igfxnohdmi` boot argument (and `disable-hdmi-patches`) to disable DP to HDMI conversion patches for digital sound.
