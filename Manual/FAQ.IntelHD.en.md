@@ -1631,7 +1631,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 </details>
   
 ####
-*Recommended framebuffers*: for desktop - `0x3EA50000` (default), `0x3E9B0007` (recommended); for laptop - `0x3EA50009` (default); "empty framebuffer" -  `0x3E910003` (default).  
+*Recommended framebuffers*: for desktop - `0x3EA50000` (default), `0x3E9B0007` (recommended); for laptop - `0x3EA50009` (default); "empty framebuffer" for CFL - `0x3E910003` (default); "empty framebuffer" for CML - `0x9BC80003` (default).  
   
 If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 the fake is not necessary.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/cfl-r_igpu.png)  
