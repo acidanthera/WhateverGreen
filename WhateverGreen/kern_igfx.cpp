@@ -109,6 +109,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			RPSControl.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
@@ -310,7 +311,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
-		
+
 		int metal = info->videoBuiltin->getProperty("enable-metal") != nullptr;
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
@@ -420,6 +421,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest request("__ZNK25IGHardwareGlobalPageTable4readEyRyS0_", globalPageTableRead);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
+
+		if (RPSControl.enabled)
+			RPSControl.init(patcher, index, address, size);
 
 		return true;
 	}
@@ -767,7 +771,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 
 		}
 	}
-	
+
 	OSObject *metalPluginName = that->getProperty("MetalPluginName");
 	if (metalPluginName) {
 		metalPluginName->retain();
@@ -784,7 +788,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		that->setName("IntelAccelerator");
 
 	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
-	
+
 	if (metalPluginName) {
 		if (callbackIGFX->forceMetal) {
 			DBGLOG("igfx", "enabling metal support");
@@ -792,7 +796,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		}
 		metalPluginName->release();
 	}
-	
+
 	return ret;
 }
 

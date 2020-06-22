@@ -338,7 +338,7 @@ private:
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
-	
+
 	/**
 	 *  Set to true to enable Metal support for offline rendering
 	 */
@@ -403,6 +403,17 @@ private:
 			return false;
 		}
 	};
+
+	struct RPSControl {
+		bool enabled {false};
+
+		void init(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+		static char IGHardwareCommandStreamer2__init(void*,void*,void*,void*,uint8_t);
+		mach_vm_address_t orgIGHardwareCommandStreamer2__init {};
+
+		static uint64_t pmNotify(uint32_t, uint32_t, uint64_t*, uint32_t*);
+	} RPSControl;
 
 	/**
 	 * Ensure each modeset is a complete modeset.
@@ -499,12 +510,12 @@ private:
 	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 	 */
 	uint32_t driverBacklightFrequency {};
-	
+
 	/**
 	 *  The default DPCD address
 	 */
 	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
-	
+
 	/**
 	 *  The extended DPCD address
 	 */
