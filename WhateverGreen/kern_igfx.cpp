@@ -98,6 +98,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			RPSControl.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
