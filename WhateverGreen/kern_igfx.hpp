@@ -513,12 +513,12 @@ private:
 	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 	 */
 	uint32_t driverBacklightFrequency {};
-	
+
 	/**
 	 *  The default DPCD address
 	 */
 	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
-	
+
 	/**
 	 *  The extended DPCD address
 	 */
