@@ -338,7 +338,7 @@ private:
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
-	
+
 	/**
 	 *  Set to true to enable Metal support for offline rendering
 	 */
@@ -403,6 +403,20 @@ private:
 			return false;
 		}
 	};
+
+	struct RPSControl {
+		bool enabled {false};
+
+		// Time window in which frequency cannot be dropped.
+		// IGHardwareCommandStreamer2 changes frequency with intervals proportional to RPN-RP0
+		// difference, 4 to 40 ms, for that particular streamer.
+		static constexpr unsigned RPNSWREQ_WINDOW_NS {1000000ULL * 4};
+
+		void init(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+		static void IGHardwareCommandStreamer2__setGTFrequencyMMIO(void*,unsigned);
+		mach_vm_address_t orgIGHardwareCommandStreamer2__setGTFrequencyMMIO;
+	} RPSControl;
 
 	/**
 	 * Ensure each modeset is a complete modeset.

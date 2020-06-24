@@ -28,6 +28,7 @@ WhateverGreen
 - Implements the driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on some platforms with Intel IGPU.
 - Enforces complete modeset on non-built-in displays on Kaby Lake and newer to fix booting to black screen.
 - Allows non-supported cards to use HW video encoder (`-radcodec`)
+- Fixes choopy video playback on Intel Kaby Lake and newer. 
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
