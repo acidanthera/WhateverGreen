@@ -836,9 +836,32 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
 	// this framebuffer.
 	// Note we need to check this at every invocation, as this property may reappear
-	if (framebuffer->getProperty("built-in"))
-		return FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(controller, framebuffer, displayPath, crtParams, detailedInfo);
-	return true;
+	return !framebuffer->getProperty("built-in")
+			|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
+			controller, framebuffer, displayPath, crtParams, detailedInfo);
+}
+
+IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
+	if (attribute == kAGDCRegisterCallback) {
+		DBGLOG("igfx", "ignoring AGDC registration in FBClientControl::doAttribute");
+		return kIOReturnUnsupported;
+	}
+
+	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
+}
+
+uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
+	// 0 - offline, 1 - online, 2 - empty dongle.
+	uint32_t ret = FunctionCast(wrapGetDisplayStatus, callbackIGFX->orgGetDisplayStatus)(framebuffer, displayPath);
+	if (ret != 1) {
+		if (callbackIGFX->forceOnlineDisplay.customised)
+			ret = callbackIGFX->forceOnlineDisplay.inList(framebuffer) ? 1 : ret;
+		else
+			ret = 1;
+	}
+
+	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
+	return ret;
 }
 
 IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
