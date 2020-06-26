@@ -406,16 +406,16 @@ private:
 
 	struct RPSControl {
 		bool enabled {false};
+		uint32_t freq_max {0};
+		
+		void initFB(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
-		// Time window in which frequency cannot be dropped.
-		// IGHardwareCommandStreamer2 changes frequency with intervals proportional to RPN-RP0
-		// difference, 4 to 40 ms, for that particular streamer.
-		static constexpr unsigned RPNSWREQ_WINDOW_NS {1000000ULL * 4};
-
-		void init(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-
-		static void IGHardwareCommandStreamer2__setGTFrequencyMMIO(void*,unsigned);
-		mach_vm_address_t orgIGHardwareCommandStreamer2__setGTFrequencyMMIO;
+		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
+		mach_vm_address_t orgPmNotifyWrapper;
+		
+		uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+		void** gController {};
 	} RPSControl;
 
 	/**

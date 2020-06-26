@@ -424,7 +424,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (RPSControl.enabled)
-			RPSControl.init(patcher, index, address, size);
+			RPSControl.initGraphics(patcher, index, address, size);
 
 		return true;
 	}
@@ -521,6 +521,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
 				SYSLOG("igfx", "failed to route getDisplayStatus");
 		}
+		
+		if (RPSControl.enabled)
+			RPSControl.initFB(patcher, index, address, size);
 
 		if (disableAGDC) {
 			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
