@@ -173,6 +173,13 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		dumpPlatformTable = checkKernelArgument("-igfxfbdump");
 		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
 #endif
+		
+		uint32_t nrpsc = 0;
+		if (PE_parse_boot_argn("igfxnorpsc", &nrpsc, sizeof(nrpsc)) ||
+			WIOKit::getOSDataValue(info->videoBuiltin, "no-rps-control", nrpsc)) {
+			DBGLOG("weg", "RPS control patch overriden (%u)", nrpsc);
+			RPSControl.enabled &= !nrpsc;
+		}
 
 		uint32_t forceCompleteModeSet = 0;
 		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
