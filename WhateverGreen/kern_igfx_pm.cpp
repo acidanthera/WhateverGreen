@@ -129,13 +129,12 @@ void IGFX::RPSControl::initFB(KernelPatcher &patcher, size_t index, mach_vm_addr
 	
 	gController = patcher.solveSymbol<decltype(gController)>(index, "_gController", address, size);
 	
-	KernelPatcher::RouteRequest requests[] {
-		{"__ZL15pmNotifyWrapperjjPyPj",
+	KernelPatcher::RouteRequest req {
+			"__ZL15pmNotifyWrapperjjPyPj",
 			&IGFX::RPSControl::pmNotifyWrapper,
 			orgPmNotifyWrapper
-		}
 	};
 
-	if (!(AppleIntelFramebufferController__ReadRegister32 && gController && patcher.routeMultiple(index, requests, address, size, true, true)))
+	if (!(AppleIntelFramebufferController__ReadRegister32 && gController && patcher.routeMultiple(index, &req, address, size, true, true)))
 		SYSLOG(log, "failed to route igfx FB PM functions");
 }
