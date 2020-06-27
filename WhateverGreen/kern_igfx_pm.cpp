@@ -83,7 +83,9 @@ constexpr uint32_t GEN9_FREQ_SCALER  = 3;
 
 void IGFX::RPSControl::initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	mach_vm_address_t orgIGHardwareCommandStreamer2__submitExecList {};
-	orgIGHardwareCommandStreamer2__submitExecList = patcher.solveSymbol(index, "__ZN26IGHardwareCommandStreamer214submitExecListEj", address, size);
+	const char* sym = getKernelVersion() >= KernelVersion::Catalina ?
+	"__ZN26IGHardwareCommandStreamer514submitExecListEj" : "__ZN26IGHardwareCommandStreamer214submitExecListEj";
+	orgIGHardwareCommandStreamer2__submitExecList = patcher.solveSymbol(index, sym, address, size);
 
 	/**
 	 * IGHardwareCommandStreamer2::submitExecList only controls RPS for RCS type streamers.
