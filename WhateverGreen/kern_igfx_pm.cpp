@@ -74,7 +74,11 @@ static bool patchRCSCheck(mach_vm_address_t& start) {
 	}
 }
 
-constexpr uint32_t GEN6_RP_STATE_CAP = 0x140000 + 0x5998;
+constexpr uint32_t MCHBAR_MIRROR_BASE_SNB = 0x140000;
+constexpr uint32_t GEN6_RP_STATE_CAP = MCHBAR_MIRROR_BASE_SNB + 0x5998;
+
+constexpr uint32_t GEN9_FREQUENCY_SHIFT = 23;
+constexpr uint32_t GEN9_FREQ_SCALER  = 3;
 }
 
 void IGFX::RPSControl::initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -113,7 +117,7 @@ int IGFX::RPSControl::pmNotifyWrapper(unsigned int a0,unsigned int a1,unsigned l
 	}
 	
 	DBGLOG(log, "pmNotifyWrapper sets freq 0x%x", cfreq);
-	*freq = 0x1800000 * callbackIGFX->RPSControl.freq_max;
+	*freq = (GEN9_FREQ_SCALER << GEN9_FREQUENCY_SHIFT) * callbackIGFX->RPSControl.freq_max;
 
 	return 0;
 }
