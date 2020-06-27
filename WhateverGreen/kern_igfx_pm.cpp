@@ -14,8 +14,6 @@
 #include <Library/LegacyIOService.h>
 #include "kern_igfx.hpp"
 
-#include <kern/clock.h>
-
 namespace {
 constexpr const char* log = "igfx_pm";
 
@@ -135,6 +133,6 @@ void IGFX::RPSControl::initFB(KernelPatcher &patcher, size_t index, mach_vm_addr
 			orgPmNotifyWrapper
 	};
 
-	if (!(AppleIntelFramebufferController__ReadRegister32 && gController && patcher.routeMultiple(index, &req, address, size, true, true)))
+	if (!(AppleIntelFramebufferController__ReadRegister32 && gController && patcher.routeMultiple(index, &req, 1, address, size, true, true)))
 		SYSLOG(log, "failed to route igfx FB PM functions");
 }
