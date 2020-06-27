@@ -349,6 +349,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (disableAGDC)
 				return true;
+			if (RPSControl.enabled)
+				return true;
 			return false;
 		};
 
@@ -364,6 +366,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (fwLoadMode != FW_APPLE)
 				return true;
 			if (readDescriptorPatch)
+				return true;
+			if (RPSControl.enabled)
 				return true;
 			return false;
 		};
