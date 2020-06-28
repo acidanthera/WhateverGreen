@@ -338,7 +338,7 @@ private:
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
-	
+
 	/**
 	 *  Set to true to enable Metal support for offline rendering
 	 */
@@ -403,6 +403,20 @@ private:
 			return false;
 		}
 	};
+
+	struct RPSControl {
+		bool enabled {false};
+		uint32_t freq_max {0};
+		
+		void initFB(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
+		mach_vm_address_t orgPmNotifyWrapper;
+		
+		uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+		void** gController {};
+	} RPSControl;
 
 	/**
 	 * Ensure each modeset is a complete modeset.
@@ -499,12 +513,12 @@ private:
 	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 	 */
 	uint32_t driverBacklightFrequency {};
-	
+
 	/**
 	 *  The default DPCD address
 	 */
 	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
-	
+
 	/**
 	 *  The extended DPCD address
 	 */

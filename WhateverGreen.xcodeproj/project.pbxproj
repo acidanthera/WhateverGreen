@@ -10,6 +10,7 @@
 		1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C748C2C1C21952C0024EED2 /* kern_start.cpp */; };
 		1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C9CB7AE1C789FF500231E41 /* kern_rad.cpp */; };
 		1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1C9CB7AF1C789FF500231E41 /* kern_rad.hpp */; };
+		2F30012424A00F2800C590C3 /* kern_igfx_pm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */; };
 		CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */; };
 		CE19710021C380DF00B02AB4 /* kern_nvhda.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */; };
 		CE1F61B92432DEE800201DF4 /* kern_igfx_debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */; };
@@ -77,6 +78,7 @@
 		1CF01C901C8CF97F002DCEA3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_pm.cpp; sourceTree = "<group>"; };
 		CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_nvhda.cpp; sourceTree = "<group>"; };
 		CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_nvhda.hpp; sourceTree = "<group>"; };
 		CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_debug.cpp; sourceTree = "<group>"; };
@@ -187,6 +189,7 @@
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
 				CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */,
+				2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
 				CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */,
 				CE7FC0B020F563CA00138088 /* kern_ngfx_asm.S */,
@@ -434,6 +437,7 @@
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
 				CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */,
 				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
+				2F30012424A00F2800C590C3 /* kern_igfx_pm.cpp in Sources */,
 				CE7FC0B120F563CA00138088 /* kern_ngfx_asm.S in Sources */,
 				CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */,
 				CE8190A21F1E3ECE00DE95F4 /* kern_model.cpp in Sources */,

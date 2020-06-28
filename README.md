@@ -28,6 +28,7 @@ WhateverGreen
 - Implements the driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on some platforms with Intel IGPU.
 - Enforces complete modeset on non-built-in displays on Kaby Lake and newer to fix booting to black screen.
 - Allows non-supported cards to use HW video encoder (`-radcodec`)
+- Fixes choopy video playback on Intel Kaby Lake and newer. 
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
@@ -76,6 +77,7 @@ not in the list, the driver's logic is used to determine whether complete modese
 -  `igfxonlnfbs=MASK` boot argument (`force-online-framebuffers` device property) to specify
 indices of connectors for which online tatus is enforced. Format is similar to `igfxfcmsfbs`.
 -  `wegtree=1` boot argument (`rebuild-device-tree` property) to force device renaming on Apple FW.
+- `igfxnorpsc=1` boot argument (`no-rps-control` property) to disable RPS control patch.
 
 #### Credits
 - [Apple](https://www.apple.com) for macOS

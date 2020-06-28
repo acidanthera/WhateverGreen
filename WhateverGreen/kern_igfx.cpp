@@ -98,6 +98,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			RPSControl.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -109,6 +110,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			RPSControl.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
@@ -171,6 +173,13 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		dumpPlatformTable = checkKernelArgument("-igfxfbdump");
 		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
 #endif
+		
+		uint32_t nrpsc = 0;
+		if (PE_parse_boot_argn("igfxnorpsc", &nrpsc, sizeof(nrpsc)) ||
+			WIOKit::getOSDataValue(info->videoBuiltin, "no-rps-control", nrpsc)) {
+			DBGLOG("weg", "RPS control patch overriden (%u)", nrpsc);
+			RPSControl.enabled &= !nrpsc;
+		}
 
 		uint32_t forceCompleteModeSet = 0;
 		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
@@ -310,7 +319,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
-		
+
 		int metal = info->videoBuiltin->getProperty("enable-metal") != nullptr;
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
@@ -347,6 +356,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (disableAGDC)
 				return true;
+			if (RPSControl.enabled)
+				return true;
 			return false;
 		};
 
@@ -362,6 +373,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (fwLoadMode != FW_APPLE)
 				return true;
 			if (readDescriptorPatch)
+				return true;
+			if (RPSControl.enabled)
 				return true;
 			return false;
 		};
@@ -420,6 +433,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest request("__ZNK25IGHardwareGlobalPageTable4readEyRyS0_", globalPageTableRead);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
+
+		if (RPSControl.enabled)
+			RPSControl.initGraphics(patcher, index, address, size);
 
 		return true;
 	}
@@ -516,6 +532,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
 				SYSLOG("igfx", "failed to route getDisplayStatus");
 		}
+		
+		if (RPSControl.enabled)
+			RPSControl.initFB(patcher, index, address, size);
 
 		if (disableAGDC) {
 			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
@@ -767,7 +786,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 
 		}
 	}
-	
+
 	OSObject *metalPluginName = that->getProperty("MetalPluginName");
 	if (metalPluginName) {
 		metalPluginName->retain();
@@ -784,7 +803,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		that->setName("IntelAccelerator");
 
 	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
-	
+
 	if (metalPluginName) {
 		if (callbackIGFX->forceMetal) {
 			DBGLOG("igfx", "enabling metal support");
@@ -792,7 +811,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		}
 		metalPluginName->release();
 	}
-	
+
 	return ret;
 }
 
@@ -832,8 +851,8 @@ bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *
 	// this framebuffer.
 	// Note we need to check this at every invocation, as this property may reappear
 	return !framebuffer->getProperty("built-in")
-		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
-		controller, framebuffer, displayPath, crtParams, detailedInfo);
+			|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
+			controller, framebuffer, displayPath, crtParams, detailedInfo);
 }
 
 IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
