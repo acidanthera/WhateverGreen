@@ -52,7 +52,7 @@ Some faulty BIOSes show a higher value, but actually allocate less. In such case
 11. Completely remove Clover's `Arbitrary`, `AddProperties`, as well as IGPU, IMEI, HDEF and HDMI audio definitions from `SSDT` and `DSDT` (if you added them).  
 12. Delete or disable binary patches DSDT: `GFX0 to IGPU`, `PEGP to GFX0`, `HECI to IMEI`, `MEI to IMEI`, `HDAS to HDEF`, `B0D3 to HDAU`.  
 
-**Injecting Properties :**  
+**Injecting Properties:**  
 To inject properties, use `Devices`-`Properties` section for Clover or `DeviceProperties` section for OpenCore in config.plist.  
 Only these properties may be added:  
 — `AAPL,ig-platform-id` or `AAPL,snb-platform-id` framebuffer  
@@ -70,7 +70,7 @@ Do not leave empty property values. For example, if a certain property is not re
 
 ![basic](./Img/basic.png)
   
-**Choosing a framebuffer :**  
+**Choosing a framebuffer:**  
 First try the recommended one. If it is not successful, then try the others one by one, excluding the "empty framebuffers" (0 connectors), which are described in a separate [topic](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/).  
 When looking for a suitable framebuffer you can set it with a boot argument (boot-arg), in which case the framebuffer set in the `Properties` section is ignored.
 For example: `igfxframe=0x0166000B`  
@@ -84,7 +84,7 @@ Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.
 
 > Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6. On older operating systems follow the "ancient ways". On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
   
-***SNB Framebuffer List :***
+***SNB Framebuffer List:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -199,7 +199,7 @@ Mac-942B59F58194171B -> SNB5 (iMac12,2) -> no ports
 </details>
 <br>
 
-***Native supported DevID's :*** 
+***Native supported DevID's:*** 
 
 - `0x0106`
 - `0x1106`
@@ -208,7 +208,7 @@ Mac-942B59F58194171B -> SNB5 (iMac12,2) -> no ports
 - `0x0126`
 - `0x0102`
 
-***Recommended framebuffers :***
+***Recommended framebuffers:***
 
 - Desktop :
   - `0x00030010` (default)
@@ -235,7 +235,7 @@ For an "empty framebuffer" a different device-id is required, more in this [thre
 
 > Supported since OS X 10.8.x  
   
-***Capri framebuffer list :***
+***Capri framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
 | 0x01660000  | desktop | 4          | 24 MB               |
@@ -404,7 +404,7 @@ HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and 
 
 > Supported since OS X 10.9.x  
   
-***Azul framebuffer list :***
+***Azul framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
 | 0x0C060000  | desktop | 3          | 209 MB              |
@@ -683,7 +683,7 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 </details>
 <br>
 
-***Native supported DevIDs :***
+***Native supported DevIDs:***
 
 - `0x0d26`
 - `0x0a26`
@@ -691,7 +691,7 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 - `0x0d22`
 - `0x0412`
 
-***Recommended framebuffers :***
+***Recommended framebuffers:***
 
 - Desktop :
   - `0x0D220003` (default)
@@ -710,7 +710,7 @@ For desktop HD4400 and all the mobile fake the `device-id` `12040000` for `IGPU`
 
 > Supported since OS X 10.10.2  
   
-***BDW framebuffer list :***
+***BDW framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -984,7 +984,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 </details>
 <br>
 
-***Native supported DevIDs :***
+***Native supported DevIDs:***
 
 - `0x0BD1`
 - `0x0BD2`
@@ -998,7 +998,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 - `0x1612`
 - `0x162b`
 
-***Recommended framebuffers :*** 
+***Recommended framebuffers:*** 
 
 - Desktop :
   - `0x16220007` (default)
@@ -1009,7 +1009,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 > Supported since OS X 10.11.4  
   
-***SKL framebuffer list :***
+***SKL framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -1244,7 +1244,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 </details>
 <br>
 
-***Native supported DevIDs :*** 
+***Native supported DevIDs:*** 
 
 - `0x1916`
 - `0x191E`
@@ -1257,7 +1257,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 - `0x193B`
 - `0x191B`
 
-***Recommended framebuffers :*** 
+***Recommended framebuffers:*** 
 
 - Desktop :
   - `0x19120000` (default)
@@ -1270,7 +1270,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 
 > Supported since macOS 10.12.6 (`UHD617 Amber Lake Y` supported since macOS 10.14.1)  
 
-***KBL framebuffer list :***
+***KBL framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -1515,7 +1515,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 59160000
 </details>
 <br>
 
-***Native supported DevIDs :***
+***Native supported DevIDs:***
 
 - `0x5912`
 - `0x5916`
@@ -1527,7 +1527,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 59160000
 - `0x5923`
 - `0x87C0`
 
-***Recommended framebuffers :***
+***Recommended framebuffers:***
 
 - Desktop :
   - `0x59160000` (default)
@@ -1544,7 +1544,7 @@ For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_
 
 > Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4, recommended 10.15.5)  
   
-***CFL framebuffer list :***
+***CFL framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -1761,7 +1761,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 </details>
 <br>
 
-***Native supported DevIDs :***
+***Native supported DevIDs:***
 
 - `0x3E9B`
 - `0x3EA5`
@@ -1773,7 +1773,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 - `0x9BC5`
 - `0x9BC4`
 
-***Recommended framebuffers :***
+***Recommended framebuffers:***
 
 - Desktop :
   - `0x3EA50000` (default)
@@ -1809,7 +1809,7 @@ Use the Kaby Lake HD630 framebuffer (specify the framebuffer explicitly!)
 
 > Supported since macOS 10.15.4  
   
-***ICL framebuffer list :***
+***ICL framebuffer list:***
 
 | Framebuffer | Type   | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------ | ---------- | ------------------- |
@@ -2209,7 +2209,7 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 </details>
 <br>
 
-***Native supported DevIDs :***
+***Native supported DevIDs:***
 
 - `0xff05`
 - `0x8A70`
@@ -2222,7 +2222,7 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 - `0x8A5A`
 - `0x8A5B`  
 
-***Recommended framebuffers :***
+***Recommended framebuffers:***
 
 - Laptop :
   - `0x8A520000` (default)  
@@ -2268,7 +2268,7 @@ Example of a semantic patch for bios with DVMT Pre-Alloc 32MB when higher is req
   
 **All possible WEG custom patches :**  
 
-***Semantic :-***  
+***Semantic:***  
 *framebuffer-patch-enable (enabling the semantic patches in principle)  
 framebuffer-framebufferid (the framebuffer that we're patching, the current by default)*  
 
@@ -2294,7 +2294,7 @@ framebuffer-conX-YYYYYYYY-alldata (completely replace the connector, if the curr
 Where X is the connector index.  
 Alldata patches can patch multiple connectors in sequence by putting them in a single string and specifying the index of a connector to start with. The string length should be a multiple of 12 bytes (the length of a single connector), 24 bytes for ICL.*  
   
-***Binary:-***  
+***Binary:***  
 *framebuffer-patchN-enable (enabling patch number N)  
 framebuffer-patchN-framebufferid (the framebuffer that we're patching, the current by default)  
 framebuffer-patchN-find  
