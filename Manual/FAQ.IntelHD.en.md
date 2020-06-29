@@ -86,15 +86,15 @@ Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.
   
 ***SNB Framebuffer List :***
 
-| Framebuffer | Type    | Connectors | FB Memory |
-| ----------- | ------- | ---------- | --------- |
-| 0x00010000  | mobile  | 4          | no fbmem  |
-| 0x00010000  | mobile  | 1          | no fbmem  |
-| 0x00010000  | desktop | 3          | no fbmem  |
-| 0x00010000  | desktop | 3          | no fbmem  |
-| 0x00010000  | desktop | 0          | no fbmem  |
-| 0x00010000  | mobile  | 3          | no fbmem  |
-| 0x00010000  | desktop | 0          | no fbmem  |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x00010000  | mobile  | 4          | 32 MB?              |
+| 0x00010000  | mobile  | 1          | 32 MB?              |
+| 0x00010000  | desktop | 3          | 32 MB?              |
+| 0x00010000  | desktop | 3          | 32 MB?              |
+| 0x00010000  | desktop | 0          | 32 MB?              |
+| 0x00010000  | mobile  | 3          | 32 MB?              |
+| 0x00010000  | desktop | 0          | 32 MB?              |
 
 <details>
 <summary>Spoiler: SNB connectors</summary>
@@ -236,20 +236,20 @@ For an "empty framebuffer" a different device-id is required, more in this [thre
 > Supported since OS X 10.8.x  
   
 ***Capri framebuffer list :***
-| Framebuffer | Type    | Connectors | FB Memory         |
-| ----------- | ------- | ---------- | ----------------- |
-| 0x01660000  | desktop | 4          | 24 MB             |
-| 0x01620006  | desktop | 0          | no fbmem, 0 bytes |
-| 0x01620007  | desktop | 0          | no fbmem, 0 bytes |
-| 0x01620005  | desktop | 3          | 16 MB             |
-| 0x01660001  | mobile  | 4          | 24 MB             |
-| 0x01660002  | mobile  | 1          | 24 MB             |
-| 0x01660008  | mobile  | 3          | 16 MB             |
-| 0x01660009  | mobile  | 3          | 16 MB             |
-| 0x01660003  | mobile  | 4          | 16 MB             |
-| 0x01660004  | mobile  | 1          | 16 MB             |
-| 0x0166000A  | desktop | 3          | 16 MB             |
-| 0x0166000B  | desktop | 3          | 16 MB             |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x01660000  | desktop | 4          | 24 MB               |
+| 0x01620006  | desktop | 0          | 0 bytes             |
+| 0x01620007  | desktop | 0          | 0 bytes             |
+| 0x01620005  | desktop | 3          | 16 MB               |
+| 0x01660001  | mobile  | 4          | 24 MB               |
+| 0x01660002  | mobile  | 1          | 24 MB               |
+| 0x01660008  | mobile  | 3          | 16 MB               |
+| 0x01660009  | mobile  | 3          | 16 MB               |
+| 0x01660003  | mobile  | 4          | 16 MB               |
+| 0x01660004  | mobile  | 1          | 16 MB               |
+| 0x0166000A  | desktop | 3          | 16 MB               |
+| 0x0166000B  | desktop | 3          | 16 MB               |
 
 <details>
 <summary>Spoiler: Capri connectors</summary>
@@ -405,32 +405,32 @@ HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and 
 > Supported since OS X 10.9.x  
   
 ***Azul framebuffer list :***
-| Framebuffer | Type    | Connectors | FB Memory      |
-| ----------- | ------- | ---------- | -------------- |
-| 0x0C060000  | desktop | 3          | 209 MB         |
-| 0x0C160000  | desktop | 3          | 209 MB         |
-| 0x0C260000  | desktop | 3          | 209 MB         |
-| 0x04060000  | desktop | 3          | 209 MB         |
-| 0x04160000  | desktop | 3          | 209 MB         |
-| 0x04260000  | desktop | 3          | 209 MB         |
-| 0x0D260000  | desktop | 3          | 209 MB         |
-| 0x0A160000  | desktop | 3          | 209 MB         |
-| 0x0A260000  | desktop | 3          | 209 MB         |
-| 0x0A260005  | mobile  | 3          | 52 MB          |
-| 0x0A260006  | mobile  | 3          | 52 MB          |
-| 0x0A2E0008  | mobile  | 3          | 99 MB          |
-| 0x0A16000C  | mobile  | 3          | 99 MB          |
-| 0x0D260007  | mobile  | 4          | 99 MB          |
-| 0x0D220003  | desktop | 3          | 52 MB          |
-| 0x0A2E000A  | desktop | 3          | 52 MB          |
-| 0x0A26000A  | desktop | 3          | 52 MB          |
-| 0x0A2E000D  | desktop | 2          | 131 MB         |
-| 0x0A26000D  | desktop | 2          | 131 MB         |
-| 0x04120004  | desktop | 0          | no fbmem, 1 MB |
-| 0x0412000B  | desktop | 0          | no fbmem, 1 MB |
-| 0x0D260009  | mobile  | 1          | 99 MB          |
-| 0x0D26000E  | mobile  | 4          | 131 MB         |
-| 0x0D26000F  | mobile  | 1          | 131 MB         |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x0C060000  | desktop | 3          | 209 MB              |
+| 0x0C160000  | desktop | 3          | 209 MB              |
+| 0x0C260000  | desktop | 3          | 209 MB              |
+| 0x04060000  | desktop | 3          | 209 MB              |
+| 0x04160000  | desktop | 3          | 209 MB              |
+| 0x04260000  | desktop | 3          | 209 MB              |
+| 0x0D260000  | desktop | 3          | 209 MB              |
+| 0x0A160000  | desktop | 3          | 209 MB              |
+| 0x0A260000  | desktop | 3          | 209 MB              |
+| 0x0A260005  | mobile  | 3          | 52 MB               |
+| 0x0A260006  | mobile  | 3          | 52 MB               |
+| 0x0A2E0008  | mobile  | 3          | 99 MB               |
+| 0x0A16000C  | mobile  | 3          | 99 MB               |
+| 0x0D260007  | mobile  | 4          | 99 MB               |
+| 0x0D220003  | desktop | 3          | 52 MB               |
+| 0x0A2E000A  | desktop | 3          | 52 MB               |
+| 0x0A26000A  | desktop | 3          | 52 MB               |
+| 0x0A2E000D  | desktop | 2          | 131 MB              |
+| 0x0A26000D  | desktop | 2          | 131 MB              |
+| 0x04120004  | desktop | 0          | 1 MB                |
+| 0x0412000B  | desktop | 0          | 1 MB                |
+| 0x0D260009  | mobile  | 1          | 99 MB               |
+| 0x0D26000E  | mobile  | 4          | 131 MB              |
+| 0x0D26000F  | mobile  | 1          | 131 MB              |
   
 <details>
 <summary>Spoiler: Azul connectors</summary>
@@ -712,30 +712,30 @@ For desktop HD4400 and all the mobile fake the `device-id` `12040000` for `IGPU`
   
 ***BDW framebuffer list :***
 
-| Framebuffer | Type    | Connectors | FB Memory |
-| ----------- | ------- | ---------- | --------- |
-| 0x16060000  | desktop | 3          | 32 MB     |
-| 0x160E0000  | desktop | 3          | 32 MB     |
-| 0x16160000  | desktop | 3          | 32 MB     |
-| 0x161E0000  | desktop | 3          | 32 MB     |
-| 0x16260000  | desktop | 3          | 32 MB     |
-| 0x162B0000  | desktop | 3          | 32 MB     |
-| 0x16220000  | desktop | 3          | 32 MB     |
-| 0x160E0001  | mobile  | 3          | 60 MB     |
-| 0x161E0001  | mobile  | 3          | 60 MB     |
-| 0x16060002  | mobile  | 3          | 56 MB     |
-| 0x16160002  | mobile  | 3          | 56 MB     |
-| 0x16260002  | mobile  | 3          | 56 MB     |
-| 0x16220002  | mobile  | 3          | 56 MB     |
-| 0x162B0002  | mobile  | 3          | 56 MB     |
-| 0x16120003  | mobile  | 4          | 56 MB     |
-| 0x162B0004  | desktop | 3          | 56 MB     |
-| 0x16260004  | desktop | 3          | 56 MB     |
-| 0x16220007  | desktop | 3          | 77 MB     |
-| 0x16260005  | mobile  | 3          | 56 MB     |
-| 0x16260006  | mobile  | 3          | 56 MB     |
-| 0x162B0008  | desktop | 2          | 69 MB     |
-| 0x16260008  | desktop | 2          | 69 MB     |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x16060000  | desktop | 3          | 32 MB               |
+| 0x160E0000  | desktop | 3          | 32 MB               |
+| 0x16160000  | desktop | 3          | 32 MB               |
+| 0x161E0000  | desktop | 3          | 32 MB               |
+| 0x16260000  | desktop | 3          | 32 MB               |
+| 0x162B0000  | desktop | 3          | 32 MB               |
+| 0x16220000  | desktop | 3          | 32 MB               |
+| 0x160E0001  | mobile  | 3          | 60 MB               |
+| 0x161E0001  | mobile  | 3          | 60 MB               |
+| 0x16060002  | mobile  | 3          | 56 MB               |
+| 0x16160002  | mobile  | 3          | 56 MB               |
+| 0x16260002  | mobile  | 3          | 56 MB               |
+| 0x16220002  | mobile  | 3          | 56 MB               |
+| 0x162B0002  | mobile  | 3          | 56 MB               |
+| 0x16120003  | mobile  | 4          | 56 MB               |
+| 0x162B0004  | desktop | 3          | 56 MB               |
+| 0x16260004  | desktop | 3          | 56 MB               |
+| 0x16220007  | desktop | 3          | 77 MB               |
+| 0x16260005  | mobile  | 3          | 56 MB               |
+| 0x16260006  | mobile  | 3          | 56 MB               |
+| 0x162B0008  | desktop | 2          | 69 MB               |
+| 0x16260008  | desktop | 2          | 69 MB               |
 
 <details>
 <summary>Spoiler: BDW connectors</summary>
@@ -1011,27 +1011,27 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
   
 ***SKL framebuffer list :***
 
-| Framebuffer | Type    | Connectors | FB Memory       |
-| ----------- | ------- | ---------- | --------------- |
-| 0x191E0000  | mobile  | 3          | 56 MB           |
-| 0x19160000  | mobile  | 3          | 56 MB           |
-| 0x19260000  | mobile  | 3          | 56 MB           |
-| 0x19270000  | mobile  | 3          | 56 MB           |
-| 0x191B0000  | mobile  | 3          | 56 MB           |
-| 0x193B0000  | mobile  | 3          | 56 MB           |
-| 0x19120000  | mobile  | 3          | 56 MB           |
-| 0x19020001  | desktop | 0          | no fbmem, 1 MB  |
-| 0x19170001  | desktop | 0          | no fbmem, 1 MB  |
-| 0x19120001  | desktop | 0          | no fbmem, 1 MB  |
-| 0x19320001  | desktop | 0          | no fbmem, 1 MB  |
-| 0x19160002  | mobile  | 3          | no fbmem, 58 MB |
-| 0x19260002  | mobile  | 3          | no fbmem, 58 MB |
-| 0x191E0003  | mobile  | 3          | no fbmem, 41 MB |
-| 0x19260004  | mobile  | 3          | no fbmem, 35 MB |
-| 0x19270004  | mobile  | 3          | no fbmem, 58 MB |
-| 0x193B0005  | mobile  | 4          | no fbmem, 35 MB |
-| 0x191B0006  | mobile  | 1          | no fbmem, 39 MB |
-| 0x19260007  | mobile  | 3          | no fbmem, 35 MB |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x191E0000  | mobile  | 3          | 56 MB               |
+| 0x19160000  | mobile  | 3          | 56 MB               |
+| 0x19260000  | mobile  | 3          | 56 MB               |
+| 0x19270000  | mobile  | 3          | 56 MB               |
+| 0x191B0000  | mobile  | 3          | 56 MB               |
+| 0x193B0000  | mobile  | 3          | 56 MB               |
+| 0x19120000  | mobile  | 3          | 56 MB               |
+| 0x19020001  | desktop | 0          | 1 MB                |
+| 0x19170001  | desktop | 0          | 1 MB                |
+| 0x19120001  | desktop | 0          | 1 MB                |
+| 0x19320001  | desktop | 0          | 1 MB                |
+| 0x19160002  | mobile  | 3          | 58 MB               |
+| 0x19260002  | mobile  | 3          | 58 MB               |
+| 0x191E0003  | mobile  | 3          | 41 MB               |
+| 0x19260004  | mobile  | 3          | 35 MB               |
+| 0x19270004  | mobile  | 3          | 58 MB               |
+| 0x193B0005  | mobile  | 4          | 35 MB               |
+| 0x191B0006  | mobile  | 1          | 39 MB               |
+| 0x19260007  | mobile  | 3          | 35 MB               |
  
 <details>
 <summary>Spoiler: SKL connectors</summary>
@@ -1272,27 +1272,27 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 
 ***KBL framebuffer list :***
 
-| Framebuffer | Type    | Connectors | FB Memory       |
-| ----------- | ------- | ---------- | --------------- |
-| 0x591E0000  | mobile  | 3          | no fbmem, 35 MB |
-| 0x87C00000  | mobile  | 3          | no fbmem, 35 MB |
-| 0x59160000  | mobile  | 3          | no fbmem, 35 MB |
-| 0x59230000  | desktop | 3          | no fbmem, 39 MB |
-| 0x59260000  | desktop | 3          | no fbmem, 39 MB |
-| 0x59270000  | desktop | 3          | no fbmem, 39 MB |
-| 0x59270009  | mobile  | 3          | no fbmem, 39 MB |
-| 0x59160009  | mobile  | 3          | no fbmem, 39 MB |
-| 0x59120000  | desktop | 3          | no fbmem, 39 MB |
-| 0x591B0000  | mobile  | 3          | 39 MB           |
-| 0x591E0001  | mobile  | 3          | no fbmem, 39 MB |
-| 0x59180002  | mobile  | 0          | no fbmem, 1 MB  |
-| 0x59120003  | mobile  | 0          | no fbmem, 1 MB  |
-| 0x59260007  | desktop | 3          | 79 MB           |
-| 0x59270004  | mobile  | 3          | no fbmem, 58 MB |
-| 0x59260002  | mobile  | 3          | no fbmem, 58 MB |
-| 0x87C00005  | mobile  | 3          | no fbmem, 58 MB |
-| 0x591C0005  | mobile  | 3          | no fbmem, 58 MB |
-| 0x591B0006  | mobile  | 1          | no fbmem, 39 MB |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x591E0000  | mobile  | 3          | 35 MB               |
+| 0x87C00000  | mobile  | 3          | 35 MB               |
+| 0x59160000  | mobile  | 3          | 35 MB               |
+| 0x59230000  | desktop | 3          | 39 MB               |
+| 0x59260000  | desktop | 3          | 39 MB               |
+| 0x59270000  | desktop | 3          | 39 MB               |
+| 0x59270009  | mobile  | 3          | 39 MB               |
+| 0x59160009  | mobile  | 3          | 39 MB               |
+| 0x59120000  | desktop | 3          | 39 MB               |
+| 0x591B0000  | mobile  | 3          | 39 MB               |
+| 0x591E0001  | mobile  | 3          | 39 MB               |
+| 0x59180002  | mobile  | 0          | 1 MB                |
+| 0x59120003  | mobile  | 0          | 1 MB                |
+| 0x59260007  | desktop | 3          | 79 MB               |
+| 0x59270004  | mobile  | 3          | 58 MB               |
+| 0x59260002  | mobile  | 3          | 58 MB               |
+| 0x87C00005  | mobile  | 3          | 58 MB               |
+| 0x591C0005  | mobile  | 3          | 58 MB               |
+| 0x591B0006  | mobile  | 1          | 39 MB               |
 
 <details>
 <summary>Spoiler: KBL connectors</summary>
@@ -1546,27 +1546,27 @@ For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_
   
 ***CFL framebuffer list :***
 
-| Framebuffer | Type    | Connectors | FB Memory       |
-| ----------- | ------- | ---------- | --------------- |
-| 0x3EA50009  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3E920009  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3E9B0009  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3EA50000  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3E920000  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3E000000  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3E9B0000  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3EA50004  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3EA50005  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3EA60005  | mobile  | 3          | no fbmem, 58 MB |
-| 0x3E9B0006  | mobile  | 1          | no fbmem, 39 MB |
-| 0x3E9B0008  | mobile  | 1          | no fbmem, 58 MB |
-| 0x3E9B0007  | desktop | 3          | no fbmem, 58 MB |
-| 0x3E920003  | desktop | 0          | no fbmem, 1 MB  |
-| 0x3E910003  | desktop | 0          | no fbmem, 1 MB  |
-| 0x3E980003  | desktop | 0          | no fbmem, 1 MB  |
-| 0x9BC80003  | desktop | 0          | no fbmem, 1 MB  |
-| 0x9BC50003  | desktop | 0          | no fbmem, 1 MB  |
-| 0x9BC40003  | desktop | 0          | no fbmem, 1 MB  |
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x3EA50009  | mobile  | 3          | 58 MB               |
+| 0x3E920009  | mobile  | 3          | 58 MB               |
+| 0x3E9B0009  | mobile  | 3          | 58 MB               |
+| 0x3EA50000  | mobile  | 3          | 58 MB               |
+| 0x3E920000  | mobile  | 3          | 58 MB               |
+| 0x3E000000  | mobile  | 3          | 58 MB               |
+| 0x3E9B0000  | mobile  | 3          | 58 MB               |
+| 0x3EA50004  | mobile  | 3          | 58 MB               |
+| 0x3EA50005  | mobile  | 3          | 58 MB               |
+| 0x3EA60005  | mobile  | 3          | 58 MB               |
+| 0x3E9B0006  | mobile  | 1          | 39 MB               |
+| 0x3E9B0008  | mobile  | 1          | 58 MB               |
+| 0x3E9B0007  | desktop | 3          | 58 MB               |
+| 0x3E920003  | desktop | 0          | 1 MB                |
+| 0x3E910003  | desktop | 0          | 1 MB                |
+| 0x3E980003  | desktop | 0          | 1 MB                |
+| 0x9BC80003  | desktop | 0          | 1 MB                |
+| 0x9BC50003  | desktop | 0          | 1 MB                |
+| 0x9BC40003  | desktop | 0          | 1 MB                |
 
 <details>
 <summary>Spoiler: CFL connectors</summary>
@@ -1811,31 +1811,31 @@ Use the Kaby Lake HD630 framebuffer (specify the framebuffer explicitly!)
   
 ***ICL framebuffer list :***
 
-| Framebuffer | Type   | Connectors | FB Memory         |
-| ----------- | ------ | ---------- | ----------------- |
-| 0xFF050000  | mobile | 3          | no fbmem, 193 MB? |
-| 0x8A710000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A700000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A510000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A5C0000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A5D0000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A520000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A530000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A5A0000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A5B0000  | mobile | 6          | no fbmem, 193 MB? |
-| 0x8A710001  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A700001  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A510001  | mobile | 3          | no fbmem, 193 MB? |
-| 0x8A5C0001  | mobile | 3          | no fbmem, 193 MB? |
-| 0x8A5D0001  | mobile | 3          | no fbmem, 193 MB? |
-| 0x8A520001  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A530001  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A5A0001  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A5B0001  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A510002  | mobile | 3          | no fbmem, 193 MB? |
-| 0x8A5C0002  | mobile | 3          | no fbmem, 193 MB? |
-| 0x8A520002  | mobile | 5          | no fbmem, 193 MB? |
-| 0x8A530002  | mobile | 5          | no fbmem, 193 MB? |
+| Framebuffer | Type   | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------ | ---------- | ------------------- |
+| 0xFF050000  | mobile | 3          | 193 MB?             |
+| 0x8A710000  | mobile | 6          | 193 MB?             |
+| 0x8A700000  | mobile | 6          | 193 MB?             |
+| 0x8A510000  | mobile | 6          | 193 MB?             |
+| 0x8A5C0000  | mobile | 6          | 193 MB?             |
+| 0x8A5D0000  | mobile | 6          | 193 MB?             |
+| 0x8A520000  | mobile | 6          | 193 MB?             |
+| 0x8A530000  | mobile | 6          | 193 MB?             |
+| 0x8A5A0000  | mobile | 6          | 193 MB?             |
+| 0x8A5B0000  | mobile | 6          | 193 MB?             |
+| 0x8A710001  | mobile | 5          | 193 MB?             |
+| 0x8A700001  | mobile | 5          | 193 MB?             |
+| 0x8A510001  | mobile | 3          | 193 MB?             |
+| 0x8A5C0001  | mobile | 3          | 193 MB?             |
+| 0x8A5D0001  | mobile | 3          | 193 MB?             |
+| 0x8A520001  | mobile | 5          | 193 MB?             |
+| 0x8A530001  | mobile | 5          | 193 MB?             |
+| 0x8A5A0001  | mobile | 5          | 193 MB?             |
+| 0x8A5B0001  | mobile | 5          | 193 MB?             |
+| 0x8A510002  | mobile | 3          | 193 MB?             |
+| 0x8A5C0002  | mobile | 3          | 193 MB?             |
+| 0x8A520002  | mobile | 5          | 193 MB?             |
+| 0x8A530002  | mobile | 5          | 193 MB?             |
 
 <details>
 <summary>Spoiler: ICL connectors</summary>
