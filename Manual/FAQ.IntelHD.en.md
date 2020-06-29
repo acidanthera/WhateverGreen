@@ -2209,7 +2209,7 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 </details>
 <br>
 
-*** Native supported DevIDs :***
+***Native supported DevIDs :***
 
 - `0xff05`
 - `0x8A70`
