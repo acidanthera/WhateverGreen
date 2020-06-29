@@ -1,14 +1,14 @@
-#### DRM Compatibility Chart for 10.15
+# DRM Compatibility Chart for 10.15
 
-| Configuration   | Mode           | iTunes Trailers | iTunes Movies | TV+    | Prime Trailers | Prime/Netflix | IQSV |
-|:----------------|:---------------|:----------------|:--------------|:-------|:---------------|---------------|------|
-| AMD+IGPU, IM/MM | `shikigva=16`  | SW1             | SW2           | HW4    | HW             | NO            | OK   |
-| AMD+IGPU, IM/MM | `shikigva=80`  | SW1             | SW2           | HW4    | HW3            | HW3           | OK   |
-| AMD, IMP/MP     |                | SW1             | SW2           | HW4    | HW3            | HW3           | NO   |
-| AMD, IMP/MP     | `shikigva=128` | HW1             | HW2           | HW4    | HW3            | HW3           | NO   |
-| NV+IGPU, IM/MM  |                | SW1             | SW2           | NO     | HW             | NO            | OK   |
-| NV, IMP/MP      | `shikigva=256` | SW1             | SW2           | SW3    | HW             | NO            | NO   |
-| IGPU, IM/MM     |                | SW1             | NO            | NO     | HW             | NO            | OK   |
+| Configuration   | Mode           | iTunes Trailers | iTunes Movies | TV+  | Prime Trailers | Prime/Netflix | IQSV |
+| :-------------- | :------------- | :-------------- | :------------ | :--- | :------------- | ------------- | ---- |
+| AMD+IGPU, IM/MM | `shikigva=16`  | SW1             | SW2           | HW4  | HW             | NO            | OK   |
+| AMD+IGPU, IM/MM | `shikigva=80`  | SW1             | SW2           | HW4  | HW3            | HW3           | OK   |
+| AMD, IMP/MP     |                | SW1             | SW2           | HW4  | HW3            | HW3           | NO   |
+| AMD, IMP/MP     | `shikigva=128` | HW1             | HW2           | HW4  | HW3            | HW3           | NO   |
+| NV+IGPU, IM/MM  |                | SW1             | SW2           | NO   | HW             | NO            | OK   |
+| NV, IMP/MP      | `shikigva=256` | SW1             | SW2           | SW3  | HW             | NO            | NO   |
+| IGPU, IM/MM     |                | SW1             | NO            | NO   | HW             | NO            | OK   |
 
 - SW - software unencrypted decoder, works everywhere
 - HW - hardware unencrypted decoder, works with any compatible GPU
