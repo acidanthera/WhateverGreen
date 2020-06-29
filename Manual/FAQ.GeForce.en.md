@@ -6,7 +6,7 @@ In general it appears to be less convenient to use CPUs newer than Ivy and Haswe
 For GPUs newer than Kepler (e.g. Maxwell or Pascal) you need [NVIDIA Web Driver](http://www.nvidia.com/download/driverResults.aspx/125379/en-us). Use `nv_disable=1` boot argument to install it.
 
 - _What is the general idea?_  
-If you have builtin Intel GPU, make sure to rename it to IGPU and enable with connector-less frame first. Then choose a most suitable mac model and install WhateverGreen.kext. It also used for hardware video decoding, please read [Shiki FAQ](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Shiki.en.md) carefully to get a good understanding.
+If you have builtin Intel GPU, make sure to rename it to IGPU and enable with connector-less frame first. Then choose a most suitable mac model and install WhateverGreen.kext. It also used for hardware video decoding, please read [Shiki FAQ](./FAQ.Shiki.en.md) carefully to get a good understanding.
 
 - _How to properly choose a mac model?_  
 If you have Ivy Bridge or Haswell CPU you should go with iMac13,2 or iMac14,2. Otherwise choose the model you prefer, but keep this in mind:
@@ -16,10 +16,10 @@ If you have Ivy Bridge or Haswell CPU you should go with iMac13,2 or iMac14,2. O
 
 - _Why should I use Intel GPU with a connector-less frame?_  
 Nvidia GPUs newer than 2xx do not implement hardware video decoder in macOS, also starting with 10.13 dual-GPU setups often cause a bootloop. If you absolutely need your IGPU with connector-full frame you will have to determine correct ig-platform-id and  `shikigva=1` bootarg OR a model without `forceOfflineRenderer`.
-Read the [Shiki FAQ](FAQ.Shiki.en.md)
+Read the [Shiki FAQ](./FAQ.Shiki.en.md)
 
 - _How to use Intel GPU with a connector-less frame?_  
-Please refer to [Shiki FAQ](FAQ.Shiki.en.md) for full details. You could use SSDT to rename GFX0 to IGPU by creating a proper IGPU device and setting STA of the existing one to Zero:
+Please refer to [Shiki FAQ](./FAQ.Shiki.en.md) for full details. You could use SSDT to rename GFX0 to IGPU by creating a proper IGPU device and setting STA of the existing one to Zero:
 
 ```
 Scope (GFX0) {
