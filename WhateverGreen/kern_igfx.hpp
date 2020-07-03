@@ -14,6 +14,7 @@
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
 #include <Library/LegacyIOService.h>
+#include <IOKit/IOLocks.h>
 
 class IGFX {
 public:
@@ -424,6 +425,18 @@ private:
 		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
 		mach_vm_address_t orgPmNotifyWrapper;
 	} RPSControl;
+	
+	struct ForceWakeWorkaround {
+		bool enabled {false};
+		IOLock* lck {};
+		bool didInit {false};
+
+		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		
+		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
+		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
+		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
+	} ForceWakeWorkaround;
 
 	/**
 	 * Ensure each modeset is a complete modeset.

@@ -440,6 +440,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 		if (RPSControl.enabled)
 			RPSControl.initGraphics(patcher, index, address, size);
+		
+		if (ForceWakeWorkaround.enabled)
+			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
 
 		return true;
 	}
@@ -554,9 +557,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		
 		if (RPSControl.enabled)
 			RPSControl.initFB(*this, patcher, index, address, size);
-		
-		if (ForceWakeWorkaround.enabled)
-			ForceWakeWorkaround.initFB(*this, patcher, index, address, size);
 
 		if (disableAGDC) {
 			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
@@ -805,10 +805,10 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		}
 	}
 	
-	// 0: Framebuffer's SafeForceWake
+	// 0: Framebuffer's SafeForceWake, or ForceWakeWorkaround
 	// 1: IntelAccelerator::SafeForceWakeMultithreaded
 	if (callbackIGFX->ForceWakeWorkaround.enabled && developmentDictCpy) {
-		auto num = OSNumber::withNumber(0ull, 32);
+		auto num = OSNumber::withNumber(1ull, 32);
 		if (num) {
 			developmentDictCpy->setObject("MultiForceWakeSelect", num);
 			num->release();
