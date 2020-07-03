@@ -3,6 +3,8 @@ WhateverGreen Changelog
 #### v1.4.1
 - Added `igfxmetal=1` boot argument (and `enable-metal` property) to enable Metal on offline IGPU
 - Fixed applying patches on CometLake IGPUs, thx @apocolipse
+- Added constants required for 11.0 update
+- Added the use of RPS control for all the command streamers on IGPU (disabled via `igfxnorpsc=1`)
 
 #### v1.4.0
 - Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id

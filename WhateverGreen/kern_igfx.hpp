@@ -438,6 +438,20 @@ private:
 		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
 	} ForceWakeWorkaround;
 
+	struct RPSControl {
+		bool enabled {false};
+		uint32_t freq_max {0};
+		
+		void initFB(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
+		mach_vm_address_t orgPmNotifyWrapper;
+		
+		uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+		void** gController {};
+	} RPSControl;
+
 	/**
 	 * Ensure each modeset is a complete modeset.
 	 */

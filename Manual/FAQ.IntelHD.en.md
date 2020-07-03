@@ -1,12 +1,13 @@
-# Intel® HD Graphics FAQ  
+# Intel® HD Graphics FAQs  
   
-**Intel® HD Graphics** are video cards built into Intel processors. Not all processors are equipped with integrated graphics. To find out if yours is - use [this table](https://en.wikipedia.org/wiki/List_of_Intel_graphics_processing_units) or see the characteristics of your processor on Intel’s website. For example, the table shows Intel® HD 4600 integrated graphics for [i7-4770k](https://ark.intel.com/products/75123/Intel-Core-i7-4770K-Processor-8M-Cache-up-to-3_90-GHz), whereas the [i7-4930k](https://ark.intel.com/products/77780/Intel-Core-i7-4930K-Processor-12M-Cache-up-to-3_90-GHz) has none.  
+**Intel® HD Graphics** are video cards built into Intel processors. Not all processors are equipped with integrated graphics. To find out if yours is, use this [table](https://en.wikipedia.org/wiki/List_of_Intel_graphics_processing_units) or see the specifications of your processor on Intel’s [website](https://ark.intel.com/content/www/us/en/ark/search.html). For example, the table shows Intel® HD 4600 integrated graphics for [i7-4770k](https://ark.intel.com/products/75123/Intel-Core-i7-4770K-Processor-8M-Cache-up-to-3_90-GHz), whereas the [i7-4930k](https://ark.intel.com/products/77780/Intel-Core-i7-4930K-Processor-12M-Cache-up-to-3_90-GHz) has none.  
   
-macOS has quite acceptable support for Intel® HD Graphics 2000 (Sandy Bridge) and newer. For older generation graphics see the appropriate threads / instructions ( [Intel HD in Arrandale processors](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/?hl=%20vertek) , [GMA950](https://www.applelife.ru/threads/intel-gma950-32bit-only.22726/) , [GMA X3100](https://www.applelife.ru/threads/intel-gma-x3100-zavod.36617/)). Attention, not all Intel graphics cards can be successfully enabled in macOS (more below).  
+macOS has quite acceptable support for Intel® HD Graphics 2000 (Sandy Bridge) and newer. For older generation graphics see the appropriate threads / instructions ( [Intel HD in Arrandale processors](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/) , [GMA950](https://www.applelife.ru/threads/intel-gma950-32bit-only.22726/) , [GMA X3100](https://www.applelife.ru/threads/intel-gma-x3100-zavod.36617/)). Attention, not all Intel graphics cards can be successfully enabled in macOS (more below).  
   
 If you use a discrete graphics card (AMD or NVIDIA), having integrated Intel graphics enabled is still useful, as it can be used in offline mode (also known as ["empty framebuffer", 0 connectors, connector-less framebuffer, IQSV only](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/)) for hardware encoding and decoding of media files and so forth.  
   
 The general concept of enabling Intel graphics cards:  
+
 1. Correct the names of all related devices (`IGPU` for the video card itself, `IMEI` for the Intel Management Engine).  
 2. If necessary, fake the `device-id`'s of the video card and Intel Management Engine to compatible ones.  
 3. Specify the correct framebuffer (`AAPL,ig-platform-id` or `AAPL,snb-platform-id`) describing available outputs and other properties of the video card.  
@@ -15,11 +16,12 @@ The general concept of enabling Intel graphics cards:
 At this point, paragraphs 1 and 4 are automated by [WhateverGreen](https://github.com/acidanthera/WhateverGreen) and [AppleALC](https://github.com/acidanthera/AppleALC). It works in OS X 10.8 and later, and greatly simplifies graphics enabling in macOS.  
   
 ## General recommendations  
+
 1. Select the required amount in BIOS for Graphics Memory Allocation (DVMT Pre-Allocated): 32MB, 64MB, 96MB, etc. depending on the framebuffer (Look value TOTAL STOLEN in framebuffer list).  
 For the total amount of memory DVMT (DVMT Total) select: MAX.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/bios.png)  
-Some faulty BIOSes show a higher value, but actually allocate less. In such cases select a value a step higher. This is common with Dell laptops, their BIOS reports 64MB, but actually allocates 32MB and there is no way to change it. Such case will be shown in this manual.  
-2. Add [Lilu.kext](https://github.com/vit9696/Lilu/releases) and [WhateverGreen.kext](https://github.com/acidanthera/WhateverGreen/releases)(hereinafter referred to as the **WEG**) to bootloader Clover or OpenCore.  
+![Bios](./Img/bios.png)  
+Some faulty BIOSes show a higher value, but actually allocate less. In such cases select a value a step higher. This is common with Dell laptops, their BIOS reports 64MB, but actually allocates 32MB and there is no way to change it. Such case will be shown in this manual.
+2. Add [Lilu.kext](https://github.com/vit9696/Lilu/releases) and [WhateverGreen.kext](https://github.com/acidanthera/WhateverGreen/releases)(hereinafter referred to as the **WEG**) to bootloader Clover or OpenCore.
 3. Remove (if used previously) these kexts:  
 — IntelGraphicsFixup.kext  
 — NvidiaGraphicsFixup.kext  
@@ -31,25 +33,26 @@ Some faulty BIOSes show a higher value, but actually allocate less. In such case
 — FakePCIID_Intel_HD_Graphics.kext  
 — FakePCIID_Intel_HDMI_Audio.kext  
 — and FakePCIID.kext (if there are no other FakePCIID plugins)  
-
-4. Turn off all Clover's graphic injects (and I mean turn off and not comment out).  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/Clover1.png)  
+4. Turn off all Clover's graphic injects (and I mean turn off and not comment out).
+![Clover1](./Img/Clover1.png)
 5. Turn off Clover's DSDT fixes:  
 — `AddHDMI`  
 — `FixDisplay`  
 — `FixIntelGfx`  
 — `AddIMEI`  
-— `FixHDA` 
+— `FixHDA`
+
 6. Turn off Clover's `UseIntelHDMI`.  
 7. Disable Clover's `Devices` - `Inject` (usually this parameter is absent and that is good, but if it is there, turn off or delete).  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/Clover2.png)  
+![Clover2](./Img/Clover2.png)  
   
 8. Delete `-disablegfxfirmware` and `-igfxnohdmi` boot arguments.  
 9. Delete Clover's `FakeID` for `IntelGFX` and `IMEI`.  
 10. Delete Clover's `ig-platform-id`.  
 11. Completely remove Clover's `Arbitrary`, `AddProperties`, as well as IGPU, IMEI, HDEF and HDMI audio definitions from `SSDT` and `DSDT` (if you added them).  
 12. Delete or disable binary patches DSDT: `GFX0 to IGPU`, `PEGP to GFX0`, `HECI to IMEI`, `MEI to IMEI`, `HDAS to HDEF`, `B0D3 to HDAU`.  
-  
+
+**Injecting Properties:**  
 To inject properties, use `Devices`-`Properties` section for Clover or `DeviceProperties` section for OpenCore in config.plist.  
 Only these properties may be added:  
 — `AAPL,ig-platform-id` or `AAPL,snb-platform-id` framebuffer  
@@ -62,35 +65,41 @@ Adding these is not mandatory. An example: the default framebuffer is good enoug
 The bytes in `Properties` must be put in reversed order. For example: framebuffer `0x0166000B` would be put in as `0B006601`, DevID `0x1E3A` would be put in as `3A1E0000`.  
   
 Common `Properties` templates for `IGPU` and `IMEI` sections are described below for each processor family separately.  
-**Attention!** Do not leave empty property values. For example, if a certain property is not required, delete the entire line! Remove `PciRoot` dictionary entirely if it has no properties.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/basic.png)
+>**Attention!**<br>
+Do not leave empty property values. For example, if a certain property is not required, delete the entire line! Remove `PciRoot` dictionary entirely if it has no properties.
+
+![basic](./Img/basic.png)
   
-**Choosing a framebuffer**  
+**Choosing a framebuffer:**  
 First try the recommended one. If it is not successful, then try the others one by one, excluding the "empty framebuffers" (0 connectors), which are described in a separate [topic](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/).  
 When looking for a suitable framebuffer you can set it with a boot argument (boot-arg), in which case the framebuffer set in the `Properties` section is ignored.
 For example: `igfxframe=0x0166000B`  
-**Attention!** Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.  
-— If a framebuffer is not specified explicitly in any way, the default framebuffer will be injected.  
-— If a framebuffer is not set and the system has a discrete graphics card, an "empty framebuffer" will be injected.  
-  
+>**Attention!**<br>
+Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.  
+
+- If a framebuffer is not specified explicitly in any way, the default framebuffer will be injected.  
+- If a framebuffer is not set and the system has a discrete graphics card, an "empty framebuffer" will be injected.  
   
 ## Intel HD Graphics 2000/3000 ([Sandy Bridge](https://en.wikipedia.org/wiki/Sandy_Bridge) processors)  
-Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6. On older operating systems follow the "ancient ways". On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
+
+> Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6. On older operating systems follow the "ancient ways". On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
   
-SNB framebuffer list:  
-— 0x00010000 (mobile, 4 connectors, no fbmem)  
-— 0x00020000 (mobile, 1 connectors, no fbmem)  
-— 0x00030010 (desktop, 3 connectors, no fbmem)  
-— 0x00030020 (desktop, 3 connectors, no fbmem)  
-— 0x00030030 (desktop, 0 connectors, no fbmem)  
-— 0x00040000 (mobile, 3 connectors, no fbmem)  
-— 0x00050000 (desktop, 0 connectors, no fbmem)  
-  
-Native supported DevIDs: `0x0106`, `0x1106`, `0x1601`, `0x0116`, `0x0126`, `0x0102`.  
+***SNB Framebuffer List:***
+
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x00010000  | mobile  | 4          | 32 MB?              |
+| 0x00010000  | mobile  | 1          | 32 MB?              |
+| 0x00010000  | desktop | 3          | 32 MB?              |
+| 0x00010000  | desktop | 3          | 32 MB?              |
+| 0x00010000  | desktop | 0          | 32 MB?              |
+| 0x00010000  | mobile  | 3          | 32 MB?              |
+| 0x00010000  | desktop | 0          | 32 MB?              |
+
 <details>
 <summary>Spoiler: SNB connectors</summary>
-  
-`AppleIntelSNBGraphicsFB.kext`  
+
+`AppleIntelSNBGraphicsFB.kext`
   
 ID: SNB0 0x10000, STOLEN: 0 bytes, FBMEM: 0 bytes, VRAM: 0 bytes, Flags: 0x00000000  
 TOTAL STOLEN: 0 bytes, TOTAL CURSOR: 1 MB, MAX STOLEN: 0 bytes, MAX OVERALL: 1 MB (1064960 bytes)  
@@ -186,44 +195,62 @@ Mac-742912EFDBEE19B3 -> SNB4 (MacBookAir4,2)
 Mac-C08A6BB70A942AC2 -> SNB4 (MacBookAir4,1)  
 Mac-942B5BF58194151B -> SNB5 (iMac12,1) -> no ports  
 Mac-942B5B3A40C91381 -> SNB5 -> no ports  
-Mac-942B59F58194171B -> SNB5 (iMac12,2) -> no ports   
+Mac-942B59F58194171B -> SNB5 (iMac12,2) -> no ports
 </details>
-  
-####
-*Recommended framebuffers:* for desktop - `0x00030010` (default); for laptop - `0x00010000` (default); "empty framebuffer" -  `0x00050000` (default).  
+<br>
+
+***Native supported DevID's:*** 
+
+- `0x0106`
+- `0x1106`
+- `0x1601`
+- `0x0116`
+- `0x0126`
+- `0x0102`
+
+***Recommended framebuffers:***
+
+- Desktop :
+  - `0x00030010` (default)
+- Laptop :
+  - `0x00010000` (default)
+- Empty Framebuffer :
+  - `0x00050000` (default)
 
 HD2000 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD3000 can work with a display.  
-  
+
 Sandy Bridge doesn't usually require framebuffer specifying, the default framebuffer for your board-id will automatically be used. Specifying the framebuffer is required if you are using a non Sandy Brige Mac model.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/snb.png)  
+![snb](./Img/snb.png)  
 Keep in mind that the framebuffer property name for `Sandy Bridge` — `AAPL,snb-platform-id` — differs from others IGPUs.  
   
 Desktops require a fake `device-id` `26010000` for `IGPU`:  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/snb_igpu.png)  
-(for an "empty framebuffer" a different device-id is required, more in this [thread](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/))  
-  
-*Attention!* If you are using a motherboard with a  [7 series](https://ark.intel.com/products/series/98460/Intel-7-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1C0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-IMEI.dsl)  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/snb_imei.png)  
+![snb_igpu](./Img/snb_igpu.png)
 
+For an "empty framebuffer" a different device-id is required, more in this [thread](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/)
+  
+>**Attention!** If you are using a motherboard with a [7 series](https://ark.intel.com/products/series/98460/Intel-7-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1C0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-IMEI.dsl)  
+![snv_imei](./Img/snb_imei.png)  
 
 ## Intel HD Graphics 2500/4000 ([Ivy Bridge](https://en.wikipedia.org/wiki/Ivy_Bridge_(microarchitecture)) processors)  
-Supported since OS X 10.8.x  
+
+> Supported since OS X 10.8.x  
   
-Capri framebuffer list:  
-— 0x01660000 (desktop, 4 connectors, 24 MB)  
-— 0x01620006 (desktop, 0 connectors, no fbmem, 0 bytes)  
-— 0x01620007 (desktop, 0 connectors, no fbmem, 0 bytes)  
-— 0x01620005 (desktop, 3 connectors, 16 MB)  
-— 0x01660001 (mobile, 4 connectors, 24 MB)  
-— 0x01660002 (mobile, 1 connectors, 24 MB)  
-— 0x01660008 (mobile, 3 connectors, 16 MB)  
-— 0x01660009 (mobile, 3 connectors, 16 MB)  
-— 0x01660003 (mobile, 4 connectors, 16 MB)  
-— 0x01660004 (mobile, 1 connectors, 16 MB)  
-— 0x0166000A (desktop, 3 connectors, 16 MB)  
-— 0x0166000B (desktop, 3 connectors, 16 MB)  
-  
-Native supported DevIDs: `0x0152`, `0x0156`, `0x0162`, `0x0166`.  
+***Capri framebuffer list:***
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x01660000  | desktop | 4          | 24 MB               |
+| 0x01620006  | desktop | 0          | 0 bytes             |
+| 0x01620007  | desktop | 0          | 0 bytes             |
+| 0x01620005  | desktop | 3          | 16 MB               |
+| 0x01660001  | mobile  | 4          | 24 MB               |
+| 0x01660002  | mobile  | 1          | 24 MB               |
+| 0x01660008  | mobile  | 3          | 16 MB               |
+| 0x01660009  | mobile  | 3          | 16 MB               |
+| 0x01660003  | mobile  | 4          | 16 MB               |
+| 0x01660004  | mobile  | 1          | 16 MB               |
+| 0x0166000A  | desktop | 3          | 16 MB               |
+| 0x0166000B  | desktop | 3          | 16 MB               |
+
 <details>
 <summary>Spoiler: Capri connectors</summary>
   
@@ -347,46 +374,64 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2
 03040000 00040000 07010000  
 04060000 00080000 06000000  
 </details>
-  
-####
-*Recommended framebuffers* : for desktop - `0x0166000A` (default), `0x01620005`; for laptop - `0x01660003` (default), `0x01660009`, `0x01660004`; "empty framebuffer" -  `0x01620007` (default).  
+<br>
+
+***Native supported DevIDs :***
+
+- `0x0152`
+- `0x0156`
+- `0x0162`
+- `0x0166`
+
+***Recommended framebuffers :*** 
+
+- Desktop :
+  - `0x0166000A` (default)
+  - `0x01620005`
+- Laptop :
+  - `0x01660003` (default)
+  - `0x01660009`
+  - `0x01660004`
+- Empty Framebuffer
+  - `0x01620007` (default).  
 
 HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD4000 can work with a display.  
 
-*Attention!* If you are using a motherboard with a  [6-series](https://ark.intel.com/products/series/98461/Intel-6-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1E0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-IMEI.dsl)  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ivy_imei.png)  
-  
-  
+>***Attention!*** If you are using a motherboard with a  [6-series](https://ark.intel.com/products/series/98461/Intel-6-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1E0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-IMEI.dsl)  
+![ivy_imei](./Img/ivy_imei.png)  
+
 ## Intel HD Graphics 4200-5200 ([Haswell](https://en.wikipedia.org/wiki/Haswell_(microarchitecture)) processors)  
-Supported since OS X 10.9.x  
+
+> Supported since OS X 10.9.x  
   
-Azul framebuffer list:  
-— 0x0C060000 (desktop, 3 connectors, 209 MB)  
-— 0x0C160000 (desktop, 3 connectors, 209 MB)  
-— 0x0C260000 (desktop, 3 connectors, 209 MB)  
-— 0x04060000 (desktop, 3 connectors, 209 MB)  
-— 0x04160000 (desktop, 3 connectors, 209 MB)  
-— 0x04260000 (desktop, 3 connectors, 209 MB)  
-— 0x0D260000 (desktop, 3 connectors, 209 MB)  
-— 0x0A160000 (desktop, 3 connectors, 209 MB)  
-— 0x0A260000 (desktop, 3 connectors, 209 MB)  
-— 0x0A260005 (mobile, 3 connectors, 52 MB)  
-— 0x0A260006 (mobile, 3 connectors, 52 MB)  
-— 0x0A2E0008 (mobile, 3 connectors, 99 MB)  
-— 0x0A16000C (mobile, 3 connectors, 99 MB)  
-— 0x0D260007 (mobile, 4 connectors, 99 MB)  
-— 0x0D220003 (desktop, 3 connectors, 52 MB)  
-— 0x0A2E000A (desktop, 3 connectors, 52 MB)  
-— 0x0A26000A (desktop, 3 connectors, 52 MB)  
-— 0x0A2E000D (desktop, 2 connectors, 131 MB)  
-— 0x0A26000D (desktop, 2 connectors, 131 MB)  
-— 0x04120004 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x0412000B (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x0D260009 (mobile, 1 connectors, 99 MB)  
-— 0x0D26000E (mobile, 4 connectors, 131 MB)  
-— 0x0D26000F (mobile, 1 connectors, 131 MB)  
+***Azul framebuffer list:***
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x0C060000  | desktop | 3          | 209 MB              |
+| 0x0C160000  | desktop | 3          | 209 MB              |
+| 0x0C260000  | desktop | 3          | 209 MB              |
+| 0x04060000  | desktop | 3          | 209 MB              |
+| 0x04160000  | desktop | 3          | 209 MB              |
+| 0x04260000  | desktop | 3          | 209 MB              |
+| 0x0D260000  | desktop | 3          | 209 MB              |
+| 0x0A160000  | desktop | 3          | 209 MB              |
+| 0x0A260000  | desktop | 3          | 209 MB              |
+| 0x0A260005  | mobile  | 3          | 52 MB               |
+| 0x0A260006  | mobile  | 3          | 52 MB               |
+| 0x0A2E0008  | mobile  | 3          | 99 MB               |
+| 0x0A16000C  | mobile  | 3          | 99 MB               |
+| 0x0D260007  | mobile  | 4          | 99 MB               |
+| 0x0D220003  | desktop | 3          | 52 MB               |
+| 0x0A2E000A  | desktop | 3          | 52 MB               |
+| 0x0A26000A  | desktop | 3          | 52 MB               |
+| 0x0A2E000D  | desktop | 2          | 131 MB              |
+| 0x0A26000D  | desktop | 2          | 131 MB              |
+| 0x04120004  | desktop | 0          | 1 MB                |
+| 0x0412000B  | desktop | 0          | 1 MB                |
+| 0x0D260009  | mobile  | 1          | 99 MB               |
+| 0x0D26000E  | mobile  | 4          | 131 MB              |
+| 0x0D26000F  | mobile  | 1          | 131 MB              |
   
-Native supported DevIDs: `0x0d26`, `0x0a26`, `0x0a2e`, `0x0d22`, `0x0412`.  
 <details>
 <summary>Spoiler: Azul connectors</summary>
   
@@ -636,42 +681,62 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 [0] busId: 0x00, pipe: 8, type: 0x00000002, flags: 0x00000030 - ConnectorLVDS  
 00000800 02000000 30000000  
 </details>
-  
-####
-*Recommended framebuffers* : for desktop - `0x0D220003` (default); for laptop - `0x0A160000` (default), `0x0A260005` (recommended), `0x0A260006` (recommended); "empty framebuffer" -  `0x04120004` (default).  
+<br>
+
+***Native supported DevIDs:***
+
+- `0x0d26`
+- `0x0a26`
+- `0x0a2e`
+- `0x0d22`
+- `0x0412`
+
+***Recommended framebuffers:***
+
+- Desktop :
+  - `0x0D220003` (default)
+- Laptop :
+  - `0x0A160000` (default)
+  - `0x0A260005` (recommended)
+  - `0x0A260006` (recommended)
+- Empty Framebuffer :
+  - `0x04120004` (default).  
   
 For desktop HD4400 and all the mobile fake the `device-id` `12040000` for `IGPU`.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hsw_igpu.png)  
 
 
 ## Intel HD Graphics 5300-6300 ([Broadwell](https://en.wikipedia.org/wiki/Broadwell_(microarchitecture)) processors)  
-Supported since OS X 10.10.2  
+
+> Supported since OS X 10.10.2  
   
-BDW framebuffer list:  
-— 0x16060000 (desktop, 3 connectors, 32 MB)  
-— 0x160E0000 (desktop, 3 connectors, 32 MB)  
-— 0x16160000 (desktop, 3 connectors, 32 MB)  
-— 0x161E0000 (desktop, 3 connectors, 32 MB)  
-— 0x16260000 (desktop, 3 connectors, 32 MB)  
-— 0x162B0000 (desktop, 3 connectors, 32 MB)  
-— 0x16220000 (desktop, 3 connectors, 32 MB)  
-— 0x160E0001 (mobile, 3 connectors, 60 MB)  
-— 0x161E0001 (mobile, 3 connectors, 60 MB)  
-— 0x16060002 (mobile, 3 connectors, 56 MB)  
-— 0x16160002 (mobile, 3 connectors, 56 MB)  
-— 0x16260002 (mobile, 3 connectors, 56 MB)  
-— 0x16220002 (mobile, 3 connectors, 56 MB)  
-— 0x162B0002 (mobile, 3 connectors, 56 MB)  
-— 0x16120003 (mobile, 4 connectors, 56 MB)  
-— 0x162B0004 (desktop, 3 connectors, 56 MB)  
-— 0x16260004 (desktop, 3 connectors, 56 MB)  
-— 0x16220007 (desktop, 3 connectors, 77 MB)  
-— 0x16260005 (mobile, 3 connectors, 56 MB)  
-— 0x16260006 (mobile, 3 connectors, 56 MB)  
-— 0x162B0008 (desktop, 2 connectors, 69 MB)  
-— 0x16260008 (desktop, 2 connectors, 69 MB)  
-  
-Native supported DevIDs: `0x0BD1`, `0x0BD2`, `0x0BD3`, `0x1606`, `0x160e`, `0x1616`, `0x161e`, `0x1626`, `0x1622`, `0x1612`, `0x162b`.  
+***BDW framebuffer list:***
+
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x16060000  | desktop | 3          | 32 MB               |
+| 0x160E0000  | desktop | 3          | 32 MB               |
+| 0x16160000  | desktop | 3          | 32 MB               |
+| 0x161E0000  | desktop | 3          | 32 MB               |
+| 0x16260000  | desktop | 3          | 32 MB               |
+| 0x162B0000  | desktop | 3          | 32 MB               |
+| 0x16220000  | desktop | 3          | 32 MB               |
+| 0x160E0001  | mobile  | 3          | 60 MB               |
+| 0x161E0001  | mobile  | 3          | 60 MB               |
+| 0x16060002  | mobile  | 3          | 56 MB               |
+| 0x16160002  | mobile  | 3          | 56 MB               |
+| 0x16260002  | mobile  | 3          | 56 MB               |
+| 0x16220002  | mobile  | 3          | 56 MB               |
+| 0x162B0002  | mobile  | 3          | 56 MB               |
+| 0x16120003  | mobile  | 4          | 56 MB               |
+| 0x162B0004  | desktop | 3          | 56 MB               |
+| 0x16260004  | desktop | 3          | 56 MB               |
+| 0x16220007  | desktop | 3          | 77 MB               |
+| 0x16260005  | mobile  | 3          | 56 MB               |
+| 0x16260006  | mobile  | 3          | 56 MB               |
+| 0x162B0008  | desktop | 2          | 69 MB               |
+| 0x16260008  | desktop | 2          | 69 MB               |
+
 <details>
 <summary>Spoiler: BDW connectors</summary>
   
@@ -917,36 +982,57 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 01050900 00040000 07050000  
 02040A00 00040000 07050000  
 </details>
-  
-####
-*Recommended framebuffers*: for desktop - `0x16220007` (default); for laptop - `0x16260006` (default).  
-  
+<br>
+
+***Native supported DevIDs:***
+
+- `0x0BD1`
+- `0x0BD2`
+- `0x0BD3`
+- `0x1606`
+- `0x160e`
+- `0x1616`
+- `0x161e`
+- `0x1626`
+- `0x1622`
+- `0x1612`
+- `0x162b`
+
+***Recommended framebuffers:*** 
+
+- Desktop :
+  - `0x16220007` (default)
+- Laptop :
+  - `0x16260006` (default)  
   
 ## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)))  
-Supported since OS X 10.11.4  
+
+> Supported since OS X 10.11.4  
   
-SKL framebuffer list:  
-— 0x191E0000 (mobile, 3 connectors, 56 MB)  
-— 0x19160000 (mobile, 3 connectors, 56 MB)  
-— 0x19260000 (mobile, 3 connectors, 56 MB)  
-— 0x19270000 (mobile, 3 connectors, 56 MB)  
-— 0x191B0000 (mobile, 3 connectors, 56 MB)  
-— 0x193B0000 (mobile, 3 connectors, 56 MB)  
-— 0x19120000 (mobile, 3 connectors, 56 MB)  
-— 0x19020001 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x19170001 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x19120001 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x19320001 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x19160002 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x19260002 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x191E0003 (mobile, 3 connectors, no fbmem, 41 MB)  
-— 0x19260004 (mobile, 3 connectors, no fbmem, 35 MB)  
-— 0x19270004 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x193B0005 (mobile, 4 connectors, no fbmem, 35 MB)  
-— 0x191B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
-— 0x19260007 (mobile, 3 connectors, no fbmem, 35 MB)  
-  
-Native supported DevIDs: `0x1916`, `0x191E`, `0x1926`, `0x1927`, `0x1912`, `0x1932`, `0x1902`, `0x1917`, `0x193B`, `0x191B`.  
+***SKL framebuffer list:***
+
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x191E0000  | mobile  | 3          | 56 MB               |
+| 0x19160000  | mobile  | 3          | 56 MB               |
+| 0x19260000  | mobile  | 3          | 56 MB               |
+| 0x19270000  | mobile  | 3          | 56 MB               |
+| 0x191B0000  | mobile  | 3          | 56 MB               |
+| 0x193B0000  | mobile  | 3          | 56 MB               |
+| 0x19120000  | mobile  | 3          | 56 MB               |
+| 0x19020001  | desktop | 0          | 1 MB                |
+| 0x19170001  | desktop | 0          | 1 MB                |
+| 0x19120001  | desktop | 0          | 1 MB                |
+| 0x19320001  | desktop | 0          | 1 MB                |
+| 0x19160002  | mobile  | 3          | 58 MB               |
+| 0x19260002  | mobile  | 3          | 58 MB               |
+| 0x191E0003  | mobile  | 3          | 41 MB               |
+| 0x19260004  | mobile  | 3          | 35 MB               |
+| 0x19270004  | mobile  | 3          | 58 MB               |
+| 0x193B0005  | mobile  | 4          | 35 MB               |
+| 0x191B0006  | mobile  | 1          | 39 MB               |
+| 0x19260007  | mobile  | 3          | 35 MB               |
+ 
 <details>
 <summary>Spoiler: SKL connectors</summary>
   
@@ -1156,36 +1242,58 @@ Mobile: 1, PipeCount: 3, PortCount: 3, FBMemoryCount: 3
   
 Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000  
 </details>
+<br>
+
+***Native supported DevIDs:*** 
+
+- `0x1916`
+- `0x191E`
+- `0x1926`
+- `0x1927`
+- `0x1912`
+- `0x1932`
+- `0x1902`
+- `0x1917`
+- `0x193B`
+- `0x191B`
+
+***Recommended framebuffers:*** 
+
+- Desktop :
+  - `0x19120000` (default)
+- Laptop :
+  - `0x19160000` (default)
+- Empty Framebuffer :
+  - `0x19120001` (default)  
   
-####
-*Recommended framebuffers* : for desktop - `0x19120000` (default); for laptop - `0x19160000` (default); "empty framebuffer" -  `0x19120001` (default).  
-  
-  
-## Intel (U)HD Graphics 610-650 ([Kaby Lake](https://en.wikipedia.org/wiki/Kaby_Lake) and [Amber Lake Y](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Amber_Lake_Y_processors) processors)  
-Supported since macOS 10.12.6 (`UHD617 Amber Lake Y` supported since macOS 10.14.1)  
-  
-KBL framebuffer list:  
-— 0x591E0000 (mobile, 3 connectors, no fbmem, 35 MB)  
-— 0x87C00000 (mobile, 3 connectors, no fbmem, 35 MB)  
-— 0x59160000 (mobile, 3 connectors, no fbmem, 35 MB)  
-— 0x59230000 (desktop, 3 connectors, no fbmem, 39 MB)  
-— 0x59260000 (desktop, 3 connectors, no fbmem, 39 MB)  
-— 0x59270000 (desktop, 3 connectors, no fbmem, 39 MB)  
-— 0x59270009 (mobile, 3 connectors, no fbmem, 39 MB)  
-— 0x59160009 (mobile, 3 connectors, no fbmem, 39 MB)  
-— 0x59120000 (desktop, 3 connectors, no fbmem, 39 MB)  
-— 0x591B0000 (mobile, 3 connectors, 39 MB)  
-— 0x591E0001 (mobile, 3 connectors, no fbmem, 39 MB)  
-— 0x59180002 (mobile, 0 connectors, no fbmem, 1 MB)  
-— 0x59120003 (mobile, 0 connectors, no fbmem, 1 MB)  
-— 0x59260007 (desktop, 3 connectors, 79 MB)  
-— 0x59270004 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x59260002 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x87C00005 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x591C0005 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x591B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
-  
-Native supported DevIDs: `0x5912`, `0x5916`, `0x591B`, `0x591C`, `0x591E`, `0x5926`, `0x5927`, `0x5923`, `0x87C0`.  
+## Intel (U)HD Graphics 610-650 ([Kaby Lake](https://en.wikipedia.org/wiki/Kaby_Lake) and [Amber Lake Y](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Amber_Lake_Y_processors) processors)
+
+> Supported since macOS 10.12.6 (`UHD617 Amber Lake Y` supported since macOS 10.14.1)  
+
+***KBL framebuffer list:***
+
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x591E0000  | mobile  | 3          | 35 MB               |
+| 0x87C00000  | mobile  | 3          | 35 MB               |
+| 0x59160000  | mobile  | 3          | 35 MB               |
+| 0x59230000  | desktop | 3          | 39 MB               |
+| 0x59260000  | desktop | 3          | 39 MB               |
+| 0x59270000  | desktop | 3          | 39 MB               |
+| 0x59270009  | mobile  | 3          | 39 MB               |
+| 0x59160009  | mobile  | 3          | 39 MB               |
+| 0x59120000  | desktop | 3          | 39 MB               |
+| 0x591B0000  | mobile  | 3          | 39 MB               |
+| 0x591E0001  | mobile  | 3          | 39 MB               |
+| 0x59180002  | mobile  | 0          | 1 MB                |
+| 0x59120003  | mobile  | 0          | 1 MB                |
+| 0x59260007  | desktop | 3          | 79 MB               |
+| 0x59270004  | mobile  | 3          | 58 MB               |
+| 0x59260002  | mobile  | 3          | 58 MB               |
+| 0x87C00005  | mobile  | 3          | 58 MB               |
+| 0x591C0005  | mobile  | 3          | 58 MB               |
+| 0x591B0006  | mobile  | 1          | 39 MB               |
+
 <details>
 <summary>Spoiler: KBL connectors</summary>
   
@@ -1405,39 +1513,61 @@ Mobile: 1, PipeCount: 1, PortCount: 1, FBMemoryCount: 1
   
 Note, that without AAPL,ig-platform-id the following ID is assumed: 59160000  
 </details>
+<br>
+
+***Native supported DevIDs:***
+
+- `0x5912`
+- `0x5916`
+- `0x591B`
+- `0x591C`
+- `0x591E`
+- `0x5926`
+- `0x5927`
+- `0x5923`
+- `0x87C0`
+
+***Recommended framebuffers:***
+
+- Desktop :
+  - `0x59160000` (default)
+  - `0x59120000` (recommended)
+- Laptop -
+  - `0x591B0000` (default)
+- Empty Framebuffer
+  - `0x59120003` (default)  
   
-####
-*Recommended framebuffers*: for desktop - `0x59160000` (default), `0x59120000` (recommended); for laptop - `0x591B0000` (default); "empty framebuffer" -  `0x59120003` (default).  
-  
-For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Kaby_Lake_R_processors)) fake `device-id` `16590000` for `IGPU`.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/kbl-r_igpu.png)  
-  
+For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Kaby_Lake_R_processors)) fake `device-id` `16590000` for `IGPU`.
+![kbl-r_igpu](./Img/kbl-r_igpu.png)  
   
 ## Intel UHD Graphics 610-655 ([Coffee Lake](https://en.wikipedia.org/wiki/Coffee_Lake) and [Comet Lake](https://en.wikipedia.org/wiki/Comet_Lake) processors)  
-Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4, recommended 10.15.5)  
+
+> Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4, recommended 10.15.5)  
   
-CFL framebuffer list:   
-— 0x3EA50009 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3E920009 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3E9B0009 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3EA50000 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3E920000 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3E000000 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3E9B0000 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3EA50004 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3EA50005 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3EA60005 (mobile, 3 connectors, no fbmem, 58 MB)  
-— 0x3E9B0006 (mobile, 1 connectors, no fbmem, 39 MB)  
-— 0x3E9B0008 (mobile, 1 connectors, no fbmem, 58 MB)  
-— 0x3E9B0007 (desktop, 3 connectors, no fbmem, 58 MB)  
-— 0x3E920003 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x3E910003 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x3E980003 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x9BC80003 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x9BC50003 (desktop, 0 connectors, no fbmem, 1 MB)  
-— 0x9BC40003 (desktop, 0 connectors, no fbmem, 1 MB)  
-  
-Native supported DevIDs: `0x3E9B`, `0x3EA5`, `0x3EA6`, `0x3E92`, `0x3E91`, `0x3E98`, `0x9BC8`, `0x9BC5`, `0x9BC4`.  
+***CFL framebuffer list:***
+
+| Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------- | ---------- | ------------------- |
+| 0x3EA50009  | mobile  | 3          | 58 MB               |
+| 0x3E920009  | mobile  | 3          | 58 MB               |
+| 0x3E9B0009  | mobile  | 3          | 58 MB               |
+| 0x3EA50000  | mobile  | 3          | 58 MB               |
+| 0x3E920000  | mobile  | 3          | 58 MB               |
+| 0x3E000000  | mobile  | 3          | 58 MB               |
+| 0x3E9B0000  | mobile  | 3          | 58 MB               |
+| 0x3EA50004  | mobile  | 3          | 58 MB               |
+| 0x3EA50005  | mobile  | 3          | 58 MB               |
+| 0x3EA60005  | mobile  | 3          | 58 MB               |
+| 0x3E9B0006  | mobile  | 1          | 39 MB               |
+| 0x3E9B0008  | mobile  | 1          | 58 MB               |
+| 0x3E9B0007  | desktop | 3          | 58 MB               |
+| 0x3E920003  | desktop | 0          | 1 MB                |
+| 0x3E910003  | desktop | 0          | 1 MB                |
+| 0x3E980003  | desktop | 0          | 1 MB                |
+| 0x9BC80003  | desktop | 0          | 1 MB                |
+| 0x9BC50003  | desktop | 0          | 1 MB                |
+| 0x9BC40003  | desktop | 0          | 1 MB                |
+
 <details>
 <summary>Spoiler: CFL connectors</summary>
   
@@ -1629,15 +1759,37 @@ Mobile: 0, PipeCount: 0, PortCount: 0, FBMemoryCount: 0
   
 Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000  
 </details>
-  
-####
-*Recommended framebuffers*: for desktop - `0x3EA50000` (default), `0x3E9B0007` (recommended); for laptop - `0x3EA50009` (default); "empty framebuffer" for CFL - `0x3E910003` (default); "empty framebuffer" for CML - `0x9BC80003` (default).  
+<br>
+
+***Native supported DevIDs:***
+
+- `0x3E9B`
+- `0x3EA5`
+- `0x3EA6`
+- `0x3E92`
+- `0x3E91`
+- `0x3E98`
+- `0x9BC8`
+- `0x9BC5`
+- `0x9BC4`
+
+***Recommended framebuffers:***
+
+- Desktop :
+  - `0x3EA50000` (default)
+  - `0x3E9B0007` (recommended)
+- Laptop :
+  - `0x3EA50009` (default)
+- Empty framebuffer (CFL) :
+  - `0x3E910003` (default)
+- Empty framebuffer (CML) :
+  - `0x9BC80003` (default)  
   
 If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 the fake is not necessary.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/cfl-r_igpu.png)  
-  
+![cfl-r_igpu](./Img/cfl-r_igpu.png)  
+
 For UHD620 ([Whiskey Lake](https://en.wikipedia.org/wiki/Whiskey_Lake_(microarchitecture))) fake `device-id` `A53E0000` for `IGPU`.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/WhiskeyLake.png)   
+![WhiskeyLake](./Img/WhiskeyLake.png)
   
 <details>
 <summary>Spoiler: macOS 10.13 and CFL</summary>
@@ -1649,40 +1801,42 @@ For `IGPU` with dev.id 0x3E91 fake the id with 0x3E92 (`device-id` `923E0000`).
 The 3025 and newer updates with Coffee Lake support are as limited as the initial special build.  
   
 And you can always enable UHD630 in macOS 10.13 using the fake `device-id` of a Kaby Lake HD630.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/kbl.png)  
+![kbl](./Img/kbl.png)  
 Use the Kaby Lake HD630 framebuffer (specify the framebuffer explicitly!)  
 </details>
   
+## Intel Iris Plus Graphics ([Ice Lake](https://en.wikipedia.org/wiki/Ice_Lake_(microprocessor)) processors)
+
+> Supported since macOS 10.15.4  
   
-## Intel Iris Plus Graphics ([Ice Lake](https://en.wikipedia.org/wiki/Ice_Lake_(microprocessor)) processors)  
-Supported since macOS 10.15.4  
-  
-ICL framebuffer list:   
-— 0xFF050000 (mobile, 3 connectors, no fbmem, 193 MB?)  
-— 0x8A710000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A700000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A510000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A5C0000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A5D0000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A520000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A530000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A5A0000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A5B0000 (mobile, 6 connectors, no fbmem, 193 MB?)  
-— 0x8A710001 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A700001 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A510001 (mobile, 3 connectors, no fbmem, 193 MB?)  
-— 0x8A5C0001 (mobile, 3 connectors, no fbmem, 193 MB?)  
-— 0x8A5D0001 (mobile, 3 connectors, no fbmem, 193 MB?)  
-— 0x8A520001 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A530001 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A5A0001 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A5B0001 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A510002 (mobile, 3 connectors, no fbmem, 193 MB?)  
-— 0x8A5C0002 (mobile, 3 connectors, no fbmem, 193 MB?)  
-— 0x8A520002 (mobile, 5 connectors, no fbmem, 193 MB?)  
-— 0x8A530002 (mobile, 5 connectors, no fbmem, 193 MB?)  
-  
-Native supported DevIDs: `0xff05`, `0x8A70`, `0x8A71`, `0x8A51`, `0x8A5C`, `0x8A5D`, `0x8A52`, `0x8A53`, `0x8A5A`, `0x8A5B`.  
+***ICL framebuffer list:***
+
+| Framebuffer | Type   | Connectors | TOTAL STOLEN Memory |
+| ----------- | ------ | ---------- | ------------------- |
+| 0xFF050000  | mobile | 3          | 193 MB?             |
+| 0x8A710000  | mobile | 6          | 193 MB?             |
+| 0x8A700000  | mobile | 6          | 193 MB?             |
+| 0x8A510000  | mobile | 6          | 193 MB?             |
+| 0x8A5C0000  | mobile | 6          | 193 MB?             |
+| 0x8A5D0000  | mobile | 6          | 193 MB?             |
+| 0x8A520000  | mobile | 6          | 193 MB?             |
+| 0x8A530000  | mobile | 6          | 193 MB?             |
+| 0x8A5A0000  | mobile | 6          | 193 MB?             |
+| 0x8A5B0000  | mobile | 6          | 193 MB?             |
+| 0x8A710001  | mobile | 5          | 193 MB?             |
+| 0x8A700001  | mobile | 5          | 193 MB?             |
+| 0x8A510001  | mobile | 3          | 193 MB?             |
+| 0x8A5C0001  | mobile | 3          | 193 MB?             |
+| 0x8A5D0001  | mobile | 3          | 193 MB?             |
+| 0x8A520001  | mobile | 5          | 193 MB?             |
+| 0x8A530001  | mobile | 5          | 193 MB?             |
+| 0x8A5A0001  | mobile | 5          | 193 MB?             |
+| 0x8A5B0001  | mobile | 5          | 193 MB?             |
+| 0x8A510002  | mobile | 3          | 193 MB?             |
+| 0x8A5C0002  | mobile | 3          | 193 MB?             |
+| 0x8A520002  | mobile | 5          | 193 MB?             |
+| 0x8A530002  | mobile | 5          | 193 MB?             |
+
 <details>
 <summary>Spoiler: ICL connectors</summary>
   
@@ -2053,45 +2207,68 @@ Mobile: 1, PipeCount: 3, PortCount: 5, FBMemoryCount: 3
 Note, that without AAPL,ig-platform-id the following REAL ID is assumed: 8A520000  
 Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF050000  
 </details>
-  
-####
-*Recommended framebuffers*: for laptop - `0x8A520000` (default).  
-  
+<br>
+
+***Native supported DevIDs:***
+
+- `0xff05`
+- `0x8A70`
+- `0x8A71`
+- `0x8A51`
+- `0x8A5C`
+- `0x8A5D`
+- `0x8A52`
+- `0x8A53`
+- `0x8A5A`
+- `0x8A5B`  
+
+***Recommended framebuffers:***
+
+- Laptop :
+  - `0x8A520000` (default)  
+
 ## Adjusting the brightness on a laptop  
-**Method 1**  
-Enable Clover DSDT fix `AddPNLF`. Enable `SetIntelBacklight` and `SetIntelMaxBacklight`. A specific value is not necessary - it will be automatically injected according to the processor installed.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
+
+**Method 1**
+
+- Enable Clover DSDT fix `AddPNLF`.
+- Enable `SetIntelBacklight` and `SetIntelMaxBacklight`.
+- A specific value is not necessary, it will be automatically injected according to the processor installed.  
+![ibl](./Img/ibl.png)  
   
-**Method 2**  
-Use this ACPI table: [SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip), for CFL+ use other table [SSDT-PNLFCFL.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLFCFL.dsl) [SSDT-PNLFCFL.aml](https://i.applelife.ru/2019/12/463488_SSDT-PNLFCFL.aml.zip)  
+**Method 2**
+
+  Use this ACPI table: [SSDT-PNLF.dsl](./SSDT-PNLF.dsl), [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip)  
+  For CFL+ use other table [SSDT-PNLFCFL.dsl](./SSDT-PNLFCFL.dsl), [SSDT-PNLFCFL.aml](https://i.applelife.ru/2019/12/463488_SSDT-PNLFCFL.aml.zip)  
   
-**Do not use both methods at the same time!**  
+> ***Attention!*** Do not use both methods at the same time.  
   
-  
-## Digital Audio (HDMI / DVI / DP)  
+## Digital Audio (HDMI / DVI / DP)
+
 To enable digital audio it is necessary to set the `hda-gfx` properties and patches the connectors.  
 To enable audio in general and HDMI in particular use *WEG* along with [AppleALC.kext](https://github.com/acidanthera/AppleALC). AppleALC automatically injects missing `hda-gfx` properties.  
-On 10.10.5 and above, *WEG* automatically changes the `connector-type` of DP (00040000) to HDMI (00080000), only if not used **Custom patching**. Physical connection may be of any type (HDMI, DVI, DP), but for the digital audio `connector-type` must explicitly be HDMI.  
-  
-  
-## Custom patching  
+On 10.10.5 and above, *WEG* automatically changes the `connector-type` of DP (00040000) to HDMI (00080000), only if not used **Custom patching**. Physical connection may be of any type (HDMI, DVI, DP), but for the digital audio `connector-type` must explicitly be HDMI.
+
+## Custom Patching
+
 In most cases, no patches are required!  
 In 10.14 for SKL and newer it is impossible to obtain information about the framebuffers and connectors directly from the kext binary - it is necessary to dump the binary from memory, so binary framebuffer patches in bootloader are impossible. It is, however, possible to make semantic (prefered) and binary patches by using *WEG*. On older OS'es and older IGPU - this works too. By default, the current framebuffer is patched.  
 Patches are placed in the `Properties` section of IGPU.  
 
 Example of a binary patch using WEG.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/bin.png)  
+![bin](./Img/bin.png)  
   
 Example of a semantic patch: HDMI type connector (connector-type=00080000 for connectors with index 1, 2 and 3).  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/con.png)  
+![con](./Img/con.png)  
   
 Example of a semantic patch for bios with DVMT Pre-Alloc 32MB when higher is required. (stolenmem=19MB, fbmem=9MB)  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/sem.png)  
+![sem](./Img/sem.png)  
   
-[This series of patches](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) are the full equivalent of AzulPatcher4600.kext, for those who have previously used it. (on [some](https://github.com/coderobe/AzulPatcher4600#tested-on) Haswell laptops with framebuffer `0x0A260006` helps to get rid of the artifacts).  
+[This series of patches](./AzulPatcher4600_equivalent.plist) are the full equivalent of AzulPatcher4600.kext, for those who have previously used it. (on [some](https://github.com/coderobe/AzulPatcher4600#tested-on) Haswell laptops with framebuffer `0x0A260006` helps to get rid of the artifacts).  
   
-**All possible WEG custom patches**  
-Semantic:  
+**All possible WEG custom patches :**  
+
+***Semantic:***  
 *framebuffer-patch-enable (enabling the semantic patches in principle)  
 framebuffer-framebufferid (the framebuffer that we're patching, the current by default)*  
 
@@ -2117,7 +2294,7 @@ framebuffer-conX-YYYYYYYY-alldata (completely replace the connector, if the curr
 Where X is the connector index.  
 Alldata patches can patch multiple connectors in sequence by putting them in a single string and specifying the index of a connector to start with. The string length should be a multiple of 12 bytes (the length of a single connector), 24 bytes for ICL.*  
   
-Binary:  
+***Binary:***  
 *framebuffer-patchN-enable (enabling patch number N)  
 framebuffer-patchN-framebufferid (the framebuffer that we're patching, the current by default)  
 framebuffer-patchN-find  
@@ -2125,58 +2302,63 @@ framebuffer-patchN-replace
 framebuffer-patchN-count (the amount of pattern iterations to search for, the default is 1)  
 N stands for the number of the patch: 0, 1, 2, ... 9*  
   
-Detailed information about framebuffers and connectors can be extracted with [010 Editor](http://www.sweetscape.com/010editor/) and the [IntelFramebuffer.bt](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/IntelFramebuffer.bt) script.  
+Detailed information about framebuffers and connectors can be extracted with [010 Editor](http://www.sweetscape.com/010editor/) and the [IntelFramebuffer.bt](./IntelFramebuffer.bt) script.  
 This information is useful for those who make custom patches.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ifbt.png)  
+![ifbt](./Img/ifbt.png)  
 In 10.14 for SKL and newer to get a dump suitable for the script you can use the debug version of *WEG* with the  
 `-igfxdump` boot-argument. The dump will be saved to /var/log/  
 The original and patched dumps can be obtained with IOReg when using a debug version of *WEG* and booting with the  
-`-igfxfbdump` boot-argument from `IOService:/IOResources/WhateverGreen` (dumps from IOReg is simplified, don't use for bt script).  
-  
-  
-## VGA support  
+`-igfxfbdump` boot-argument from `IOService:/IOResources/WhateverGreen` (dumps from IOReg is simplified, don't use for bt script).
+
+## VGA Support
+
 In most cases with Intel Skylake and newer it works by default.  
 For Ivy Bridge and possibly other generations there are the options to patch your connectors with the following:  
 06020000 02000000 30000000 // Option 1  
 06020000 01000000 30000000 // Option 2  
 On OS X 10.8.2 and newer it is impossible to have VGA on Ivy Bridge systems.  
 Hot-plugging VGA usually does not work.  
-In case this doesn't help - there are no other known solutions at this time.  
-  
-  
-## EDID  
+In case this doesn't help - there are no other known solutions at this time.
+
+## EDID
+
 EDID is usually correctly identified, so no actions are required. In rare cases, EDID needs to be injected manually.  
 An EDID dump can be obtained, for example, [with Linux](https://unix.stackexchange.com/questions/114359/how-to-get-edid-for-a-single-monitor). The correct EDID must be put into *AAPL0**0**,override-no-connect* property for `IGPU`, where the second ***0*** stands for the display number.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/edid.png)  
-In some cases the EDID dump may be incompatible with macOS and leads to distortions. For some EDID in such cases you can use [this script](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/edid-gen.sh), which corrects a provided EDID and saves it to your desktop.  
-  
-  
-## HDMI in UHD resolution with 60 fps 
+![edit](./Img/edid.png)  
+In some cases the EDID dump may be incompatible with macOS and leads to distortions. For some EDID in such cases you can use this [script](./edid-gen.sh), which corrects a provided EDID and saves it to your desktop.  
+
+## HDMI in UHD resolution with 60FPS
+
 Add the `enable-hdmi20` property to `IGPU`, otherwise you will get a black screen.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hdmi20.png)  
+![hdmi20](./Img/hdmi20.png)  
 Or instead of this property use the boot-arg `-cdfon`  
   
 In addtion to HDMI, this should be enabled on some notebooks like ThinkPad P71 / 7700HQ / HD630 / 4K, where gIOScreenLockState3 error may occur.  
-  
-## Disabling a discrete graphics card  
+
+## Disabling a discrete graphics card
+
 Add the `disable-external-gpu` property to `IGPU`.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dGPU_off.png)  
+![dGPU_off](./Img/dGPU_off.png)  
 Or instead of this property, use the boot-arg `-wegnoegpu`
   
 ## Fix the invalid maximum link rate issue on some laptops (Dell XPS 15 9570, etc.)
+
 Add the `enable-dpcd-max-link-rate-fix` property to `IGPU`, otherwise a kernel panic would happen due to a division-by-zero. Or instead of this property, use the boot-arg `-igfxmlr`.  
 Starting from v1.3.7, it also fixes the invalid max link rate value read from the extended DPCD buffer. This fixes the kernel panic on new laptops, such as Dell Inspiron 7590 with Sharp display.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)  
+![dpcd_mlr](./Img/dpcd_mlr.png)  
 You could also manually specify a maximum link rate value via the `dpcd-max-link-rate` for the builtin display. Typically use `0x14` for 4K display and `0x0A` for 1080p display. All possible values are `0x06` (RBR), `0x0A` (HBR), `0x14` (HBR2) and `0x1E` (HBR3). If an invalid value is specified or property `dpcd-max-link-rate` is not specified, will be used default value `0x14`.  
-  
+
 ## Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms
+
 Add the `enable-hdmi-dividers-fix` property to `IGPU` or use the `-igfxhdmidivs` boot argument instead to fix the infinite loop when the graphics driver tries to establish a HDMI connection with a higher pixel clock rate, for example connecting to a 2K/4K display with HDMI 1.4, otherwise the system just hangs (and your builtin laptop display remains black) when you plug in the HDMI cable.  
-  
-**Notes**  
+
+**Notes**
+
 - For those who want to have "limited" 2K/4K experience (i.e. 2K@59Hz or 4K@30Hz) with their HDMI 1.4 port, you might find this fix helpful.  
 - For those who have a laptop or PC with HDMI 2.0 routed to IGPU and have HDMI output issues, please note that this fix is now succeeded by the LSPCON driver solution, and it is still recommended to enable the LSPCON driver support to have full HDMI 2.0 experience. *You might still need this fix temporarily to figure out the connector index of your HDMI port, see the LSPCON section below.*  
-  
+
 ## LSPCON driver support to enable DisplayPort to HDMI 2.0 output on IGPU
+
 Recent laptops (KBL/CFL) are typically equipped with a HDMI 2.0 port. This port could be either routed to IGPU or DGPU, and you can have a confirmation on Windows 10. Intel (U)HD Graphics, however, does not provide native HDMI 2.0 output, so in order to solve this issue OEMs add an additional hardware named LSPCON on the motherboard to convert DisplayPort into HDMI 2.0.  
   
 LSPCON works in either Level Shifter (LS) or Protocol Converter (PCON) mode. When the adapter works in LS mode, it is capable of producing HDMI 1.4 signals from DisplayPort, while in PCON mode, it could provide HDMI 2.0 output. Some onboard LSPCON adapters (e.g. the one on Dell XPS 15 9570) have been configured in the firmware to work in LS mode by default, resulting a black screen on handling HDMI 2.0 connections.  
@@ -2187,13 +2369,14 @@ Starting from version 1.3.0, *WEG* now provides driver support for the onboard L
 - LSPCON driver is necessary for all newer platforms unless the new IGPU starts to provide native HDMI 2.0 output.
 - Supported Intel Platform: SKL, KBL, CFL and later. SKL: Intel NUC Skull Canyon; Iris Pro 580 + HDMI 2.0 with Parade PS175 LSPCON. CFL: Some laptops, e.g. Dell XPS 15 9570, are equipped with HDMI 2.0 and Parade PS175 LSPCON.
 - If you have confirmed that your HDMI 2.0 is routed to IGPU and is working properly right now, you don't need to enable this driver, because your onboard LSPCON might already be configured in the firmware to work in PCON mode.
-  
-**Instructions**  
+
+**Instructions**
+
 - Add the `enable-lspcon-support` property to `IGPU` to enable the driver, or use the boot-arg `-igfxlspcon` instead.  
 - Next, you need to know the corresponding connector index (one of 0,1,2,3) of your HDMI port. You could find it under IGPU in IORegistryExplorer (i.e. AppleIntelFramebuffer@0/1/2/3). *If you only have a 2K/4K HDMI monitor, you might need temporarily to enable the **infinite loop fix** before connecting a HDMI monitor to your build, otherwise the system just hangs, so you won't be able to run the IORegistryExplorer and find the connector index.*  
 - Add the `framebuffer-conX-has-lspcon` property to `IGPU` to inform the driver which connector has an onboard LSPCON adapter. Replace `X` with the index you have found in the previous step. The value must be of type `Data` and should be one of `01000000` (True) and `00000000` (False).  
 - (*Optional*) Add the `framebuffer-conX-preferred-lspcon-mode` property to `IGPU` to specify a mode for your onboard LSPCON adapter. The value must be of type `Data` and should be one of `01000000` (PCON, DP to HDMI 2.0) and `00000000` (LS, DP to HDMI 1.4). Any other invalid values are treated as PCON mode. If this property is not specified, the driver assumes that PCON mode is preferred.  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/lspcon.png)
+![lspcon](./Img/lspcon.png)
   
 <details>
 <summary>Spoiler: Debugging</summary>
@@ -2201,6 +2384,7 @@ Once you have completed the steps above, rebuild the kext cache and reboot your 
 After plugging into your HDMI 2.0 cable (and the HDMI 2.0 monitor), you should be able to see the output on your monitor.  
 
 Dump your kernel log and you should also be able to see something simillar to lines below.
+
 ```
 // When you insert the HDMI 2.0 cable
 igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB0] called with controller at 0xffffff81a8680000 and framebuffer at 0xffffff81a868c000.
@@ -2239,18 +2423,21 @@ Additionally, you can find these properties injected by the driver under the cor
 `fw-framebuffer-has-lspcon` indicates whether the onboard LSPCON adapter exists or not.  
 `fw-framebuffer-preferred-lspcon-mode` indicates the preferred adapter mode. 1 is PCON, and 0 is LS.  
   
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/lspcon_debug.png)
+![lspcon_debug](./Img/lspcon_debug.png)
 </details>
 
-## Known Issues  
-**Compatibility**  
+## Known Issues
+
+**Compatibility**
+
 - Limited cards: HD2000, HD2500 can only be used for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/) (they are used in real Macs only for this), there are no solutions.  
 - Intel Pentium / Celeron Graphics can't be enabled, there are no solutions.  
 - HDMI black screen on Haswell platforms. Resolved by using *WEG* or macOS 10.13.4 and later.  
 - Support for 2 or more displays on Intel Skylake and newer desktops is missing or buggy. In macOS 10.14.x there is an improvement tendency.  
 - Displays do not wake up on Intel Skylake desktops and later, connecting via DisplayPort or upgrading to macOS 10.14.x may help.  
   
-**Glitches and settings**  
+**Glitches and settings**
+
 - HD3000 can sometimes have interface glitches. Since the amount of video memory in Sandy depends on the overall system memory - 8 GB is the minimum to have, but there are no guaranteed solutions. It is also recommended to install [Max TOLUD to Dynamic](https://applelife.ru/posts/595326/) in the BIOS. Perhaps you can benefit from these [patches](https://www.applelife.ru/posts/730496).  
 - "8 apples" and the disappearance of the background image with File Vault 2 during the transition from UEFI GOP drivers to macOS drivers (due to incompatible EDID). Partially solved in *WEG*.  
 - PAVP freezes (freezes during video playback, broken QuickLook, etc.) are solved with *WEG* at the cost of disabling HDCP.  
@@ -2259,21 +2446,23 @@ Additionally, you can find these properties injected by the driver under the cor
 - The several minutes black screen upon OS boot with mobile CFL is fixed by *WEG*.  
 - The absence in BIOS of an option to change the amount of memory for the frame buffer is resolved with either semantic `framebuffer-stolenmem` and `framebuffer-fbmem` patches, by modifying the BIOS or by manually inputting the values in UEFI Shell. **Otherwise you get a panic.** [Explanation](https://www.applelife.ru/posts/750369)  
   
-**Performance and media content**  
+**Performance and media content**
+
 - Compatibility with discrete cards in unsupported configurations (NVIDIA + SNB/SKL/KBL; AMD + IVY), for some applications is fixed by *WEG*. Starting with macOS 10.13.4 the problem is gone.  
 - Viewing protected iTunes content is fixed by *WEG*. Starting with macOS 10.12 on Ivy Bridge and newer viewing HD movies on iTunes is not possible without a discrete card.  
 - Apple GuC firmware doesn't work at old 22 nanometer chipsets - Z370 and older.  
   
 A [VDADecoderChecker](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) output for solo integrated graphics using non-empty framebuffer must look like this:  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/vda.png)  
+![vda](./Img/vda.png)  
   
 A [VDADecoderChecker](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) output for discrete graphics with IGPU offline mode (empty framebuffer) must look like this:  
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/vda2.png)  
+![vda2](./Img/vda2.png)  
 [Note for 10.15+](https://www.applelife.ru/posts/765336)  
   
 In case of special IGPU, IMEI and HDEF device locations, [gfxutil](https://github.com/acidanthera/gfxutil) may be used: `gfxutil -f IGPU`, `gfxutil -f IMEI`, `gfxutil -f HDEF`. IGPU and IMEI device locations - usually standardly.  
   
-## Discussion  
+## Discussion
+
 [Russian](https://www.applelife.ru/threads/intel-hd-graphics-3000-4000-4400-4600-5000-5500-5600-520-530-630.1289648/), [English](https://www.insanelymac.com/forum/topic/334899-intel-framebuffer-patching-using-whatevergreen/)  
   
 The WWHC team is looking for talented Steve's reincarnations, so if you feel like you might be one - please report to the local looney bin.  
