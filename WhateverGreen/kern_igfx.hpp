@@ -403,19 +403,26 @@ private:
 			return false;
 		}
 	};
+	
+	// NOTE: the MMIO space is also available at RC6_RegBase
+	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
+
+	class AppleIntelFramebufferController;
+	// Populated at AppleIntelFramebufferController::start
+	// Useful for getting access to Read/WriteRegister, rather than having
+	// to compute the offsets
+	AppleIntelFramebufferController** gFramebufferController {};
 
 	struct RPSControl {
 		bool enabled {false};
 		uint32_t freq_max {0};
 		
-		void initFB(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
 		mach_vm_address_t orgPmNotifyWrapper;
-		
-		uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
-		void** gController {};
 	} RPSControl;
 
 	/**
