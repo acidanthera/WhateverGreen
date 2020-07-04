@@ -378,6 +378,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (RPSControl.enabled)
 				return true;
+			if (disableAccel)
+				return true;
 			return false;
 		};
 
