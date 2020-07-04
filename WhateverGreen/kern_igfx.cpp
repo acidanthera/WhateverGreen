@@ -774,8 +774,13 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 
 	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->ForceWakeWorkaround.enabled) {
 		auto developmentDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
-		if (developmentDict)
-			developmentDictCpy = OSDynamicCast(OSDictionary, developmentDict->copyCollection());
+		if (developmentDict) {
+			auto c = developmentDict->copyCollection();
+			if (c)
+				developmentDictCpy = OSDynamicCast(OSDictionary, c);
+			if (c && !developmentDictCpy)
+				c->release();
+		}
 	}
 		
 	// By default Apple drivers load Apple-specific firmware, which is incompatible.
