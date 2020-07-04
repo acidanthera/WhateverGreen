@@ -266,6 +266,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		// Or if "enable-dpcd-max-link-rate-fix" is set in IGPU property
 		if (!maxLinkRatePatch)
 			maxLinkRatePatch = info->videoBuiltin->getProperty("enable-dpcd-max-link-rate-fix") != nullptr;
+		
+		disableAccel = checkKernelArgument("-igfxvesa");
 
 		// Read the custom maximum link rate if present
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "dpcd-max-link-rate", maxLinkRate)) {
@@ -417,7 +419,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE) {
+		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
 			auto startSym = "__ZN16IntelAccelerator5startEP9IOService";
 			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
 				startSym = "__ZN16IntelAccelerator5startEP9IOService";
@@ -748,6 +750,9 @@ OSObject *IGFX::wrapCopyExistingServices(OSDictionary *matching, IOOptionBits in
 }
 
 bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
+	if (callbackIGFX->disableAccel)
+		return false;
+	
 	// By default Apple drivers load Apple-specific firmware, which is incompatible.
 	// On KBL they do it unconditionally, which causes infinite loop.
 	// On 10.13 there is an option to ignore/load a generic firmware, which we set here.

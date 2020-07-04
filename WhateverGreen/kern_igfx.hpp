@@ -427,6 +427,11 @@ private:
 	 * Ensure each display is online.
 	 */
 	FramebufferModifer forceOnlineDisplay;
+	
+	/**
+	 * Prevent IntelAccelerator from starting.
+	 */
+	bool disableAccel {false};
 
 	/**
 	 *  Perform platform table dump to ioreg
