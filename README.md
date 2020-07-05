@@ -30,6 +30,7 @@ WhateverGreen
 - Allows non-supported cards to use HW video encoder (`-radcodec`)
 - Fixes choppy video playback on Intel Kaby Lake and newer. 
 - Fixes black screen on Intel HD since 10.15.5.
+- Adds workaround for rare force wake timeout panics on Intel KBL and CFL.
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
