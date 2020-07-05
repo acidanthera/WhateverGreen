@@ -99,6 +99,7 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			RPSControl.enabled = true;
+			ForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
@@ -112,6 +113,7 @@ void IGFX::init() {
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			RPSControl.enabled = true;
+			ForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
@@ -367,6 +369,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (RPSControl.enabled)
 				return true;
+			if (ForceWakeWorkaround.enabled)
+				return true;
 			if (disableTypeCCheck)
 				return true;
 			return false;
@@ -449,6 +453,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 		if (RPSControl.enabled)
 			RPSControl.initGraphics(patcher, index, address, size);
+		
+		if (ForceWakeWorkaround.enabled)
+			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
 
 		return true;
 	}
@@ -461,6 +468,23 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		bool bklCoffeeFb = realFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
 		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
 		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
+		// Solve ReadRegister32 just once as it is sahred
+		if (bklCoffeeFb || bklKabyFb ||
+			RPSControl.enabled || ForceWakeWorkaround.enabled) {
+			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
+			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
+			if (!AppleIntelFramebufferController__ReadRegister32)
+				SYSLOG("igfx", "Failed to find ReadRegister32");
+		}
+		if (bklCoffeeFb || bklKabyFb ||
+			RPSControl.enabled || ForceWakeWorkaround.enabled) {
+			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
+			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
+			if (!AppleIntelFramebufferController__WriteRegister32)
+				SYSLOG("igfx", "Failed to find WriteRegister32");
+		}
+		if (RPSControl.enabled || ForceWakeWorkaround.enabled)
+			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
 		if (bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
 			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
@@ -492,15 +516,13 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			// This patch will overwrite WriteRegister32 function to rescale all the register writes of backlight controller.
 			// Slightly different methods are used for CFL hardware running on KBL and CFL drivers.
 
-			auto regRead = patcher.solveSymbol<decltype(orgCflReadRegister32)>
-				(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
-			auto regWrite = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
-			if (regRead && regWrite) {
-				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = regRead;
+			if (AppleIntelFramebufferController__ReadRegister32 &&
+				AppleIntelFramebufferController__WriteRegister32) {
+				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = AppleIntelFramebufferController__ReadRegister32;
 
-				patcher.eraseCoverageInstPrefix(regWrite);
+				patcher.eraseCoverageInstPrefix(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32));
 				auto orgRegWrite = reinterpret_cast<decltype(orgCflWriteRegister32)>
-					(patcher.routeFunction(regWrite, reinterpret_cast<mach_vm_address_t>(bklCoffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32), true));
+					(patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32), reinterpret_cast<mach_vm_address_t>(bklCoffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32), true));
 
 				if (orgRegWrite) {
 					(bklCoffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32) = orgRegWrite;
@@ -553,7 +575,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 		
 		if (RPSControl.enabled)
-			RPSControl.initFB(patcher, index, address, size);
+			RPSControl.initFB(*this, patcher, index, address, size);
 
 		if (disableAGDC) {
 			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
@@ -770,6 +792,19 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->disableAccel)
 		return false;
 	
+	OSDictionary* developmentDictCpy {};
+
+	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->ForceWakeWorkaround.enabled) {
+		auto developmentDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
+		if (developmentDict) {
+			auto c = developmentDict->copyCollection();
+			if (c)
+				developmentDictCpy = OSDynamicCast(OSDictionary, c);
+			if (c && !developmentDictCpy)
+				c->release();
+		}
+	}
+
 	// By default Apple drivers load Apple-specific firmware, which is incompatible.
 	// On KBL they do it unconditionally, which causes infinite loop.
 	// On 10.13 there is an option to ignore/load a generic firmware, which we set here.
@@ -777,36 +812,39 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	// On 10.15 an option is differently named but still there.
 	// There are some laptops that support Apple firmware, for them we want it to be loaded explicitly.
 	// REF: https://github.com/acidanthera/bugtracker/issues/748
-	if (callbackIGFX->fwLoadMode != FW_APPLE) {
-		auto dev = OSDynamicCast(OSDictionary, that->getProperty("Development"));
-		if (dev && dev->getObject("GraphicsSchedulerSelect")) {
-			auto rawDev = dev->copyCollection();
-			if (rawDev) {
-				auto newDev = OSDynamicCast(OSDictionary, rawDev);
-				if (newDev) {
-					// 1 - Automatic scheduler (Apple -> fallback to disabled)
-					// 2 - Force disable via plist (removed as of 10.15)
-					// 3 - Apple Scheduler
-					// 4 - Reference Scheduler
-					// 5 - Host Preemptive (as of 10.15)
-					uint32_t scheduler;
-					if (callbackIGFX->fwLoadMode == FW_GENERIC)
-						scheduler = 4;
-					else if (getKernelVersion() >= KernelVersion::Catalina)
-						scheduler = 5;
-					else
-						scheduler = 2;
-					auto num = OSNumber::withNumber(scheduler, 32);
-					if (num) {
-						newDev->setObject("GraphicsSchedulerSelect", num);
-						num->release();
-						that->setProperty("Development", newDev);
-					}
-				}
-				rawDev->release();
-			}
-
+	if (callbackIGFX->fwLoadMode != FW_APPLE && developmentDictCpy) {
+		// 1 - Automatic scheduler (Apple -> fallback to disabled)
+		// 2 - Force disable via plist (removed as of 10.15)
+		// 3 - Apple Scheduler
+		// 4 - Reference Scheduler
+		// 5 - Host Preemptive (as of 10.15)
+		uint32_t scheduler;
+		if (callbackIGFX->fwLoadMode == FW_GENERIC)
+			scheduler = 4;
+		else if (getKernelVersion() >= KernelVersion::Catalina)
+			scheduler = 5;
+		else
+			scheduler = 2;
+		auto num = OSNumber::withNumber(scheduler, 32);
+		if (num) {
+			developmentDictCpy->setObject("GraphicsSchedulerSelect", num);
+			num->release();
 		}
+	}
+	
+	// 0: Framebuffer's SafeForceWake, or ForceWakeWorkaround
+	// 1: IntelAccelerator::SafeForceWakeMultithreaded
+	if (callbackIGFX->ForceWakeWorkaround.enabled && developmentDictCpy) {
+		auto num = OSNumber::withNumber(1ull, 32);
+		if (num) {
+			developmentDictCpy->setObject("MultiForceWakeSelect", num);
+			num->release();
+		}
+	}
+	
+	if (developmentDictCpy) {
+		that->setProperty("Development", developmentDictCpy);
+		developmentDictCpy->release();
 	}
 
 	OSObject *metalPluginName = that->getProperty("MetalPluginName");

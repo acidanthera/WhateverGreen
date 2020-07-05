@@ -7,6 +7,7 @@ WhateverGreen Changelog
 - Added the use of RPS control for all the command streamers on IGPU (disabled via `igfxnorpsc=1`)
 - Add `-igfxvesa` to disable Intel Graphics acceleration.
 - Fix black screen on igfx since 10.15.5
+- Add workaround for rare force wake timeout panics on Intel KBL and CFL.
 
 #### v1.4.0
 - Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id

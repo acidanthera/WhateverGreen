@@ -14,6 +14,7 @@
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
 #include <Library/LegacyIOService.h>
+#include <IOKit/IOLocks.h>
 
 class IGFX {
 public:
@@ -403,20 +404,39 @@ private:
 			return false;
 		}
 	};
+	
+	// NOTE: the MMIO space is also available at RC6_RegBase
+	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
+
+	class AppleIntelFramebufferController;
+	// Populated at AppleIntelFramebufferController::start
+	// Useful for getting access to Read/WriteRegister, rather than having
+	// to compute the offsets
+	AppleIntelFramebufferController** gFramebufferController {};
 
 	struct RPSControl {
 		bool enabled {false};
 		uint32_t freq_max {0};
 		
-		void initFB(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
 		mach_vm_address_t orgPmNotifyWrapper;
-		
-		uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
-		void** gController {};
 	} RPSControl;
+	
+	struct ForceWakeWorkaround {
+		bool enabled {false};
+		IOLock* lck {};
+		bool didInit {false};
+
+		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		
+		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
+		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
+		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
+	} ForceWakeWorkaround;
 
 	/**
 	 * Ensure each modeset is a complete modeset.
