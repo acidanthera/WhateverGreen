@@ -29,6 +29,7 @@ WhateverGreen
 - Enforces complete modeset on non-built-in displays on Kaby Lake and newer to fix booting to black screen.
 - Allows non-supported cards to use HW video encoder (`-radcodec`)
 - Fixes choopy video playback on Intel Kaby Lake and newer. 
+- Fixes black screen on Intel HD since 10.15.5.
 
 #### Documentation
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
@@ -59,6 +60,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `igfxfw=2` boot argument (and `igfxfw` property) to force loading of Apple GuC firmware
 - `-igfxvesa` to disable Intel Graphics acceleration.
 - `-igfxnohdmi` boot argument (and `disable-hdmi-patches`) to disable DP to HDMI conversion patches for digital sound.
+- `-igfxtypec` to force DP connectivity for Type-C platforms.
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 - `-igfxdump` to dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries).
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen

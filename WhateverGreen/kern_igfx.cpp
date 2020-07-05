@@ -99,6 +99,7 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			RPSControl.enabled = true;
+			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -111,12 +112,14 @@ void IGFX::init() {
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			RPSControl.enabled = true;
+			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			supportsGuCFirmware = true;
@@ -124,6 +127,7 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
 			supportsGuCFirmware = true;
@@ -135,6 +139,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			disableTypeCCheck = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -268,6 +273,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			maxLinkRatePatch = info->videoBuiltin->getProperty("enable-dpcd-max-link-rate-fix") != nullptr;
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
+		
+		disableTypeCCheck = !checkKernelArgument("-igfxtypec");
 
 		// Read the custom maximum link rate if present
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "dpcd-max-link-rate", maxLinkRate)) {
@@ -359,6 +366,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (disableAGDC)
 				return true;
 			if (RPSControl.enabled)
+				return true;
+			if (disableTypeCCheck)
 				return true;
 			return false;
 		};
@@ -535,6 +544,12 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest request("__ZN21AppleIntelFramebuffer16getDisplayStatusEP21AppleIntelDisplayPath", wrapGetDisplayStatus, orgGetDisplayStatus);
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
 				SYSLOG("igfx", "failed to route getDisplayStatus");
+		}
+		
+		if (disableTypeCCheck) {
+			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
+			if (!patcher.routeMultiple(index, &req, 1, address, size))
+				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
 		}
 		
 		if (RPSControl.enabled)
@@ -869,6 +884,17 @@ IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsig
 	}
 
 	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
+}
+
+/**
+ * Apparently, platforms with (ig-platform-id & 0xf != 0) have only Type C connectivity.
+ * Framebuffer kext uses this fact to sanitise connector type, forcing it to DP.
+ * This breaks many systems, so we undo this check.
+ * Affected drivers: KBL and newer?
+ */
+uint64_t IGFX::wrapIsTypeCOnlySystem(void*) {
+	DBGLOG("igfx", "Forcing IsTypeCOnlySystem 0");
+	return 0;
 }
 
 uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
