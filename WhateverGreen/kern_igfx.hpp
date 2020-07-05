@@ -447,7 +447,17 @@ private:
 	 * Ensure each display is online.
 	 */
 	FramebufferModifer forceOnlineDisplay;
+	
+	/**
+	 * Prevent IntelAccelerator from starting.
+	 */
+	bool disableAccel {false};
 
+	/**
+	 * Disable Type C framebuffer check.
+	 */
+	bool disableTypeCCheck {false};
+	
 	/**
 	 *  Perform platform table dump to ioreg
 	 */
@@ -1405,6 +1415,8 @@ private:
 	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
 	 */
 	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
+	
+	static uint64_t wrapIsTypeCOnlySystem(void*);
 
 	/**
 	 *  Load GuC-specific patches and hooks
