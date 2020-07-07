@@ -4,7 +4,7 @@
 Проверить все серии видеокарт и их конфигурации возможности нет, используйте на свой страх и риск.
 
 - _Как получить подробный лог?_  
-Установить DEBUG версии WhateverGreen и Lilu, добавить `-raddbg -liludbg` в аргументы загрузки. После запуска выполнить команду в терминале:  
+Установить DEBUG версии WhateverGreen и Lilu, добавить `-wegdbg -liludbg` в аргументы загрузки. После запуска выполнить команду в терминале:  
 `log show --predicate 'process == "kernel" AND (eventMessage CONTAINS "WhateverGreen" OR eventMessage CONTAINS "Lilu")' --style syslog --source`  
 Для macOS 10.11 и старее использовать:  
 `cat /var/log/system.log | egrep '(WhateverGreen|Lilu)'`  
