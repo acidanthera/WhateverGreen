@@ -5,7 +5,7 @@ If you run macOS 10.11 or newer (possibly latest 10.10 as well) with an ATI/AMD 
 Unfortunately it is not possible to test all the GPUs and their configurations, use at your own risk.
 
 - _How do I get the debug log?_  
-Install DEBUG versions of WhateverGreen and Lilu, then add `-raddbg -liludbg` to the boot arguments. Once you boot run the following command in terminal:  
+Install DEBUG versions of WhateverGreen and Lilu, then add `-wegdbg -liludbg` to the boot arguments. Once you boot run the following command in terminal:  
 `log show --predicate 'process == "kernel" AND (eventMessage CONTAINS "WhateverGreen" OR eventMessage CONTAINS "Lilu")' --style syslog --source`  
 If you have macOS 10.11 or earlier, use this command:  
 `cat /var/log/system.log | egrep '(WhateverGreen|Lilu)'`  
