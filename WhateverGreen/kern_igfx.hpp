@@ -161,17 +161,17 @@ private:
 	 */
 	union FramebufferWestmerePatchFlags {
 		struct FramebufferWestmerePatchFlagBits {
-			uint8_t LinkWidth								: 1;
-			uint8_t SingleLink								: 1;
-			uint8_t FBCControlCompression					: 1;
-			uint8_t FeatureControlFBC						: 1;
-			uint8_t FeatureControlGPUInterruptHandling		: 1;
-			uint8_t FeatureControlGamma						: 1;
-			uint8_t FeatureControlMaximumSelfRefreshLevel	: 1;
-			uint8_t FeatureControlPowerStates				: 1;
-			uint8_t FeatureControlRSTimerTest				: 1;
-			uint8_t FeatureControlRenderStandby				: 1;
-			uint8_t FeatureControlWatermarks				: 1;
+			uint8_t LinkWidth                               : 1;
+			uint8_t SingleLink                              : 1;
+			uint8_t FBCControlCompression                   : 1;
+			uint8_t FeatureControlFBC                       : 1;
+			uint8_t FeatureControlGPUInterruptHandling      : 1;
+			uint8_t FeatureControlGamma                     : 1;
+			uint8_t FeatureControlMaximumSelfRefreshLevel   : 1;
+			uint8_t FeatureControlPowerStates               : 1;
+			uint8_t FeatureControlRSTimerTest               : 1;
+			uint8_t FeatureControlRenderStandby             : 1;
+			uint8_t FeatureControlWatermarks                : 1;
 		} bits;
 		uint32_t value;
 	};
