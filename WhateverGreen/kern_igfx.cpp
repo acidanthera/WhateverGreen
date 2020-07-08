@@ -2617,6 +2617,7 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 		// Replace FBCControl dictionary.
 		framebuffer->removeProperty("FBCControl");
 		success &= framebuffer->setProperty("FBCControl", dictFBCControlNew);
+		dictFBCControlNew->release();
 	}
 	
 	if (patchFeatureControl) {
@@ -2643,6 +2644,7 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 		// Replace FBCControl dictionary.
 		framebuffer->removeProperty("FeatureControl");
 		success &= framebuffer->setProperty("FeatureControl", dictFeatureControlNew);
+		dictFeatureControlNew->release();
 	}
 	
 	if (success)

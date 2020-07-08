@@ -163,7 +163,7 @@ private:
 		struct FramebufferWestmerePatchFlagBits {
 			uint8_t LinkWidth								: 1;
 			uint8_t SingleLink								: 1;
-			uint8_t FBCControlCompression 					: 1;
+			uint8_t FBCControlCompression					: 1;
 			uint8_t FeatureControlFBC						: 1;
 			uint8_t FeatureControlGPUInterruptHandling		: 1;
 			uint8_t FeatureControlGamma						: 1;
