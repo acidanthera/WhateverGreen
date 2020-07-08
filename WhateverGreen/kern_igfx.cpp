@@ -276,7 +276,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
 		
-		disableTypeCCheck = !checkKernelArgument("-igfxtypec");
+		disableTypeCCheck &= !checkKernelArgument("-igfxtypec");
 
 		// Read the custom maximum link rate if present
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "dpcd-max-link-rate", maxLinkRate)) {
