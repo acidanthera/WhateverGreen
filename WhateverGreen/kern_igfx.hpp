@@ -47,6 +47,7 @@ private:
 	 *  Framebuffer patch flags
 	 */
 	union FramebufferPatchFlags {
+		// Sandy+ bits
 		struct FramebufferPatchFlagBits {
 			uint8_t FPFFramebufferId            :1;
 			uint8_t FPFModelNameAddr            :1;
@@ -71,6 +72,22 @@ private:
 			uint8_t FPFSliceCount               :1;
 			uint8_t FPFEuCount                  :1;
 		} bits;
+		
+		// Westmere bits
+		struct FramebufferWestmerePatchFlagBits {
+			uint8_t LinkWidth                               : 1;
+			uint8_t SingleLink                              : 1;
+			uint8_t FBCControlCompression                   : 1;
+			uint8_t FeatureControlFBC                       : 1;
+			uint8_t FeatureControlGPUInterruptHandling      : 1;
+			uint8_t FeatureControlGamma                     : 1;
+			uint8_t FeatureControlMaximumSelfRefreshLevel   : 1;
+			uint8_t FeatureControlPowerStates               : 1;
+			uint8_t FeatureControlRSTimerTest               : 1;
+			uint8_t FeatureControlRenderStandby             : 1;
+			uint8_t FeatureControlWatermarks                : 1;
+		} bitsWestmere;
+		
 		uint32_t value;
 	};
 
@@ -157,26 +174,6 @@ private:
 	FramebufferPatch framebufferPatches[MaxFramebufferPatchCount] {};
 	
 	/**
-	 *  Framebuffer patch flags for first generation (Westmere).
-	 */
-	union FramebufferWestmerePatchFlags {
-		struct FramebufferWestmerePatchFlagBits {
-			uint8_t LinkWidth                               : 1;
-			uint8_t SingleLink                              : 1;
-			uint8_t FBCControlCompression                   : 1;
-			uint8_t FeatureControlFBC                       : 1;
-			uint8_t FeatureControlGPUInterruptHandling      : 1;
-			uint8_t FeatureControlGamma                     : 1;
-			uint8_t FeatureControlMaximumSelfRefreshLevel   : 1;
-			uint8_t FeatureControlPowerStates               : 1;
-			uint8_t FeatureControlRSTimerTest               : 1;
-			uint8_t FeatureControlRenderStandby             : 1;
-			uint8_t FeatureControlWatermarks                : 1;
-		} bits;
-		uint32_t value;
-	};
-	
-	/**
 	 *  Framebuffer patches for first generation (Westmere).
 	 */
 	struct FramebufferWestmerePatches {
@@ -193,11 +190,6 @@ private:
 		uint32_t FeatureControlRenderStandby {0};
 		uint32_t FeatureControlWatermarks {0};
 	};
-	
-	/**
-	 *  Framebuffer patch flags for first generation (Westmere).
-	 */
-	FramebufferWestmerePatchFlags framebufferWestmerePatchFlags;
 	
 	/**
 	 *  Framebuffer patches for first generation (Westmere).

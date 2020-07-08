@@ -353,6 +353,12 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		bool nohdmi = info->videoBuiltin->getProperty("disable-hdmi-patches") != nullptr;
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite &&
 			cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge && !checkKernelArgument("-igfxnohdmi") && !nohdmi;
+		
+		// Set AAPL00,DualLink to zero on Westmere if applying single link patches.
+		if (cpuGeneration == CPUInfo::CpuGeneration::Westmere && framebufferWestmerePatches.SingleLink) {
+			uint8_t dualLinkBytes[] { 0x00, 0x00, 0x00, 0x00 };
+			info->videoBuiltin->setProperty("AAPL00,DualLink", dualLinkBytes, sizeof(dualLinkBytes));
+		}
 
 		auto requresFramebufferPatches = [this]() {
 			if (blackScreenPatch)
@@ -1927,45 +1933,45 @@ bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebuf
 			hasFramebufferPatch = true;
 			
 			// First generation only has link mode and width patching.
-			framebufferWestmerePatchFlags.bits.LinkWidth = WIOKit::getOSDataValue(igpu, "framebuffer-linkwidth", framebufferWestmerePatches.LinkWidth);
-			framebufferWestmerePatchFlags.bits.SingleLink = WIOKit::getOSDataValue(igpu, "framebuffer-singlelink", framebufferWestmerePatches.SingleLink);
+			framebufferPatchFlags.bitsWestmere.LinkWidth = WIOKit::getOSDataValue(igpu, "framebuffer-linkwidth", framebufferWestmerePatches.LinkWidth);
+			framebufferPatchFlags.bitsWestmere.SingleLink = WIOKit::getOSDataValue(igpu, "framebuffer-singlelink", framebufferWestmerePatches.SingleLink);
 			
-			framebufferWestmerePatchFlags.bits.FBCControlCompression =
+			framebufferPatchFlags.bitsWestmere.FBCControlCompression =
 				WIOKit::getOSDataValue(igpu, "framebuffer-fbccontrol-compression", framebufferWestmerePatches.FBCControlCompression);
-			framebufferWestmerePatchFlags.bits.FeatureControlFBC =
+			framebufferPatchFlags.bitsWestmere.FeatureControlFBC =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-fbc", framebufferWestmerePatches.FeatureControlFBC);
-			framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling =
+			framebufferPatchFlags.bitsWestmere.FeatureControlGPUInterruptHandling =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-gpuinterrupthandling", framebufferWestmerePatches.FeatureControlGPUInterruptHandling);
-			framebufferWestmerePatchFlags.bits.FeatureControlGamma =
+			framebufferPatchFlags.bitsWestmere.FeatureControlGamma =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-gamma", framebufferWestmerePatches.FeatureControlGamma);
-			framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel =
+			framebufferPatchFlags.bitsWestmere.FeatureControlMaximumSelfRefreshLevel =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-maximumselfrefreshlevel", framebufferWestmerePatches.FeatureControlMaximumSelfRefreshLevel);
-			framebufferWestmerePatchFlags.bits.FeatureControlPowerStates =
+			framebufferPatchFlags.bitsWestmere.FeatureControlPowerStates =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-powerstates", framebufferWestmerePatches.FeatureControlPowerStates);
-			framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest =
+			framebufferPatchFlags.bitsWestmere.FeatureControlRSTimerTest =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-rstimertest", framebufferWestmerePatches.FeatureControlRSTimerTest);
-			framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby =
+			framebufferPatchFlags.bitsWestmere.FeatureControlRenderStandby =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-renderstandby", framebufferWestmerePatches.FeatureControlRenderStandby);
-			framebufferWestmerePatchFlags.bits.FeatureControlWatermarks =
+			framebufferPatchFlags.bitsWestmere.FeatureControlWatermarks =
 				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-watermarks", framebufferWestmerePatches.FeatureControlWatermarks);
 			
 			// Settings above will override all-zero settings.
 			uint32_t fbcControlAllZero = 0;
 			if (WIOKit::getOSDataValue(igpu, "framebuffer-fbccontrol-allzero", fbcControlAllZero) && fbcControlAllZero) {
-				framebufferWestmerePatchFlags.bits.FBCControlCompression = 1;
+				framebufferPatchFlags.bitsWestmere.FBCControlCompression = 1;
 			}
 			
 			// Settings above will override all-zero settings.
 			uint32_t featureControlAllZero = 0;
 			if (WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-allzero", featureControlAllZero) && featureControlAllZero) {
-				framebufferWestmerePatchFlags.bits.FeatureControlFBC = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlGamma = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlPowerStates = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby = 1;
-				framebufferWestmerePatchFlags.bits.FeatureControlWatermarks = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlFBC = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlGPUInterruptHandling = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlGamma = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlMaximumSelfRefreshLevel = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlPowerStates = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlRSTimerTest = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlRenderStandby = 1;
+				framebufferPatchFlags.bitsWestmere.FeatureControlWatermarks = 1;
 			}
 		} else if (cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge) {
 			// Note, the casts to uint32_t here and below are required due to device properties always injecting 32-bit types.
@@ -2509,29 +2515,8 @@ void IGFX::applyWestmerePatches(KernelPatcher &patcher) {
 	patcher.applyLookupPatch(&stridePatch);
 	DBGLOG("igfx", "applyWestmerePatches applied stride patch");
 	
-	if (framebufferWestmerePatchFlags.bits.SingleLink && framebufferWestmerePatches.SingleLink) {
-		// Single link patch 1. Enables single link mode. Located in AppleIntelHDGraphicsFB::hwGetPanelProperties.
-		if (kernelVersion == KernelVersion::MountainLion || kernelVersion == KernelVersion::Mavericks) {
-			const uint8_t findSingleWidth1Ml[] = { 0xC7, 0x03, 0x01, 0x00, 0x00, 0x00, 0xC7, 0x43, 0x20, 0x00, 0x00, 0x00, 0x00 };
-			const uint8_t replaceSingleWidth1Ml[] = { 0xC7, 0x03, 0x00, 0x00, 0x00, 0x00, 0xC7, 0x43, 0x20, 0x00, 0x00, 0x00, 0x00  };
-			KernelPatcher::LookupPatch singleWidth1MlPatch { currentFramebuffer, findSingleWidth1Ml, replaceSingleWidth1Ml, sizeof(findSingleWidth1Ml), 1 };
-			patcher.applyLookupPatch(&singleWidth1MlPatch);
-			DBGLOG("igfx", "applyWestmerePatches applied single width patch 1 for Mountain Lion and Mavericks");
-		}
-		else if (kernelVersion == KernelVersion::Yosemite) {
-			const uint8_t findSingleWidth1Yos[] = { 0x49, 0xC7, 0x07, 0x01, 0x00, 0x00, 0x00, 0x41, 0xC7, 0x47, 0x20, 0x00, 0x00, 0x00, 0x00 };
-			const uint8_t replaceSingleWidth1Yos[] = { 0x49, 0xC7, 0x07, 0x00, 0x00, 0x00, 0x00, 0x41, 0xC7, 0x47, 0x20, 0x00, 0x00, 0x00, 0x00 };
-			KernelPatcher::LookupPatch singleWidth1YosPatch { currentFramebuffer, findSingleWidth1Yos, replaceSingleWidth1Yos, sizeof(findSingleWidth1Yos), 1 };
-			patcher.applyLookupPatch(&singleWidth1YosPatch);
-			DBGLOG("igfx", "applyWestmerePatches applied single width patch 1 for Yosemite");
-		}
-		else if (kernelVersion >= KernelVersion::ElCapitan) {
-			const uint8_t findSingleWidth1ElCap[] = { 0x48, 0xC7, 0x03, 0x01, 0x00, 0x00, 0x00, 0x48, 0xB8, 0x0A, 0x00, 0x00, 0x00, 0xD0, 0x07, 0x00, 0x00 };
-			const uint8_t replaceSingleWidth1ElCap[] = { 0x48, 0xC7, 0x03, 0x00, 0x00, 0x00, 0x00, 0x48, 0xB8, 0x0A, 0x00, 0x00, 0x00, 0xD0, 0x07, 0x00, 0x00 };
-			KernelPatcher::LookupPatch singleWidth1ElCapPatch { currentFramebuffer, findSingleWidth1ElCap, replaceSingleWidth1ElCap, sizeof(findSingleWidth1ElCap), 1 };
-			patcher.applyLookupPatch(&singleWidth1ElCapPatch);
-			DBGLOG("igfx", "applyWestmerePatches applied single width patch 1 for El Capitan+");
-		}
+	if (framebufferPatchFlags.bitsWestmere.SingleLink && framebufferWestmerePatches.SingleLink) {
+		// AAPL00,DualLink is set to <00000000> instead of patch 1.
 		
 		// Single link patch 2. Changes to divisor 14. Located in AppleIntelHDGraphicsFB::hwRegsNeedUpdate.
 		if (kernelVersion == KernelVersion::MountainLion) {
@@ -2599,56 +2584,67 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 	bool success = true;
 	
 	uint32_t patchFeatureControl = 0;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlFBC;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGamma;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlPowerStates;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby;
-	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlWatermarks;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlFBC;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlGPUInterruptHandling;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlGamma;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlMaximumSelfRefreshLevel;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlPowerStates;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlRSTimerTest;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlRenderStandby;
+	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlWatermarks;
 	
-	if (callbackIGFX->framebufferWestmerePatchFlags.bits.FBCControlCompression) {
-		auto dictFBCControlOld = OSDynamicCast(OSDictionary, framebuffer->getProperty("FBCControl"));
-		auto dictFBCControlNew = OSDictionary::withDictionary(dictFBCControlOld);
-		
-		success &= setDictUInt32(dictFBCControlNew, "Compression", framebufferWestmerePatches.FBCControlCompression);
-		
-		// Replace FBCControl dictionary.
-		framebuffer->removeProperty("FBCControl");
-		success &= framebuffer->setProperty("FBCControl", dictFBCControlNew);
-		dictFBCControlNew->release();
+	if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FBCControlCompression) {
+		// Entire dictionary will always be replaced as there is only a single property.
+		auto dictFBCControl = OSDictionary::withCapacity(1);
+		if (dictFBCControl) {
+			success &= setDictUInt32(dictFBCControl, "Compression", framebufferWestmerePatches.FBCControlCompression);
+			
+			// Replace FBCControl dictionary.
+			success &= framebuffer->setProperty("FBCControl", dictFBCControl);
+			dictFBCControl->release();
+		} else {
+			success = false;
+		}
 	}
 	
 	if (patchFeatureControl) {
+		// Try to get existing dictionary, replace if not found.
 		auto dictFeatureControlOld = OSDynamicCast(OSDictionary, framebuffer->getProperty("FeatureControl"));
-		auto dictFeatureControlNew = OSDictionary::withDictionary(dictFeatureControlOld);
+		OSDictionary *dictFeatureControlNew;
+		if (dictFeatureControlOld)
+			dictFeatureControlNew = OSDictionary::withDictionary(dictFeatureControlOld);
+		else
+			dictFeatureControlNew = OSDictionary::withCapacity(8);
 		
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlFBC)
-			success &= setDictUInt32(dictFeatureControlNew, "FBC", framebufferWestmerePatches.FeatureControlFBC);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling)
-			success &= setDictUInt32(dictFeatureControlNew, "GPUInterruptHandling", framebufferWestmerePatches.FeatureControlGPUInterruptHandling);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGamma)
-			success &= setDictUInt32(dictFeatureControlNew, "Gamma", framebufferWestmerePatches.FeatureControlGamma);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel)
-			success &= setDictUInt32(dictFeatureControlNew, "MaximumSelfRefreshLevel", framebufferWestmerePatches.FeatureControlMaximumSelfRefreshLevel);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlPowerStates)
-			success &= setDictUInt32(dictFeatureControlNew, "PowerStates", framebufferWestmerePatches.FeatureControlPowerStates);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest)
-			success &= setDictUInt32(dictFeatureControlNew, "RSTimerTest", framebufferWestmerePatches.FeatureControlRSTimerTest);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby)
-			success &= setDictUInt32(dictFeatureControlNew, "RenderStandby", framebufferWestmerePatches.FeatureControlRenderStandby);
-		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlWatermarks)
-			success &= setDictUInt32(dictFeatureControlNew, "Watermarks", framebufferWestmerePatches.FeatureControlWatermarks);
-		
-		// Replace FBCControl dictionary.
-		framebuffer->removeProperty("FeatureControl");
-		success &= framebuffer->setProperty("FeatureControl", dictFeatureControlNew);
-		dictFeatureControlNew->release();
+		// Replace any specified properties.
+		if (dictFeatureControlNew) {
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlFBC)
+				success &= setDictUInt32(dictFeatureControlNew, "FBC", framebufferWestmerePatches.FeatureControlFBC);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlGPUInterruptHandling)
+				success &= setDictUInt32(dictFeatureControlNew, "GPUInterruptHandling", framebufferWestmerePatches.FeatureControlGPUInterruptHandling);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlGamma)
+				success &= setDictUInt32(dictFeatureControlNew, "Gamma", framebufferWestmerePatches.FeatureControlGamma);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlMaximumSelfRefreshLevel)
+				success &= setDictUInt32(dictFeatureControlNew, "MaximumSelfRefreshLevel", framebufferWestmerePatches.FeatureControlMaximumSelfRefreshLevel);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlPowerStates)
+				success &= setDictUInt32(dictFeatureControlNew, "PowerStates", framebufferWestmerePatches.FeatureControlPowerStates);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlRSTimerTest)
+				success &= setDictUInt32(dictFeatureControlNew, "RSTimerTest", framebufferWestmerePatches.FeatureControlRSTimerTest);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlRenderStandby)
+				success &= setDictUInt32(dictFeatureControlNew, "RenderStandby", framebufferWestmerePatches.FeatureControlRenderStandby);
+			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlWatermarks)
+				success &= setDictUInt32(dictFeatureControlNew, "Watermarks", framebufferWestmerePatches.FeatureControlWatermarks);
+			
+			// Replace FBCControl dictionary.
+			success &= framebuffer->setProperty("FeatureControl", dictFeatureControlNew);
+			dictFeatureControlNew->release();
+		} else {
+			success = false;
+		}
 	}
 	
 	if (success)
-		DBGLOG("igfx", "applyWestmereFeaturePatches successful %X", callbackIGFX->framebufferWestmerePatchFlags.value);
+		DBGLOG("igfx", "applyWestmereFeaturePatches successful %X", callbackIGFX->framebufferPatchFlags.value);
 	else
-		DBGLOG("igfx", "applyWestmereFeaturePatches failed %X", callbackIGFX->framebufferWestmerePatchFlags.value);
+		DBGLOG("igfx", "applyWestmereFeaturePatches failed %X", callbackIGFX->framebufferPatchFlags.value);
 }
