@@ -444,8 +444,23 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 	}
 
 	// Update the requested framebuffer identifier.
-	if (info->reportedFramebufferName)
+	if (info->reportedFramebufferName && BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge)
 		device->setProperty(info->reportedFramebufferName, &info->reportedFramebufferId, sizeof(info->reportedFramebufferId));
+	
+	// Set AAPL,os-info property if not present for first generation.
+	// Default value pulled from AppleIntelHDGraphicsFB. Property is required for non-MacBookPro6,1 platforms due to a bug in AppleIntelHDGraphicsFB.
+	if (BaseDeviceInfo::get().cpuGeneration == CPUInfo::CpuGeneration::Westmere) {
+		if (!device->getProperty("AAPL,os-info")) {
+			DBGLOG("weg", "fixing AAPL,os-info");
+			uint8_t osInfoBytes[] {
+				0x30, 0x49, 0x01, 0x01, 0x01, 0x00, 0x08, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF
+			};
+			device->setProperty("AAPL,os-info", osInfoBytes, sizeof(osInfoBytes));
+		} else {
+			DBGLOG("weg", "found existing AAPL,os-info");
+		}
+	}
 
 	// Ensure built-in.
 	if (!device->getProperty("built-in")) {

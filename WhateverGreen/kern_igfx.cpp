@@ -15,6 +15,8 @@
 #include <Headers/kern_file.hpp>
 #include <Headers/kern_iokit.hpp>
 
+static const char *pathIntelHD[]      { "/System/Library/Extensions/AppleIntelHDGraphics.kext/Contents/MacOS/AppleIntelHDGraphics" };
+static const char *pathIntelHDFb[]    { "/System/Library/Extensions/AppleIntelHDGraphicsFB.kext/Contents/MacOS/AppleIntelHDGraphicsFB" };
 static const char *pathIntelHD3000[]  { "/System/Library/Extensions/AppleIntelHD3000Graphics.kext/Contents/MacOS/AppleIntelHD3000Graphics" };
 static const char *pathIntelSNBFb[]   { "/System/Library/Extensions/AppleIntelSNBGraphicsFB.kext/Contents/MacOS/AppleIntelSNBGraphicsFB" };
 static const char *pathIntelHD4000[]  { "/System/Library/Extensions/AppleIntelHD4000Graphics.kext/Contents/MacOS/AppleIntelHD4000Graphics" };
@@ -34,6 +36,8 @@ static const char *pathIntelICL[]     { "/System/Library/Extensions/AppleIntelIC
 static const char *pathIntelICLLPFb[] { "/System/Library/Extensions/AppleIntelICLLPGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelICLLPGraphicsFramebuffer" };
 static const char *pathIntelICLHPFb[] { "/System/Library/Extensions/AppleIntelICLHPGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelICLHPGraphicsFramebuffer" };
 
+static KernelPatcher::KextInfo kextIntelHD      { "com.apple.driver.AppleIntelHDGraphics", pathIntelHD, arrsize(pathIntelHD), {}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextIntelHDFb    { "com.apple.driver.AppleIntelHDGraphicsFB", pathIntelHDFb, arrsize(pathIntelHDFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextIntelHD3000  { "com.apple.driver.AppleIntelHD3000Graphics", pathIntelHD3000, arrsize(pathIntelHD3000), {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextIntelSNBFb   { "com.apple.driver.AppleIntelSNBGraphicsFB", pathIntelSNBFb, arrsize(pathIntelSNBFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextIntelHD4000  { "com.apple.driver.AppleIntelHD4000Graphics", pathIntelHD4000, arrsize(pathIntelHD4000), {}, {}, KernelPatcher::KextInfo::Unloaded };
@@ -64,8 +68,11 @@ void IGFX::init() {
 	switch (generation) {
 		case CPUInfo::CpuGeneration::Penryn:
 		case CPUInfo::CpuGeneration::Nehalem:
-		case CPUInfo::CpuGeneration::Westmere:
 			// Do not warn about legacy processors (e.g. Xeon).
+			break;
+		case CPUInfo::CpuGeneration::Westmere:
+			currentGraphics = &kextIntelHD;
+			currentFramebuffer = &kextIntelHDFb;
 			break;
 		case CPUInfo::CpuGeneration::SandyBridge: {
 			int tmp = 1;
@@ -321,11 +328,11 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			blackScreenPatch = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
 		}
 
-		// PAVP patch is only necessary when we have no discrete GPU
+		// PAVP patch is only necessary when we have no discrete GPU.
 		int pavpMode = connectorLessFrame || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
 		if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
 			WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
-		pavpDisablePatch = pavpMode == 0;
+		pavpDisablePatch = pavpMode == 0 && cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge;
 
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
@@ -344,7 +351,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		// Automatically enable HDMI -> DP patches
 		bool nohdmi = info->videoBuiltin->getProperty("disable-hdmi-patches") != nullptr;
-		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite && !checkKernelArgument("-igfxnohdmi") && !nohdmi;
+		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite &&
+			cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge && !checkKernelArgument("-igfxnohdmi") && !nohdmi;
 
 		auto requresFramebufferPatches = [this]() {
 			if (blackScreenPatch)
@@ -435,11 +443,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
-			auto startSym = "__ZN16IntelAccelerator5startEP9IOService";
-			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
-				startSym = "__ZN16IntelAccelerator5startEP9IOService";
-
-			KernelPatcher::RouteRequest request(startSym, wrapAcceleratorStart, orgAcceleratorStart);
+			KernelPatcher::RouteRequest request("__ZN16IntelAccelerator5startEP9IOService", wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
 
 			if (fwLoadMode == FW_GENERIC && getKernelVersion() <= KernelVersion::Mojave)
@@ -631,22 +635,26 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
-			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge) {
-				gPlatformListIsSNB = true;
-				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_PlatformInformationList", address, size);
-			} else {
-				gPlatformListIsSNB = false;
-				gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
+			framebufferStart = reinterpret_cast<uint8_t *>(address);
+			framebufferSize = size;
+			
+			if (cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge) {
+				if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge) {
+					gPlatformListIsSNB = true;
+					gPlatformInformationList = patcher.solveSymbol<void *>(index, "_PlatformInformationList", address, size);
+				} else {
+					gPlatformListIsSNB = false;
+					gPlatformInformationList = patcher.solveSymbol<void *>(index, "_gPlatformInformationList", address, size);
+				}
+
+				DBGLOG("igfx", "platform is snb %d and list " PRIKADDR, gPlatformListIsSNB, CASTKADDR(gPlatformInformationList));
 			}
 
-			DBGLOG("igfx", "platform is snb %d and list " PRIKADDR, gPlatformListIsSNB, CASTKADDR(gPlatformInformationList));
-
-			if (gPlatformInformationList) {
-				framebufferStart = reinterpret_cast<uint8_t *>(address);
-				framebufferSize = size;
-
+			if ((gPlatformInformationList && cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge) || cpuGeneration == CPUInfo::CpuGeneration::Westmere) {
 				auto fbGetOSInformation = "__ZN31AppleIntelFramebufferController16getOSInformationEv";
-				if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
+				if (cpuGeneration == CPUInfo::CpuGeneration::Westmere)
+					fbGetOSInformation = "__ZN22AppleIntelHDGraphicsFB16getOSInformationEv";
+				else if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
 					fbGetOSInformation = "__ZN23AppleIntelSNBGraphicsFB16getOSInformationEv";
 				else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
 					fbGetOSInformation = "__ZN25AppleIntelCapriController16getOSInformationEv";
@@ -657,10 +665,13 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 				KernelPatcher::RouteRequest request(fbGetOSInformation, wrapGetOSInformation, orgGetOSInformation);
 				patcher.routeMultiple(index, &request, 1, address, size);
-			} else {
+			} else if (cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge) {
 				SYSLOG("igfx", "failed to obtain gPlatformInformationList pointer with code %d", patcher.getError());
 				patcher.clearError();
 			}
+			
+			if (applyFramebufferPatch && cpuGeneration == CPUInfo::CpuGeneration::Westmere)
+				applyWestmerePatches(patcher);
 		}
 		return true;
 	}
@@ -1665,11 +1676,13 @@ void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 	callbackIGFX->orgKblWriteRegister32(that, reg, value);
 }
 
-bool IGFX::wrapGetOSInformation(void *that) {
+bool IGFX::wrapGetOSInformation(IOService *that) {
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
+	
 #ifdef DEBUG
 	if (callbackIGFX->dumpFramebufferToDisk) {
 		char name[64];
-		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", BaseDeviceInfo::get().cpuGeneration, getKernelVersion(), getKernelMinorVersion());
+		snprintf(name, sizeof(name), "/var/log/AppleIntelFramebuffer_%d_%d.%d", cpuGeneration, getKernelVersion(), getKernelMinorVersion());
 		FileIO::writeBufferToFile(name, callbackIGFX->framebufferStart, callbackIGFX->framebufferSize);
 		SYSLOG("igfx", "dumping framebuffer information to %s", name);
 		uint32_t delay = 20000;
@@ -1683,8 +1696,10 @@ bool IGFX::wrapGetOSInformation(void *that) {
 		callbackIGFX->writePlatformListData("platform-table-native");
 #endif
 
-	if (callbackIGFX->applyFramebufferPatch)
+	if (callbackIGFX->applyFramebufferPatch && cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge)
 		callbackIGFX->applyFramebufferPatches();
+	else if (callbackIGFX->applyFramebufferPatch && cpuGeneration == CPUInfo::CpuGeneration::Westmere)
+		callbackIGFX->applyWestmereFeaturePatches(that);
 	else if (callbackIGFX->hdmiAutopatch)
 		callbackIGFX->applyHdmiAutopatch();
 
@@ -1901,118 +1916,168 @@ void IGFX::loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm
 
 bool IGFX::loadPatchesFromDevice(IORegistryEntry *igpu, uint32_t currentFramebufferId) {
 	bool hasFramebufferPatch = false;
+	
+	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	uint32_t framebufferPatchEnable = 0;
 	if (WIOKit::getOSDataValue(igpu, "framebuffer-patch-enable", framebufferPatchEnable) && framebufferPatchEnable) {
 		DBGLOG("igfx", "framebuffer-patch-enable %d", framebufferPatchEnable);
-
-		// Note, the casts to uint32_t here and below are required due to device properties always injecting 32-bit types.
-		framebufferPatchFlags.bits.FPFFramebufferId = WIOKit::getOSDataValue(igpu, "framebuffer-framebufferid", framebufferPatch.framebufferId);
-		framebufferPatchFlags.bits.FPFFlags = WIOKit::getOSDataValue(igpu, "framebuffer-flags", framebufferPatch.flags.value);
-		framebufferPatchFlags.bits.FPFCamelliaVersion = WIOKit::getOSDataValue(igpu, "framebuffer-camellia", framebufferPatch.camelliaVersion);
-		framebufferPatchFlags.bits.FPFMobile = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-mobile", framebufferPatch.fMobile);
-		framebufferPatchFlags.bits.FPFPipeCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-pipecount", framebufferPatch.fPipeCount);
-		framebufferPatchFlags.bits.FPFPortCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-portcount", framebufferPatch.fPortCount);
-		framebufferPatchFlags.bits.FPFFBMemoryCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-memorycount", framebufferPatch.fFBMemoryCount);
-		framebufferPatchFlags.bits.FPFStolenMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-stolenmem", framebufferPatch.fStolenMemorySize);
-		framebufferPatchFlags.bits.FPFFramebufferMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-fbmem", framebufferPatch.fFramebufferMemorySize);
-		framebufferPatchFlags.bits.FPFUnifiedMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-unifiedmem", framebufferPatch.fUnifiedMemorySize);
-		framebufferPatchFlags.bits.FPFFramebufferCursorSize = WIOKit::getOSDataValue(igpu, "framebuffer-cursormem", fPatchCursorMemorySize);
-
-		if (framebufferPatchFlags.value != 0)
+		
+		if (cpuGeneration == CPUInfo::CpuGeneration::Westmere) {
 			hasFramebufferPatch = true;
-
-		for (size_t i = 0; i < arrsize(framebufferPatch.connectors); i++) {
-			char name[48];
-			snprintf(name, sizeof(name), "framebuffer-con%lu-enable", i);
-			uint32_t framebufferConnectorPatchEnable = 0;
-			if (!WIOKit::getOSDataValue(igpu, name, framebufferConnectorPatchEnable) || !framebufferConnectorPatchEnable)
-				continue;
-
-			DBGLOG("igfx", "framebuffer-con%lu-enable %d", i, framebufferConnectorPatchEnable);
-
-			snprintf(name, sizeof(name), "framebuffer-con%lu-%08x-alldata", i, currentFramebufferId);
-			auto allData = OSDynamicCast(OSData, igpu->getProperty(name));
-			if (!allData) {
-				snprintf(name, sizeof(name), "framebuffer-con%lu-alldata", i);
-				allData = OSDynamicCast(OSData, igpu->getProperty(name));
+			
+			// First generation only has link mode and width patching.
+			framebufferWestmerePatchFlags.bits.LinkWidth = WIOKit::getOSDataValue(igpu, "framebuffer-linkwidth", framebufferWestmerePatches.LinkWidth);
+			framebufferWestmerePatchFlags.bits.SingleLink = WIOKit::getOSDataValue(igpu, "framebuffer-singlelink", framebufferWestmerePatches.SingleLink);
+			
+			framebufferWestmerePatchFlags.bits.FBCControlCompression =
+				WIOKit::getOSDataValue(igpu, "framebuffer-fbccontrol-compression", framebufferWestmerePatches.FBCControlCompression);
+			framebufferWestmerePatchFlags.bits.FeatureControlFBC =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-fbc", framebufferWestmerePatches.FeatureControlFBC);
+			framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-gpuinterrupthandling", framebufferWestmerePatches.FeatureControlGPUInterruptHandling);
+			framebufferWestmerePatchFlags.bits.FeatureControlGamma =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-gamma", framebufferWestmerePatches.FeatureControlGamma);
+			framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-maximumselfrefreshlevel", framebufferWestmerePatches.FeatureControlMaximumSelfRefreshLevel);
+			framebufferWestmerePatchFlags.bits.FeatureControlPowerStates =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-powerstates", framebufferWestmerePatches.FeatureControlPowerStates);
+			framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-rstimertest", framebufferWestmerePatches.FeatureControlRSTimerTest);
+			framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-renderstandby", framebufferWestmerePatches.FeatureControlRenderStandby);
+			framebufferWestmerePatchFlags.bits.FeatureControlWatermarks =
+				WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-watermarks", framebufferWestmerePatches.FeatureControlWatermarks);
+			
+			// Settings above will override all-zero settings.
+			uint32_t fbcControlAllZero = 0;
+			if (WIOKit::getOSDataValue(igpu, "framebuffer-fbccontrol-allzero", fbcControlAllZero) && fbcControlAllZero) {
+				framebufferWestmerePatchFlags.bits.FBCControlCompression = 1;
 			}
-			if (allData) {
-				auto allDataSize = allData->getLength();
-				auto replaceCount = allDataSize / sizeof(ConnectorInfo);
-				if (0 == allDataSize % sizeof(ConnectorInfo) && i + replaceCount <= arrsize(framebufferPatch.connectors)) {
-					auto replacementConnectors = reinterpret_cast<const ConnectorInfo*>(allData->getBytesNoCopy());
-					for (size_t j = 0; j < replaceCount; j++) {
-						framebufferPatch.connectors[i+j].index = replacementConnectors[j].index;
-						framebufferPatch.connectors[i+j].busId = replacementConnectors[j].busId;
-						framebufferPatch.connectors[i+j].pipe = replacementConnectors[j].pipe;
-						framebufferPatch.connectors[i+j].pad = replacementConnectors[j].pad;
-						framebufferPatch.connectors[i+j].type = replacementConnectors[j].type;
-						framebufferPatch.connectors[i+j].flags = replacementConnectors[j].flags;
-						connectorPatchFlags[i+j].bits.CPFIndex = true;
-						connectorPatchFlags[i+j].bits.CPFBusId = true;
-						connectorPatchFlags[i+j].bits.CPFPipe = true;
-						connectorPatchFlags[i+j].bits.CPFType = true;
-						connectorPatchFlags[i+j].bits.CPFFlags = true;
+			
+			// Settings above will override all-zero settings.
+			uint32_t featureControlAllZero = 0;
+			if (WIOKit::getOSDataValue(igpu, "framebuffer-featurecontrol-allzero", featureControlAllZero) && featureControlAllZero) {
+				framebufferWestmerePatchFlags.bits.FeatureControlFBC = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlGamma = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlPowerStates = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby = 1;
+				framebufferWestmerePatchFlags.bits.FeatureControlWatermarks = 1;
+			}
+		} else if (cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge) {
+			// Note, the casts to uint32_t here and below are required due to device properties always injecting 32-bit types.
+			framebufferPatchFlags.bits.FPFFramebufferId = WIOKit::getOSDataValue(igpu, "framebuffer-framebufferid", framebufferPatch.framebufferId);
+			framebufferPatchFlags.bits.FPFFlags = WIOKit::getOSDataValue(igpu, "framebuffer-flags", framebufferPatch.flags.value);
+			framebufferPatchFlags.bits.FPFCamelliaVersion = WIOKit::getOSDataValue(igpu, "framebuffer-camellia", framebufferPatch.camelliaVersion);
+			framebufferPatchFlags.bits.FPFMobile = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-mobile", framebufferPatch.fMobile);
+			framebufferPatchFlags.bits.FPFPipeCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-pipecount", framebufferPatch.fPipeCount);
+			framebufferPatchFlags.bits.FPFPortCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-portcount", framebufferPatch.fPortCount);
+			framebufferPatchFlags.bits.FPFFBMemoryCount = WIOKit::getOSDataValue<uint32_t>(igpu, "framebuffer-memorycount", framebufferPatch.fFBMemoryCount);
+			framebufferPatchFlags.bits.FPFStolenMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-stolenmem", framebufferPatch.fStolenMemorySize);
+			framebufferPatchFlags.bits.FPFFramebufferMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-fbmem", framebufferPatch.fFramebufferMemorySize);
+			framebufferPatchFlags.bits.FPFUnifiedMemorySize = WIOKit::getOSDataValue(igpu, "framebuffer-unifiedmem", framebufferPatch.fUnifiedMemorySize);
+			framebufferPatchFlags.bits.FPFFramebufferCursorSize = WIOKit::getOSDataValue(igpu, "framebuffer-cursormem", fPatchCursorMemorySize);
+
+			if (framebufferPatchFlags.value != 0)
+				hasFramebufferPatch = true;
+
+			for (size_t i = 0; i < arrsize(framebufferPatch.connectors); i++) {
+				char name[48];
+				snprintf(name, sizeof(name), "framebuffer-con%lu-enable", i);
+				uint32_t framebufferConnectorPatchEnable = 0;
+				if (!WIOKit::getOSDataValue(igpu, name, framebufferConnectorPatchEnable) || !framebufferConnectorPatchEnable)
+					continue;
+
+				DBGLOG("igfx", "framebuffer-con%lu-enable %d", i, framebufferConnectorPatchEnable);
+
+				snprintf(name, sizeof(name), "framebuffer-con%lu-%08x-alldata", i, currentFramebufferId);
+				auto allData = OSDynamicCast(OSData, igpu->getProperty(name));
+				if (!allData) {
+					snprintf(name, sizeof(name), "framebuffer-con%lu-alldata", i);
+					allData = OSDynamicCast(OSData, igpu->getProperty(name));
+				}
+				if (allData) {
+					auto allDataSize = allData->getLength();
+					auto replaceCount = allDataSize / sizeof(ConnectorInfo);
+					if (0 == allDataSize % sizeof(ConnectorInfo) && i + replaceCount <= arrsize(framebufferPatch.connectors)) {
+						auto replacementConnectors = reinterpret_cast<const ConnectorInfo*>(allData->getBytesNoCopy());
+						for (size_t j = 0; j < replaceCount; j++) {
+							framebufferPatch.connectors[i+j].index = replacementConnectors[j].index;
+							framebufferPatch.connectors[i+j].busId = replacementConnectors[j].busId;
+							framebufferPatch.connectors[i+j].pipe = replacementConnectors[j].pipe;
+							framebufferPatch.connectors[i+j].pad = replacementConnectors[j].pad;
+							framebufferPatch.connectors[i+j].type = replacementConnectors[j].type;
+							framebufferPatch.connectors[i+j].flags = replacementConnectors[j].flags;
+							connectorPatchFlags[i+j].bits.CPFIndex = true;
+							connectorPatchFlags[i+j].bits.CPFBusId = true;
+							connectorPatchFlags[i+j].bits.CPFPipe = true;
+							connectorPatchFlags[i+j].bits.CPFType = true;
+							connectorPatchFlags[i+j].bits.CPFFlags = true;
+						}
 					}
 				}
+
+				snprintf(name, sizeof(name), "framebuffer-con%lu-index", i);
+				connectorPatchFlags[i].bits.CPFIndex |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].index);
+				snprintf(name, sizeof(name), "framebuffer-con%lu-busid", i);
+				connectorPatchFlags[i].bits.CPFBusId |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].busId);
+				snprintf(name, sizeof(name), "framebuffer-con%lu-pipe", i);
+				connectorPatchFlags[i].bits.CPFPipe |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].pipe);
+				snprintf(name, sizeof(name), "framebuffer-con%lu-type", i);
+				connectorPatchFlags[i].bits.CPFType |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].type);
+				snprintf(name, sizeof(name), "framebuffer-con%lu-flags", i);
+				connectorPatchFlags[i].bits.CPFFlags |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].flags.value);
+
+				if (connectorPatchFlags[i].value != 0)
+					hasFramebufferPatch = true;
 			}
-
-			snprintf(name, sizeof(name), "framebuffer-con%lu-index", i);
-			connectorPatchFlags[i].bits.CPFIndex |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].index);
-			snprintf(name, sizeof(name), "framebuffer-con%lu-busid", i);
-			connectorPatchFlags[i].bits.CPFBusId |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].busId);
-			snprintf(name, sizeof(name), "framebuffer-con%lu-pipe", i);
-			connectorPatchFlags[i].bits.CPFPipe |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].pipe);
-			snprintf(name, sizeof(name), "framebuffer-con%lu-type", i);
-			connectorPatchFlags[i].bits.CPFType |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].type);
-			snprintf(name, sizeof(name), "framebuffer-con%lu-flags", i);
-			connectorPatchFlags[i].bits.CPFFlags |= WIOKit::getOSDataValue(igpu, name, framebufferPatch.connectors[i].flags.value);
-
-			if (connectorPatchFlags[i].value != 0)
-				hasFramebufferPatch = true;
 		}
 	}
 
-	size_t patchIndex = 0;
-	for (size_t i = 0; i < MaxFramebufferPatchCount; i++) {
-		char name[48];
-		snprintf(name, sizeof(name), "framebuffer-patch%lu-enable", i);
-		// Missing status means no patches at all.
-		uint32_t framebufferPatchEnable = 0;
-		if (!WIOKit::getOSDataValue(igpu, name, framebufferPatchEnable))
-			break;
+	if (cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge) {
+		size_t patchIndex = 0;
+		for (size_t i = 0; i < MaxFramebufferPatchCount; i++) {
+			char name[48];
+			snprintf(name, sizeof(name), "framebuffer-patch%lu-enable", i);
+			// Missing status means no patches at all.
+			uint32_t framebufferPatchEnable = 0;
+			if (!WIOKit::getOSDataValue(igpu, name, framebufferPatchEnable))
+				break;
 
-		// False status means a temporarily disabled patch, skip for next one.
-		if (!framebufferPatchEnable)
-			continue;
+			// False status means a temporarily disabled patch, skip for next one.
+			if (!framebufferPatchEnable)
+				continue;
 
-		uint32_t framebufferId = 0;
-		size_t framebufferPatchCount = 0;
+			uint32_t framebufferId = 0;
+			size_t framebufferPatchCount = 0;
 
-		snprintf(name, sizeof(name), "framebuffer-patch%lu-framebufferid", i);
-		bool passedFramebufferId = WIOKit::getOSDataValue(igpu, name, framebufferId);
-		snprintf(name, sizeof(name), "framebuffer-patch%lu-find", i);
-		auto framebufferPatchFind = OSDynamicCast(OSData, igpu->getProperty(name));
-		snprintf(name, sizeof(name), "framebuffer-patch%lu-replace", i);
-		auto framebufferPatchReplace = OSDynamicCast(OSData, igpu->getProperty(name));
-		snprintf(name, sizeof(name), "framebuffer-patch%lu-count", i);
-		(void)WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
+			snprintf(name, sizeof(name), "framebuffer-patch%lu-framebufferid", i);
+			bool passedFramebufferId = WIOKit::getOSDataValue(igpu, name, framebufferId);
+			snprintf(name, sizeof(name), "framebuffer-patch%lu-find", i);
+			auto framebufferPatchFind = OSDynamicCast(OSData, igpu->getProperty(name));
+			snprintf(name, sizeof(name), "framebuffer-patch%lu-replace", i);
+			auto framebufferPatchReplace = OSDynamicCast(OSData, igpu->getProperty(name));
+			snprintf(name, sizeof(name), "framebuffer-patch%lu-count", i);
+			(void)WIOKit::getOSDataValue(igpu, name, framebufferPatchCount);
 
-		if (!framebufferPatchFind || !framebufferPatchReplace)
-			continue;
+			if (!framebufferPatchFind || !framebufferPatchReplace)
+				continue;
 
-		framebufferPatches[patchIndex].framebufferId = (passedFramebufferId ? framebufferId : currentFramebufferId);
-		framebufferPatches[patchIndex].find = framebufferPatchFind;
-		framebufferPatches[patchIndex].replace = framebufferPatchReplace;
-		framebufferPatches[patchIndex].count = (framebufferPatchCount ? framebufferPatchCount : 1);
+			framebufferPatches[patchIndex].framebufferId = (passedFramebufferId ? framebufferId : currentFramebufferId);
+			framebufferPatches[patchIndex].find = framebufferPatchFind;
+			framebufferPatches[patchIndex].replace = framebufferPatchReplace;
+			framebufferPatches[patchIndex].count = (framebufferPatchCount ? framebufferPatchCount : 1);
 
-		framebufferPatchFind->retain();
-		framebufferPatchReplace->retain();
+			framebufferPatchFind->retain();
+			framebufferPatchReplace->retain();
 
-		hasFramebufferPatch = true;
+			hasFramebufferPatch = true;
 
-		patchIndex++;
+			patchIndex++;
+		}
 	}
 
 	return hasFramebufferPatch;
@@ -2052,6 +2117,11 @@ size_t IGFX::calculatePlatformListSize(size_t maxSize) {
 }
 
 void IGFX::writePlatformListData(const char *subKeyName) {
+	if (BaseDeviceInfo::get().cpuGeneration < CPUInfo::CpuGeneration::SandyBridge) {
+		DBGLOG("igfx", "writePlatformListData unsupported below Sandy bridge");
+		return;
+	}
+	
 	auto entry = IORegistryEntry::fromPath("IOService:/IOResources/WhateverGreen");
 	if (entry) {
 		entry->setProperty(subKeyName, gPlatformInformationList, static_cast<unsigned>(calculatePlatformListSize(PAGE_SIZE)));
@@ -2093,6 +2163,16 @@ bool IGFX::applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *starting
 	}
 
 	return r;
+}
+
+bool IGFX::setDictUInt32(OSDictionary *dict, const char *key, UInt32 value) {
+    auto *num = OSNumber::withNumber(value, sizeof(UInt32));
+	if (!num)
+		return false;
+	
+	bool success = dict->setObject(key, num);
+	num->release();
+	return success;
 }
 
 template <>
@@ -2412,4 +2492,161 @@ void IGFX::applyHdmiAutopatch() {
 		DBGLOG("igfx", "hdmi patching framebufferId 0x%08X successful", framebufferId);
 	else
 		DBGLOG("igfx", "hdmi patching framebufferId 0x%08X failed", framebufferId);
+}
+
+void IGFX::applyWestmerePatches(KernelPatcher &patcher) {
+	auto kernelVersion = getKernelVersion();
+	DBGLOG("igfx", "applyWestmerePatches kernel version %X", kernelVersion);
+	
+	//
+	// Reference: https://github.com/Goldfish64/ArrandaleGraphicsHackintosh/blob/master/Patches.md
+	//
+	
+	// Use 0x2000 for stride (fixes artifacts on resolutions > 1024x768). Located in AppleIntelHDGraphicsFB::hwSetCRTC.
+	const uint8_t findStride[] = { 0x0F, 0x45, 0xC8, 0x42, 0x89, 0x8C };
+	const uint8_t replaceStride[] = { 0x90, 0x90, 0x90, 0x42, 0x89, 0x8C };
+	KernelPatcher::LookupPatch stridePatch { currentFramebuffer, findStride, replaceStride, sizeof(findStride), 1 };
+	patcher.applyLookupPatch(&stridePatch);
+	DBGLOG("igfx", "applyWestmerePatches applied stride patch");
+	
+	if (framebufferWestmerePatchFlags.bits.SingleLink && framebufferWestmerePatches.SingleLink) {
+		// Single link patch 1. Enables single link mode. Located in AppleIntelHDGraphicsFB::hwGetPanelProperties.
+		if (kernelVersion == KernelVersion::MountainLion || kernelVersion == KernelVersion::Mavericks) {
+			const uint8_t findSingleWidth1Ml[] = { 0xC7, 0x03, 0x01, 0x00, 0x00, 0x00, 0xC7, 0x43, 0x20, 0x00, 0x00, 0x00, 0x00 };
+			const uint8_t replaceSingleWidth1Ml[] = { 0xC7, 0x03, 0x00, 0x00, 0x00, 0x00, 0xC7, 0x43, 0x20, 0x00, 0x00, 0x00, 0x00  };
+			KernelPatcher::LookupPatch singleWidth1MlPatch { currentFramebuffer, findSingleWidth1Ml, replaceSingleWidth1Ml, sizeof(findSingleWidth1Ml), 1 };
+			patcher.applyLookupPatch(&singleWidth1MlPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 1 for Mountain Lion and Mavericks");
+		}
+		else if (kernelVersion == KernelVersion::Yosemite) {
+			const uint8_t findSingleWidth1Yos[] = { 0x49, 0xC7, 0x07, 0x01, 0x00, 0x00, 0x00, 0x41, 0xC7, 0x47, 0x20, 0x00, 0x00, 0x00, 0x00 };
+			const uint8_t replaceSingleWidth1Yos[] = { 0x49, 0xC7, 0x07, 0x00, 0x00, 0x00, 0x00, 0x41, 0xC7, 0x47, 0x20, 0x00, 0x00, 0x00, 0x00 };
+			KernelPatcher::LookupPatch singleWidth1YosPatch { currentFramebuffer, findSingleWidth1Yos, replaceSingleWidth1Yos, sizeof(findSingleWidth1Yos), 1 };
+			patcher.applyLookupPatch(&singleWidth1YosPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 1 for Yosemite");
+		}
+		else if (kernelVersion >= KernelVersion::ElCapitan) {
+			const uint8_t findSingleWidth1ElCap[] = { 0x48, 0xC7, 0x03, 0x01, 0x00, 0x00, 0x00, 0x48, 0xB8, 0x0A, 0x00, 0x00, 0x00, 0xD0, 0x07, 0x00, 0x00 };
+			const uint8_t replaceSingleWidth1ElCap[] = { 0x48, 0xC7, 0x03, 0x00, 0x00, 0x00, 0x00, 0x48, 0xB8, 0x0A, 0x00, 0x00, 0x00, 0xD0, 0x07, 0x00, 0x00 };
+			KernelPatcher::LookupPatch singleWidth1ElCapPatch { currentFramebuffer, findSingleWidth1ElCap, replaceSingleWidth1ElCap, sizeof(findSingleWidth1ElCap), 1 };
+			patcher.applyLookupPatch(&singleWidth1ElCapPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 1 for El Capitan+");
+		}
+		
+		// Single link patch 2. Changes to divisor 14. Located in AppleIntelHDGraphicsFB::hwRegsNeedUpdate.
+		if (kernelVersion == KernelVersion::MountainLion) {
+			const uint8_t findSingleWidth2Ml[] = { 0xB9, 0x00, 0x00, 0x00, 0x09 };
+			const uint8_t replaceSingleWidth2Ml[] = { 0xB9, 0x00, 0x00, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2MlPatch { currentFramebuffer, findSingleWidth2Ml, replaceSingleWidth2Ml, sizeof(findSingleWidth2Ml), 1 };
+			patcher.applyLookupPatch(&singleWidth2MlPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Mountain Lion");
+		}
+		else if (kernelVersion == KernelVersion::Mavericks) {
+			const uint8_t findSingleWidth2Mav[] = { 0x41, 0xB9, 0x00, 0x60, 0x00, 0x09 };
+			const uint8_t replaceSingleWidth2Mav[] = { 0x41, 0xB9, 0x00, 0x60, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2MavPatch { currentFramebuffer, findSingleWidth2Mav, replaceSingleWidth2Mav, sizeof(findSingleWidth2Mav), 1 };
+			patcher.applyLookupPatch(&singleWidth2MavPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Mavericks");
+		}
+		else if (kernelVersion >= KernelVersion::Yosemite && kernelVersion <= KernelVersion::Sierra) {
+			const uint8_t findSingleWidth2Yos[] = { 0xB8, 0x00, 0x60, 0x00, 0x09 };
+			const uint8_t replaceSingleWidth2Yos[] = { 0xB8, 0x00, 0x60, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2YosPatch { currentFramebuffer, findSingleWidth2Yos, replaceSingleWidth2Yos, sizeof(findSingleWidth2Yos), 1 };
+			patcher.applyLookupPatch(&singleWidth2YosPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Yosemite to Sierra");
+		} else if (kernelVersion >= KernelVersion::HighSierra) {
+			const uint8_t findSingleWidth2Hs[] = { 0xBA, 0x00, 0x60, 0x00, 0x09 };
+			const uint8_t replaceSingleWidth2Hs[] = { 0xBA, 0x00, 0x60, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2HsPatch { currentFramebuffer, findSingleWidth2Hs, replaceSingleWidth2Hs, sizeof(findSingleWidth2Hs), 1 };
+			patcher.applyLookupPatch(&singleWidth2HsPatch);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for High Sierra+");
+		}
+		
+		// Single link patch 3. Powers down CLKB (fixes pixelated image). Located in AppleIntelHDGraphicsFB::hwRegsNeedUpdate.
+		const uint8_t findSingleWidth3[] = { 0x3C, 0x03, 0x30, 0x80 };
+		const uint8_t replaceSingleWidth3[] = { 0x00, 0x03, 0x30, 0x80 };
+		KernelPatcher::LookupPatch singleWidth3Patch { currentFramebuffer, findSingleWidth3, replaceSingleWidth3, sizeof(findSingleWidth3), 1 };
+		patcher.applyLookupPatch(&singleWidth3Patch);
+		DBGLOG("igfx", "applyWestmerePatches applied single width patch 3");
+	}
+	
+	// Cap link width.
+	if (framebufferWestmerePatches.LinkWidth == 0 || framebufferWestmerePatches.LinkWidth > 4) {
+		SYSLOG("igfx", "applyWestmerePatches link width of %u is invalid; using 1", framebufferWestmerePatches.LinkWidth);
+		framebufferWestmerePatches.LinkWidth = 1;
+	}
+
+	// Link width patch. Sets the link width. Located in AppleIntelHDGraphicsFB::TrainFDI.
+	// Formula =  ((link_width - 1) & 7) << 19.
+	uint32_t linkWidth = ((framebufferWestmerePatches.LinkWidth - 1) & 7) << 19;
+	uint8_t *linkWidthPtr = (uint8_t*)&linkWidth;
+	if (kernelVersion >= KernelVersion::MountainLion && kernelVersion <= KernelVersion::ElCapitan) {
+		const uint8_t findLinkWidthMl[] = { 0x49, 0x8B, 0x84, 0x24, 0x98, 0x06, 0x00, 0x00, 0x0F, 0xB6, 0x40, 0x18, 0xC1, 0xE0, 0x13, 0x41, 0x0B, 0x46, 0x6C, 0x41, 0x89, 0x46, 0x6C, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x81, 0x0C, 0x00, 0x0F, 0x00, 0x49, 0x8B, 0x84, 0x24, 0x98, 0x06, 0x00, 0x00, 0x0F, 0xB6, 0x40, 0x18, 0xC1, 0xE0, 0x13, 0x41, 0x0B, 0x46, 0x68 };
+		const uint8_t replaceLinkWidthMl[] = { 0x41, 0x8B, 0x46, 0x6C, 0x25, 0xFF, 0xFF, 0xC7, 0xFF, 0x0D, linkWidthPtr[3], linkWidthPtr[2], linkWidthPtr[1], linkWidthPtr[0], 0x90, 0x90, 0x90, 0x90, 0x90, 0x41, 0x89, 0x46, 0x6C, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x81, 0x0C, 0x00, 0x0F, 0x00, 0x41, 0x8B, 0x46, 0x68, 0x25, 0xFF, 0xFF, 0xC7, 0xFF, 0x0D, linkWidthPtr[3], linkWidthPtr[2], linkWidthPtr[1], linkWidthPtr[0], 0x90, 0x90, 0x90, 0x90, 0x90 };
+		KernelPatcher::LookupPatch linkWidthPatchMl { currentFramebuffer, findLinkWidthMl, replaceLinkWidthMl, sizeof(findLinkWidthMl), 1 };
+		patcher.applyLookupPatch(&linkWidthPatchMl);
+		DBGLOG("igfx", "applyWestmerePatches applied link width patch for Mountain Lion to El Capitan");
+	} else if (kernelVersion >= KernelVersion::Sierra) {
+		const uint8_t findLinkWidthSi[] = { 0x41, 0x89, 0x4E, 0x6C, 0x49, 0x8B, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x88, 0x0C, 0x00, 0x0F, 0x00, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x06, 0x00, 0x00, 0x0F, 0xB6, 0x51, 0x18, 0xC1, 0xE2, 0x13, 0x41, 0x8B, 0x76, 0x6C, 0x09, 0xD6, 0x41, 0x89, 0x76, 0x6C, 0x89, 0xB0, 0x0C, 0x00, 0x0F, 0x00, 0x41, 0x0B, 0x56, 0x68 };
+		const uint8_t replaceLinkWidthSi[] = { 0xBB, 0xFF, 0xFF, 0xC7, 0xFF, 0xBA, linkWidthPtr[3], linkWidthPtr[2], linkWidthPtr[1], linkWidthPtr[0], 0x21, 0xD9, 0x09, 0xD1, 0x41, 0x89, 0x4E, 0x6C, 0x49, 0x8B, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x88, 0x0C, 0x00, 0x0F, 0x00, 0x41, 0x8B, 0x4E, 0x68, 0x21, 0xD9, 0x09, 0xD1, 0x89, 0xCA, 0x90, 0x90, 0x90, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x06, 0x00, 0x00 };
+		KernelPatcher::LookupPatch linkWidthSiPatch { currentFramebuffer, findLinkWidthSi, replaceLinkWidthSi, sizeof(findLinkWidthSi), 1 };
+		patcher.applyLookupPatch(&linkWidthSiPatch);
+		DBGLOG("igfx", "applyWestmerePatches applied link width patch for Sierra+");
+	}
+}
+
+void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
+	bool success = true;
+	
+	uint32_t patchFeatureControl = 0;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlFBC;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGamma;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlPowerStates;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby;
+	patchFeatureControl |= callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlWatermarks;
+	
+	if (callbackIGFX->framebufferWestmerePatchFlags.bits.FBCControlCompression) {
+		auto dictFBCControlOld = OSDynamicCast(OSDictionary, framebuffer->getProperty("FBCControl"));
+		auto dictFBCControlNew = OSDictionary::withDictionary(dictFBCControlOld);
+		
+		success &= setDictUInt32(dictFBCControlNew, "Compression", framebufferWestmerePatches.FBCControlCompression);
+		
+		// Replace FBCControl dictionary.
+		framebuffer->removeProperty("FBCControl");
+		success &= framebuffer->setProperty("FBCControl", dictFBCControlNew);
+	}
+	
+	if (patchFeatureControl) {
+		auto dictFeatureControlOld = OSDynamicCast(OSDictionary, framebuffer->getProperty("FeatureControl"));
+		auto dictFeatureControlNew = OSDictionary::withDictionary(dictFeatureControlOld);
+		
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlFBC)
+			success &= setDictUInt32(dictFeatureControlNew, "FBC", framebufferWestmerePatches.FeatureControlFBC);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGPUInterruptHandling)
+			success &= setDictUInt32(dictFeatureControlNew, "GPUInterruptHandling", framebufferWestmerePatches.FeatureControlGPUInterruptHandling);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlGamma)
+			success &= setDictUInt32(dictFeatureControlNew, "Gamma", framebufferWestmerePatches.FeatureControlGamma);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlMaximumSelfRefreshLevel)
+			success &= setDictUInt32(dictFeatureControlNew, "MaximumSelfRefreshLevel", framebufferWestmerePatches.FeatureControlMaximumSelfRefreshLevel);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlPowerStates)
+			success &= setDictUInt32(dictFeatureControlNew, "PowerStates", framebufferWestmerePatches.FeatureControlPowerStates);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRSTimerTest)
+			success &= setDictUInt32(dictFeatureControlNew, "RSTimerTest", framebufferWestmerePatches.FeatureControlRSTimerTest);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlRenderStandby)
+			success &= setDictUInt32(dictFeatureControlNew, "RenderStandby", framebufferWestmerePatches.FeatureControlRenderStandby);
+		if (callbackIGFX->framebufferWestmerePatchFlags.bits.FeatureControlWatermarks)
+			success &= setDictUInt32(dictFeatureControlNew, "Watermarks", framebufferWestmerePatches.FeatureControlWatermarks);
+		
+		// Replace FBCControl dictionary.
+		framebuffer->removeProperty("FeatureControl");
+		success &= framebuffer->setProperty("FeatureControl", dictFeatureControlNew);
+	}
+	
+	if (success)
+		DBGLOG("igfx", "applyWestmereFeaturePatches successful %X", callbackIGFX->framebufferWestmerePatchFlags.value);
+	else
+		DBGLOG("igfx", "applyWestmereFeaturePatches failed %X", callbackIGFX->framebufferWestmerePatchFlags.value);
 }
