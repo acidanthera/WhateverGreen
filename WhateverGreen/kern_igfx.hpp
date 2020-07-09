@@ -47,6 +47,7 @@ private:
 	 *  Framebuffer patch flags
 	 */
 	union FramebufferPatchFlags {
+		// Sandy+ bits
 		struct FramebufferPatchFlagBits {
 			uint8_t FPFFramebufferId            :1;
 			uint8_t FPFModelNameAddr            :1;
@@ -71,6 +72,22 @@ private:
 			uint8_t FPFSliceCount               :1;
 			uint8_t FPFEuCount                  :1;
 		} bits;
+		
+		// Westmere bits
+		struct FramebufferWestmerePatchFlagBits {
+			uint8_t LinkWidth                               : 1;
+			uint8_t SingleLink                              : 1;
+			uint8_t FBCControlCompression                   : 1;
+			uint8_t FeatureControlFBC                       : 1;
+			uint8_t FeatureControlGPUInterruptHandling      : 1;
+			uint8_t FeatureControlGamma                     : 1;
+			uint8_t FeatureControlMaximumSelfRefreshLevel   : 1;
+			uint8_t FeatureControlPowerStates               : 1;
+			uint8_t FeatureControlRSTimerTest               : 1;
+			uint8_t FeatureControlRenderStandby             : 1;
+			uint8_t FeatureControlWatermarks                : 1;
+		} bitsWestmere;
+		
 		uint32_t value;
 	};
 
@@ -155,6 +172,29 @@ private:
 	 *  Framebuffer find / replace patches
 	 */
 	FramebufferPatch framebufferPatches[MaxFramebufferPatchCount] {};
+	
+	/**
+	 *  Framebuffer patches for first generation (Westmere).
+	 */
+	struct FramebufferWestmerePatches {
+		uint32_t LinkWidth {1};
+		uint32_t SingleLink {0};
+		
+		uint32_t FBCControlCompression {0};
+		uint32_t FeatureControlFBC {0};
+		uint32_t FeatureControlGPUInterruptHandling {0};
+		uint32_t FeatureControlGamma {0};
+		uint32_t FeatureControlMaximumSelfRefreshLevel {0};
+		uint32_t FeatureControlPowerStates {0};
+		uint32_t FeatureControlRSTimerTest {0};
+		uint32_t FeatureControlRenderStandby {0};
+		uint32_t FeatureControlWatermarks {0};
+	};
+	
+	/**
+	 *  Framebuffer patches for first generation (Westmere).
+	 */
+	FramebufferWestmerePatches framebufferWestmerePatches;
 
 	/**
 	 *  Framebuffer list, imported from the framebuffer kext
@@ -1361,7 +1401,7 @@ private:
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
-	static bool wrapGetOSInformation(void *that);
+	static bool wrapGetOSInformation(IOService *that);
 
 	/**
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
@@ -1487,6 +1527,17 @@ private:
 	 *  @return true if patched anything
 	 */
 	bool applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize);
+	
+	/**
+	 *  Add int to dictionary.
+	 *
+	 *  @param dict		OSDictionary instance.
+	 *  @param key		Key to add.
+	 *  @param value 	Value to add.
+	 *
+	 *  @return true if added
+	 */
+	bool setDictUInt32(OSDictionary *dict, const char *key, UInt32 value);
 
 	/**
 	 *  Patch platformInformationList
@@ -1528,6 +1579,16 @@ private:
 	 *  Apply DP to HDMI automatic connector type changes
 	 */
 	void applyHdmiAutopatch();
+	
+	/**
+	 *	Apply patches for first generation framebuffer.
+	 */
+	void applyWestmerePatches(KernelPatcher &patcher);
+	
+	/**
+	 *	Apply I/O registry FeatureControl and FBCControl patches for first generation framebuffer.
+	 */
+	void applyWestmereFeaturePatches(IOService *framebuffer);
 };
 
 #endif /* kern_igfx_hpp */

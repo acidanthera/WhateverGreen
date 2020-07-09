@@ -79,6 +79,42 @@ Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.
 
 - If a framebuffer is not specified explicitly in any way, the default framebuffer will be injected.  
 - If a framebuffer is not set and the system has a discrete graphics card, an "empty framebuffer" will be injected.  
+
+## Intel HD Graphics (first generation / Ironlake) ([Arrandale](https://en.wikipedia.org/wiki/Arrandale) processors)  
+
+> Supported from Mac OS X 10.6.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6 and are unsupported on newer operating systems. Metal support is absent.  
+> Laptops with LVDS displays are the only supported combination. All other display types are unsupported.    
+
+> For more information, reference [this](https://github.com/Goldfish64/ArrandaleGraphicsHackintosh) and [this](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/).
+
+Most typical configuration will require `framebuffer-patch-enable` and `framebuffer-singlelink`. `AAPL,ig-platform-id` is not required.
+
+If there are display or wake issues, `framebuffer-fbccontrol-*` and `framebuffer-featurecontrol-*` properties may be helpful. These mirror the settings present in the `Info.plist` of the framebuffer kext and are simple 0 or 1 settings.
+
+**Semantic:**  
+*framebuffer-patch-enable (enable patching)  
+framebuffer-linkwidth (specify link width, default is 1)  
+framebuffer-singlelink (enable single link mode)*  
+
+**FBCControl:**  
+*framebuffer-fbccontrol-allzero (sets all properties to zero, ones below will override)  
+framebuffer-fbccontrol-compression*  
+
+**FeatureControl:**  
+*framebuffer-featurecontrol-allzero (sets all properties to zero, ones below will override)  
+framebuffer-featurecontrol-fbc  
+framebuffer-featurecontrol-gpuinterrupthandling  
+framebuffer-featurecontrol-gamma  
+framebuffer-featurecontrol-maximumselfrefreshlevel  
+framebuffer-featurecontrol-powerstates  
+framebuffer-featurecontrol-rstimertest  
+framebuffer-featurecontrol-renderstandby  
+framebuffer-featurecontrol-watermarks*  
+
+***Native supported DevID's:*** 
+
+- `0x0042`
+- `0x0046`
   
 ## Intel HD Graphics 2000/3000 ([Sandy Bridge](https://en.wikipedia.org/wiki/Sandy_Bridge) processors)  
 
