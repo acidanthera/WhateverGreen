@@ -8,6 +8,7 @@ WhateverGreen Changelog
 - Add `-igfxvesa` to disable Intel Graphics acceleration.
 - Fix black screen on igfx since 10.15.5
 - Add workaround for rare force wake timeout panics on Intel KBL and CFL.
+- Add Intel Westmere graphics support.
 
 #### v1.4.0
 - Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id
