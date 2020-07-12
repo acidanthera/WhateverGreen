@@ -13,3 +13,22 @@ Tools/HookMac/libHookMac.dylib
 Tools/WhateverName/WhateverName.app/Contents/MacOS/libWhateverName.dylib
 .svace-dir
 cov-int
+
+From 7da08da9dc2605b1e21d44f797d1ab22cae036ef Mon Sep 17 00:00:00 2001
+From: burapha28 <67376072+burapha28@users.noreply.github.com>
+Date: Mon, 13 Jul 2020 00:09:08 +0700
+Subject: [PATCH] Update .gitignore
+
+---
+ .gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitignore b/.gitignore
+index 7b5af7e..4feedbb 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -13,3 +13,4 @@ Tools/HookMac/libHookMac.dylib
+ Tools/WhateverName/WhateverName.app/Contents/MacOS/libWhateverName.dylib
+ .svace-dir
+ cov-int
++.
