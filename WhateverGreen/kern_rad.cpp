@@ -335,36 +335,9 @@ void RAD::processConnectorOverrides(KernelPatcher &patcher, mach_vm_address_t ad
 											wrapTranslateAtomConnectorInfoV1, orgTranslateAtomConnectorInfoV1),
 				KernelPatcher::RouteRequest("__ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo",
 											wrapTranslateAtomConnectorInfoV2, orgTranslateAtomConnectorInfoV2),
+				KernelPatcher::RouteRequest("__ZN13ATIController5startEP9IOService", wrapATIControllerStart, orgATIControllerStart)
 			};
 			patcher.routeMultiple(kextRadeonSupport.loadIndex, requests, address, size);
-
-			// Starting with 11.0 ATIController::start contains an unlucky prefix for us:
-			// __text:0000000000002B90 55                                   push    rbp
-			// __text:0000000000002B91 48 89 E5                             mov     rbp, rsp
-			// __text:0000000000002B94 48 81 EC 20 03 00 00                 sub     rsp, 320h
-			// __text:0000000000002B9B 48 8B 05 06 55 0C 00                 mov     rax, cs:off_C80A8 ;1st vtable
-			// __text:0000000000002BA2 48 8B 0D 07 55 0C 00                 mov     rcx, cs:off_C80B0 ;2nd vtable
-			// We do not have enough instructions to insert a jump before the vtable assignments, which are not relocatable,
-			// and for this reason we perform vtable routing.
-			auto vt = patcher.solveSymbol<void *>(kextRadeonSupport.loadIndex, "__ZTV13ATIController", address, size);
-			if (vt != 0) {
-				orgATIControllerStart = getMember<mach_vm_address_t>(vt, 0x5D0);
-#ifdef DEBUG
-				auto st = patcher.solveSymbol<mach_vm_address_t>(kextRadeonSupport.loadIndex, "__ZN13ATIController5startEP9IOService", address, size);
-				DBGLOG("rad", "ATIController::start " PRIKADDR " vs vt " PRIKADDR " (" PRIKADDR ")", CASTKADDR(st), CASTKADDR(orgATIControllerStart), CASTKADDR(vt));
-#endif
-				auto ret = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
-				if (ret == KERN_SUCCESS) {
-					DBGLOG("rad", "fixing ATIController::start");
-					getMember<decltype(&wrapATIControllerStart)>(vt, 0x5D0) = wrapATIControllerStart;
-					MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
-				} else {
-					SYSLOG("rad", "failed to disable write protection for ATIController::start");
-				}
-			} else {
-				SYSLOG("rad", "failed to patch ATIController vtable");
-				patcher.clearError();
-			}
 		} else {
 			KernelPatcher::RouteRequest requests[] {
 				KernelPatcher::RouteRequest("__ZN23AtiAtomBiosDceInterface17getConnectorsInfoEP13ConnectorInfoRh", wrapGetConnectorsInfoV1, orgGetConnectorsInfoV1),
