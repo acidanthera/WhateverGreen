@@ -849,8 +849,9 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		}
 	}
 	
-	// 0: Framebuffer's SafeForceWake, or ForceWakeWorkaround
-	// 1: IntelAccelerator::SafeForceWakeMultithreaded
+	// 0: Framebuffer's SafeForceWake
+	// 1: IntelAccelerator::SafeForceWakeMultithreaded (or ForceWakeWorkaround when enabled)
+	// The default is 1. Forcing 0 will result in hangs (due to misbalanced number of calls?)
 	if (callbackIGFX->ForceWakeWorkaround.enabled && developmentDictCpy) {
 		auto num = OSNumber::withNumber(1ull, 32);
 		if (num) {

@@ -468,8 +468,6 @@ private:
 	
 	struct ForceWakeWorkaround {
 		bool enabled {false};
-		IOLock* lck {};
-		bool didInit {false};
 
 		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 		
