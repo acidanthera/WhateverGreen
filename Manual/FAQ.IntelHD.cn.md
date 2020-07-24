@@ -653,7 +653,7 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 ####
 *推荐的 FB 设置*：0x0D220003（桌面版，缺省值）；0x0A160000（移动版，缺省值）或 0x0A260005（移动版，推荐）或 0x0A260006（移动版，推荐）。
 
-对于 桌面版 HD 4400 以及*所有*移动版核显，需设定（仿冒）`IGPU` 的 `device-id` 为 `12040000`。（如下所示）
+对于 桌面版 HD 4400 以及移动版 HD4200/HD4400/HD4600 ，需设定（仿冒）`IGPU` 的 `device-id` 为 `12040000`。（如下所示）
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hsw_igpu.png) 
 
