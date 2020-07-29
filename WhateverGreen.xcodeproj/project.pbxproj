@@ -363,7 +363,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1150;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -598,6 +598,9 @@
 					"-fno-non-call-exceptions",
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
+					"-Wno-unknown-warning-option",
+ 					"-Wno-ossharedptr-misuse",
+ 					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -643,6 +646,9 @@
 					"-fno-non-call-exceptions",
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
+					"-Wno-unknown-warning-option",
+ 					"-Wno-ossharedptr-misuse",
+ 					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -776,6 +782,9 @@
 					"-fno-asynchronous-unwind-tables",
 					"-fsanitize=undefined,nullability",
 					"-fno-sanitize=function",
+					"-Wno-unknown-warning-option",
+ 					"-Wno-ossharedptr-misuse",
+ 					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
