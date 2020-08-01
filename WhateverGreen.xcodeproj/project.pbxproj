@@ -473,6 +473,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -521,6 +522,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -599,8 +601,8 @@
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
 					"-Wno-unknown-warning-option",
- 					"-Wno-ossharedptr-misuse",
- 					"-Wno-vla",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -647,8 +649,8 @@
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
 					"-Wno-unknown-warning-option",
- 					"-Wno-ossharedptr-misuse",
- 					"-Wno-vla",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -698,6 +700,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -783,8 +786,8 @@
 					"-fsanitize=undefined,nullability",
 					"-fno-sanitize=function",
 					"-Wno-unknown-warning-option",
- 					"-Wno-ossharedptr-misuse",
- 					"-Wno-vla",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
