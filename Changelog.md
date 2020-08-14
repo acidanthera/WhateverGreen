@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.2
+- Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
+
 #### v1.4.1
 - Added `igfxmetal=1` boot argument (and `enable-metal` property) to enable Metal on offline IGPU
 - Fixed applying patches on CometLake IGPUs, thx @apocolipse

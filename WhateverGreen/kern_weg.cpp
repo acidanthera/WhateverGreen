@@ -166,6 +166,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			size_t extNum = devInfo->videoExternal.size();
 			for (size_t i = 0; i < extNum; i++) {
 				auto &v = devInfo->videoExternal[i];
+				WIOKit::awaitPublishing(v.video);
 
 				auto gpu = OSDynamicCast(IOService, v.video);
 				auto hda = OSDynamicCast(IOService, v.audio);
