@@ -2,6 +2,8 @@ WhateverGreen Changelog
 =======================
 #### v1.4.2
 - Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
+- Disabled RPS control patch by default due to a bug in 10.15.6 IGPU drivers
+- Replaced `igfxnorpsc=1` with `igfxrpsc=1` to opt-in RPS control patch
 
 #### v1.4.1
 - Added `igfxmetal=1` boot argument (and `enable-metal` property) to enable Metal on offline IGPU

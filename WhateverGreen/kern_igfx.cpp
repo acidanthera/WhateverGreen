@@ -105,7 +105,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.enabled = true;
+			RPSControl.available = true;
 			ForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
 			break;
@@ -119,7 +119,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.enabled = true;
+			RPSControl.available = true;
 			ForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
 			break;
@@ -188,11 +188,11 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
 #endif
 		
-		uint32_t nrpsc = 0;
-		if (PE_parse_boot_argn("igfxnorpsc", &nrpsc, sizeof(nrpsc)) ||
-			WIOKit::getOSDataValue(info->videoBuiltin, "no-rps-control", nrpsc)) {
-			DBGLOG("weg", "RPS control patch overriden (%u)", nrpsc);
-			RPSControl.enabled &= !nrpsc;
+		uint32_t rpsc = 0;
+		if (PE_parse_boot_argn("igfxrpsc", &rpsc, sizeof(rpsc)) ||
+			WIOKit::getOSDataValue(info->videoBuiltin, "rps-control", rpsc)) {
+			RPSControl.enabled = rpsc > 0 && RPSControl.available;
+			DBGLOG("weg", "RPS control patch overriden (%u) availabile %d", rpsc, RPSControl.available);
 		}
 
 		uint32_t forceCompleteModeSet = 0;

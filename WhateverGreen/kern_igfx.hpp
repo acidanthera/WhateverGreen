@@ -456,6 +456,7 @@ private:
 	AppleIntelFramebufferController** gFramebufferController {};
 
 	struct RPSControl {
+		bool available {false};
 		bool enabled {false};
 		uint32_t freq_max {0};
 		

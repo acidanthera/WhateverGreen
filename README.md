@@ -83,7 +83,7 @@ not in the list, the driver's logic is used to determine whether complete modese
 - `igfxonlnfbs=MASK` boot argument (`force-online-framebuffers` device property) to specify
 indices of connectors for which online status is enforced. Format is similar to `igfxfcmsfbs`.
 - `wegtree=1` boot argument (`rebuild-device-tree` property) to force device renaming on Apple FW.
-- `igfxnorpsc=1` boot argument (`no-rps-control` property) to disable RPS control patch.
+- `igfxrpsc=1` boot argument (`rps-control` property) to enable RPS control patch (improves IGPU performance).
 
 #### Credits
 
