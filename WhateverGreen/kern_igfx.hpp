@@ -587,16 +587,6 @@ private:
 	 *  The default DPCD address
 	 */
 	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
-	
-	/**
-	 *  The extended DPCD address
-	 */
-	static constexpr uint32_t DPCD_EXTENDED_ADDRESS = 0x2200;
-
-	/**
-	 *  The default DPCD address
-	 */
-	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
 
 	/**
 	 *  The extended DPCD address
