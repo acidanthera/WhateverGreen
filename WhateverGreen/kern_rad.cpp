@@ -142,16 +142,27 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool hasAMD = false;
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
-			enableGvaSupport = hasAMD = true;
+			if (!hasAMD) {
+				enableGvaSupport = getKernelVersion() >= KernelVersion::Mojave;
+				hasAMD = true;
+			}
+
 			if (info->videoExternal[i].video->getProperty("disable-gva-support"))
 				enableGvaSupport = false;
-			break;
+
+			// When injecting values into device properties one cannot specify boolean types.
+			// Provide special support for Force_Load_FalconSMUFW.
+			auto smufw = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty("Force_Load_FalconSMUFW"));
+			if (smufw && smufw->getLength() == 1)
+				info->videoExternal[i].video->setProperty("Force_Load_FalconSMUFW",
+					*static_cast<const uint8_t *>(smufw->getBytesNoCopy()) ? kOSBooleanTrue : kOSBooleanFalse);
 		}
 	}
 
 	if (hasAMD) {
-		if (checkKernelArgument("-radnogva"))
-			enableGvaSupport = false;
+		int gva;
+		if (PE_parse_boot_argn("radgva", &gva, sizeof(gva)))
+			enableGvaSupport = gva != 0;
 
 		KernelPatcher::RouteRequest requests[] {
 			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
@@ -324,7 +335,7 @@ void RAD::processConnectorOverrides(KernelPatcher &patcher, mach_vm_address_t ad
 											wrapTranslateAtomConnectorInfoV1, orgTranslateAtomConnectorInfoV1),
 				KernelPatcher::RouteRequest("__ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo",
 											wrapTranslateAtomConnectorInfoV2, orgTranslateAtomConnectorInfoV2),
-				KernelPatcher::RouteRequest("__ZN13ATIController5startEP9IOService", wrapATIControllerStart, orgATIControllerStart),
+				KernelPatcher::RouteRequest("__ZN13ATIController5startEP9IOService", wrapATIControllerStart, orgATIControllerStart)
 			};
 			patcher.routeMultiple(kextRadeonSupport.loadIndex, requests, address, size);
 		} else {

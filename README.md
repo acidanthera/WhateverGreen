@@ -3,10 +3,10 @@ WhateverGreen
 
 [![Build Status](https://travis-ci.com/acidanthera/WhateverGreen.svg?branch=master)](https://travis-ci.com/acidanthera/WhateverGreen) [![Scan Status](https://scan.coverity.com/projects/16177/badge.svg?flat=1)](https://scan.coverity.com/projects/16177)
 
-
 [Lilu](https://github.com/acidanthera/Lilu) plugin providing patches to select GPUs on macOS. Requires Lilu 1.4.0 or newer.
 
 #### Features
+
 - Fixes boot to black screen on AMD and NVIDIA
 - Fixes sleep wake to black screen on AMD
 - Fixes boot screen distortion in certain cases
@@ -28,17 +28,21 @@ WhateverGreen
 - Implements the driver support for onboard LSPCON chips to enable DisplayPort to HDMI 2.0 output on some platforms with Intel IGPU.
 - Enforces complete modeset on non-built-in displays on Kaby Lake and newer to fix booting to black screen.
 - Allows non-supported cards to use HW video encoder (`-radcodec`)
+- Fixes choppy video playback on Intel Kaby Lake and newer.
+- Fixes black screen on Intel HD since 10.15.5.
+- Adds workaround for rare force wake timeout panics on Intel KBL and CFL.
 
 #### Documentation
+
 Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) and avoid asking any questions. No support is provided for the time being.
 
 #### Boot arguments
+
 - `-wegdbg` to enable debug printing (available in DEBUG binaries).
 - `-wegoff` to disable WhateverGreen.
-- `-wegbeta` to enable WhateverGreen on unsupported os versions (10.13 and below are enabled by default).
+- `-wegbeta` to enable WhateverGreen on unsupported OS versions (11.0 and below are enabled by default).
 - `-wegnoegpu` to disable external GPU (or add `disable-external-gpu` property to IGPU).
 - `-radvesa` to disable ATI/AMD video acceleration completely.
-- `-igfxvesa` to boot Intel graphics without hardware acceleration (VESA mode).
 - `-rad24` to enforce 24-bit display mode.
 - `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).
 - `-radcodec` to force the spoofed PID to be used in AMDRadeonVADriver
@@ -53,23 +57,36 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `gfxrst=4` to disable framebuffer init interaction during 2nd boot stage.
 - `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).
 - `igfxsnb=0` to disable IntelAccelerator name fix for Sandy Bridge CPUs.
-- `igfxgl=0` to disable Metal support on Intel.
-- `-igfxnohdmi` to disable DP to HDMI conversion patches for digital sound.
+- `igfxgl=1` boot argument (and `disable-metal` property) to disable Metal support on Intel.
+- `igfxmetal=1` boot argument (and `enable-metal` property) to force enable Metal support on Intel for offline rendering.
+- `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
+- `igfxfw=2` boot argument (and `igfxfw` property) to force loading of Apple GuC firmware
+- `-igfxvesa` to disable Intel Graphics acceleration.
+- `-igfxnohdmi` boot argument (and `disable-hdmi-patches`) to disable DP to HDMI conversion patches for digital sound.
+- `-igfxtypec` to force DP connectivity for Type-C platforms.
 - `-cdfon` (and `enable-hdmi20` property) to enable HDMI 2.0 patches.
 - `-igfxdump` to dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries).
 - `-igfxfbdump` to dump native and patched framebuffer table to ioreg at IOService:/IOResources/WhateverGreen
 - `igfxcflbklt=1` boot argument (and `enable-cfl-backlight-fix` property) to enable CFL backlight patch
-- `applbkl=0` boot argument to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)
+- `applbkl=0` boot argument (and `applbkl` property) to disable AppleBacklight.kext patches for IGPU. In case of custom AppleBacklight profile- [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md)
 - `-igfxmlr` boot argument (and `enable-dpcd-max-link-rate-fix` property) to apply the maximum link rate fix.
 - `-igfxhdmidivs` boot argument (and `enable-hdmi-dividers-fix` property) to fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms.
 - `-igfxlspcon` boot argument (and `enable-lspcon-support` property) to enable the driver support for onboard LSPCON chips. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)
 - `-igfxi2cdbg` boot argument to enable verbose output in I2C-over-AUX transactions (only for debugging purposes).
+- `igfxagdc=0` boot argument (`disable-agdc` device property) to disable AGDC.
+- `igfxfcms=1` boot argument (`complete-modeset` device property) to force complete modeset on Skylake or Apple firmwares.
 - `igfxfcmsfbs=` boot argument (`complete-modeset-framebuffers` device property) to specify
 indices of connectors for which complete modeset must be enforced. Each index is a byte in
 a 64-bit word; for example, value `0x010203` specifies connectors 1, 2, 3. If a connector is
 not in the list, the driver's logic is used to determine whether complete modeset is needed. Pass `-1` to disable.
+- `igfxonln=1` boot argument (`force-online` device property) to force online status on all displays.
+- `igfxonlnfbs=MASK` boot argument (`force-online-framebuffers` device property) to specify
+indices of connectors for which online status is enforced. Format is similar to `igfxfcmsfbs`.
+- `wegtree=1` boot argument (`rebuild-device-tree` property) to force device renaming on Apple FW.
+- `igfxrpsc=1` boot argument (`rps-control` property) to enable RPS control patch (improves IGPU performance).
 
 #### Credits
+
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names

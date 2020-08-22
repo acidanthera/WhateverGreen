@@ -14,6 +14,7 @@
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
 #include <Library/LegacyIOService.h>
+#include <IOKit/IOLocks.h>
 
 class IGFX {
 public:
@@ -46,6 +47,7 @@ private:
 	 *  Framebuffer patch flags
 	 */
 	union FramebufferPatchFlags {
+		// Sandy+ bits
 		struct FramebufferPatchFlagBits {
 			uint8_t FPFFramebufferId            :1;
 			uint8_t FPFModelNameAddr            :1;
@@ -70,6 +72,22 @@ private:
 			uint8_t FPFSliceCount               :1;
 			uint8_t FPFEuCount                  :1;
 		} bits;
+		
+		// Westmere bits
+		struct FramebufferWestmerePatchFlagBits {
+			uint8_t LinkWidth                               : 1;
+			uint8_t SingleLink                              : 1;
+			uint8_t FBCControlCompression                   : 1;
+			uint8_t FeatureControlFBC                       : 1;
+			uint8_t FeatureControlGPUInterruptHandling      : 1;
+			uint8_t FeatureControlGamma                     : 1;
+			uint8_t FeatureControlMaximumSelfRefreshLevel   : 1;
+			uint8_t FeatureControlPowerStates               : 1;
+			uint8_t FeatureControlRSTimerTest               : 1;
+			uint8_t FeatureControlRenderStandby             : 1;
+			uint8_t FeatureControlWatermarks                : 1;
+		} bitsWestmere;
+		
 		uint32_t value;
 	};
 
@@ -110,7 +128,7 @@ private:
 	/**
 	 *  Framebuffer hard-code patch
 	 */
-	FramebufferCFL framebufferPatch {};
+	FramebufferICLLP framebufferPatch {};
 
 	/**
 	 *  Patch value for fCursorMemorySize in Haswell framebuffer
@@ -154,6 +172,29 @@ private:
 	 *  Framebuffer find / replace patches
 	 */
 	FramebufferPatch framebufferPatches[MaxFramebufferPatchCount] {};
+	
+	/**
+	 *  Framebuffer patches for first generation (Westmere).
+	 */
+	struct FramebufferWestmerePatches {
+		uint32_t LinkWidth {1};
+		uint32_t SingleLink {0};
+		
+		uint32_t FBCControlCompression {0};
+		uint32_t FeatureControlFBC {0};
+		uint32_t FeatureControlGPUInterruptHandling {0};
+		uint32_t FeatureControlGamma {0};
+		uint32_t FeatureControlMaximumSelfRefreshLevel {0};
+		uint32_t FeatureControlPowerStates {0};
+		uint32_t FeatureControlRSTimerTest {0};
+		uint32_t FeatureControlRenderStandby {0};
+		uint32_t FeatureControlWatermarks {0};
+	};
+	
+	/**
+	 *  Framebuffer patches for first generation (Westmere).
+	 */
+	FramebufferWestmerePatches framebufferWestmerePatches;
 
 	/**
 	 *  Framebuffer list, imported from the framebuffer kext
@@ -236,6 +277,21 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
+	 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
+	 */
+	mach_vm_address_t orgHwRegsNeedUpdate {};
+
+	/**
+	 *  Original IntelFBClientControl::doAttribute function
+	 */
+	mach_vm_address_t orgFBClientDoAttribute {};
+
+	/**
+	 *  Original AppleIntelFramebuffer::getDisplayStatus function
+	 */
+	mach_vm_address_t orgGetDisplayStatus {};
+
+	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
@@ -266,11 +322,6 @@ private:
 	 *  Original AppleIntelFramebufferController::GetDPCDInfo function
 	 */
 	IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *);
-
-	/**
-	 *  Detected CPU generation of the host system
-	 */
-	CPUInfo::CpuGeneration cpuGeneration {};
 
 	/**
 	 *  Set to true if a black screen ComputeLaneCount patch is required
@@ -330,14 +381,34 @@ private:
 	bool forceOpenGL {false};
 
 	/**
+	 *  Set to true to enable Metal support for offline rendering
+	 */
+	bool forceMetal {false};
+
+	/**
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};
 
 	/**
+	 *  Disable AGDC configuration
+	 */
+	bool disableAGDC {false};
+
+	/**
+	 *  GuC firmware loading scheme
+	 */
+	enum FirmwareLoad {
+		FW_AUTO    = -1 /* Use as is for Apple, disable for others */,
+		FW_DISABLE = 0, /* Use host scheduler without GuC */
+		FW_GENERIC = 1, /* Use reference scheduler with GuC */
+		FW_APPLE   = 2, /* Use Apple GuC scheduler */
+	};
+
+	/**
 	 *  Set to true to avoid incompatible GPU firmware loading
 	 */
-	bool avoidFirmwareLoading {false};
+	FirmwareLoad fwLoadMode {FW_AUTO};
 
 	/**
 	 *  Requires framebuffer modifications
@@ -350,9 +421,16 @@ private:
 	bool dumpFramebufferToDisk {false};
 
 	/**
-	 * Ensure each modeset is a complete modeset.
+	 *  Trace framebuffer logic
 	 */
-	struct {
+	bool debugFramebuffer {false};
+
+	/**
+	 * Per-framebuffer helper script.
+	 */
+	struct FramebufferModifer {
+		bool supported {false}; // compatible CPU
+		bool legacy {false}; // legacy CPU (Skylake)
 		bool enable {false}; // enable the patch
 		bool customised {false}; // override default patch behaviour
 		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
@@ -365,8 +443,60 @@ private:
 						return true;
 			return false;
 		}
-	} forceCompleteModeset;
+	};
+	
+	// NOTE: the MMIO space is also available at RC6_RegBase
+	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
 
+	class AppleIntelFramebufferController;
+	// Populated at AppleIntelFramebufferController::start
+	// Useful for getting access to Read/WriteRegister, rather than having
+	// to compute the offsets
+	AppleIntelFramebufferController** gFramebufferController {};
+
+	struct RPSControl {
+		bool available {false};
+		bool enabled {false};
+		uint32_t freq_max {0};
+		
+		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
+		mach_vm_address_t orgPmNotifyWrapper;
+	} RPSControl;
+	
+	struct ForceWakeWorkaround {
+		bool enabled {false};
+
+		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		
+		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
+		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
+		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
+	} ForceWakeWorkaround;
+
+	/**
+	 * Ensure each modeset is a complete modeset.
+	 */
+	FramebufferModifer forceCompleteModeset;
+
+	/**
+	 * Ensure each display is online.
+	 */
+	FramebufferModifer forceOnlineDisplay;
+	
+	/**
+	 * Prevent IntelAccelerator from starting.
+	 */
+	bool disableAccel {false};
+
+	/**
+	 * Disable Type C framebuffer check.
+	 */
+	bool disableTypeCCheck {false};
+	
 	/**
 	 *  Perform platform table dump to ioreg
 	 */
@@ -378,9 +508,9 @@ private:
 	bool hdmiAutopatch {false};
 
 	/**
-	 *  Load GuC firmware
+	 *  Supports GuC firmware
 	 */
-	bool loadGuCFirmware {false};
+	bool supportsGuCFirmware {false};
 
 	/**
 	 *  Currently loading GuC firmware
@@ -464,6 +594,16 @@ private:
 	static constexpr uint32_t DPCD_EXTENDED_ADDRESS = 0x2200;
 
 	/**
+	 *  The default DPCD address
+	 */
+	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
+
+	/**
+	 *  The extended DPCD address
+	 */
+	static constexpr uint32_t DPCD_EXTENDED_ADDRESS = 0x2200;
+
+	/**
 	 *  Represents the first 16 fields of the receiver capabilities defined in DPCD
 	 *
 	 *  Main Reference:
@@ -520,7 +660,6 @@ private:
 	 * See function definition for explanation
 	 */
 	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
-	mach_vm_address_t orgHwRegsNeedUpdate {0};
 
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct
@@ -1271,7 +1410,7 @@ private:
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
-	static bool wrapGetOSInformation(void *that);
+	static bool wrapGetOSInformation(IOService *that);
 
 	/**
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
@@ -1317,6 +1456,18 @@ private:
 	static uint64_t wrapIgBufferGetGpuVirtualAddress(void *that);
 
 	/**
+	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
+	 */
+	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
+
+	/**
+	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
+	 */
+	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
+	
+	static uint64_t wrapIsTypeCOnlySystem(void*);
+
+	/**
 	 *  Load GuC-specific patches and hooks
 	 *
 	 *  @param patcher KernelPatcher instance
@@ -1325,6 +1476,16 @@ private:
 	 *  @param size    kinfo memory size
 	 */
 	void loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+	/**
+	 *  Enable framebuffer debugging
+	 *
+	 *  @param patcher KernelPatcher instance
+	 *  @param index   kinfo handle
+	 *  @param address kinfo load address
+	 *  @param size    kinfo memory size
+	 */
+	void loadFramebufferDebug(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
 
 	/**
 	 *  Load user-specified arguments from IGPU device
@@ -1375,6 +1536,17 @@ private:
 	 *  @return true if patched anything
 	 */
 	bool applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize);
+	
+	/**
+	 *  Add int to dictionary.
+	 *
+	 *  @param dict		OSDictionary instance.
+	 *  @param key		Key to add.
+	 *  @param value 	Value to add.
+	 *
+	 *  @return true if added
+	 */
+	bool setDictUInt32(OSDictionary *dict, const char *key, UInt32 value);
 
 	/**
 	 *  Patch platformInformationList
@@ -1416,6 +1588,16 @@ private:
 	 *  Apply DP to HDMI automatic connector type changes
 	 */
 	void applyHdmiAutopatch();
+	
+	/**
+	 *	Apply patches for first generation framebuffer.
+	 */
+	void applyWestmerePatches(KernelPatcher &patcher);
+	
+	/**
+	 *	Apply I/O registry FeatureControl and FBCControl patches for first generation framebuffer.
+	 */
+	void applyWestmereFeaturePatches(IOService *framebuffer);
 };
 
 #endif /* kern_igfx_hpp */

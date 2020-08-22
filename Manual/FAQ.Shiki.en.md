@@ -1,4 +1,5 @@
-#### General FAQ:
+# Shiki FAQs
+
 - _Where is Shiki?_  
 Shiki is now part of [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 
@@ -38,7 +39,7 @@ There is a ticklist to check against for all sorts of configurations. See config
 You may theoretically not do this but the consequences will be unspecified.
 
 - _Which GPUs this solution is known to glitch with?_
-   - Azul GPUs (e.g. HD 4400, HD 4600) when used with a connector-full platform-id without a discrete GPU fail to play HD videos due to not working HDCP playback. The issue is unrelated to Shiki, and you need [WhateverGreen](https://github.com/acidanthera/WhateverGreen) to avoid freezes.
+  - Azul GPUs (e.g. HD 4400, HD 4600) when used with a connector-full platform-id without a discrete GPU fail to play HD videos due to not working HDCP playback. The issue is unrelated to Shiki, and you need [WhateverGreen](https://github.com/acidanthera/WhateverGreen) to avoid freezes.
 
 - _Is my computer banned?_  
 If you are able to view the trailers but bought movies do not play even after computer authorisation your NIC MAC might be banned. Sometimes it is possible to log out and reauthorise your computer after a short while. Otherwise you must change your LAN MAC address.
@@ -63,7 +64,8 @@ No, you cannot since Netflix limited their 1080p content for very few mac models
 - _Can I use Shiki to apply other changes?_  
 It may be possible and can be discussed.
 
-#### System configuration FAQ:
+**System configuration FAQ:**
+
 - _How can I check that hardware video decoding works?_  
 Run an existing build of [VDADecoderChecker for 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker for 10.12](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (or compile [yourself](https://github.com/cylonbrain/VDADecoderCheck)) and check its output:  
 `GVA info: Successfully connected to the Intel plugin, offline Gen75`  
@@ -71,7 +73,7 @@ Run an existing build of [VDADecoderChecker for 10.11](https://i.applelife.ru/20
 
 - _How can I check that IMEI/IGPU device is present in IOReg?_  
 Run `ioreg | grep IMEI` in Terminal and make sure something alike is printed:  
-`    | |   +-o IMEI@16  <class IOPCIDevice, id 0x100000209, registered, matched, active, busy 0 (6 ms), retain 11>`
+```    | |   +-o IMEI@16  <class IOPCIDevice, id 0x100000209, registered, matched, active, busy 0 (6 ms), retain 11>```
 
 - _How can I check my platform-id?_  
 Run `ioreg -l | grep platform-id` in Terminal and make sure something alike is printed:  
@@ -109,11 +111,11 @@ Afterwards make sure AppleGVA sigature is valid (the command should output nothi
 If it is not, restore AppleGVA.framework from a newly installed system with the correct permissions.  
 Reboot twice.
 
-- _How can I change my NIC MAC address via [HookMac](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/HookMac)?_  
-   - Disable SIP (System Integrity Protection);  
-   - Run in Terminal (specifying your own random MAC):   
+- _How can I change my NIC MAC address via [HookMac](../Tools/HookMac/)?_  
+  - Disable SIP (System Integrity Protection);  
+  - Run in Terminal (specifying your own random MAC):  
     `DYLD_INSERT_LIBRARIES=/full/path/to/libHookMac.dylib MAC=00:11:22:33:44:55 /Applications/iTunes.app/Contents/MacOS/iTunes`;
-   - You will see a corresponding print if the address was changed.
+  - You will see a corresponding print if the address was changed.
 
 - _How can I check that my dyld shared cache is ok?_  
 Run the following commands and compare their output:  
@@ -151,7 +153,7 @@ Prioritising Intel and using connector-full platform-id (e.g. `<03 00 66 01>` fo
 - _I get hardware accelerated decoding working on my AMD with forced ATI decoder but DRM decoding still does not work, what is up?_  
 Certain AMD GPUs, e. g. HD 7750, do support hardware accelerated video decoding but fail to decode DRM video. The cause is unknown. Use Shiki normally.
 
-- _What is [BoardHash](https://github.com/acidanthera/WhateverGreen/tree/master/Tools/BoardHash) tool for?_  
+- _What is [BoardHash](../Tools/BoardHash) tool for?_  
 BoardHash tool can generate mac board id hashes similar to the ones present in CoreAUC.framework (`_PsZXJ2EK7ifxrtgc` function).  
 For example, Mac-F221BEC8 (MacPro5,1) stands for 5f571162ce99350785007863627a096bfa11c81b.  
 It seems to have hashes of the macs with special HDCP permissions. E. g. it is known that MacPro5,1 model makes HD movies work on HD 4000 regardless of decoder state. 
@@ -159,32 +161,32 @@ It seems to have hashes of the macs with special HDCP permissions. E. g. it is k
 - _How can I disable PAVP/HDCP on Intel Azul (HD 4400, HD 4600) and Skylake (HD 530) GPUs?_  
 Consider using [WhateverGreen](https://github.com/acidanthera/WhateverGreen) to disable PAVP/HDCP and avoid freezes.
 
-#### Configuration checklist
+**Configuration Checklist :**
 
 - _Non-Shiki based solution if you have:_  
-   - AMD with working DRM VDA (e.g. HD 7870, HD 6670, HD 7970);
-   - NVIDIA with working DRM VDA (supposedly 2xx series and some others).  
+  - AMD with working DRM VDA (e.g. HD 7870, HD 6670, HD 7970);
+  - NVIDIA with working DRM VDA (supposedly 2xx series and some others).  
 
   This solution is not well explored but it is known to work for some people. Shiki.kext installation is *not* needed.
-   - IGPU device is enabled, set to preferred in BIOS, and present with a connector-full AAPL,ig-platform-id prop (e.g. `<03 00 66 01>`) or removed and disabled completely without a trace in IOReg (e. g. via [D2EN register](https://applelife.ru/threads/chernye-trejlery-itunes.42290/page-14#post-584519));
-   - Hardware video decoder preferences are forced to ATI or NVIDIA depending on the GPU installed;
-   - VDADecoderChecker confirms VDA decoder working with VP3 (NVIDIA) or AMD decoders;
-   - Mac model set to the one supporting hardware acceleration.
+  - IGPU device is enabled, set to preferred in BIOS, and present with a connector-full AAPL,ig-platform-id prop (e.g. `<03 00 66 01>`) or removed and disabled completely without a trace in IOReg (e. g. via [D2EN register](https://applelife.ru/threads/chernye-trejlery-itunes.42290/page-14#post-584519));
+  - Hardware video decoder preferences are forced to ATI or NVIDIA depending on the GPU installed;
+  - VDADecoderChecker confirms VDA decoder working with VP3 (NVIDIA) or AMD decoders;
+  - Mac model set to the one supporting hardware acceleration.
 
 - _Shiki-based solution for non-freezing Intel and/or any discrete GPU:_  
-   - IGPU device is enabled, and present with a connector-less AAPL,ig-platform-id prop (e.g. `<04 00 12 04>`, `<07 00 62 01>`), use connector-full framebuffers in solo mode;
-   - Discrete GPU is properly configured with IOVARendererID present in IOReg;
-   - VDADecoderChecker confirms Intel Offline (Online) VDA decoder working;
-   - IMEI device is present in IOReg;
-   - No override preferences are used;
-   - Mac model set to the one supporting hardware acceleration.
+  - IGPU device is enabled, and present with a connector-less AAPL,ig-platform-id prop (e.g. `<04 00 12 04>`, `<07 00 62 01>`), use connector-full framebuffers in solo mode;
+  - Discrete GPU is properly configured with IOVARendererID present in IOReg;
+  - VDADecoderChecker confirms Intel Offline (Online) VDA decoder working;
+  - IMEI device is present in IOReg;
+  - No override preferences are used;
+  - Mac model set to the one supporting hardware acceleration.
 
 - _Shiki-based solution for Intel Azul (HD4400, HD4600) without a discrete GPU:_  
-   - IGPU device is enabled, and present with a connector-full AAPL,ig-platform-id prop (e.g. `<03 00 22 0d>`, `<00 00 16 0a>`), it is reported that renaming IGPU to GFX0 or to an arbitrary name reduces freeze chance;
-   - GPU driver or framebuffer are patched to disable PAVP/HDCP;
-   - Hardware video decoder is disabled by a defaults option (video playback will fail after wakeup otherwise);
-   - IMEI device is present in IOReg;
-   - Mac model set to the one supporting hardware acceleration.
+  - IGPU device is enabled, and present with a connector-full AAPL,ig-platform-id prop (e.g. `<03 00 22 0d>`, `<00 00 16 0a>`), it is reported that renaming IGPU to GFX0 or to an arbitrary name reduces freeze chance;
+  - GPU driver or framebuffer are patched to disable PAVP/HDCP;
+  - Hardware video decoder is disabled by a defaults option (video playback will fail after wakeup otherwise);
+  - IMEI device is present in IOReg;
+  - Mac model set to the one supporting hardware acceleration.
 
 - _Shiki-based solution for an unsupported CPU (e.g. Haswell Celeron E):_  
   Hardware video decoding acceleration does not work with these CPUs and to boot you need to fake your CPUID.  

@@ -10,8 +10,10 @@
 		1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C748C2C1C21952C0024EED2 /* kern_start.cpp */; };
 		1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1C9CB7AE1C789FF500231E41 /* kern_rad.cpp */; };
 		1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1C9CB7AF1C789FF500231E41 /* kern_rad.hpp */; };
+		2F30012424A00F2800C590C3 /* kern_igfx_pm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */; };
 		CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */; };
 		CE19710021C380DF00B02AB4 /* kern_nvhda.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */; };
+		CE1F61B92432DEE800201DF4 /* kern_igfx_debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */; };
 		CE405EC91E49DD9700AA0B3D /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE405EC71E49DD7100AA0B3D /* libkmod.a */; };
 		CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
 		CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE766ED4210763B200A84567 /* kern_guc.cpp */; };
@@ -30,6 +32,7 @@
 		CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5C20EE825A00BA842F /* kern_weg.cpp */; };
 		CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEA03B5D20EE825A00BA842F /* kern_weg.hpp */; };
 		CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB402A41F17F5C400716912 /* kern_con.hpp */; };
+		CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC0863524331E9B00F5B701 /* kern_agdc.hpp */; };
 		CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */; };
 		CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */; };
 		E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */; };
@@ -75,8 +78,10 @@
 		1CF01C901C8CF97F002DCEA3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_pm.cpp; sourceTree = "<group>"; };
 		CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_nvhda.cpp; sourceTree = "<group>"; };
 		CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_nvhda.hpp; sourceTree = "<group>"; };
+		CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_debug.cpp; sourceTree = "<group>"; };
 		CE271B4C1F319BD000D2BC1C /* reference.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = reference.cpp; sourceTree = "<group>"; };
 		CE363A7D20FE4EEC00ED7DC0 /* IntelFramebuffer.bt */ = {isa = PBXFileReference; lastKnownFileType = text; name = IntelFramebuffer.bt; path = Manual/IntelFramebuffer.bt; sourceTree = "<group>"; };
 		CE405EBA1E49DD7100AA0B3D /* kern_compression.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
@@ -121,6 +126,7 @@
 		CEAEA1191F26905A00918651 /* Sample.dsl */ = {isa = PBXFileReference; lastKnownFileType = text; path = Sample.dsl; sourceTree = "<group>"; };
 		CEB402A41F17F5C400716912 /* kern_con.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_con.hpp; sourceTree = "<group>"; };
 		CEB402A71F181D8300716912 /* kern_atom.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atom.hpp; sourceTree = "<group>"; };
+		CEC0863524331E9B00F5B701 /* kern_agdc.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_agdc.hpp; sourceTree = "<group>"; usesTabs = 0; };
 		CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_cdf.cpp; sourceTree = "<group>"; };
 		CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cdf.hpp; sourceTree = "<group>"; };
 		CEEF190A239CFDB1005B3BE8 /* FAQ.Chart.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Chart.md; sourceTree = "<group>"; };
@@ -172,6 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				1C748C2C1C21952C0024EED2 /* kern_start.cpp */,
+				CEC0863524331E9B00F5B701 /* kern_agdc.hpp */,
 				CEB402A71F181D8300716912 /* kern_atom.hpp */,
 				CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */,
 				CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */,
@@ -181,6 +188,8 @@
 				CE766ED5210763B200A84567 /* kern_guc.hpp */,
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
+				CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */,
+				2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
 				CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */,
 				CE7FC0B020F563CA00138088 /* kern_ngfx_asm.S */,
@@ -297,6 +306,7 @@
 				CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */,
 				CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */,
 				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
+				CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */,
 				CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */,
 				1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */,
 				CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */,
@@ -353,7 +363,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1130;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -396,7 +406,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\nif [ -d \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" ]; then\n  rm -rf \"WhateverName.app\"\n  cp -a \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" \"WhateverName.app\"\n  dist+=(\"WhateverName.app\")\nfi\n\ncp -a \"$SOURCE_ROOT/Manual/SSDT-PNLF.dsl\" \"SSDT-PNLF.dsl\"\ndist+=(\"SSDT-PNLF.dsl\")\n\narchive=\"${PRODUCT_NAME}-${MODULE_VERSION}-$(echo $CONFIGURATION | tr /a-z/ /A-Z/).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry -FS \"${archive}\" \"${dist[@]}\"\nrm -rf \"WhateverName.app\"\n";
+			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\nif [ -d \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" ]; then\n  rm -rf \"WhateverName.app\"\n  cp -a \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" \"WhateverName.app\"\n  dist+=(\"WhateverName.app\")\nfi\n\ncp -a \"$SOURCE_ROOT/Manual/SSDT-PNLF.dsl\" \"SSDT-PNLF.dsl\"\ndist+=(\"SSDT-PNLF.dsl\")\ncp -a \"$SOURCE_ROOT/Manual/SSDT-PNLFCFL.dsl\" \"SSDT-PNLFCFL.dsl\"\ndist+=(\"SSDT-PNLFCFL.dsl\")\n\narchive=\"${PRODUCT_NAME}-${MODULE_VERSION}-$(echo $CONFIGURATION | tr /a-z/ /A-Z/).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry -FS \"${archive}\" \"${dist[@]}\"\nrm -rf \"WhateverName.app\"\n";
 		};
 		CE7FC0C520F6825100138088 /* Generate Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -427,12 +437,14 @@
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
 				CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */,
 				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
+				2F30012424A00F2800C590C3 /* kern_igfx_pm.cpp in Sources */,
 				CE7FC0B120F563CA00138088 /* kern_ngfx_asm.S in Sources */,
 				CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */,
 				CE8190A21F1E3ECE00DE95F4 /* kern_model.cpp in Sources */,
 				CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
 				CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */,
+				CE1F61B92432DEE800201DF4 /* kern_igfx_debug.cpp in Sources */,
 				CE7FC0AA20F55E7400138088 /* kern_ngfx.cpp in Sources */,
 				1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */,
 			);
@@ -461,6 +473,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -509,6 +522,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -561,6 +575,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"MODULE_VERSION=$(MODULE_VERSION)",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
+					"APPLE_KEXT_ASSERTIONS=1",
 					"$(inherited)",
 				);
 				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/Lilu.kext/Contents/Resources";
@@ -573,7 +588,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.6;
+				MODULE_VERSION = 1.4.2;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -585,6 +600,9 @@
 					"-fno-non-call-exceptions",
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
+					"-Wno-unknown-warning-option",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -618,7 +636,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.6;
+				MODULE_VERSION = 1.4.2;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -630,6 +648,9 @@
 					"-fno-non-call-exceptions",
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
+					"-Wno-unknown-warning-option",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -679,6 +700,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -735,6 +757,7 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"MODULE_VERSION=$(MODULE_VERSION)",
+					"APPLE_KEXT_ASSERTIONS=1",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
 					"$(inherited)",
 				);
@@ -748,7 +771,7 @@
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.6;
+				MODULE_VERSION = 1.4.2;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -762,6 +785,9 @@
 					"-fno-asynchronous-unwind-tables",
 					"-fsanitize=undefined,nullability",
 					"-fno-sanitize=function",
+					"-Wno-unknown-warning-option",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";

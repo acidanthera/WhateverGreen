@@ -11,96 +11,9 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Library/LegacyIOService.h>
+#include "kern_agdc.hpp"
 #include "kern_atom.hpp"
 #include "kern_con.hpp"
-
-#pragma pack(push, 1)
-
-// Additional notes for AppleGraphicsDevicePolicy.kext:
-// agdp=-1 -> force unload AppleGraphicsDevicePolicy.kext
-// agdp=0  -> do nothing basically
-// agdp>0  -> set extra FeatureControl bits:
-//  0x1     -> timeout bit
-//  0x2     -> skip no media enter
-//  0x4     -> special link modes
-//  0x10    -> some aux command
-//  0x40    -> something with timing
-
-enum kAGDCRegisterLinkControlEvent_t {
-	kAGDCRegisterLinkInsert             = 0,
-	kAGDCRegisterLinkRemove             = 1,
-	kAGDCRegisterLinkChange             = 2,
-	kAGDCRegisterLinkChangeMST          = 3,
-	kAGDCRegisterLinkFramebuffer        = 4,                                // V106+
-	// This event is handled by AppleGraphicsDevicePolicy::VendorEventHandler.
-	// The point of this event to validate the timing information, and take decision on what to do with this display.
-	// One of the examples of this event is to merge multiple display ports into one connection for 5K/6K output.
-	// Drivers should interpret modeStatus to decide on whether to continue execution, change the mode, or disable link.
-	kAGDCValidateDetailedTiming         = 10,
-	kAGDCRegisterLinkChangeWakeProbe    = 0x80,
-};
-
-struct AGDCDetailedTimingInformation_t
-{
-	uint32_t      horizontalScaledInset;          // pixels
-	uint32_t      verticalScaledInset;            // lines
-
-	uint32_t      scalerFlags;
-	uint32_t      horizontalScaled;
-	uint32_t      verticalScaled;
-
-	uint32_t      signalConfig;
-	uint32_t      signalLevels;
-
-	uint64_t      pixelClock;                     // Hz
-
-	uint64_t      minPixelClock;                  // Hz - With error what is slowest actual clock
-	uint64_t      maxPixelClock;                  // Hz - With error what is fasted actual clock
-
-	uint32_t      horizontalActive;               // pixels
-	uint32_t      horizontalBlanking;             // pixels
-	uint32_t      horizontalSyncOffset;           // pixels
-	uint32_t      horizontalSyncPulseWidth;       // pixels
-
-	uint32_t      verticalActive;                 // lines
-	uint32_t      verticalBlanking;               // lines
-	uint32_t      verticalSyncOffset;             // lines
-	uint32_t      verticalSyncPulseWidth;         // lines
-
-	uint32_t      horizontalBorderLeft;           // pixels
-	uint32_t      horizontalBorderRight;          // pixels
-	uint32_t      verticalBorderTop;              // lines
-	uint32_t      verticalBorderBottom;           // lines
-
-	uint32_t      horizontalSyncConfig;
-	uint32_t      horizontalSyncLevel;            // Future use (init to 0)
-	uint32_t      verticalSyncConfig;
-	uint32_t      verticalSyncLevel;              // Future use (init to 0)
-	uint32_t      numLinks;
-	uint32_t      verticalBlankingExtension;
-	uint16_t      pixelEncoding;
-	uint16_t      bitsPerColorComponent;
-	uint16_t      colorimetry;
-	uint16_t      dynamicRange;
-	uint16_t      dscCompressedBitsPerPixel;
-	uint16_t      dscSliceHeight;
-	uint16_t      dscSliceWidth;
-};
-
-struct AGDCValidateDetailedTiming_t
-{
-	uint32_t                         framebufferIndex;     // IOFBDependentIndex
-	AGDCDetailedTimingInformation_t  timing;
-	uint16_t                         padding1[5];
-	void                             *cfgInfo;             // AppleGraphicsDevicePolicy configuration
-	int32_t                          frequency;
-	uint16_t                         padding2[6];
-	uint32_t                         modeStatus;           // 1 - invalid, 2 - success, 3 - change timing
-	uint16_t                         padding3[2];
-};
-
-#pragma pack(pop)
-
 
 class RAD {
 public:

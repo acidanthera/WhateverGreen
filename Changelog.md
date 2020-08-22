@@ -1,7 +1,47 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.2
+- Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
+- Disabled RPS control patch by default due to a bug in 10.15.6 IGPU drivers
+- Replaced `igfxnorpsc=1` with `igfxrpsc=1` to opt-in RPS control patch
+
+#### v1.4.1
+- Added `igfxmetal=1` boot argument (and `enable-metal` property) to enable Metal on offline IGPU
+- Fixed applying patches on CometLake IGPUs, thx @apocolipse
+- Added constants required for 11.0 update
+- Added the use of RPS control for all the command streamers on IGPU (disabled via `igfxnorpsc=1`)
+- Add `-igfxvesa` to disable Intel Graphics acceleration.
+- Fix black screen on igfx since 10.15.5
+- Add workaround for rare force wake timeout panics on Intel KBL and CFL.
+- Add Intel Westmere graphics support.
+
+#### v1.4.0
+- Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id
+- Fixed `framebuffer-conX-alldata` patching regression
+- Added `disable-hdmi-patches` device property alias to `-igfxnohdmi`
+
+#### v1.3.9
+- Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms
+- Partially fix ICL framebuffer patching
+- Add support to injecting `Force_Load_FalconSMUFW` from OpenCore
+- Disabled automatic enabling of GVA for Polaris on 10.13 and lower
+- Replaced -radnogva argument with radgva=0/1 to force GVA for Polaris
+- Added `wegtree=1` boot argument (`rebuild-device-tree` property) to force device renaming on Apple FW
+
+#### v1.3.8
+- Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware
+- Added `igfxpavp=1` boot argument (and `igfxpavp` property) to force enable PAVP output
+- Added `igfxfcms=1` boot argument (and `complete-modeset` property) on Skylake and Apple
+- Improved performance with Lilu 1.4.3 APIs
+- Added `-igfxfbdbg` boot argument to debug IGPU framebuffer (debug builds only)
+- Added `igfxagdc=0` boot argument and `disable-agdc` IGPU property to disable AGDC
+- Added `igfxonln=1` boot argument and `force-online` IGPU property force online status for all displays
+- Added `igfxonlnfbs=MASK` boot argument and `force-online-framebuffers` IGPU property to override display status
+
 #### v1.3.7
 - Improved the maximum link rate fix: Now correct the value read from extended DPCD as well. (by @0xFireWolf)
+- Improved firmware loading handling on 10.15.4 (may fix booting issues on KBL+)
+- Improved support for Comet Lake IGPUs (thx @stormbirds)
 
 #### v1.3.6
 - Enabled CoreLSKD streaming patches by default for AMD hardware DRM on Ivy Bridge
