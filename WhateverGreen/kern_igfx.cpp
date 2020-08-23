@@ -1637,13 +1637,13 @@ void IGFX::sanitizeCDClockFrequency(void *that)
 			newPLLFrequency = ICL_CDCLK_PLL_FREQ_REF_19_2;
 			break;
 			
-		case ICL_CDCLK_PLL_FREQ_REF_24_0:
+		case ICL_REF_CLOCK_FREQ_24_0:
 			DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 24.0 MHz.");
 			newCdclkFrequency = ICL_CDCLK_FREQ_648_0;
 			newPLLFrequency = ICL_CDCLK_PLL_FREQ_REF_24_0;
 			break;
 			
-		case ICL_CDCLK_PLL_FREQ_REF_38_4:
+		case ICL_REF_CLOCK_FREQ_38_4:
 			DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 38.4 MHz.");
 			newCdclkFrequency = ICL_CDCLK_FREQ_652_8;
 			newPLLFrequency = ICL_CDCLK_PLL_FREQ_REF_38_4;
