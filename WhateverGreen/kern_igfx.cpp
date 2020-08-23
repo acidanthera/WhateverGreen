@@ -1703,7 +1703,7 @@ uint32_t IGFX::wrapProbeCDClockFrequency(void *that) {
 	// Read the Core Display Clock frequency from the CDCLK_CTL register
 	// Bit 0 - 11 stores the decimal frequency
 	auto cdclk = callbackIGFX->orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
-	DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is %s MHz.",
+	DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The current core display clock frequency is %s MHz.",
 		   coreDisplayClockDecimalFrequency2String(cdclk));
 	
 	// Guard: Check whether the current frequency is supported by the graphics driver
