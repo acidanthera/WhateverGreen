@@ -486,9 +486,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		bool bklCoffeeFb = realFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
 		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
 		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
-		// Solve ReadRegister32 just once as it is sahred
+		// Solve ReadRegister32 just once as it is shared
 		if (bklCoffeeFb || bklKabyFb ||
-			RPSControl.enabled || ForceWakeWorkaround.enabled) {
+			RPSControl.enabled || ForceWakeWorkaround.enabled || coreDisplayClockPatch) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
@@ -575,13 +575,12 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			auto pcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController21probeCDClockFrequencyEv", address, size);
 			auto dcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14disableCDClockEv", address, size);
 			auto scdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", address, size);
-			auto rr32Address = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
-			if (pcdcAddress && rr32Address && dcdcAddress && scdcAddress) {
+			if (pcdcAddress && dcdcAddress && scdcAddress && AppleIntelFramebufferController__ReadRegister32) {
 				patcher.eraseCoverageInstPrefix(pcdcAddress);
 				orgProbeCDClockFrequency = reinterpret_cast<decltype(orgProbeCDClockFrequency)>(patcher.routeFunction(pcdcAddress, reinterpret_cast<mach_vm_address_t>(wrapProbeCDClockFrequency), true));
 				orgDisableCDClock = reinterpret_cast<decltype(orgDisableCDClock)>(dcdcAddress);
 				orgSetCDClockFrequency = reinterpret_cast<decltype(orgSetCDClockFrequency)>(scdcAddress);
-				orgIclReadRegister32 = reinterpret_cast<decltype(orgIclReadRegister32)>(rr32Address);
+				orgIclReadRegister32 = AppleIntelFramebufferController__ReadRegister32;
 				if (orgProbeCDClockFrequency && orgIclReadRegister32 && orgDisableCDClock && orgSetCDClockFrequency) {
 					DBGLOG("igfx", "CDC: Functions have been routed successfully.");
 				} else {
