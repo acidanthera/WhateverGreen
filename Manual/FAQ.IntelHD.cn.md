@@ -1834,6 +1834,35 @@ igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
   
 ![](Img/lspcon_debug.png)
 
+## 修复 Ice Lake 平台上因 Core Display Clock (CDCLK) 频率过低而导致的内核崩溃问题
+
+为核显添加 `enable-cdclk-frequency-fix` 属性或者直接使用 `-igfxcdc` 启动参数以解决 Core Display Clock (CDCLK) 频率过低而导致的内核崩溃问题。  
+
+核显的显示引擎是由这个 Core Display Clock 时钟来驱动的。苹果的显卡驱动假定 BIOS 或者固件已设定好时钟频率为 652.8 MHz 或者 648 MHz，而有些 Ice Lake 笔记本在开机时 BIOS 自动设定频率为最低的 172.8 MHz，所以会触发频率检查的函数而导致内核崩溃。内核崩溃后，你能看到类似 "Unsupported CD clock decimal frequency 0x158" 这样的错误信息。  
+
+这个补丁通过重新设定 Core Display Clock 的频率来通过上述检查以避免内核崩溃。补丁生效后，时钟速率会被设为一个苹果支持的值，具体是哪个值取决于你的硬件。补丁会基于你当前硬件的配置选择一个最佳的频率。  
+
+<details>
+<summary>调试</summary>
+补丁生效后，你会在内核日志中发现类似下面的字眼。在调整前，时钟速率为 172.8 MHz，而在调整后速率变为 652.8 MHz。
+
+```
+igfx: @ (DBG) CDC: Functions have been routed successfully.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: Called with controller at 0xffffff8035933000.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is 172.8 MHz.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is not supported.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 38.4 MHz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to 652.8 MHz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL frequency will be set to 1305600000 Hz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL has been disabled.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock has been reprogrammed and PLL has been re-enabled.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is 652.8 MHz now.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The core display clock has been switched to a supported frequency.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: Will invoke the original function.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The original function returns 0x4dd1e000.
+```
+</details>
+
 
 ## 已知问题
 *兼容性*：
