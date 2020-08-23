@@ -1624,7 +1624,8 @@ IOReturn IGFX::wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *d
 void IGFX::sanitizeCDClockFrequency(void *that)
 {
 	// Read the hardware reference frequency from the DSSM register
-	auto referenceFrequency = callbackIGFX->orgIclReadRegister32(that, ICL_REG_DSSM);
+	// Bits 29-31 store the reference frequency value
+	auto referenceFrequency = callbackIGFX->orgIclReadRegister32(that, ICL_REG_DSSM) >> 29;
 	
 	// Frequency of Core Display Clock PLL is determined by the reference frequency
 	uint32_t newCdclkFrequency = 0;
