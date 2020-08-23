@@ -1651,7 +1651,7 @@ void IGFX::sanitizeCDClockFrequency(void *that)
 	}
 	
 	// Debug: Print the new frequencies
-	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to %s MHz.",
+	SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to %s MHz.",
 		   coreDisplayClockDecimalFrequency2String(newCdclkFrequency));
 	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL frequency will be set to %u Hz.", newPLLFrequency);
 	
@@ -1665,7 +1665,7 @@ void IGFX::sanitizeCDClockFrequency(void *that)
 	
 	// "Verify" that the new frequency is effective
 	auto cdclk = callbackIGFX->orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
-	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is %s MHz now.",
+	SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is %s MHz now.",
 		   coreDisplayClockDecimalFrequency2String(cdclk));
 }
 
@@ -1699,7 +1699,7 @@ uint32_t IGFX::wrapProbeCDClockFrequency(void *that) {
 	// Read the Core Display Clock frequency from the CDCLK_CTL register
 	// Bit 0 - 11 stores the decimal frequency
 	auto cdclk = callbackIGFX->orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
-	DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The current core display clock frequency is %s MHz.",
+	SYSLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The current core display clock frequency is %s MHz.",
 		   coreDisplayClockDecimalFrequency2String(cdclk));
 	
 	// Guard: Check whether the current frequency is supported by the graphics driver
