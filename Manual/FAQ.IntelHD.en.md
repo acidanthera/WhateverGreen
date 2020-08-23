@@ -2384,8 +2384,6 @@ Starting from v1.3.7, it also fixes the invalid max link rate value read from th
 ![dpcd_mlr](./Img/dpcd_mlr.png)  
 You could also manually specify a maximum link rate value via the `dpcd-max-link-rate` for the builtin display. Typically use `0x14` for 4K display and `0x0A` for 1080p display. All possible values are `0x06` (RBR), `0x0A` (HBR), `0x14` (HBR2) and `0x1E` (HBR3). If an invalid value is specified or property `dpcd-max-link-rate` is not specified, the driver will use the default value `0x14`.  
 
-## Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms
-
 ## Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on Skylake, Kaby Lake and Coffee Lake platforms
 Add the `enable-hdmi-dividers-fix` property to `IGPU` or use the `-igfxhdmidivs` boot argument instead to fix the infinite loop when the graphics driver tries to establish a HDMI connection with a higher pixel clock rate, for example connecting to a 2K/4K display with HDMI 1.4, otherwise the system just hangs (and your builtin laptop display remains black) when you plug in the HDMI cable.  
 
@@ -2461,6 +2459,33 @@ Additionally, you can find these properties injected by the driver under the cor
 `fw-framebuffer-preferred-lspcon-mode` indicates the preferred adapter mode. 1 is PCON, and 0 is LS.  
   
 ![lspcon_debug](./Img/lspcon_debug.png)
+</details>
+
+## Support all possible Core Display Clock (CDCLK) frequencies on ICL platforms
+
+Add the `enable-cdclk-frequency-fix` property to `IGPU` or use the `-igfxcdc` boot argument instead to support all valid Core Display Clock (CDCLK) frequencies on ICL platforms, otherwise a kernel panic would happen due to an unsupported CD clock decimal frequency.   
+
+Core Display Clock (CDCLK) is one of the primary clocks used by the display engine to do its work. Apple's graphics driver expects that the firmware has already set the clock frequency to either 652.8 MHz or 648 MHz (the actual value depends on hardware), but quite a few laptops set it to a much lower value, such as 172.8 MHz, and hence you will see a kernel panic message like "Unsupported CD clock decimal frequency 0x158". This patch reprograms the clock to set its frequency to one of supported value, so that this precondition can be satisifed.   
+
+<details>
+<summary>Spoiler: Debugging</summary>
+Once you have enabled the patch, dump your kernel log and you should also be able to see something simillar to lines below.
+
+```
+igfx: @ (DBG) CDC: Functions have been routed successfully.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: Called with controller at 0xffffff8035933000.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is 172.8 MHz.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is not supported.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 38.4 MHz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to 652.8 MHz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL frequency will be set to 1305600000 Hz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL has been disabled.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock has been reprogrammed and PLL has been re-enabled.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is 652.8 MHz now.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The core display clock has been switched to a supported frequency.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: Will invoke the original function.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The original function returns 0x4dd1e000.
+```
 </details>
 
 ## Known Issues
