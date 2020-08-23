@@ -31,7 +31,7 @@ WhateverGreen
 - Fixes choppy video playback on Intel Kaby Lake and newer.
 - Fixes black screen on Intel HD since 10.15.5.
 - Adds workaround for rare force wake timeout panics on Intel KBL and CFL.
-- Support all valid Core Display Clock (CDCLK) freqencies on Intel ICL platforms.
+- Supports all valid Core Display Clock (CDCLK) freqencies on Intel ICL platforms.
 
 #### Documentation
 
