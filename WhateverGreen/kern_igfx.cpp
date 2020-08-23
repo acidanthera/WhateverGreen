@@ -578,9 +578,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			auto rr32Address = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (pcdcAddress && rr32Address && dcdcAddress && scdcAddress) {
 				patcher.eraseCoverageInstPrefix(pcdcAddress);
-				patcher.eraseCoverageInstPrefix(rr32Address);
-				patcher.eraseCoverageInstPrefix(dcdcAddress);
-				patcher.eraseCoverageInstPrefix(scdcAddress);
 				orgProbeCDClockFrequency = reinterpret_cast<decltype(orgProbeCDClockFrequency)>(patcher.routeFunction(pcdcAddress, reinterpret_cast<mach_vm_address_t>(wrapProbeCDClockFrequency), true));
 				orgDisableCDClock = reinterpret_cast<decltype(orgDisableCDClock)>(dcdcAddress);
 				orgSetCDClockFrequency = reinterpret_cast<decltype(orgSetCDClockFrequency)>(scdcAddress);
