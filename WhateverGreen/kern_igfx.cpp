@@ -1655,7 +1655,7 @@ void IGFX::sanitizeCDClockFrequency(void *that)
 	}
 	
 	// Debug: Print the new frequencies
-	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to %s MHz.",
+	SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to %s MHz.",
 		   coreDisplayClockDecimalFrequency2String(newCdclkFrequency));
 	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL frequency will be set to %u Hz.", newPLLFrequency);
 	
