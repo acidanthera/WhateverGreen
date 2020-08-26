@@ -12,8 +12,30 @@ struct NV_NVCAP {
   UINT8  IsMobile;  /* 1 for mobiles */
   UINT8  Composite; /* S-Video */
   UINT8  field_3;   /* Backlight-related? */
-  /* https://download.nvidia.com/open-gpu-doc/DCB/2/DCB-4.x-Specification.html */
-  /* Contains channel indices on the head */
+  /**
+    https://download.nvidia.com/open-gpu-doc/DCB/2/DCB-4.x-Specification.html
+
+    There are N independent display paths in NVIDIA. They are called heads.
+    For older cards there are up to 2. For newer cards there are up to 4.
+    One can view each head as a video output source, which is connected to
+    one or more DCB entries (as explained by the specification).
+    These DCB entries map to physical ports on the GPU. There is a finite
+    number of DCB entries in the GPU, which can be at most 16 * head count,
+    i.e. 32 for 2-head GPUs. In reality it is usually much less, like 4-5.
+
+    NVCAP contains indices of DCB entries per head in a mask format, which
+    must match the actual mapping present in the VBIOS. While it should be
+    reconfigurable, I do not think older macOS drivers can do that.
+
+    For example, setting Head0DCBMask to 0x3 and Head1DCBMask to 0xC means
+    that DCB entries 0 and 1 are routed through head 0 and DCB entries 2 and 3
+    are routed through head 1. This means that first two DCB entries will
+    have Head = 1 in the VBIOS, and second two will have Head = 2 (see the spec).
+
+    Since DCB entries are sorted by boot priority, LVDS is usually DCB entry 0
+    and is connected exclusively to head 0. Composite (TVDCBMask), when available,
+    is usually 16, i.e. DCB entry 5.
+  **/
   UINT16 TVDCBMask;
   UINT16 Head0DCBMask;
   UINT16 Head1DCBMask;
