@@ -486,15 +486,16 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		bool bklCoffeeFb = realFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
 		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
 		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
+		bool bklIceFb = realFramebuffer == &kextIntelICLLPFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
 		// Solve ReadRegister32 just once as it is shared
-		if (bklCoffeeFb || bklKabyFb ||
+		if (bklCoffeeFb || bklKabyFb || bklIceFb ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled || coreDisplayClockPatch) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
 				SYSLOG("igfx", "Failed to find ReadRegister32");
 		}
-		if (bklCoffeeFb || bklKabyFb ||
+		if (bklCoffeeFb || bklKabyFb || bklIceFb ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled) {
 			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
@@ -503,7 +504,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		}
 		if (RPSControl.enabled || ForceWakeWorkaround.enabled)
 			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
-		if (bklCoffeeFb || bklKabyFb) {
+		if (bklCoffeeFb || bklKabyFb || bklIceFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
 			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
 			// Singal-wise it looks as a cycle of signal levels on the timeline:
@@ -544,6 +545,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 				if (orgRegWrite) {
 					(bklCoffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32) = orgRegWrite;
+					if(bklIceFb){
+						orgIclWriteRegister32 = orgRegWrite;
+					}
 				} else {
 					SYSLOG("igfx", "failed to route WriteRegister32 for cfl %d", bklCoffeeFb);
 					patcher.clearError();

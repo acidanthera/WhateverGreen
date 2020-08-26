@@ -303,6 +303,7 @@ private:
 	 */
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+	void (*orgIclWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::ReadAUX function
