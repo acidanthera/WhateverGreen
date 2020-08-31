@@ -5,6 +5,7 @@ WhateverGreen Changelog
 - Disabled RPS control patch by default due to a bug in 10.15.6 IGPU drivers
 - Replaced `igfxnorpsc=1` with `igfxrpsc=1` to opt-in RPS control patch
 - Support all valid Core Display Clock (CDCLK) frequencies to avoid the kernel panic of "Unsupported CD clock decimal frequency" on Intel ICL platforms. (by @0xFireWolf)
+- Fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms. (by @0xFireWolf)
 
 #### v1.4.1
 - Added `igfxmetal=1` boot argument (and `enable-metal` property) to enable Metal on offline IGPU
