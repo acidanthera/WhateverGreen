@@ -607,7 +607,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 		// We could iterate through each submodule and redirect the request if and only if the submodule is enabled
 		if (modDVMTCalcFix.enabled)
-			modDVMTCalcFix.processKext(patcher, index, address, size);
+			modDVMTCalcFix.processFramebufferKext(patcher, index, address, size);
 		
 		if (forceCompleteModeset.enable) {
 			const char *sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2";

@@ -29,6 +29,8 @@ void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) 
 	enabled = checkKernelArgument("-igfxdvmt");
 	if (!enabled)
 		enabled = info->videoBuiltin->getProperty("enable-dvmt-calc-fix") != nullptr;
+	if (!enabled)
+		return;
 	
 	// Guard: Wait for the device to be published in the plane, otherwise `read` will crash on macOS Big Sur
 	if (!WIOKit::awaitPublishing(info->videoBuiltin)) {
@@ -65,7 +67,7 @@ void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) 
 	dvmt *= (1024 * 1024); /* MB to Bytes */
 }
 
-void IGFX::DVMTCalcFix::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+void IGFX::DVMTCalcFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	// Find the address of `AppleIntelFramebufferController::FBMemMgr_Init()`
 	auto startAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController13FBMemMgr_InitEv", address, size);
 	if (!startAddress) {
@@ -206,3 +208,5 @@ void IGFX::DVMTCalcFix::processKext(KernelPatcher &patcher, size_t index, mach_v
 	
 	SYSLOG("igfx", "DVMT: Failed to find instructions of interest. Aborted patching.");
 }
+
+void IGFX::DVMTCalcFix::processAcceleratorKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
