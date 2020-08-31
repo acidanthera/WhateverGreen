@@ -137,6 +137,7 @@ void IGFX::init() {
 			currentFramebufferOpt = &kextIntelICLHPFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			disableTypeCCheck = true;
+			modDVMTCalcFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
 			supportsGuCFirmware = true;
