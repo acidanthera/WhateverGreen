@@ -135,21 +135,21 @@ void IGFX::DVMTCalcFix::processKext(KernelPatcher &patcher, size_t index, mach_v
 		
 		// Instruction: shll $0x11, %???
 		// 3 bytes long if DSTReg < %r8d, otherwise 4 bytes long
-        if (handle.opcode == 0xC1 && handle.imm.imm8 == 0x11) {
-            shllAddr = startAddress;
-            shllSize = handle.len;
+		if (handle.opcode == 0xC1 && handle.imm.imm8 == 0x11) {
+			shllAddr = startAddress;
+			shllSize = handle.len;
 			shllDstr = (handle.rex_b << 3) | handle.modrm_rm;
 			SYSLOG("igfx", "DVMT: Found the shll instruction. Length = %d; DSTReg = %d.", shllSize, shllDstr);
-        }
-        
-        // Instruction: andl $0xFE000000, %???
+		}
+		
+		// Instruction: andl $0xFE000000, %???
 		// 5 bytes long if DSTReg is %eax; 6 bytes long if DSTReg < %r8d; otherwise 7 bytes long.
-        if ((handle.opcode == 0x25 || handle.opcode == 0x81) && handle.imm.imm32 == 0xFE000000) {
+		if ((handle.opcode == 0x25 || handle.opcode == 0x81) && handle.imm.imm32 == 0xFE000000) {
 			andlAddr = startAddress;
 			andlSize = handle.len;
 			andlDstr = (handle.rex_b << 3) | handle.modrm_rm;
 			SYSLOG("igfx", "DVMT: Found the andl instruction. Length = %d; DSTReg = %d.", andlSize, andlDstr);
-        }
+		}
 		
 		// Guard: Calculate and apply the binary patch if we have found both instructions
 		if (shllAddr && andlAddr) {
