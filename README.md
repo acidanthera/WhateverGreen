@@ -32,6 +32,7 @@ WhateverGreen
 - Fixes black screen on Intel HD since 10.15.5.
 - Adds workaround for rare force wake timeout panics on Intel KBL and CFL.
 - Supports all valid Core Display Clock (CDCLK) freqencies on Intel ICL platforms.
+- Fixes the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
 
 #### Documentation
 
@@ -86,13 +87,14 @@ indices of connectors for which online status is enforced. Format is similar to 
 - `wegtree=1` boot argument (`rebuild-device-tree` property) to force device renaming on Apple FW.
 - `igfxrpsc=1` boot argument (`rps-control` property) to enable RPS control patch (improves IGPU performance).
 - `-igfxcdc` boot argument (`enable-cdclk-frequency-fix` property) to support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)
+- `-igfxdvmt` boot argument (`enable-dvmt-calc-fix` property) to fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
 
 #### Credits
 
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
-- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, and Core Display Clock frequency fix for ICL platforms
+- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, and DVMT pre-allocated memory calculation fix for ICL platforms.
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements
