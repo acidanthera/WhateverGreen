@@ -61,6 +61,8 @@ IGFX *IGFX::callbackIGFX;
 
 void IGFX::init() {
 	callbackIGFX = this;
+	// Initialize each submodule
+	modDVMTCalcFix.init();
 	auto &bdi = BaseDeviceInfo::get();
 	auto generation = bdi.cpuGeneration;
 	auto family = bdi.cpuFamily;
