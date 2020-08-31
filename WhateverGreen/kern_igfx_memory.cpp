@@ -30,6 +30,13 @@ void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) 
 	if (!enabled)
 		enabled = info->videoBuiltin->getProperty("enable-dvmt-calc-fix") != nullptr;
 	
+	// Guard: Wait for the device to be published in the plane, otherwise `read` will crash on macOS Big Sur
+	if (!WIOKit::awaitPublishing(info->videoBuiltin)) {
+		SYSLOG("igfx", "DVMT: Failed to wait for the graphics device to be published. The fix has been disabled.");
+		enabled = false;
+		return;
+	}
+	
 	// Read the DVMT preallocated memory set in BIOS from the GMCH Graphics Control field at 0x50 (PCI0,2,0)
 	// TODO: Lilu needs to be updated to define the enumeration case `kIOPCIConfigGraphicsControl`
 	auto gms = WIOKit::readPCIConfigValue(info->videoBuiltin, /*WIOKit::kIOPCIConfigGraphicsControl*/ 0x50, 0, 16) >> 8;
