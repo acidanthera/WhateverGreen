@@ -1872,7 +1872,7 @@ igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The original function returns 
 苹果在 Ice Lake 的核显驱动中移出了 DVMT Stolen Memory 断言相关的崩溃语句，只会在内核日志中打印出 `Insufficient Stolen Memory`。
 请注意，虽然本补丁可让核显的内存管理器正确地初始化，我们仍然建议你给 Framebuffer 打上必要的补丁以规避上述预分配内存不足的问题。  
 
-此外，你可以使用 IORegistryExplorer 在 `IGPU` 下找到 `fw-dvmt-preallocated-memory` 属性来查看当前 BIOS 中设定的 DVMT 预分配内存大小。
+此外，你可以使用 IORegistryExplorer 在 `IGPU` 下找到 `fw-dvmt-preallocated-memory` 属性来查看当前 BIOS 中设定的 DVMT 预分配内存大小。（仅限 `DEBUG` 版本）
 比如下图中的数值为 `0x3C`，对应的十进制为 `60`，即当前 DVMT 预分配内存为 60MB。
 
 ![](./Img/dvmt.png)

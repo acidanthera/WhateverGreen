@@ -51,8 +51,10 @@ void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) 
 	}
 	
 	DBGLOG("igfx", "DVMT: GMS value is 0x%02x; DVMT pre-allocated memory is %d MB.", gms, dvmt);
+#ifdef DEBUG
 	info->videoBuiltin->setProperty("fw-dvmt-gms-field-value", gms, 8);
 	info->videoBuiltin->setProperty("fw-dvmt-preallocated-memory", dvmt, 32);
+#endif
 	dvmt *= (1024 * 1024); /* MB to Bytes */
 }
 
