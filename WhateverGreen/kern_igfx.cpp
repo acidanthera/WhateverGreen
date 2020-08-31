@@ -369,7 +369,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			info->videoBuiltin->setProperty("AAPL00,DualLink", dualLinkBytes, sizeof(dualLinkBytes));
 		}
 
-		auto requresFramebufferPatches = [this]() {
+		auto requiresFramebufferPatches = [this]() {
 			if (blackScreenPatch)
 				return true;
 			if (applyFramebufferPatch || hdmiAutopatch)
@@ -428,7 +428,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		};
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !requresFramebufferPatches();
+		switchOffFramebuffer = !requiresFramebufferPatches();
 		switchOffGraphics = !requiresGraphicsPatches();
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
