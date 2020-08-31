@@ -139,7 +139,7 @@ void IGFX::DVMTCalcFix::processKext(KernelPatcher &patcher, size_t index, mach_v
             shllAddr = startAddress;
             shllSize = handle.len;
 			shllDstr = (handle.rex_b << 3) | handle.modrm_rm;
-			DBGLOG("igfx", "DVMT: Found the shll instruction. Length = %d; DSTReg = %d.", shllSize, shllDstr);
+			SYSLOG("igfx", "DVMT: Found the shll instruction. Length = %d; DSTReg = %d.", shllSize, shllDstr);
         }
         
         // Instruction: andl $0xFE000000, %???
@@ -148,7 +148,7 @@ void IGFX::DVMTCalcFix::processKext(KernelPatcher &patcher, size_t index, mach_v
 			andlAddr = startAddress;
 			andlSize = handle.len;
 			andlDstr = (handle.rex_b << 3) | handle.modrm_rm;
-			DBGLOG("igfx", "DVMT: Found the andl instruction. Length = %d; DSTReg = %d.", andlSize, andlDstr);
+			SYSLOG("igfx", "DVMT: Found the andl instruction. Length = %d; DSTReg = %d.", andlSize, andlDstr);
         }
 		
 		// Guard: Calculate and apply the binary patch if we have found both instructions
