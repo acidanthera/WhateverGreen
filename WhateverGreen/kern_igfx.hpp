@@ -499,6 +499,93 @@ private:
 		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
 		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
 	} ForceWakeWorkaround;
+	
+	/**
+	 *  Interface of a submodule to fix Intel graphics drivers
+	 */
+	class PatchSubmodule {
+	public:
+		/**
+		 *  Virtual destructor
+		 */
+		virtual ~PatchSubmodule() = default;
+		
+		/**
+		 *  True if this submodule should be enabled
+		 */
+		bool enabled {false};
+		
+		/**
+		 *  True if this submodule requires patching the framebuffer driver
+		 */
+		bool requiresPatchingFramebuffer {false};
+		
+		/**
+		 *  True if this submodule requires patching the graphics acceleration driver
+		 */
+		bool requiresPatchingGraphics {false};
+		
+		/**
+		 *  Initialize any data structure required by this submodule if necessary
+		 */
+		virtual void init() {}
+		
+		/**
+		 *  Release any resources obtained by this submodule if necessary
+		 */
+		virtual void deinit() {}
+		
+		/**
+		 *  Setup the fix and retrieve the device information if necessary
+		 *
+		 *  @param patcher  KernelPatcher instance
+		 *  @param info     Information about the graphics device
+		 *  @note This function is called when the main IGFX module processes the kernel.
+		 */
+		virtual void processKernel(KernelPatcher &patcher, DeviceInfo *info) {}
+
+		/**
+		 *  Process the framebuffer kext, retrieve and/or route functions if necessary
+		 *
+		 *  @param patcher KernelPatcher instance
+		 *  @param index   kinfo handle
+		 *  @param address kinfo load address
+		 *  @param size    kinfo memory size
+		 *  @note This funbction is called when the main IGFX module processes the kext.
+		 */
+		virtual void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
+		
+		/**
+		 *  Process the graphics accelerator kext, retrieve and/or route functions if necessary
+		 *
+		 *  @param patcher KernelPatcher instance
+		 *  @param index   kinfo handle
+		 *  @param address kinfo load address
+		 *  @param size    kinfo memory size
+		 *  @note This funbction is called when the main IGFX module processes the kext.
+		 */
+		virtual void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
+	};
+	
+	/**
+	 *  A submodule to fix the calculation of DVMT preallocated memory on ICL+ platforms
+	 */
+	struct DVMTCalcFix: public PatchSubmodule {
+		/**
+		 *  True if this fix is available for the current Intel platform
+		 */
+		bool available {false};
+		
+		/**
+		 *  The amount of DVMT preallocated memory in bytes set in the BIOS
+		 */
+		uint32_t dvmt {0};
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modDVMTCalcFix;
 
 	/**
 	 * Ensure each modeset is a complete modeset.

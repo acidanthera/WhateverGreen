@@ -2488,6 +2488,27 @@ igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The original function returns 
 ```
 </details>
 
+## Fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms
+
+Add the `enable-dvmt-calc-fix` property to `IGPU` or use the `-igfxdvmt` boot argument instead to fix the calculation of the amount of DVMT pre-allocated memory on ICL platforms, otherwise a kernel panic saying `Unsupported ICL SKU` would happen.
+
+Apple’s graphics driver reads the DVMT value set in the BIOS or the firmware and uses a “magic” formula to calculate the amount of memory in bytes. Unfortunately, the formula only works for a pre-allocated memory size that is a multiple of 32MB. Problem arises as laptops now have DVMT set to 60MB on ICL+ platforms by default, and the framebuffer controller ends up with initializing the stolen memory manager with an incorrect amount of pre-allocated memory. Even though one might be able to modify DVMT settings via `EFI shell` or `RU.EFI`, these methods are not applicable to some laptops, such as Surface Pro 7, that use custom firmware. As such, this patch calculates the correct number of bytes beforehand and patches the driver so that it will initialize the memory manager with proper values and aforementioned kernel panics can be avoided.
+
+Apple has removed the kernel panic if the stolen memory is not enough, but you are encouraged to patch the framebuffer so that it fits into your available amount of stolen memory. Once the patch is enabled, you could find your actual amount of DVMT pre-allocated memory in the property `fw-dvmt-preallocated-memory` under the graphics device. (Only available in DEBUG version) The unit is megabyte, and the size in the example below is 60 MB. (0x3C = 60)
+
+![DVMT Pre-allocated Memory Size](./Img/dvmt.png)
+
+<details>
+<summary>Spoiler: Debugging</summary>
+Additionally, you should be able to find something similar to lines below in your kernel log.
+
+```
+igfx: @ (DBG) DVMT: Found the shll instruction. Length = 3; DSTReg = 0.
+igfx: @ (DBG) DVMT: Found the andl instruction. Length = 5; DSTReg = 0.
+igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
+```
+</details>
+
 ## Known Issues
 
 **Compatibility**

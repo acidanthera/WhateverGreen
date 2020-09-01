@@ -35,6 +35,7 @@
 		CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC0863524331E9B00F5B701 /* kern_agdc.hpp */; };
 		CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */; };
 		CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */; };
+		D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */; };
 		E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */; };
 /* End PBXBuildFile section */
 
@@ -130,6 +131,7 @@
 		CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_cdf.cpp; sourceTree = "<group>"; };
 		CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cdf.hpp; sourceTree = "<group>"; };
 		CEEF190A239CFDB1005B3BE8 /* FAQ.Chart.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Chart.md; sourceTree = "<group>"; };
+		D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_memory.cpp; sourceTree = "<group>"; };
 		E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_fb.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -189,6 +191,7 @@
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
 				CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */,
+				D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */,
 				2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
 				CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */,
@@ -442,6 +445,7 @@
 				CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */,
 				CE8190A21F1E3ECE00DE95F4 /* kern_model.cpp in Sources */,
 				CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */,
+				D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
 				CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */,
 				CE1F61B92432DEE800201DF4 /* kern_igfx_debug.cpp in Sources */,

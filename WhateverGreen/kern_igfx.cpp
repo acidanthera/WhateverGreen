@@ -61,6 +61,8 @@ IGFX *IGFX::callbackIGFX;
 
 void IGFX::init() {
 	callbackIGFX = this;
+	// Initialize each submodule
+	modDVMTCalcFix.init();
 	auto &bdi = BaseDeviceInfo::get();
 	auto generation = bdi.cpuGeneration;
 	auto family = bdi.cpuFamily;
@@ -137,6 +139,7 @@ void IGFX::init() {
 			currentFramebufferOpt = &kextIntelICLHPFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			disableTypeCCheck = true;
+			modDVMTCalcFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
 			supportsGuCFirmware = true;
@@ -287,6 +290,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (!coreDisplayClockPatch)
 			coreDisplayClockPatch = info->videoBuiltin->getProperty("enable-cdclk-frequency-fix") != nullptr;
 		
+		// Example of redirecting the request to each submodule
+		modDVMTCalcFix.processKernel(patcher, info);
+		
 		disableAccel = checkKernelArgument("-igfxvesa");
 		
 		disableTypeCCheck &= !checkKernelArgument("-igfxtypec");
@@ -366,7 +372,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			info->videoBuiltin->setProperty("AAPL00,DualLink", dualLinkBytes, sizeof(dualLinkBytes));
 		}
 
-		auto requresFramebufferPatches = [this]() {
+		auto requiresFramebufferPatches = [this]() {
 			if (blackScreenPatch)
 				return true;
 			if (applyFramebufferPatch || hdmiAutopatch)
@@ -382,6 +388,10 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (supportLSPCON)
 				return true;
 			if (coreDisplayClockPatch)
+				return true;
+			// Similarly, if IGFX maintains a sequence of submodules,
+			// we could iterate through each submodule and performs OR operations.
+			if (modDVMTCalcFix.requiresPatchingFramebuffer)
 				return true;
 			if (forceCompleteModeset.enable)
 				return true;
@@ -399,6 +409,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		};
 
 		auto requiresGraphicsPatches = [this]() {
+			if (modDVMTCalcFix.requiresPatchingGraphics)
+				return true;
 			if (pavpDisablePatch)
 				return true;
 			if (forceOpenGL)
@@ -419,7 +431,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		};
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !requresFramebufferPatches();
+		switchOffFramebuffer = !requiresFramebufferPatches();
 		switchOffGraphics = !requiresGraphicsPatches();
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
@@ -474,6 +486,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		
 		if (ForceWakeWorkaround.enabled)
 			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
+		
+		if (modDVMTCalcFix.enabled)
+			modDVMTCalcFix.processGraphicsKext(patcher, index, address, size);
 
 		return true;
 	}
@@ -593,6 +608,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			}
 		}
 
+		// We could iterate through each submodule and redirect the request if and only if the submodule is enabled
+		if (modDVMTCalcFix.enabled)
+			modDVMTCalcFix.processFramebufferKext(patcher, index, address, size);
+		
 		if (forceCompleteModeset.enable) {
 			const char *sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2";
 			if (forceCompleteModeset.legacy)

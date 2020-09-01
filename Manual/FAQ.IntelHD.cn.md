@@ -1863,6 +1863,31 @@ igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The original function returns 
 ```
 </details>
 
+## 修复 Ice Lake 平台上因驱动错误地计算 DVMT 预分配内存大小而导致的内核崩溃问题
+
+为核显添加 `enable-dvmt-calc-fix` 属性或者直接使用 `-igfxdvmt` 启动参数以修复因核显驱动错误地计算当前 DVMT 预分配内存的实际大小而导致后期加速器驱动提示 `Unsupported ICL SKU` 错误并崩溃的问题。
+
+苹果的核显驱动在读取 BIOS 或者 UEFI 固件设定的 DVMT 预分配内存值后，用了一个公式来计算以字节为单位的实际可用内存大小。然而，这个公式只有在预分配内存值为 32MB 的整数倍时才会计算出正确的结果。Ice Lake 平台的笔记本出厂时 DVMT 一般设为了 60MB，所以核显驱动无法正确地初始化内存管理器。即使部分用户可以通过 `EFI Shell` 或者 `RU.EFI` 等特殊手段来修改 BIOS 中设定的 DVMT 预分配内存值，但有些使用特定固件的笔记本比如 Surface Pro 7 以及因厂商安全策略而无法修改 BIOS 设置的笔记本是无法修改 DVMT 设置的。本补丁通过预先计算当前平台的可用 DVMT 预分配内存后，将正确的数值传递给核显驱动。这样驱动可以正常初始化内存管理器，后期的因 DVMT 内存导致的崩溃问题迎刃而解。
+
+苹果在 Ice Lake 的核显驱动中移出了 DVMT Stolen Memory 断言相关的崩溃语句，只会在内核日志中打印出 `Insufficient Stolen Memory`。
+请注意，虽然本补丁可让核显的内存管理器正确地初始化，我们仍然建议你给 Framebuffer 打上必要的补丁以规避上述预分配内存不足的问题。  
+
+此外，你可以使用 IORegistryExplorer 在 `IGPU` 下找到 `fw-dvmt-preallocated-memory` 属性来查看当前 BIOS 中设定的 DVMT 预分配内存大小。（仅限 `DEBUG` 版本）
+比如下图中的数值为 `0x3C`，对应的十进制为 `60`，即当前 DVMT 预分配内存为 60MB。
+
+![](./Img/dvmt.png)
+
+<details>
+<summary>调试</summary>
+补丁生效后，你会在内核日志中发现类似下面的字眼。
+
+```
+igfx: @ (DBG) DVMT: Found the shll instruction. Length = 3; DSTReg = 0.
+igfx: @ (DBG) DVMT: Found the andl instruction. Length = 5; DSTReg = 0.
+igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
+```
+</details>
+
 
 ## 已知问题
 *兼容性*：
