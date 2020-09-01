@@ -206,3 +206,4 @@ void IGFX::DVMTCalcFix::processFramebufferKext(KernelPatcher &patcher, size_t in
 	
 	SYSLOG("igfx", "DVMT: Failed to find instructions of interest. Aborted patching.");
 }
+
