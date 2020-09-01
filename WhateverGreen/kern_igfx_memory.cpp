@@ -163,7 +163,7 @@ void IGFX::DVMTCalcFix::processFramebufferKext(KernelPatcher &patcher, size_t in
 		// Guard: Calculate and apply the binary patch if we have found both instructions
 		if (shllAddr && andlAddr) {
 			// Update the `movl` instruction with the actual amount of DVMT preallocated memory
-			*(uint32_t*) (movl + 2) = dvmt;
+			*reinterpret_cast<uint32_t*>(movl + 2) = dvmt;
 			
 			// Update the `movl` instruction with the actual destination register
 			// Find the actual starting point of the patch and the number of bytes to patch
