@@ -16,8 +16,6 @@ void IGFX::DVMTCalcFix::init() {
 	requiresPatchingFramebuffer = true;
 }
 
-void IGFX::DVMTCalcFix::deinit() {}
-
 void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	// Guard: Disable the patch if it is not available on the current Intel platforms
 	if (!available) {
@@ -208,5 +206,3 @@ void IGFX::DVMTCalcFix::processFramebufferKext(KernelPatcher &patcher, size_t in
 	
 	SYSLOG("igfx", "DVMT: Failed to find instructions of interest. Aborted patching.");
 }
-
-void IGFX::DVMTCalcFix::processAcceleratorKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}

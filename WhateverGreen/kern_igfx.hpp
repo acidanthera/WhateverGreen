@@ -528,12 +528,12 @@ private:
 		/**
 		 *  Initialize any data structure required by this submodule if necessary
 		 */
-		virtual void init() = 0;
+		virtual void init() {}
 		
 		/**
 		 *  Release any resources obtained by this submodule if necessary
 		 */
-		virtual void deinit() = 0;
+		virtual void deinit() {}
 		
 		/**
 		 *  Setup the fix and retrieve the device information if necessary
@@ -542,7 +542,7 @@ private:
 		 *  @param info     Information about the graphics device
 		 *  @note This function is called when the main IGFX module processes the kernel.
 		 */
-		virtual void processKernel(KernelPatcher &patcher, DeviceInfo *info) = 0;
+		virtual void processKernel(KernelPatcher &patcher, DeviceInfo *info) {}
 
 		/**
 		 *  Process the framebuffer kext, retrieve and/or route functions if necessary
@@ -553,10 +553,10 @@ private:
 		 *  @param size    kinfo memory size
 		 *  @note This funbction is called when the main IGFX module processes the kext.
 		 */
-		virtual void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) = 0;
+		virtual void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
 		
 		/**
-		 *  Process the accelerator kext, retrieve and/or route functions if necessary
+		 *  Process the graphics accelerator kext, retrieve and/or route functions if necessary
 		 *
 		 *  @param patcher KernelPatcher instance
 		 *  @param index   kinfo handle
@@ -564,7 +564,7 @@ private:
 		 *  @param size    kinfo memory size
 		 *  @note This funbction is called when the main IGFX module processes the kext.
 		 */
-		virtual void processAcceleratorKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) = 0;
+		virtual void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
 	};
 	
 	/**
@@ -583,10 +583,8 @@ private:
 		
 		// MARK: Patch Submodule IMP
 		void init() override;
-		void deinit() override;
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
-		void processAcceleratorKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modDVMTCalcFix;
 
 	/**
