@@ -486,6 +486,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		
 		if (ForceWakeWorkaround.enabled)
 			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
+		
+		if (modDVMTCalcFix.enabled)
+			modDVMTCalcFix.processGraphicsKext(patcher, index, address, size);
 
 		return true;
 	}
