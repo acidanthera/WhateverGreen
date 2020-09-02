@@ -551,7 +551,7 @@ private:
 		 *  @param index   kinfo handle
 		 *  @param address kinfo load address
 		 *  @param size    kinfo memory size
-		 *  @note This funbction is called when the main IGFX module processes the kext.
+		 *  @note This function is called when the main IGFX module processes the kext.
 		 */
 		virtual void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
 		
@@ -562,7 +562,7 @@ private:
 		 *  @param index   kinfo handle
 		 *  @param address kinfo load address
 		 *  @param size    kinfo memory size
-		 *  @note This funbction is called when the main IGFX module processes the kext.
+		 *  @note This function is called when the main IGFX module processes the kext.
 		 */
 		virtual void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
 	};
