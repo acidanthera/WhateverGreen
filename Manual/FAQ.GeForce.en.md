@@ -60,7 +60,7 @@ After the bit is set, the device advertises as multi-function.
 So, after setting the magic bit, removing the device will cause Linux to re-probe it during the next rescan
 taking note at that point that it is a multi-function device
 on linux theres a fix use: setpci -s 01:00.0 0x488.l=0x2000000:0x2000000" on mac os he added:
-
+File Name: ??
 ```
 Device (PEG0)
 {
