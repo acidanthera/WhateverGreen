@@ -17,18 +17,18 @@ void IGFX::DVMTCalcFix::init() {
 }
 
 void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
-	// Guard: Disable the patch if it is not available on the current Intel platforms
-	if (!available) {
-		SYSLOG("igfx", "DVMT: This fix is not available on the current platform and has been disabled.");
-		return;
-	}
-		
 	// Enable the fix if designated boot argument or device property is found
 	enabled = checkKernelArgument("-igfxdvmt");
 	if (!enabled)
 		enabled = info->videoBuiltin->getProperty("enable-dvmt-calc-fix") != nullptr;
 	if (!enabled)
 		return;
+	
+	// Guard: Disable the patch if it is not available on the current Intel platforms
+	if (!available) {
+		SYSLOG("igfx", "DVMT: This fix is not available on the current platform and has been disabled.");
+		return;
+	}
 	
 	// Guard: Wait for the device to be published in the plane, otherwise `read` will crash on macOS Big Sur
 	if (!WIOKit::awaitPublishing(info->videoBuiltin)) {
