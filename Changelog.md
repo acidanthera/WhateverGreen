@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.3
+- Added CFL and CML P630
+
 #### v1.4.2
 - Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
 - Disabled RPS control patch by default due to a bug in 10.15.6 IGPU drivers
