@@ -653,7 +653,7 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 ####
 *推荐的 FB 设置*：0x0D220003（桌面版，缺省值）；0x0A160000（移动版，缺省值）或 0x0A260005（移动版，推荐）或 0x0A260006（移动版，推荐）。
 
-对于 桌面版 HD 4400 以及*所有*移动版核显，需设定（仿冒）`IGPU` 的 `device-id` 为 `12040000`。（如下所示）
+对于 桌面版 HD 4400 以及移动版 HD4200/HD4400/HD4600 ，需设定（仿冒）`IGPU` 的 `device-id` 为 `12040000`。（如下所示）
 
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hsw_igpu.png) 
 
@@ -1833,6 +1833,60 @@ igfx @ (DBG) SC:     GetDPCDInfo() DInfo: [FB2] Returns 0x0.
 `fw-framebuffer-preferred-lspcon-mode` 显示当前指定的 LSPCON 工作模式，为数据类型。1 为 PCON 模式，0 为 LS 模式。  
   
 ![](Img/lspcon_debug.png)
+
+## 修复 Ice Lake 平台上因 Core Display Clock (CDCLK) 频率过低而导致的内核崩溃问题
+
+为核显添加 `enable-cdclk-frequency-fix` 属性或者直接使用 `-igfxcdc` 启动参数以解决 Core Display Clock (CDCLK) 频率过低而导致的内核崩溃问题。  
+
+核显的显示引擎是由这个 Core Display Clock 时钟来驱动的。苹果的显卡驱动假定 BIOS 或者固件已设定好时钟频率为 652.8 MHz 或者 648 MHz，而有些 Ice Lake 笔记本在开机时 BIOS 自动设定频率为最低的 172.8 MHz，所以会触发频率检查的函数而导致内核崩溃。内核崩溃后，你能看到类似 "Unsupported CD clock decimal frequency 0x158" 这样的错误信息。  
+
+这个补丁通过重新设定 Core Display Clock 的频率来通过上述检查以避免内核崩溃。补丁生效后，时钟速率会被设为一个苹果支持的值，具体是哪个值取决于你的硬件。补丁会基于你当前硬件的配置选择一个最佳的频率。  
+
+<details>
+<summary>调试</summary>
+补丁生效后，你会在内核日志中发现类似下面的字眼。在调整前，时钟速率为 172.8 MHz，而在调整后速率变为 652.8 MHz。
+
+```
+igfx: @ (DBG) CDC: Functions have been routed successfully.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: Called with controller at 0xffffff8035933000.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is 172.8 MHz.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is not supported.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 38.4 MHz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to 652.8 MHz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL frequency will be set to 1305600000 Hz.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL has been disabled.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock has been reprogrammed and PLL has been re-enabled.
+igfx: @ (DBG) CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is 652.8 MHz now.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The core display clock has been switched to a supported frequency.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: Will invoke the original function.
+igfx: @ (DBG) CDC: ProbeCDClockFrequency() DInfo: The original function returns 0x4dd1e000.
+```
+</details>
+
+## 修复 Ice Lake 平台上因驱动错误地计算 DVMT 预分配内存大小而导致的内核崩溃问题
+
+为核显添加 `enable-dvmt-calc-fix` 属性或者直接使用 `-igfxdvmt` 启动参数以修复因核显驱动错误地计算当前 DVMT 预分配内存的实际大小而导致后期加速器驱动提示 `Unsupported ICL SKU` 错误并崩溃的问题。
+
+苹果的核显驱动在读取 BIOS 或者 UEFI 固件设定的 DVMT 预分配内存值后，用了一个公式来计算以字节为单位的实际可用内存大小。然而，这个公式只有在预分配内存值为 32MB 的整数倍时才会计算出正确的结果。Ice Lake 平台的笔记本出厂时 DVMT 一般设为了 60MB，所以核显驱动无法正确地初始化内存管理器。即使部分用户可以通过 `EFI Shell` 或者 `RU.EFI` 等特殊手段来修改 BIOS 中设定的 DVMT 预分配内存值，但有些使用特定固件的笔记本比如 Surface Pro 7 以及因厂商安全策略而无法修改 BIOS 设置的笔记本是无法修改 DVMT 设置的。本补丁通过预先计算当前平台的可用 DVMT 预分配内存后，将正确的数值传递给核显驱动。这样驱动可以正常初始化内存管理器，后期的因 DVMT 内存导致的崩溃问题迎刃而解。
+
+苹果在 Ice Lake 的核显驱动中移出了 DVMT Stolen Memory 断言相关的崩溃语句，只会在内核日志中打印出 `Insufficient Stolen Memory`。
+请注意，虽然本补丁可让核显的内存管理器正确地初始化，我们仍然建议你给 Framebuffer 打上必要的补丁以规避上述预分配内存不足的问题。  
+
+此外，你可以使用 IORegistryExplorer 在 `IGPU` 下找到 `fw-dvmt-preallocated-memory` 属性来查看当前 BIOS 中设定的 DVMT 预分配内存大小。（仅限 `DEBUG` 版本）
+比如下图中的数值为 `0x3C`，对应的十进制为 `60`，即当前 DVMT 预分配内存为 60MB。
+
+![](./Img/dvmt.png)
+
+<details>
+<summary>调试</summary>
+补丁生效后，你会在内核日志中发现类似下面的字眼。
+
+```
+igfx: @ (DBG) DVMT: Found the shll instruction. Length = 3; DSTReg = 0.
+igfx: @ (DBG) DVMT: Found the andl instruction. Length = 5; DSTReg = 0.
+igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
+```
+</details>
 
 
 ## 已知问题

@@ -14,6 +14,7 @@
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
 #include <Library/LegacyIOService.h>
+#include <IOKit/IOLocks.h>
 
 class IGFX {
 public:
@@ -46,6 +47,7 @@ private:
 	 *  Framebuffer patch flags
 	 */
 	union FramebufferPatchFlags {
+		// Sandy+ bits
 		struct FramebufferPatchFlagBits {
 			uint8_t FPFFramebufferId            :1;
 			uint8_t FPFModelNameAddr            :1;
@@ -70,6 +72,22 @@ private:
 			uint8_t FPFSliceCount               :1;
 			uint8_t FPFEuCount                  :1;
 		} bits;
+		
+		// Westmere bits
+		struct FramebufferWestmerePatchFlagBits {
+			uint8_t LinkWidth                               : 1;
+			uint8_t SingleLink                              : 1;
+			uint8_t FBCControlCompression                   : 1;
+			uint8_t FeatureControlFBC                       : 1;
+			uint8_t FeatureControlGPUInterruptHandling      : 1;
+			uint8_t FeatureControlGamma                     : 1;
+			uint8_t FeatureControlMaximumSelfRefreshLevel   : 1;
+			uint8_t FeatureControlPowerStates               : 1;
+			uint8_t FeatureControlRSTimerTest               : 1;
+			uint8_t FeatureControlRenderStandby             : 1;
+			uint8_t FeatureControlWatermarks                : 1;
+		} bitsWestmere;
+		
 		uint32_t value;
 	};
 
@@ -154,6 +172,29 @@ private:
 	 *  Framebuffer find / replace patches
 	 */
 	FramebufferPatch framebufferPatches[MaxFramebufferPatchCount] {};
+	
+	/**
+	 *  Framebuffer patches for first generation (Westmere).
+	 */
+	struct FramebufferWestmerePatches {
+		uint32_t LinkWidth {1};
+		uint32_t SingleLink {0};
+		
+		uint32_t FBCControlCompression {0};
+		uint32_t FeatureControlFBC {0};
+		uint32_t FeatureControlGPUInterruptHandling {0};
+		uint32_t FeatureControlGamma {0};
+		uint32_t FeatureControlMaximumSelfRefreshLevel {0};
+		uint32_t FeatureControlPowerStates {0};
+		uint32_t FeatureControlRSTimerTest {0};
+		uint32_t FeatureControlRenderStandby {0};
+		uint32_t FeatureControlWatermarks {0};
+	};
+	
+	/**
+	 *  Framebuffer patches for first generation (Westmere).
+	 */
+	FramebufferWestmerePatches framebufferWestmerePatches;
 
 	/**
 	 *  Framebuffer list, imported from the framebuffer kext
@@ -255,6 +296,7 @@ private:
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
+	uint32_t (*orgIclReadRegister32)(void *, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::WriteRegister32 function
@@ -280,8 +322,30 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::GetDPCDInfo function
 	 */
-	IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *);
+	IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *) {nullptr};
 
+	/**
+	 *  Original AppleIntelFramebufferController::probeCDClockFrequency function (ICL)
+	 */
+	uint32_t (*orgProbeCDClockFrequency)(void *) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::disableCDClock function (ICL)
+	 */
+	void (*orgDisableCDClock)(void *) {nullptr};
+	
+	/**
+	 *  Original AppleIntelFramebufferController::setCDClockFrequency function (ICL)
+	 *
+	 *  @param frequency The Core Display Clock PLL frequency in Hz
+	 */
+	void (*orgSetCDClockFrequency)(void *, unsigned long long) {nullptr};
+	
+	/**
+	 *  Patch the Core Display Clock frequency if ncessary
+	 */
+	bool coreDisplayClockPatch {false};
+	
 	/**
 	 *  Set to true if a black screen ComputeLaneCount patch is required
 	 */
@@ -338,6 +402,11 @@ private:
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
+
+	/**
+	 *  Set to true to enable Metal support for offline rendering
+	 */
+	bool forceMetal {false};
 
 	/**
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
@@ -398,6 +467,125 @@ private:
 			return false;
 		}
 	};
+	
+	// NOTE: the MMIO space is also available at RC6_RegBase
+	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
+	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
+
+	class AppleIntelFramebufferController;
+	// Populated at AppleIntelFramebufferController::start
+	// Useful for getting access to Read/WriteRegister, rather than having
+	// to compute the offsets
+	AppleIntelFramebufferController** gFramebufferController {};
+
+	struct RPSControl {
+		bool available {false};
+		bool enabled {false};
+		uint32_t freq_max {0};
+		
+		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+
+		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
+		mach_vm_address_t orgPmNotifyWrapper;
+	} RPSControl;
+	
+	struct ForceWakeWorkaround {
+		bool enabled {false};
+
+		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		
+		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
+		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
+		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
+	} ForceWakeWorkaround;
+	
+	/**
+	 *  Interface of a submodule to fix Intel graphics drivers
+	 */
+	class PatchSubmodule {
+	public:
+		/**
+		 *  Virtual destructor
+		 */
+		virtual ~PatchSubmodule() = default;
+		
+		/**
+		 *  True if this submodule should be enabled
+		 */
+		bool enabled {false};
+		
+		/**
+		 *  True if this submodule requires patching the framebuffer driver
+		 */
+		bool requiresPatchingFramebuffer {false};
+		
+		/**
+		 *  True if this submodule requires patching the graphics acceleration driver
+		 */
+		bool requiresPatchingGraphics {false};
+		
+		/**
+		 *  Initialize any data structure required by this submodule if necessary
+		 */
+		virtual void init() {}
+		
+		/**
+		 *  Release any resources obtained by this submodule if necessary
+		 */
+		virtual void deinit() {}
+		
+		/**
+		 *  Setup the fix and retrieve the device information if necessary
+		 *
+		 *  @param patcher  KernelPatcher instance
+		 *  @param info     Information about the graphics device
+		 *  @note This function is called when the main IGFX module processes the kernel.
+		 */
+		virtual void processKernel(KernelPatcher &patcher, DeviceInfo *info) {}
+
+		/**
+		 *  Process the framebuffer kext, retrieve and/or route functions if necessary
+		 *
+		 *  @param patcher KernelPatcher instance
+		 *  @param index   kinfo handle
+		 *  @param address kinfo load address
+		 *  @param size    kinfo memory size
+		 *  @note This function is called when the main IGFX module processes the kext.
+		 */
+		virtual void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
+		
+		/**
+		 *  Process the graphics accelerator kext, retrieve and/or route functions if necessary
+		 *
+		 *  @param patcher KernelPatcher instance
+		 *  @param index   kinfo handle
+		 *  @param address kinfo load address
+		 *  @param size    kinfo memory size
+		 *  @note This function is called when the main IGFX module processes the kext.
+		 */
+		virtual void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
+	};
+	
+	/**
+	 *  A submodule to fix the calculation of DVMT preallocated memory on ICL+ platforms
+	 */
+	struct DVMTCalcFix: public PatchSubmodule {
+		/**
+		 *  True if this fix is available for the current Intel platform
+		 */
+		bool available {false};
+		
+		/**
+		 *  The amount of DVMT preallocated memory in bytes set in the BIOS
+		 */
+		uint32_t dvmt {0};
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modDVMTCalcFix;
 
 	/**
 	 * Ensure each modeset is a complete modeset.
@@ -408,7 +596,17 @@ private:
 	 * Ensure each display is online.
 	 */
 	FramebufferModifer forceOnlineDisplay;
+	
+	/**
+	 * Prevent IntelAccelerator from starting.
+	 */
+	bool disableAccel {false};
 
+	/**
+	 * Disable Type C framebuffer check.
+	 */
+	bool disableTypeCCheck {false};
+	
 	/**
 	 *  Perform platform table dump to ioreg
 	 */
@@ -496,10 +694,150 @@ private:
 	uint32_t driverBacklightFrequency {};
 	
 	/**
+	 *  Address of the register used to retrieve the current Core Display Clock frequency
+	 */
+	static constexpr uint32_t ICL_REG_CDCLK_CTL = 0x46000;
+	
+	/**
+	 *  Address of the register used to retrieve the hardware reference clock frequency
+	 */
+	static constexpr uint32_t ICL_REG_DSSM = 0x51004;
+	
+	/**
+	 *  Enumerates all possible hardware reference clock frequencies on ICL platforms
+	 *
+	 *  Reference:
+	 *  - Intel Graphics Developer Manaual for Ice Lake Platforms, Volume 2c
+	 *    Command Reference: Registers Part 1 – Registers A through L, DSSM Register
+	 */
+	enum ICLReferenceClockFrequency
+	{
+		// 24 MHz
+		ICL_REF_CLOCK_FREQ_24_0 = 0x0,
+		
+		// 19.2 MHz
+		ICL_REF_CLOCK_FREQ_19_2 = 0x1,
+		
+		// 38.4 MHz
+		ICL_REF_CLOCK_FREQ_38_4 = 0x2
+	};
+	
+	/**
+	 *  Enumerates all possible Core Display Clock decimal frequency
+	 *
+	 *  Reference:
+	 *  - Intel Graphics Developer Manaual for Ice Lake Platforms, Volume 2c
+	 *    Command Reference: Registers Part 1 – Registers A through L, CDCLK_CTL Register
+	 */
+	enum ICLCoreDisplayClockDecimalFrequency
+	{
+		// 172.8 MHz
+		ICL_CDCLK_FREQ_172_8 = 0x158,
+		
+		// 180 MHz
+		ICL_CDCLK_FREQ_180_0 = 0x166,
+		
+		// 192 MHz
+		ICL_CDCLK_FREQ_192_0 = 0x17E,
+		
+		// 307.2 MHz
+		ICL_CDCLK_FREQ_307_2 = 0x264,
+		
+		// 312 MHz
+		ICL_CDCLK_FREQ_312_0 = 0x26E,
+		
+		// 552 MHz
+		ICL_CDCLK_FREQ_552_0 = 0x44E,
+		
+		// 556.8 MHz
+		ICL_CDCLK_FREQ_556_8 = 0x458,
+		
+		// 648 MHz
+		ICL_CDCLK_FREQ_648_0 = 0x50E,
+		
+		// 652.8 MHz
+		ICL_CDCLK_FREQ_652_8 = 0x518
+	};
+	
+	/**
+	 *  Get the string representation of the given Core Display Clock decimal frequency
+	 */
+	static inline const char* coreDisplayClockDecimalFrequency2String(uint32_t frequency)
+	{
+		switch (frequency)
+		{
+			case ICL_CDCLK_FREQ_172_8:
+				return "172.8";
+				
+			case ICL_CDCLK_FREQ_180_0:
+				return "180";
+				
+			case ICL_CDCLK_FREQ_192_0:
+				return "192";
+				
+			case ICL_CDCLK_FREQ_307_2:
+				return "307.2";
+				
+			case ICL_CDCLK_FREQ_312_0:
+				return "312";
+				
+			case ICL_CDCLK_FREQ_552_0:
+				return "552";
+				
+			case ICL_CDCLK_FREQ_556_8:
+				return "556.8";
+				
+			case ICL_CDCLK_FREQ_648_0:
+				return "648";
+				
+			case ICL_CDCLK_FREQ_652_8:
+				return "652.8";
+				
+			default:
+				return "INVALID";
+		}
+	}
+	
+	/**
+	 *  Any Core Display Clock frequency lower than this value is not supported by the driver
+	 *
+	 *  @note This threshold is derived from the ICL framebuffer driver on macOS 10.15.6.
+	 */
+	static constexpr uint32_t ICL_CDCLK_DEC_FREQ_THRESHOLD = ICL_CDCLK_FREQ_648_0;
+	
+	/**
+	 *  Core Display Clock PLL frequency in Hz for the 24 MHz hardware reference frequency
+	 *
+	 *  Main Reference:
+	 *  - Intel Graphics Developer Manaual for Ice Lake Platforms, Volume 12 Display Engine
+	 *    Page 171, CDCLK PLL Ratio and Divider Programming and Resulting Frequencies.
+	 *
+	 *  Side Reference:
+	 *  - Intel Graphics Driver for Linux (5.8.3) bxt_calc_cdclk_pll_vco() in intel_cdclk.c
+	 *
+	 *  @note 54 is the PLL ratio when the reference frequency is 24 MHz
+	 */
+	static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_24_0 = 24000000 * 54;
+	
+	/**
+	 *  Core Display Clock PLL frequency in Hz for the 19.2 MHz hardware reference frequency
+	 *
+	 *  @note 68 is the PLL ratio when the reference frequency is 19.2 MHz
+	 */
+	static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_19_2 = 19200000 * 68;
+	
+	/**
+	 *  Core Display Clock PLL frequency in Hz for the 38.4 MHz hardware reference frequency
+	 *
+	 *  @note 34 is the PLL ratio when the reference frequency is 19.2 MHz
+	 */
+	static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_38_4 = 38400000 * 34;
+	
+	/**
 	 *  The default DPCD address
 	 */
 	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
-	
+
 	/**
 	 *  The extended DPCD address
 	 */
@@ -1272,6 +1610,21 @@ private:
 	 *        Used to inject code to initialize the driver for the onboard LSPCON chip.
 	 */
 	static IOReturn wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *displayPath);
+	
+	/**
+	 *  [Helper] A helper to change the Core Display Clock frequency to a supported value
+	 */
+	static void sanitizeCDClockFrequency(void *that);
+	
+	/**
+	 *  [Wrapper] Probe and adjust the Core Display Clock frequency if necessary
+	 *
+	 *  @param that The hidden implicit `this` pointer
+	 *  @return The PLL VCO frequency in Hz derived from the current Core Display Clock frequency.
+	 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::probeCDClockFrequency()` method.
+	 *        Used to inject code to reprogram the clock so that its frequency is natively supported by the driver.
+	 */
+	static uint32_t wrapProbeCDClockFrequency(void *that);
 
 	/**
 	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
@@ -1312,7 +1665,7 @@ private:
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
 	 */
-	static bool wrapGetOSInformation(void *that);
+	static bool wrapGetOSInformation(IOService *that);
 
 	/**
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
@@ -1366,6 +1719,8 @@ private:
 	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
 	 */
 	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
+	
+	static uint64_t wrapIsTypeCOnlySystem(void*);
 
 	/**
 	 *  Load GuC-specific patches and hooks
@@ -1436,6 +1791,17 @@ private:
 	 *  @return true if patched anything
 	 */
 	bool applyPatch(const KernelPatcher::LookupPatch &patch, uint8_t *startingAddress, size_t maxSize);
+	
+	/**
+	 *  Add int to dictionary.
+	 *
+	 *  @param dict		OSDictionary instance.
+	 *  @param key		Key to add.
+	 *  @param value 	Value to add.
+	 *
+	 *  @return true if added
+	 */
+	bool setDictUInt32(OSDictionary *dict, const char *key, UInt32 value);
 
 	/**
 	 *  Patch platformInformationList
@@ -1477,6 +1843,16 @@ private:
 	 *  Apply DP to HDMI automatic connector type changes
 	 */
 	void applyHdmiAutopatch();
+	
+	/**
+	 *	Apply patches for first generation framebuffer.
+	 */
+	void applyWestmerePatches(KernelPatcher &patcher);
+	
+	/**
+	 *	Apply I/O registry FeatureControl and FBCControl patches for first generation framebuffer.
+	 */
+	void applyWestmereFeaturePatches(IOService *framebuffer);
 };
 
 #endif /* kern_igfx_hpp */

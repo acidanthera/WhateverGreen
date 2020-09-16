@@ -335,7 +335,7 @@ void RAD::processConnectorOverrides(KernelPatcher &patcher, mach_vm_address_t ad
 											wrapTranslateAtomConnectorInfoV1, orgTranslateAtomConnectorInfoV1),
 				KernelPatcher::RouteRequest("__ZN14AtiBiosParser226translateAtomConnectorInfoERN30AtiObjectInfoTableInterface_V217AtomConnectorInfoER13ConnectorInfo",
 											wrapTranslateAtomConnectorInfoV2, orgTranslateAtomConnectorInfoV2),
-				KernelPatcher::RouteRequest("__ZN13ATIController5startEP9IOService", wrapATIControllerStart, orgATIControllerStart),
+				KernelPatcher::RouteRequest("__ZN13ATIController5startEP9IOService", wrapATIControllerStart, orgATIControllerStart)
 			};
 			patcher.routeMultiple(kextRadeonSupport.loadIndex, requests, address, size);
 		} else {

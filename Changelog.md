@@ -1,11 +1,37 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.3
+- Added CFL and CML P630
+
+#### v1.4.2
+- Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
+- Disabled RPS control patch by default due to a bug in 10.15.6 IGPU drivers
+- Replaced `igfxnorpsc=1` with `igfxrpsc=1` to opt-in RPS control patch
+- Support all valid Core Display Clock (CDCLK) frequencies to avoid the kernel panic of "Unsupported CD clock decimal frequency" on Intel ICL platforms. (by @0xFireWolf)
+- Fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms. (by @0xFireWolf)
+
+#### v1.4.1
+- Added `igfxmetal=1` boot argument (and `enable-metal` property) to enable Metal on offline IGPU
+- Fixed applying patches on CometLake IGPUs, thx @apocolipse
+- Added constants required for 11.0 update
+- Added the use of RPS control for all the command streamers on IGPU (disabled via `igfxnorpsc=1`)
+- Add `-igfxvesa` to disable Intel Graphics acceleration.
+- Fix black screen on igfx since 10.15.5
+- Add workaround for rare force wake timeout panics on Intel KBL and CFL.
+- Add Intel Westmere graphics support.
+
+#### v1.4.0
+- Added 0x3EA6, 0x8A53, 0x9BC4, 0x9BC5, 0x9BC8 IGPU device-id
+- Fixed `framebuffer-conX-alldata` patching regression
+- Added `disable-hdmi-patches` device property alias to `-igfxnohdmi`
+
 #### v1.3.9
 - Added `igfxdumpdelay` boot argument to delay `-igfxdump` in ms
 - Partially fix ICL framebuffer patching
 - Add support to injecting `Force_Load_FalconSMUFW` from OpenCore
 - Disabled automatic enabling of GVA for Polaris on 10.13 and lower
 - Replaced -radnogva argument with radgva=0/1 to force GVA for Polaris
+- Added `wegtree=1` boot argument (`rebuild-device-tree` property) to force device renaming on Apple FW
 
 #### v1.3.8
 - Added `igfxfw=2` boot argument and `igfxfw` IGPU property to load Apple GuC firmware

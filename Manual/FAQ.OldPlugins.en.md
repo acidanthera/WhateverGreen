@@ -16,11 +16,12 @@ IntelGraphicsDVMTFixup.kext is deprecated because it is equivalent to use `frame
 EnableLidWake.kext is deprecated because it is equivalent to setting `FBAlternatePWMIncrement1/2` bit in flags.  
   
 AppleBacklightFixup.kext is deprecated.  
-In case of custom AppleBacklight profile is necessary (e.g. via `AppleBacklightInjector.kext`) the following must be performed to accomplish WhateverGreen compatibility:  
+In case of custom AppleBacklight profile is necessary (e.g. via `AppleBacklightInjector.kext`) the following must be performed to accomplish WhateverGreen compatibility:
+
 - Create your injector with a correct profile  
 - Disable WhateverGreen backlight patches via `applbkl=0` boot argument  
 - Specify injector `IOProbeScore` (in injector Info.plist) equal to `5500`  
   
 NoVPAJpeg.kext is deprecated.  
 In case its functionality is needed, add the following boot arguments:  
-`shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94﻿`
+`shikigva=32 shiki-id=Mac-7BA5B2D9E42DDD94`
