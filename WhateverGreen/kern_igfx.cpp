@@ -328,6 +328,15 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		else if (currentFramebuffer == &kextIntelCFLFb && BaseDeviceInfo::get().modelType == WIOKit::ComputerModel::ComputerLaptop)
 			cflBacklightPatch = CoffeeBacklightPatch::Auto;
 
+		// Enable new backlight patch type on KBL and older if the corresponding boot argument is found
+		newBacklightPatch = checkKernelArgument("-igfxnewbklt");
+		// Or if "enable-new-backlight-fix" is set in IGPU property
+		if (!newBacklightPatch)
+			newBacklightPatch = info->videoBuiltin->getProperty("enable-new-backlight-fix") != nullptr;
+		// New backlight patch is only for KBL and older
+		if (newBacklightPatch && cpuGeneration > CPUInfo::CpuGeneration::KabyLake)
+			SYSLOG("igfx", "new backlight patch is only for KBL and older. CFL and above must use another patch.");
+
 		if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
 			DBGLOG("igfx", "read custom backlight frequency %u", targetBacklightFrequency);
 
@@ -380,6 +389,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
 				return true;
 			if (cflBacklightPatch != CoffeeBacklightPatch::Off)
+				return true;
+			if (newBacklightPatch)
 				return true;
 			if (maxLinkRatePatch)
 				return true;
@@ -502,14 +513,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
 		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
 		// Solve ReadRegister32 just once as it is shared
-		if (bklCoffeeFb || bklKabyFb ||
+		if (bklCoffeeFb || bklKabyFb || newBacklightPatch ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled || coreDisplayClockPatch) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
 				SYSLOG("igfx", "Failed to find ReadRegister32");
 		}
-		if (bklCoffeeFb || bklKabyFb ||
+		if (bklCoffeeFb || bklKabyFb || newBacklightPatch ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled) {
 			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
@@ -565,6 +576,37 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
+				patcher.clearError();
+			}
+		}
+
+		if (newBacklightPatch) {
+			// The traditional way to get backlight working on Kaby Lake and older is using SSDT-PNLF to set custom PWM frequency at boot to match the value used by macOS.
+			// This patch uses a different approach based on the Coffee Lake backlight patch (see above for more details).
+			// Basically, it overwrites WriteRegister32 function to rescale all the register writes to match the default PWM frequency.
+			// As a result, only a simple SSDT-PNLF is needed (see SSDT-PNLFCFL).
+			//
+			// Ivy Bridge and before use two registers: BXT_BLC_PWM_FREQ1 (for frequency) and BLC_PWM_CPU_CTL (for duty cycle)
+			// Haswell to Kaby Lake use only one register: BXT_BLC_PWM_FREQ1 for both frequency and duty cycle
+			// See wrapHswWriteRegister32 and wrapIvyWriteRegister32 for more details
+
+			bool hswPlus = cpuGeneration >= CPUInfo::CpuGeneration::Haswell;
+			if (AppleIntelFramebufferController__ReadRegister32 &&
+				AppleIntelFramebufferController__WriteRegister32) {
+				(hswPlus ? orgHswReadRegister32 : orgIvyReadRegister32) = AppleIntelFramebufferController__ReadRegister32;
+
+				patcher.eraseCoverageInstPrefix(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32));
+				auto orgRegWrite = reinterpret_cast<decltype(orgHswWriteRegister32)>
+					(patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32), reinterpret_cast<mach_vm_address_t>(hswPlus ? wrapHswWriteRegister32 : wrapIvyWriteRegister32), true));
+
+				if (orgRegWrite) {
+					(hswPlus ? orgHswWriteRegister32 : orgIvyWriteRegister32) = orgRegWrite;
+				} else {
+					SYSLOG("igfx", "failed to route WriteRegister32 for hsw %d", hswPlus);
+					patcher.clearError();
+				}
+			} else {
+				SYSLOG("igfx", "failed to find ReadRegister32/WriteRegister32 for hsw %d", hswPlus);
 				patcher.clearError();
 			}
 		}
@@ -1829,6 +1871,87 @@ void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 	}
 
 	callbackIGFX->orgKblWriteRegister32(that, reg, value);
+}
+
+void IGFX::wrapHswWriteRegister32(void *that, uint32_t reg, uint32_t value) {
+	if (reg == BXT_BLC_PWM_FREQ1) {
+		// BXT_BLC_PWM_FREQ1 controls the backlight intensity.
+		// High 16 of this register are the denominator (frequency), low 16 are the numerator (duty cycle).
+
+		if (callbackIGFX->targetBacklightFrequency == 0) {
+			// Populate the hardware PWM frequency as initially set up by the system firmware.
+			uint32_t org_value = callbackIGFX->orgHswReadRegister32(that, BXT_BLC_PWM_FREQ1);
+			callbackIGFX->targetBacklightFrequency = (org_value & 0xffff0000U) >> 16U;
+			DBGLOG("igfx", "wrapHswWriteRegister32: system initialized PWM frequency = 0x%x", callbackIGFX->targetBacklightFrequency);
+
+			if (callbackIGFX->targetBacklightFrequency == 0) {
+				// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
+				callbackIGFX->targetBacklightFrequency = FallbackTargetBacklightFrequency;
+				SYSLOG("igfx", "wrapHswWriteRegister32: system initialized PWM frequency is ZERO");
+			}
+		}
+
+		uint32_t dutyCycle = value & 0xffffU;
+		uint32_t frequency = (value & 0xffff0000U) >> 16U;
+
+		uint32_t rescaledDutyCycle = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
+											static_cast<uint64_t>(frequency));
+
+		if (frequency) {
+			// Nonzero writes to frequency need to use the original system frequency.
+			// Yet the driver can safely write zero to this register as part of system sleep.
+			frequency = callbackIGFX->targetBacklightFrequency;
+		}
+
+		// Write the rescaled duty cycle and frequency
+		// FIXME: what if rescaled duty cycle overflow unsigned 16 bit int?
+		value = (frequency << 16U) | rescaledDutyCycle;
+	}
+
+	callbackIGFX->orgHswWriteRegister32(that, reg, value);
+}
+
+void IGFX::wrapIvyWriteRegister32(void *that, uint32_t reg, uint32_t value) {
+	if (reg == BXT_BLC_PWM_FREQ1) {
+		if (value && value != callbackIGFX->driverBacklightFrequency) {
+			DBGLOG("igfx", "wrapIvyWriteRegister32: driver requested BXT_BLC_PWM_FREQ1 = 0x%x", value);
+			callbackIGFX->driverBacklightFrequency = value;
+		}
+
+		if (callbackIGFX->targetBacklightFrequency == 0) {
+			// Save the hardware PWM frequency as initially set up by the system firmware.
+			// We'll need this to restore later after system sleep.
+			callbackIGFX->targetBacklightFrequency = callbackIGFX->orgIvyReadRegister32(that, BXT_BLC_PWM_FREQ1);
+			DBGLOG("igfx", "wrapIvyWriteRegister32: system initialized BXT_BLC_PWM_FREQ1 = 0x%x", callbackIGFX->targetBacklightFrequency);
+
+			if (callbackIGFX->targetBacklightFrequency == 0) {
+				// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
+				callbackIGFX->targetBacklightFrequency = FallbackTargetBacklightFrequency;
+				SYSLOG("igfx", "wrapIvyWriteRegister32: system initialized BXT_BLC_PWM_FREQ1 is ZERO");
+			}
+		}
+
+		if (value) {
+			// Nonzero writes to this register need to use the original system value.
+			// Yet the driver can safely write zero to this register as part of system sleep.
+			value = callbackIGFX->targetBacklightFrequency;
+		}
+	} else if (reg == BLC_PWM_CPU_CTL) {
+		if (callbackIGFX->driverBacklightFrequency && callbackIGFX->targetBacklightFrequency) {
+			// Translate the PWM duty cycle between the driver scale value and the HW scale value
+			uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
+				static_cast<uint64_t>(callbackIGFX->driverBacklightFrequency));
+			DBGLOG("igfx", "wrapIvyWriteRegister32: write BLC_PWM_CPU_CTL 0x%x/0x%x, rescaled to 0x%x/0x%x", value,
+				   callbackIGFX->driverBacklightFrequency, rescaledValue, callbackIGFX->targetBacklightFrequency);
+			value = rescaledValue;
+		} else {
+			// This should never happen, but in case it does we should log it at the very least.
+			SYSLOG("igfx", "wrapIvyWriteRegister32: write BLC_PWM_CPU_CTL has zero frequency driver (%d) target (%d)",
+				   callbackIGFX->driverBacklightFrequency, callbackIGFX->targetBacklightFrequency);
+		}
+	}
+
+	callbackIGFX->orgIvyWriteRegister32(that, reg, value);
 }
 
 bool IGFX::wrapGetOSInformation(IOService *that) {

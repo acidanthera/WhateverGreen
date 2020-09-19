@@ -144,6 +144,7 @@ private:
 	/**
 	 *  Backlight registers
 	 */
+	static constexpr uint32_t BLC_PWM_CPU_CTL = 0x48254;
 	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
 	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
 	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
@@ -297,12 +298,16 @@ private:
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgIclReadRegister32)(void *, uint32_t) {nullptr};
+	uint32_t (*orgHswReadRegister32)(void *, uint32_t) {nullptr};
+	uint32_t (*orgIvyReadRegister32)(void *, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::WriteRegister32 function
 	 */
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+	void (*orgHswWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+	void (*orgIvyWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::ReadAUX function
@@ -367,6 +372,11 @@ private:
 	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
 	 */
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
+
+	/**
+	 *  Set to true to enable new backlight patch type for Kaby Lake and older
+	 */
+	bool newBacklightPatch {false};
 
 	/**
 	 *  Patch the maximum link rate in the DPCD buffer read from the built-in display
@@ -1661,6 +1671,8 @@ private:
 	 */
 	static void wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value);
 	static void wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value);
+	static void wrapHswWriteRegister32(void *that, uint32_t reg, uint32_t value);
+	static void wrapIvyWriteRegister32(void *that, uint32_t reg, uint32_t value);
 
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
