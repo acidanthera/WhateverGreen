@@ -29,7 +29,7 @@
 * IN THE SOFTWARE.
 */
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>

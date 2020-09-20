@@ -8,11 +8,11 @@
 #ifndef kern_ngfx_hpp
 #define kern_ngfx_hpp
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 // Assembly exports for restoreLegacyOptimisations
 extern "C" bool wrapVaddrPreSubmitTrampoline(void *that);

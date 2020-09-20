@@ -10,7 +10,7 @@
 
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include "kern_agdc.hpp"
 #include "kern_atom.hpp"
 #include "kern_con.hpp"

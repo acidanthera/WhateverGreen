@@ -7,7 +7,7 @@
 
 #include "kern_shiki.hpp"
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_cpu.hpp>
