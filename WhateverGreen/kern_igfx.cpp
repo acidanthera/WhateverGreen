@@ -555,7 +555,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			//   hardcoded frequencies. 65535 is used by default.
 			// - If [PWM Base Frequency] is > 65535, to avoid a wraparound code calculating BXT_BLC_PWM_DUTY1
 			//   should be replaced to use 64-bit arithmetics.
-			// [PWM Base Frequency] can be specified via igfxbklt=1 boot-arg or backlight-base-frequency property.
+			// [PWM Base Frequency] can be specified via max-backlight-freq property.
 
 			// This patch will overwrite WriteRegister32 function to rescale all the register writes of backlight controller.
 			// Slightly different methods are used for CFL hardware running on KBL and CFL drivers.
