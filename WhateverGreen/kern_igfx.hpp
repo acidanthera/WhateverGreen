@@ -477,6 +477,11 @@ private:
 	// Useful for getting access to Read/WriteRegister, rather than having
 	// to compute the offsets
 	AppleIntelFramebufferController** gFramebufferController {};
+	
+	// Available on ICL+
+	// Apple has refactored quite a large amount of code into a new class `AppleIntelPort` in the ICL graphics driver,
+	// and the framebuffer controller now maintains an array of `ports`.
+	class AppleIntelPort;
 
 	struct RPSControl {
 		bool available {false};
@@ -581,6 +586,210 @@ private:
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modDVMTCalcFix;
+	
+	/**
+	 *  A submodule to fix the maximum link rate reported by DPCD
+	 */
+	struct DPCDMaxLinkRateFix: public PatchSubmodule {
+		/**
+		 *  The default DPCD address that stores receiver capabilities (16 bytes)
+		 */
+		static constexpr uint32_t DPCD_DEFAULT_RECEIVER_CAPS_ADDRESS = 0x0000;
+
+		/**
+		 *  The extended DPCD address that stores receiver capabilities (16 bytes)
+		 */
+		static constexpr uint32_t DPCD_EXTENDED_RECEIVER_CAPS_ADDRESS = 0x2200;
+		
+		/**
+		 *  The DPCD address that stores the eDP version (1 byte)
+		 */
+		static constexpr uint32_t DPCD_EDP_VERSION_ADDRESS = 0x700;
+		
+		/**
+		 *  The DPCD register value if eDP version is 1.4
+		 */
+		static constexpr uint32_t DPCD_EDP_VERSION_1_4_VALUE = 0x03;
+		
+		/**
+		 *  The DPCD address that stores link rates supported by the eDP panel (2 bytes * 8)
+		 */
+		static constexpr uint32_t DPCD_EDP_SUPPORTED_LINK_RATES_ADDRESS = 0x010;
+		
+		/**
+		 *  The maximum number of link rates stored in the table
+		 */
+		static constexpr size_t DP_MAX_NUM_SUPPORTED_RATES = 8;
+		
+		/**
+		 *  User-specified maximum link rate value in the DPCD buffer
+		 *
+		 *  Auto: Default value is 0x00 to detect the maximum link rate automatically;
+		 *  User: Specify a custom link rate via the `dpcd-max-link-rate` property.
+		 */
+		uint32_t maxLinkRate {0x00};
+		
+		/**
+		 *  [CFL-] The framebuffer controller instance passed to `ReadAUX()`
+		 *
+		 *  @note This field is set to invoke platform-independent ReadAUX().
+		 */
+		AppleIntelFramebufferController *controller {nullptr};
+		
+		/**
+		 *  [CFL-] The framebuffer instance passed to `ReadAUX()`
+		 *
+		 *  @note This field is set to invoke platform-independent ReadAUX().
+		 */
+		IORegistryEntry *framebuffer {nullptr};
+		
+		/**
+		 *  [CFL-] The display path instance passed to `ReadAUX()`
+		 *
+		 *  @note This field is set to invoke platform-independent ReadAUX().
+		 */
+		void *displayPath {nullptr};
+		
+		/**
+		 *  [ICL+] The port instance passed to `ReadAUX()`
+		 *
+		 *  @note This field is set to invoke platform-independent ReadAUX().
+		 */
+		AppleIntelPort *port {nullptr};
+		
+		/**
+		 *  [CFL-] Original AppleIntelFramebufferController::ReadAUX function
+		 *
+		 *  @seealso Refer to the document of `wrapReadAUX()` below.
+		 */
+		IOReturn (*orgCFLReadAUX)(AppleIntelFramebufferController *, IORegistryEntry *, uint32_t, uint16_t, void *, void *) {nullptr};
+		
+		/**
+		 *  [ICL+] Original AppleIntelPort::readAUX function
+		 *
+		 *  @seealso Refer to the document of `wrapICLReadAUX()` below.
+		 */
+		IOReturn (*orgICLReadAUX)(AppleIntelPort *, uint32_t, void *, uint32_t) {nullptr};
+		
+		/**
+		 *  [ICL+] Original AppleIntelPort::getFBFromPort function
+		 *
+		 *  @param that The hidden implicity framebuffer controller instance
+		 *  @param port Specify the port instance to retrieve the corresponding framebuffer instance
+		 *  @return The framebuffer instance associated with the given port on success, `NULL` otherwise.
+		 *  @note This function is required to retrieve the framebuffer index via a port.
+		 */
+		IORegistryEntry *(*orgICLGetFBFromPort)(AppleIntelFramebufferController *, AppleIntelPort *) {nullptr};
+		
+		/**
+		 *  [CFL-] ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
+		 *
+		 *  @param that The hidden implicit framebuffer controller instance
+		 *  @param framebuffer The framebuffer instance
+		 *  @param address DPCD register address
+		 *  @param length Specify the number of bytes read from the register at `address`
+		 *  @param buffer A non-null buffer to store bytes read from DPCD
+		 *  @param displayPath The display path instance
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note The actual work is delegated to the platform-independent function `wrapReadAUX()`.
+		 */
+		static IOReturn wrapCFLReadAUX(AppleIntelFramebufferController *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
+		
+		/**
+		 *  [ICL+] ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
+		 *
+		 *  @param that The hidden implicit port instance
+		 *  @param address DPCD register address
+		 *  @param buffer A non-null buffer to store bytes read from DPCD
+		 *  @param length Specify the number of bytes read from the register at `address`
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note The actual work is delegated to the platform-independent function `wrapReadAUX()`.
+		 */
+		static IOReturn wrapICLReadAUX(AppleIntelPort *that, uint32_t address, void *buffer, uint32_t length);
+		
+		/**
+		 *  [Common] ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
+		 *
+		 *  @param address DPCD register address
+		 *  @param buffer A non-null buffer to store bytes read from DPCD
+		 *  @param length Specify the number of bytes read from the register at `address`
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note This function is independent of the platform.
+		 */
+		static IOReturn wrapReadAUX(uint32_t address, void *buffer, uint32_t length);
+		
+		/**
+		 *  [Common] Read from DPCD via DisplayPort AUX channel
+		 *
+		 *  @param address DPCD register address
+		 *  @param buffer A non-null buffer to store bytes read from DPCD
+		 *  @param length Specify the number of bytes read from the register at `address`
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note This function is independent of the platform.
+		 */
+		IOReturn orgReadAUX(uint32_t address, void* buffer, uint32_t length);
+		
+		/**
+		 *  [Common] Retrieve the framebuffer index
+		 *
+		 *  @param index The framebuffer index on return
+		 *  @return `true` on success, `false` otherwise.
+		 *  @note This function is independent of the platform.
+		 */
+		bool getFramebufferIndex(uint32_t &index);
+		
+		/**
+		 *  [Helper] Verify the given link rate value
+		 *
+		 *  @param rate The decimal link rate value
+		 *  @return The given rate value if it is supported by the driver, `0` otherwise.
+		 */
+		static inline uint32_t verifyLinkRateValue(uint32_t rate) {
+			switch (rate) {
+				case 0x1E: // HBR3 8.1  Gbps
+				case 0x14: // HBR2 5.4  Gbps
+				case 0x0C: // 3_24 3.24 Gbps Used by Apple internally
+				case 0x0A: // HBR  2.7  Gbps
+				case 0x06: // RBR  1.62 Gbps
+					return rate;
+
+				default:
+					return 0;
+			}
+		}
+		
+		/**
+		 *  [Helper] Get the maximum link rate value from the given table read from DPCD
+		 *
+		 *  @param table A table of link rates supported by the eDP 1.4 panel
+		 *  @return The maximum link rate value, `0` if failed to find one supported by Apple's driver.
+		 *  @note The driver only supports `0x06` (RBR), `0x0A` (HBR), `0x0C` (Apple's Internal), `0x14` (HBR2), `0x1E` (HBR3).
+		 */
+		uint32_t getMaxLinkRateFromTable(uint16_t table[DP_MAX_NUM_SUPPORTED_RATES]);
+		
+		/**
+		 *  [Helper] Probe the maximum link rate from DPCD
+		 *
+		 *  @return The maximum link rate value on success, `0` otherwise.
+		 *  @note This function is independent of the platform.
+		 */
+		uint32_t probeMaxLinkRate();
+		
+		/**
+		 *  [CFL-] Process the framebuffer kext for CFL- platforms
+		 */
+		void processFramebufferKextForCFL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		
+		/**
+		 *  [ICL+] Process the framebuffer kext for ICL+ platforms
+		 */
+		void processFramebufferKextForICL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modDPCDMaxLinkRateFix;
 
 	/**
 	 * Ensure each modeset is a complete modeset.
