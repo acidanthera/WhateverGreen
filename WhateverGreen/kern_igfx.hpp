@@ -506,11 +506,6 @@ private:
 	class PatchSubmodule {
 	public:
 		/**
-		 *  Virtual destructor
-		 */
-		virtual ~PatchSubmodule() = default;
-		
-		/**
 		 *  True if this submodule should be enabled
 		 */
 		bool enabled {false};
