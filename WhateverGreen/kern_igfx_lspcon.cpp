@@ -324,7 +324,7 @@ IOReturn IGFX::LSPCONDriverSupport::wrapGetDPCDInfo(void *that, IORegistryEntry 
 
 	// Call the original method
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Will call the original method.");
-	IOReturn retVal = callbackIGFX->orgGetDPCDInfo(that, framebuffer, displayPath);
+	IOReturn retVal = callbackIGFX->modLSPCONDriverSupport.orgGetDPCDInfo(that, framebuffer, displayPath);
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Returns 0x%llx.", retVal);
 	return retVal;
 }
