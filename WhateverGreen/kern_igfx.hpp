@@ -747,6 +747,66 @@ private:
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modDPCDMaxLinkRateFix;
+	
+	/**
+	 *  A submodule to support all valid Core Display Clock frequencies on ICL+ platforms
+	 */
+	class CoreDisplayClockFix: public PatchSubmodule {
+	private:
+		/**
+		 *  [ICL+] Original AppleIntelFramebufferController::ReadRegister32 function
+		 *
+		 *  @param that The implicit hidden framebuffer controller instance
+		 *  @param address Address of the MMIO register
+		 *  @return The 32-bit integer read from the register.
+		 */
+		uint32_t (*orgIclReadRegister32)(void *, uint32_t) {nullptr};
+		
+		/**
+		 *  [ICL+] Original AppleIntelFramebufferController::probeCDClockFrequency function
+		 *
+		 *  @seealso Refer to the document of `wrapProbeCDClockFrequency()` below.
+		 */
+		uint32_t (*orgProbeCDClockFrequency)(void *) {nullptr};
+		
+		/**
+		 *  [ICL+] Original AppleIntelFramebufferController::disableCDClock function
+		 *
+		 *  @param that The implicit hidden framebuffer controller instance
+		 *  @note This function is required to reprogram the Core Display Clock.
+		 */
+		void (*orgDisableCDClock)(void *) {nullptr};
+		
+		/**
+		 *  [ICL+] Original AppleIntelFramebufferController::setCDClockFrequency function
+		 *
+		 *  @param that The implicit hidden framebuffer controller instance
+		 *  @param frequency The Core Display Clock PLL frequency in Hz
+		 *  @note This function changes the frequency of the Core Display Clock and reenables it.
+		 */
+		void (*orgSetCDClockFrequency)(void *, unsigned long long) {nullptr};
+		
+		/**
+		 *  [Helper] A helper to change the Core Display Clock frequency to a supported value
+		 */
+		static void sanitizeCDClockFrequency(void *that);
+		
+		/**
+		 *  [Wrapper] Probe and adjust the Core Display Clock frequency if necessary
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @return The PLL VCO frequency in Hz derived from the current Core Display Clock frequency.
+		 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::probeCDClockFrequency()` method.
+		 *        Used to inject code to reprogram the clock so that its frequency is natively supported by the driver.
+		 */
+		static uint32_t wrapProbeCDClockFrequency(void *that);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modCoreDisplayClockFix;
 
 	/**
 	 *	A collection of submodules
