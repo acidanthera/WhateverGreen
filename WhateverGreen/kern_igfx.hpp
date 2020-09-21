@@ -565,16 +565,18 @@ private:
 	/**
 	 *  A submodule to fix the calculation of DVMT preallocated memory on ICL+ platforms
 	 */
-	struct DVMTCalcFix: public PatchSubmodule {
-		/**
-		 *  True if this fix is available for the current Intel platform
-		 */
-		bool available {false};
-		
+	class DVMTCalcFix: public PatchSubmodule {
+	private:
 		/**
 		 *  The amount of DVMT preallocated memory in bytes set in the BIOS
 		 */
 		uint32_t dvmt {0};
+		
+	public:
+		/**
+		 *  True if this fix is available for the current Intel platform
+		 */
+		bool available {false};
 		
 		// MARK: Patch Submodule IMP
 		void init() override;
