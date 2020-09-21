@@ -305,11 +305,6 @@ private:
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
 	/**
-	 *  Original AppleIntelFramebufferController::ReadAUX function
-	 */
-	IOReturn (*orgReadAUX)(void *, void *, uint32_t, uint16_t, void *, void *) {nullptr};
-
-	/**
 	 *  Original AppleIntelFramebufferController::ReadI2COverAUX function
 	 */
 	IOReturn (*orgReadI2COverAUX)(void *, IORegistryEntry *, void *, uint32_t, uint16_t, uint8_t *, bool, uint8_t) {nullptr};
@@ -1029,69 +1024,6 @@ private:
 	 *  @note 34 is the PLL ratio when the reference frequency is 19.2 MHz
 	 */
 	static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_38_4 = 38400000 * 34;
-	
-	/**
-	 *  The default DPCD address
-	 */
-	static constexpr uint32_t DPCD_DEFAULT_ADDRESS = 0x0000;
-
-	/**
-	 *  The extended DPCD address
-	 */
-	static constexpr uint32_t DPCD_EXTENDED_ADDRESS = 0x2200;
-
-	/**
-	 *  Represents the first 16 fields of the receiver capabilities defined in DPCD
-	 *
-	 *  Main Reference:
-	 *  - DisplayPort Specification Version 1.2
-	 *
-	 *  Side Reference:
-	 *  - struct intel_dp @ line 1073 in intel_drv.h (Linux 4.19 Kernel)
-	 *  - DP_RECEIVER_CAP_SIZE @ line 964 in drm_dp_helper.h
-	 */
-	struct DPCDCap16 { // 16 bytes
-		// DPCD Revision (DP Config Version)
-		// Value: 0x10, 0x11, 0x12, 0x13, 0x14
-		uint8_t revision;
-
-		// Maximum Link Rate
-		// Value: 0x1E (HBR3) 8.1 Gbps
-		//        0x14 (HBR2) 5.4 Gbps
-		//        0x0C (3_24) 3.24 Gbps
-		//        0x0A (HBR)  2.7 Gbps
-		//        0x06 (RBR)  1.62 Gbps
-		// Reference: 0x0C is used by Apple internally.
-		uint8_t maxLinkRate;
-
-		// Maximum Number of Lanes
-		// Value: 0x1 (HBR2)
-		//        0x2 (HBR)
-		//        0x4 (RBR)
-		// Side Notes:
-		// (1) Bit 7 is used to indicate whether the link is capable of enhanced framing.
-		// (2) Bit 6 is used to indicate whether TPS3 is supported.
-		uint8_t maxLaneCount;
-
-		// Maximum Downspread
-		uint8_t maxDownspread;
-
-		// Other fields omitted in this struct
-		// Detailed information can be found in the specification
-		uint8_t others[12];
-	};
-
-	/**
-	 *  User-specified maximum link rate value in the DPCD buffer
-	 *
-	 *  Default value is 0x14 (5.4 Gbps, HBR2) for 4K laptop display
-	 */
-	uint32_t maxLinkRate {0x14};
-
-	/**
-	 *  ReadAUX wrapper to modify the maximum link rate value in the DPCD buffer
-	 */
-	static IOReturn wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath);
 
 	/**
 	 * See function definition for explanation
