@@ -1740,11 +1740,45 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 ## 修复笔记本内屏返回错误的最大链路速率值的问题 (Dell XPS 15 9570 等高分屏笔记本)
 为核显添加 `enable-dpcd-max-link-rate-fix` 属性或者直接使用 `-igfxmlr` 启动参数以解决系统在点亮内屏时直接崩溃的问题。  
 从 1.3.7 版本开始，此补丁同时修正从屏幕扩展属性里读取的错误速率值问题以解决在 Dell 灵越 7590 系列等新款笔记本上内核崩溃的问题。  
+从 1.4.3 版本开始，如果用户未定义 `dpcd-max-link-rate` 属性的话，此补丁将自动从 DPCD 寻找内屏支持的最大链路速率值。此外此补丁已适配 Ice Lake 平台。
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)  
 另外可使用 `dpcd-max-link-rate` 这个属性来为笔记本内屏指定一个最大链路速率值。  
 4K 内屏一般使用 `0x14`，1080p 内屏使用 `0x0A` 即可。  
 可选值为 `0x06` (RBR)，`0x0A` (HBR)，`0x14` (HBR2) 以及 `0x1E` (HBR3)。  
-若指定了其他值，则补丁默认使用 `0x14`。若不定义此属性的话，同样默认使用 `0x14`。  
+若指定了其他值，或者未定义此属性的话，则补丁默认自动寻找内屏所支持的链路最大值。  
+若显卡驱动不支持找到的链路最大值的话，那么之后会触发内核崩溃，因此你需要按照上述方法手动指定一个合法的值。（这个情况理论上应该很少见。）  
+
+<details>
+<summary>调试</summary>
+当驱动自动寻找最大链路速率值时，你会在内核日志里发现如下的日志。  
+在此例中，Dell XPS 15 9570 的 4K 内屏所支持的最大链路速率值为 5.4 Gbps，因此补丁写入对应的 `0x14` 值。
+
+```
+igfx: @ (DBG) MLR: Found CFL- platforms. Will setup the fix for the CFL- graphics driver.
+igfx: @ (DBG) MLR: [CFL-] Functions have been routed successfully.
+igfx: @ (DBG) MLR: [CFL-] wrapReadAUX() Called with controller at 0xffffff802ca6e000 and framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x0; Length = 16.
+igfx: @ (DBG) MLR: [COMM] GetFBIndex() Port at 0x0; Framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Will probe the maximum link rate from the table.
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x700; Length = 1.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Found eDP version 1.4+ (Value = 0x4).
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x10; Length = 16.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[0] =  8100; Link Rate = 1620000000; Decimal Value = 0x06.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[1] = 10800; Link Rate = 2160000000; Decimal Value = 0x08.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[2] = 12150; Link Rate = 2430000000; Decimal Value = 0x09.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[3] = 13500; Link Rate = 2700000000; Decimal Value = 0x0a.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[4] = 16200; Link Rate = 3240000000; Decimal Value = 0x0c.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[5] = 21600; Link Rate = 4320000000; Decimal Value = 0x10.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[6] = 27000; Link Rate = 5400000000; Decimal Value = 0x14.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() End of table.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Maximum link rate 0x14 has been set in the DPCD buffer.
+igfx: @ (DBG) MLR: [CFL-] wrapReadAUX() Called with controller at 0xffffff802ca6e000 and framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x2200; Length = 16.
+igfx: @ (DBG) MLR: [COMM] GetFBIndex() Port at 0x0; Framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Will use the maximum link rate specified by user or cached by the previous probe call.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Maximum link rate 0x14 has been set in the DPCD buffer.
+```
+</details>
 
 
 ## 修复核显驱动在尝试点亮外接 HDMI 高分辨率显示器时造成的死循环问题
