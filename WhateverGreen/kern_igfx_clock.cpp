@@ -209,11 +209,14 @@ IOReturn IGFX::DPCDMaxLinkRateFix::wrapReadAUX(uint32_t address, void *buffer, u
 
 	// Set the custom maximum link rate value if user has specified one
 	if (callbackIGFX->modDPCDMaxLinkRateFix.maxLinkRate != 0) {
-		DBGLOG("igfx", "MLR: [COMM] wrapReadAUX() Will use the maximum link rate specified by user.");
+		DBGLOG("igfx", "MLR: [COMM] wrapReadAUX() Will use the maximum link rate specified by user or cached by the previous probe call.");
 		caps->maxLinkRate = callbackIGFX->modDPCDMaxLinkRateFix.maxLinkRate;
 	} else {
 		DBGLOG("igfx", "MLR: [COMM] wrapReadAUX() Will probe the maximum link rate from the table.");
 		caps->maxLinkRate = callbackIGFX->modDPCDMaxLinkRateFix.probeMaxLinkRate();
+		// The graphics driver tries to read the maximum link rate from both DPCD address 0x0 and 0x2200.
+		// We save the probe result to avoid duplicated computation.
+		callbackIGFX->modDPCDMaxLinkRateFix.maxLinkRate = caps->maxLinkRate;
 	}
 	
 	// All done
@@ -224,11 +227,11 @@ IOReturn IGFX::DPCDMaxLinkRateFix::wrapReadAUX(uint32_t address, void *buffer, u
 IOReturn IGFX::DPCDMaxLinkRateFix::orgReadAUX(uint32_t address, void *buffer, uint32_t length) {
 	if (port != nullptr) {
 		// ICL+
-		DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to ICL IMP with Address = %u; Length = %u.", address, length);
+		DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to ICL IMP with Address = 0x%x; Length = %u.", address, length);
 		return orgICLReadAUX(port, address, buffer, length);
 	} else {
 		// CFL-
-		DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = %u; Length = %u.", address, length);
+		DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x%x; Length = %u.", address, length);
 		return orgCFLReadAUX(controller, framebuffer, address, length, buffer, displayPath);
 	}
 }
@@ -253,7 +256,7 @@ uint32_t IGFX::DPCDMaxLinkRateFix::probeMaxLinkRate() {
 		SYSLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() eDP version is less than 1.4. Aborted.");
 		return 0;
 	}
-	DBGLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() Found eDP version 1.4+ (%u).", eDPVersion);
+	DBGLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() Found eDP version 1.4+ (Value = 0x%x).", eDPVersion);
 	
 	// Guard: Read all supported link rates
 	uint16_t rates[DP_MAX_NUM_SUPPORTED_RATES] = {0};
@@ -276,7 +279,7 @@ uint32_t IGFX::DPCDMaxLinkRateFix::probeMaxLinkRate() {
 		// Each element in the table is encoded as a multiple of 200 KHz
 		// The decimal value (e.g. 0x14) is encoded as a multiple of 0.27 GHz (270000 KHz)
 		last = rates[index] * 200 / 270000;
-		DBGLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() Table[%d] = %u; Link Rate = %llu; Decimal Value = %u.",
+		DBGLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() Table[%d] = %5u; Link Rate = %llu; Decimal Value = 0x%02x.",
 			   index, rates[index], static_cast<uint64_t>(rates[index]) * 200 * 1000, last);
 	}
 	
