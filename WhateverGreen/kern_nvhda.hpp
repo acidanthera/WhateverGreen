@@ -9,7 +9,7 @@
 #define kern_nvhda_hpp
 
 #include <Headers/kern_util.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 class EXPORT NVHDAEnabler : public IOService {
 	OSDeclareDefaultStructors(NVHDAEnabler);

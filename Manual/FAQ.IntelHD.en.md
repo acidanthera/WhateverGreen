@@ -125,12 +125,12 @@ framebuffer-featurecontrol-watermarks*
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
 | 0x00010000  | mobile  | 4          | 32 MB?              |
-| 0x00010000  | mobile  | 1          | 32 MB?              |
-| 0x00010000  | desktop | 3          | 32 MB?              |
-| 0x00010000  | desktop | 3          | 32 MB?              |
-| 0x00010000  | desktop | 0          | 32 MB?              |
-| 0x00010000  | mobile  | 3          | 32 MB?              |
-| 0x00010000  | desktop | 0          | 32 MB?              |
+| 0x00020000  | mobile  | 1          | 32 MB?              |
+| 0x00030010  | desktop | 3          | 32 MB?              |
+| 0x00030020  | desktop | 3          | 32 MB?              |
+| 0x00030030  | desktop | 0          | 32 MB?              |
+| 0x00040000  | mobile  | 3          | 32 MB?              |
+| 0x00050000  | desktop | 0          | 32 MB?              |
 
 <details>
 <summary>Spoiler: SNB connectors</summary>

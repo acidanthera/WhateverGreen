@@ -8,7 +8,7 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <IOKit/graphics/IOFramebuffer.h>
 #include "kern_agdc.hpp"
 #include "kern_igfx.hpp"

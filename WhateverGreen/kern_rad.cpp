@@ -8,7 +8,7 @@
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_devinfo.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 #include <Availability.h>
 #include <IOKit/IOPlatformExpert.h>

@@ -1,5 +1,10 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.3
+- Added CFL and CML P630
+- Added MacKernelSDK with Xcode 12 compatibility
+- Fixed loading on macOS 10.11 and earlier
+
 #### v1.4.2
 - Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
 - Disabled RPS control patch by default due to a bug in 10.15.6 IGPU drivers

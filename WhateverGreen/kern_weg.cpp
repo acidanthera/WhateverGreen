@@ -11,20 +11,12 @@
 #include <Headers/kern_cpu.hpp>
 #include "kern_weg.hpp"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winconsistent-missing-override"
 #include <IOKit/graphics/IOFramebuffer.h>
-#pragma clang diagnostic pop
 
 // This is a hack to let us access protected properties.
 struct FramebufferViewer : public IOFramebuffer {
 	static IOMemoryMap *&getVramMap(IOFramebuffer *fb) {
-		// This is a hack to fix old Xcode compilation.
-#ifdef __MAC_10_13
 		return static_cast<FramebufferViewer *>(fb)->fVramMap;
-#else
-		return static_cast<FramebufferViewer *>(fb)->vramMap;
-#endif
 	}
 };
 
