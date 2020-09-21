@@ -732,14 +732,14 @@ private:
 		 *  @param address Address of the MMIO register
 		 *  @return The 32-bit integer read from the register.
 		 */
-		uint32_t (*orgIclReadRegister32)(void *, uint32_t) {nullptr};
+		uint32_t (*orgIclReadRegister32)(AppleIntelFramebufferController *, uint32_t) {nullptr};
 		
 		/**
 		 *  [ICL+] Original AppleIntelFramebufferController::probeCDClockFrequency function
 		 *
 		 *  @seealso Refer to the document of `wrapProbeCDClockFrequency()` below.
 		 */
-		uint32_t (*orgProbeCDClockFrequency)(void *) {nullptr};
+		uint32_t (*orgProbeCDClockFrequency)(AppleIntelFramebufferController *) {nullptr};
 		
 		/**
 		 *  [ICL+] Original AppleIntelFramebufferController::disableCDClock function
@@ -747,7 +747,7 @@ private:
 		 *  @param that The implicit hidden framebuffer controller instance
 		 *  @note This function is required to reprogram the Core Display Clock.
 		 */
-		void (*orgDisableCDClock)(void *) {nullptr};
+		void (*orgDisableCDClock)(AppleIntelFramebufferController *) {nullptr};
 		
 		/**
 		 *  [ICL+] Original AppleIntelFramebufferController::setCDClockFrequency function
@@ -756,12 +756,12 @@ private:
 		 *  @param frequency The Core Display Clock PLL frequency in Hz
 		 *  @note This function changes the frequency of the Core Display Clock and reenables it.
 		 */
-		void (*orgSetCDClockFrequency)(void *, unsigned long long) {nullptr};
+		void (*orgSetCDClockFrequency)(AppleIntelFramebufferController *, unsigned long long) {nullptr};
 		
 		/**
 		 *  [Helper] A helper to change the Core Display Clock frequency to a supported value
 		 */
-		static void sanitizeCDClockFrequency(void *that);
+		static void sanitizeCDClockFrequency(AppleIntelFramebufferController *that);
 		
 		/**
 		 *  [Wrapper] Probe and adjust the Core Display Clock frequency if necessary
@@ -771,7 +771,7 @@ private:
 		 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::probeCDClockFrequency()` method.
 		 *        Used to inject code to reprogram the clock so that its frequency is natively supported by the driver.
 		 */
-		static uint32_t wrapProbeCDClockFrequency(void *that);
+		static uint32_t wrapProbeCDClockFrequency(AppleIntelFramebufferController *that);
 		
 	public:
 		// MARK: Patch Submodule IMP
@@ -822,7 +822,7 @@ private:
 		 *  @seealso Intel Linux Graphics Driver
 		 *  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1112
 		 */
-		static void populateP0P1P2(struct ProbeContext* context);
+		static void populateP0P1P2(struct ProbeContext *context);
 
 		/**
 		 *  Compute dividers for a HDMI connection with the given pixel clock
@@ -834,7 +834,7 @@ private:
 		 *  @return Never used by its caller, so this method might return void.
 		 *  @note Method Signature: `AppleIntelFramebufferController::ComputeHdmiP0P1P2(pixelClock:displayPath:parameters:)`
 		 */
-		static void wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
+		static void wrapComputeHdmiP0P1P2(AppleIntelFramebufferController *that, uint32_t pixelClock, void *displayPath, void *parameters);
 		
 	public:
 		// MARK: Patch Submodule IMP

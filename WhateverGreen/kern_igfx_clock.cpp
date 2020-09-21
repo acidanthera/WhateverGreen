@@ -490,7 +490,7 @@ void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, s
 		orgProbeCDClockFrequency = reinterpret_cast<decltype(orgProbeCDClockFrequency)>(patcher.routeFunction(pcdcAddress, reinterpret_cast<mach_vm_address_t>(wrapProbeCDClockFrequency), true));
 		orgDisableCDClock = reinterpret_cast<decltype(orgDisableCDClock)>(dcdcAddress);
 		orgSetCDClockFrequency = reinterpret_cast<decltype(orgSetCDClockFrequency)>(scdcAddress);
-		orgIclReadRegister32 = callbackIGFX->AppleIntelFramebufferController__ReadRegister32;
+		orgIclReadRegister32 = reinterpret_cast<decltype(orgIclReadRegister32)>(callbackIGFX->AppleIntelFramebufferController__ReadRegister32);
 		if (orgProbeCDClockFrequency && orgIclReadRegister32 && orgDisableCDClock && orgSetCDClockFrequency) {
 			DBGLOG("igfx", "CDC: Functions have been routed successfully.");
 		} else {
@@ -503,7 +503,7 @@ void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, s
 	}
 }
 
-void IGFX::CoreDisplayClockFix::sanitizeCDClockFrequency(void *that) {
+void IGFX::CoreDisplayClockFix::sanitizeCDClockFrequency(AppleIntelFramebufferController *that) {
 	// Read the hardware reference frequency from the DSSM register
 	// Bits 29-31 store the reference frequency value
 	auto referenceFrequency = callbackIGFX->modCoreDisplayClockFix.orgIclReadRegister32(that, ICL_REG_DSSM) >> 29;
@@ -554,7 +554,7 @@ void IGFX::CoreDisplayClockFix::sanitizeCDClockFrequency(void *that) {
 		   coreDisplayClockDecimalFrequency2String(cdclk));
 }
 
-uint32_t IGFX::CoreDisplayClockFix::wrapProbeCDClockFrequency(void *that) {
+uint32_t IGFX::CoreDisplayClockFix::wrapProbeCDClockFrequency(AppleIntelFramebufferController *that) {
 	//
 	// Abstract
 	//
@@ -741,7 +741,7 @@ void IGFX::HDMIDividersCalcFix::populateP0P1P2(struct ProbeContext *context) {
 	context->kdiv = p2;
 }
 
-void IGFX::HDMIDividersCalcFix::wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters) {
+void IGFX::HDMIDividersCalcFix::wrapComputeHdmiP0P1P2(AppleIntelFramebufferController *that, uint32_t pixelClock, void *displayPath, void *parameters) {
 	//
 	// Abstract
 	//
