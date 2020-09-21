@@ -367,8 +367,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (cflBacklightPatch != CoffeeBacklightPatch::Off)
 				return true;
-			if (maxLinkRatePatch)
-				return true;
 			if (hdmiP0P1P2Patch)
 				return true;
 			if (supportLSPCON)

@@ -364,11 +364,6 @@ private:
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
 
 	/**
-	 *  Patch the maximum link rate in the DPCD buffer read from the built-in display
-	 */
-	bool maxLinkRatePatch {false};
-
-	/**
 	 *  Set to true to enable LSPCON driver support
 	 */
 	bool supportLSPCON {false};
