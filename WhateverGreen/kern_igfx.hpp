@@ -788,8 +788,7 @@ private:
 	/**
 	 *  A submodule to fix the calculation of HDMI dividers to avoid the infinite loop
 	 */
-	class HDMIDividersCalcFix: public PatchSubmodule
-	{
+	class HDMIDividersCalcFix: public PatchSubmodule {
 	private:
 		/**
 		 *  Represents the current context of probing dividers for HDMI connections
@@ -852,7 +851,7 @@ private:
 	/**
 	 *	A collection of submodules
 	 */
-	PatchSubmodule *submodules[3] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix };
+	PatchSubmodule *submodules[4] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix };
 	
 	/**
 	 * Ensure each modeset is a complete modeset.
@@ -965,6 +964,7 @@ private:
 	 */
 	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
 
+	// TODO: RELOCATED
 	/**
 	 *  Reflect the `AppleIntelFramebufferController::CRTCParams` struct
 	 *
