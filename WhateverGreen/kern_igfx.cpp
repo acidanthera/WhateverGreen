@@ -282,12 +282,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		// Enable the verbose output in I2C-over-AUX transactions if the corresponding boot argument is found
 		verboseI2C = checkKernelArgument("-igfxi2cdbg");
 		
-		// Enable the Core Display Clock patch on ICL platforms
-		coreDisplayClockPatch = checkKernelArgument("-igfxcdc");
-		// Or if `enable-cdclk-frequency-fix` is set in IGPU property
-		if (!coreDisplayClockPatch)
-			coreDisplayClockPatch = info->videoBuiltin->getProperty("enable-cdclk-frequency-fix") != nullptr;
-		
 		// Iterate through each submodule and redirect the request
 		for (auto submodule : submodules)
 			submodule->processKernel(patcher, info);
@@ -370,8 +364,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (hdmiP0P1P2Patch)
 				return true;
 			if (supportLSPCON)
-				return true;
-			if (coreDisplayClockPatch)
 				return true;
 			if (forceCompleteModeset.enable)
 				return true;
@@ -485,7 +477,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
 		// Solve ReadRegister32 just once as it is shared
 		if (bklCoffeeFb || bklKabyFb ||
-			RPSControl.enabled || ForceWakeWorkaround.enabled || coreDisplayClockPatch) {
+			RPSControl.enabled || ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
@@ -547,28 +539,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				}
 			} else {
 				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
-				patcher.clearError();
-			}
-		}
-		
-		if (coreDisplayClockPatch) {
-			auto pcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController21probeCDClockFrequencyEv", address, size);
-			auto dcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14disableCDClockEv", address, size);
-			auto scdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", address, size);
-			if (pcdcAddress && dcdcAddress && scdcAddress && AppleIntelFramebufferController__ReadRegister32) {
-				patcher.eraseCoverageInstPrefix(pcdcAddress);
-				orgProbeCDClockFrequency = reinterpret_cast<decltype(orgProbeCDClockFrequency)>(patcher.routeFunction(pcdcAddress, reinterpret_cast<mach_vm_address_t>(wrapProbeCDClockFrequency), true));
-				orgDisableCDClock = reinterpret_cast<decltype(orgDisableCDClock)>(dcdcAddress);
-				orgSetCDClockFrequency = reinterpret_cast<decltype(orgSetCDClockFrequency)>(scdcAddress);
-				orgIclReadRegister32 = AppleIntelFramebufferController__ReadRegister32;
-				if (orgProbeCDClockFrequency && orgIclReadRegister32 && orgDisableCDClock && orgSetCDClockFrequency) {
-					DBGLOG("igfx", "CDC: Functions have been routed successfully.");
-				} else {
-					patcher.clearError();
-					SYSLOG("igfx", "CDC: Failed to route functions.");
-				}
-			} else {
-				SYSLOG("igfx", "CDC: Failed to find symbols.");
 				patcher.clearError();
 			}
 		}
@@ -1544,105 +1514,6 @@ IOReturn IGFX::wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *d
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Will call the original method.");
 	IOReturn retVal = callbackIGFX->orgGetDPCDInfo(that, framebuffer, displayPath);
 	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Returns 0x%llx.", retVal);
-	return retVal;
-}
-
-void IGFX::sanitizeCDClockFrequency(void *that)
-{
-	// Read the hardware reference frequency from the DSSM register
-	// Bits 29-31 store the reference frequency value
-	auto referenceFrequency = callbackIGFX->orgIclReadRegister32(that, ICL_REG_DSSM) >> 29;
-	
-	// Frequency of Core Display Clock PLL is determined by the reference frequency
-	uint32_t newCdclkFrequency = 0;
-	uint32_t newPLLFrequency = 0;
-	switch (referenceFrequency) {
-		case ICL_REF_CLOCK_FREQ_19_2:
-			DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 19.2 MHz.");
-			newCdclkFrequency = ICL_CDCLK_FREQ_652_8;
-			newPLLFrequency = ICL_CDCLK_PLL_FREQ_REF_19_2;
-			break;
-			
-		case ICL_REF_CLOCK_FREQ_24_0:
-			DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 24.0 MHz.");
-			newCdclkFrequency = ICL_CDCLK_FREQ_648_0;
-			newPLLFrequency = ICL_CDCLK_PLL_FREQ_REF_24_0;
-			break;
-			
-		case ICL_REF_CLOCK_FREQ_38_4:
-			DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Reference frequency is 38.4 MHz.");
-			newCdclkFrequency = ICL_CDCLK_FREQ_652_8;
-			newPLLFrequency = ICL_CDCLK_PLL_FREQ_REF_38_4;
-			break;
-			
-		default:
-			SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() Error: Reference frequency is invalid. Will panic later.");
-			return;
-	}
-	
-	// Debug: Print the new frequencies
-	SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency will be set to %s MHz.",
-		   coreDisplayClockDecimalFrequency2String(newCdclkFrequency));
-	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL frequency will be set to %u Hz.", newPLLFrequency);
-	
-	// Disable the Core Display Clock PLL
-	callbackIGFX->orgDisableCDClock(that);
-	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock PLL has been disabled.");
-	
-	// Set the new PLL frequency and reenable the Core Display Clock PLL
-	callbackIGFX->orgSetCDClockFrequency(that, newPLLFrequency);
-	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock has been reprogrammed and PLL has been re-enabled.");
-	
-	// "Verify" that the new frequency is effective
-	auto cdclk = callbackIGFX->orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
-	SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is %s MHz now.",
-		   coreDisplayClockDecimalFrequency2String(cdclk));
-}
-
-uint32_t IGFX::wrapProbeCDClockFrequency(void *that) {
-	//
-	// Abstract
-	//
-	// Core Display Clock (CDCLK) is one of the primary clocks used by the display engine to do its work.
-	// Apple's graphics driver expects that the firmware has already set the clock frequency to either 652.8 MHz or 648 MHz,
-	// but quite a few laptops set it to a much lower value, such as 172.8 MHz,
-	// and hence a kernel panic occurs to indicate the precondition failure.
-	//
-	// This reverse engineering research analyzes functions related to configuring the Core Display Clock
-	// and exploits existing APIs to add support for those valid yet non-supported clock frequencies.
-	// Since there are multiple spots in the graphics driver that heavily rely on the above assumption,
-	// `AppleIntelFramebufferController::probeCDClockFrequency()` is wrapped to adjust the frequency if necessary.
-	//
-	// If the current Core Display Clock frequency is not natively supported by the driver,
-	// this patch will reprogram the clock to set its frequency to a supported value that is appropriate for the hardware.
-	// As such, the kernel panic can be avoided, and the built-in display can be lit up successfully.
-	//
-	// If you are interested in the story behind this fix, please take a look at my blog post.
-	// https://www.firewolf.science/2020/08/ice-lake-intel-iris-plus-graphics-on-macos-catalina-a-solution-to-the-kernel-panic-due-to-unsupported-core-display-clock-frequencies-in-the-framebuffer-driver/
-	//
-	// - FireWolf
-	// - 2020.08
-	//
-	
-	DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: Called with controller at 0x%llx.", that);
-	
-	// Read the Core Display Clock frequency from the CDCLK_CTL register
-	// Bit 0 - 11 stores the decimal frequency
-	auto cdclk = callbackIGFX->orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
-	SYSLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The current core display clock frequency is %s MHz.",
-		   coreDisplayClockDecimalFrequency2String(cdclk));
-	
-	// Guard: Check whether the current frequency is supported by the graphics driver
-	if (cdclk < ICL_CDCLK_DEC_FREQ_THRESHOLD) {
-		DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The currrent core display clock frequency is not supported.");
-		callbackIGFX->sanitizeCDClockFrequency(that);
-		DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The core display clock has been switched to a supported frequency.");
-	}
-	
-	// Invoke the original method to ensure everything works as expected
-	DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: Will invoke the original function.");
-	auto retVal = callbackIGFX->orgProbeCDClockFrequency(that);
-	DBGLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The original function returns 0x%llx.", retVal);
 	return retVal;
 }
 
