@@ -1217,9 +1217,12 @@ private:
 		 *
 		 *  @param framebuffer An `AppleIntelFramebuffer` instance
 		 *  @param index The framebuffer index on return
-		 *  @return `true` on success, `false` if the index does not exist.
+		 *  @return `true` on success, `false` if the framebuffer is NULL or the index does not exist.
 		 */
 		static bool getIndex(IORegistryEntry *framebuffer, uint32_t &index) {
+			if (framebuffer == nullptr)
+				return false;
+			
 			auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
 			if (idxnum != nullptr) {
 				index = idxnum->unsigned32BitValue();
