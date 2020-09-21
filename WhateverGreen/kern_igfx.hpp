@@ -754,6 +754,11 @@ private:
 	} modDPCDMaxLinkRateFix;
 
 	/**
+	 *	A collection of submodules
+	 */
+	PatchSubmodule *submodules[2] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix };
+	
+	/**
 	 * Ensure each modeset is a complete modeset.
 	 */
 	FramebufferModifer forceCompleteModeset;

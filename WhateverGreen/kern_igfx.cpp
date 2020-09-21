@@ -62,7 +62,8 @@ IGFX *IGFX::callbackIGFX;
 void IGFX::init() {
 	callbackIGFX = this;
 	// Initialize each submodule
-	modDVMTCalcFix.init();
+	for (auto submodule : submodules)
+		submodule->init();
 	auto &bdi = BaseDeviceInfo::get();
 	auto generation = bdi.cpuGeneration;
 	auto family = bdi.cpuFamily;
@@ -169,6 +170,9 @@ void IGFX::init() {
 }
 
 void IGFX::deinit() {
+	// Deinitialize each submodule
+	for (auto submodule : submodules)
+		submodule->deinit();
 	for (auto &con : lspcons) {
 		LSPCON::deleter(con.lspcon);
 		con.lspcon = nullptr;
@@ -284,8 +288,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (!coreDisplayClockPatch)
 			coreDisplayClockPatch = info->videoBuiltin->getProperty("enable-cdclk-frequency-fix") != nullptr;
 		
-		// Example of redirecting the request to each submodule
-		modDVMTCalcFix.processKernel(patcher, info);
+		// Iterate through each submodule and redirect the request
+		for (auto submodule : submodules)
+			submodule->processKernel(patcher, info);
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
 		
@@ -343,7 +348,16 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			uint8_t dualLinkBytes[] { 0x00, 0x00, 0x00, 0x00 };
 			info->videoBuiltin->setProperty("AAPL00,DualLink", dualLinkBytes, sizeof(dualLinkBytes));
 		}
-
+		
+		// Iterate through each submodule and see if we need to patch the graphics and the framebuffer kext
+		auto submodulesRequiresFramebufferPatch = false;
+		auto submodulesRequiresGraphicsPatch = false;
+		for (auto submodule : submodules) {
+			submodulesRequiresFramebufferPatch = submodulesRequiresFramebufferPatch || submodule->requiresPatchingFramebuffer;
+			submodulesRequiresGraphicsPatch = submodulesRequiresGraphicsPatch || submodule->requiresPatchingGraphics;
+		}
+		
+		// Ideally, we could get rid of these two lambda expressions
 		auto requiresFramebufferPatches = [this]() {
 			if (blackScreenPatch)
 				return true;
@@ -360,10 +374,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (supportLSPCON)
 				return true;
 			if (coreDisplayClockPatch)
-				return true;
-			// Similarly, if IGFX maintains a sequence of submodules,
-			// we could iterate through each submodule and performs OR operations.
-			if (modDVMTCalcFix.requiresPatchingFramebuffer)
 				return true;
 			if (forceCompleteModeset.enable)
 				return true;
@@ -403,8 +413,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		};
 
 		// Disable kext patching if we have nothing to do.
-		switchOffFramebuffer = !requiresFramebufferPatches();
-		switchOffGraphics = !requiresGraphicsPatches();
+		switchOffFramebuffer = !requiresFramebufferPatches() && !submodulesRequiresFramebufferPatch;
+		switchOffGraphics = !requiresGraphicsPatches() && !submodulesRequiresGraphicsPatch;
 	} else {
 		switchOffGraphics = switchOffFramebuffer = true;
 	}
@@ -459,8 +469,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		if (ForceWakeWorkaround.enabled)
 			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
 		
-		if (modDVMTCalcFix.enabled)
-			modDVMTCalcFix.processGraphicsKext(patcher, index, address, size);
+		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
+		for (auto submodule : submodules)
+			if (submodule->enabled)
+				submodule->processGraphicsKext(patcher, index, address, size);
 
 		return true;
 	}
@@ -488,7 +500,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (!AppleIntelFramebufferController__WriteRegister32)
 				SYSLOG("igfx", "Failed to find WriteRegister32");
 		}
-		if (RPSControl.enabled || ForceWakeWorkaround.enabled)
+		if (RPSControl.enabled || ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
 			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
 		if (bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
@@ -563,9 +575,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			}
 		}
 
-		// We could iterate through each submodule and redirect the request if and only if the submodule is enabled
-		if (modDVMTCalcFix.enabled)
-			modDVMTCalcFix.processFramebufferKext(patcher, index, address, size);
+		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
+		for (auto submodule : submodules)
+			if (submodule->enabled)
+				submodule->processFramebufferKext(patcher, index, address, size);
 		
 		if (forceCompleteModeset.enable) {
 			const char *sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2";
