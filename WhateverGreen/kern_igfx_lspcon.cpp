@@ -149,4 +149,182 @@ bool LSPCON::isRunningInMode(Mode mode)
 
 // MARK: - LSPCON Driver Support
 
+void IGFX::LSPCONDriverSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingGraphics = false;
+	requiresPatchingFramebuffer = true;
+}
 
+void IGFX::LSPCONDriverSupport::deinit() {
+	for (auto &con : lspcons) {
+		LSPCON::deleter(con.lspcon);
+		con.lspcon = nullptr;
+	}
+}
+
+void IGFX::LSPCONDriverSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the LSPCON driver support if the corresponding boot argument is found
+	enabled = checkKernelArgument("-igfxlspcon");
+	// Or if "enable-lspcon-support" is set in IGPU property
+	if (!enabled)
+		enabled = info->videoBuiltin->getProperty("enable-lspcon-support") != nullptr;
+	
+	// Read the user-defined IGPU properties to know whether a connector has an onboard LSPCON chip
+	if (enabled) {
+		char name[48];
+		uint32_t pmode = 0x01; // PCON mode as a fallback value
+		for (size_t index = 0; index < arrsize(lspcons); index++) {
+			bzero(name, sizeof(name));
+			snprintf(name, sizeof(name), "framebuffer-con%lu-has-lspcon", index);
+			(void)WIOKit::getOSDataValue(info->videoBuiltin, name, lspcons[index].hasLSPCON);
+			snprintf(name, sizeof(name), "framebuffer-con%lu-preferred-lspcon-mode", index);
+			(void)WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
+			// Assuming PCON mode if invalid mode value (i.e. > 1) specified by the user
+			lspcons[index].preferredMode = ::LSPCON::Mode::parse(pmode != 0); // TODO: Remove ::
+		}
+	}
+}
+
+void IGFX::LSPCONDriverSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	auto aux = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
+	auto gdi = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController11GetDPCDInfoEP21AppleIntelFramebufferP21AppleIntelDisplayPath", address, size);
+	
+	if (aux && gdi) {
+		patcher.eraseCoverageInstPrefix(aux);
+		patcher.eraseCoverageInstPrefix(gdi);
+		orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(aux);
+		orgGetDPCDInfo = reinterpret_cast<decltype(orgGetDPCDInfo)>(patcher.routeFunction(gdi, reinterpret_cast<mach_vm_address_t>(wrapGetDPCDInfo), true));
+		if (orgReadAUX && orgGetDPCDInfo) {
+			DBGLOG("igfx", "SC: Functions have been routed successfully");
+		} else {
+			patcher.clearError();
+			SYSLOG("igfx", "SC: Failed to route functions.");
+		}
+	} else {
+		SYSLOG("igfx", "SC: Failed to find symbols.");
+		patcher.clearError();
+	}
+}
+
+void IGFX::LSPCONDriverSupport::setupLSPCON(void *that, IORegistryEntry *framebuffer, void *displayPath) {
+	// Retrieve the framebuffer index
+	uint32_t index;
+	if (!AppleIntelFramebufferExplorer::getIndex(framebuffer, index)) {
+		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: Failed to retrieve the framebuffer index.");
+		return;
+	}
+	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] called with controller at 0x%llx and framebuffer at 0x%llx.", index, that, framebuffer);
+
+	// Retrieve the user preference
+	LSPCON *lspcon = nullptr;
+	auto pmode = getLSPCONPreferredMode(index);
+#ifdef DEBUG
+	framebuffer->setProperty("fw-framebuffer-has-lspcon", hasLSPCON(index));
+	framebuffer->setProperty("fw-framebuffer-preferred-lspcon-mode", pmode.getRawValue(), 8);
+#endif
+
+	// Guard: Check whether this framebuffer connector has an onboard LSPCON chip
+	if (!hasLSPCON(index)) {
+		// No LSPCON chip associated with this connector
+		DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] No LSPCON chip associated with this framebuffer.", index);
+		return;
+	}
+
+	// Guard: Check whether the LSPCON driver has already been initialized for this framebuffer
+	if (hasLSPCONInitialized(index)) {
+		// Already initialized
+		lspcon = getLSPCON(index);
+		DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] LSPCON driver (at 0x%llx) has already been initialized for this framebuffer.", index, lspcon);
+		// Confirm that the adapter is running in preferred mode
+		if (lspcon->setModeIfNecessary(pmode) != kIOReturnSuccess) {
+			SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] The adapter is not running in preferred mode. Failed to update the mode.", index);
+		}
+		// Wake up the native AUX channel if PCON mode is preferred
+		if (pmode.supportsHDMI20() && lspcon->wakeUpNativeAUX() != kIOReturnSuccess) {
+			SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] Failed to wake up the native AUX channel.", index);
+		}
+		return;
+	}
+
+	// User has specified the existence of onboard LSPCON
+	// Guard: Initialize the driver for this framebuffer
+	lspcon = LSPCON::create(that, framebuffer, displayPath);
+	if (lspcon == nullptr) {
+		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] Failed to initialize the LSPCON driver.", index);
+		return;
+	}
+
+	// Guard: Attempt to probe the onboard LSPCON chip
+	if (lspcon->probe() != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] Failed to probe the LSPCON adapter.", index);
+		LSPCON::deleter(lspcon);
+		lspcon = nullptr;
+		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] Abort the LSPCON driver initialization.", index);
+		return;
+	}
+	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] LSPCON driver has detected the onboard chip successfully.", index);
+
+	// LSPCON driver has been initialized successfully
+	setLSPCON(index, lspcon);
+	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] LSPCON driver has been initialized successfully.", index);
+
+	// Guard: Set the preferred adapter mode if necessary
+	if (lspcon->setModeIfNecessary(pmode) != kIOReturnSuccess) {
+		SYSLOG("igfx", "SC: fbSetupLSPCON() Error: [FB%d] The adapter is not running in preferred mode. Failed to set the %s mode.", index, pmode.getDescription());
+	}
+	DBGLOG("igfx", "SC: fbSetupLSPCON() DInfo: [FB%d] The adapter is now running in preferred mode [%s].", index, pmode.getDescription());
+}
+
+IOReturn IGFX::LSPCONDriverSupport::wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *displayPath) {
+	//
+	// Abstract
+	//
+	// Recent laptops are now typically equipped with a HDMI 2.0 port.
+	// For laptops with Intel IGPU + Nvidia DGPU, this HDMI 2.0 port could be either routed to IGPU or DGPU,
+	// and we are only interested in the former case, because DGPU (Optimus) is not supported on macOS.
+	// However, as indicated in Intel Product Specifications, Intel (U)HD Graphics card does not provide
+	// native HDMI 2.0 output. As a result, Intel suggests that OEMs should add an additional hardware component
+	// named LSPCON (Level Shifter and Protocol Converter) on the motherboard to convert DisplayPort to HDMI.
+	//
+	// LSPCON conforms to the DisplayPort Dual Mode (DP++) standard and works in either Level Shifter (LS) mode
+	// or Protocol Converter (PCON) mode.
+	// When the adapter is running in   LS mode, it supports DisplayPort to HDMI 1.4.
+	// When the adapter is running in PCON mode, it supports DisplayPort to HDMI 2.0.
+	// LSPCON on some laptops, Dell XPS 15 9570 for example, might be configured in the firmware to run in LS mode
+	// by default, resulting in a black screen on a HDMI 2.0 connection.
+	// In comparison, LSPCON on a DisplayPort to HDMI 2.0 cable could be configured to always run in PCON mode.
+	// Fortunately, LSPCON is programmable and is a Type 2 DP++ adapter, so the graphics driver could communicate
+	// with the adapter via either the native I2C protocol or the special I2C-over-AUX protocol to configure the
+	// mode properly for HDMI connections.
+	//
+	// This reverse engineering research analyzes and exploits Apple's existing I2C-over-AUX transaction API layers,
+	// and an additional API layer is implemented to provide R/W access to registers at specific offsets on the adapter.
+	// AppleIntelFramebufferController::GetDPCDInfo() is then wrapped to inject code for LSPCON driver initialization,
+	// so that the adapter is configured to run in PCON mode instead on plugging the HDMI 2.0 cable to the port.
+	// Besides, the adapter is able to handle HDMI 1.4 connections when running in PCON mode, so we don't need to switch
+	// back to LS mode again.
+	//
+	// If you are interested in the detailed theory behind this fix, please take a look at my blog post.
+	// [ToDo: The article is still working in progress. I will add the link at here once I finish it. :D]
+	//
+	// Notes:
+	// 1. This fix is applicable for all laptops and PCs with HDMI 2.0 routed to IGPU.
+	//    (Laptops/Mobiles start from Skylake platform. e.g. Intel Skull Canyon NUC; Iris Pro 580 and HDMI 2.0)
+	// 2. If your HDMI 2.0 with Intel (U)HD Graphics is working properly, you don't need this fix,
+	//    as the adapter might already be configured in the firmware to run in PCON mode.
+	//
+	// - FireWolf
+	// - 2019.06
+	//
+
+	// Configure the LSPCON adapter for the given framebuffer
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Start to configure the LSPCON adapter.");
+	callbackIGFX->modLSPCONDriverSupport.setupLSPCON(that, framebuffer, displayPath);
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Finished configuring the LSPCON adapter.");
+
+	// Call the original method
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Will call the original method.");
+	IOReturn retVal = callbackIGFX->orgGetDPCDInfo(that, framebuffer, displayPath);
+	DBGLOG("igfx", "SC: GetDPCDInfo() DInfo: Returns 0x%llx.", retVal);
+	return retVal;
+}

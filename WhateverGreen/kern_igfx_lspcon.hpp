@@ -193,6 +193,13 @@ public:
 		}
 		
 		/**
+		 *  Check whether this mode supports HDMI 2.0 output
+		 */
+		inline bool supportsHDMI20() {
+			return value == Value::ProtocolConverter;
+		}
+		
+		/**
 		 *  Check whether two modes are identical
 		 */
 		friend bool operator==(const Mode& lhs, const Mode& rhs) { return lhs.value == rhs.value; }
