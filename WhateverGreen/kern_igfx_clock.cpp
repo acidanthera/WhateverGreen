@@ -18,6 +18,8 @@
 
 // MARK: - Maximum Link Rate Fix
 
+// MARK: Constant Definitions
+
 /**
  *  The default DPCD address that stores receiver capabilities (16 bytes)
  */
@@ -88,6 +90,8 @@ struct DPCDCap16 { // 16 bytes
 	// Detailed information can be found in the specification
 	uint8_t others[12];
 };
+
+// MARK: Patch Submodule IMP
 
 void IGFX::DPCDMaxLinkRateFix::init() {
 	// We only need to patch the framebuffer driver
@@ -318,6 +322,148 @@ uint32_t IGFX::DPCDMaxLinkRateFix::probeMaxLinkRate() {
 }
 
 // MARK: - Core Display Clock Fix
+
+// MARK: Constant Definitions
+
+/**
+ *  Address of the register used to retrieve the current Core Display Clock frequency
+ */
+static constexpr uint32_t ICL_REG_CDCLK_CTL = 0x46000;
+
+/**
+ *  Address of the register used to retrieve the hardware reference clock frequency
+ */
+static constexpr uint32_t ICL_REG_DSSM = 0x51004;
+
+/**
+ *  Enumerates all possible hardware reference clock frequencies on ICL platforms
+ *
+ *  Reference:
+ *  - Intel Graphics Developer Manaual for Ice Lake Platforms, Volume 2c
+ *    Command Reference: Registers Part 1 – Registers A through L, DSSM Register
+ */
+enum ICLReferenceClockFrequency {
+	
+	// 24 MHz
+	ICL_REF_CLOCK_FREQ_24_0 = 0x0,
+	
+	// 19.2 MHz
+	ICL_REF_CLOCK_FREQ_19_2 = 0x1,
+	
+	// 38.4 MHz
+	ICL_REF_CLOCK_FREQ_38_4 = 0x2
+};
+
+/**
+ *  Enumerates all possible Core Display Clock decimal frequency
+ *
+ *  Reference:
+ *  - Intel Graphics Developer Manaual for Ice Lake Platforms, Volume 2c
+ *    Command Reference: Registers Part 1 – Registers A through L, CDCLK_CTL Register
+ */
+enum ICLCoreDisplayClockDecimalFrequency {
+	
+	// 172.8 MHz
+	ICL_CDCLK_FREQ_172_8 = 0x158,
+	
+	// 180 MHz
+	ICL_CDCLK_FREQ_180_0 = 0x166,
+	
+	// 192 MHz
+	ICL_CDCLK_FREQ_192_0 = 0x17E,
+	
+	// 307.2 MHz
+	ICL_CDCLK_FREQ_307_2 = 0x264,
+	
+	// 312 MHz
+	ICL_CDCLK_FREQ_312_0 = 0x26E,
+	
+	// 552 MHz
+	ICL_CDCLK_FREQ_552_0 = 0x44E,
+	
+	// 556.8 MHz
+	ICL_CDCLK_FREQ_556_8 = 0x458,
+	
+	// 648 MHz
+	ICL_CDCLK_FREQ_648_0 = 0x50E,
+	
+	// 652.8 MHz
+	ICL_CDCLK_FREQ_652_8 = 0x518
+};
+
+/**
+ *  Get the string representation of the given Core Display Clock decimal frequency
+ */
+static inline const char* coreDisplayClockDecimalFrequency2String(uint32_t frequency) {
+	switch (frequency) {
+		case ICL_CDCLK_FREQ_172_8:
+			return "172.8";
+			
+		case ICL_CDCLK_FREQ_180_0:
+			return "180";
+			
+		case ICL_CDCLK_FREQ_192_0:
+			return "192";
+			
+		case ICL_CDCLK_FREQ_307_2:
+			return "307.2";
+			
+		case ICL_CDCLK_FREQ_312_0:
+			return "312";
+			
+		case ICL_CDCLK_FREQ_552_0:
+			return "552";
+			
+		case ICL_CDCLK_FREQ_556_8:
+			return "556.8";
+			
+		case ICL_CDCLK_FREQ_648_0:
+			return "648";
+			
+		case ICL_CDCLK_FREQ_652_8:
+			return "652.8";
+			
+		default:
+			return "INVALID";
+	}
+}
+
+/**
+ *  Any Core Display Clock frequency lower than this value is not supported by the driver
+ *
+ *  @note This threshold is derived from the ICL framebuffer driver on macOS 10.15.6.
+ */
+static constexpr uint32_t ICL_CDCLK_DEC_FREQ_THRESHOLD = ICL_CDCLK_FREQ_648_0;
+
+/**
+ *  Core Display Clock PLL frequency in Hz for the 24 MHz hardware reference frequency
+ *
+ *  Main Reference:
+ *  - Intel Graphics Developer Manaual for Ice Lake Platforms, Volume 12 Display Engine
+ *    Page 171, CDCLK PLL Ratio and Divider Programming and Resulting Frequencies.
+ *
+ *  Side Reference:
+ *  - Intel Graphics Driver for Linux (5.8.3) bxt_calc_cdclk_pll_vco() in intel_cdclk.c
+ *
+ *  @note 54 is the PLL ratio when the reference frequency is 24 MHz
+ */
+static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_24_0 = 24000000 * 54;
+
+/**
+ *  Core Display Clock PLL frequency in Hz for the 19.2 MHz hardware reference frequency
+ *
+ *  @note 68 is the PLL ratio when the reference frequency is 19.2 MHz
+ */
+static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_19_2 = 19200000 * 68;
+
+/**
+ *  Core Display Clock PLL frequency in Hz for the 38.4 MHz hardware reference frequency
+ *
+ *  @note 34 is the PLL ratio when the reference frequency is 19.2 MHz
+ */
+static constexpr uint32_t ICL_CDCLK_PLL_FREQ_REF_38_4 = 38400000 * 34;
+
+// MARK: Patch Submodule IMP
 
 void IGFX::CoreDisplayClockFix::init() {
 	// We only need to patch the framebuffer driver
