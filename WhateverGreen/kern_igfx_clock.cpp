@@ -19,6 +19,36 @@
 // MARK: - Maximum Link Rate Fix
 
 /**
+ *  The default DPCD address that stores receiver capabilities (16 bytes)
+ */
+static constexpr uint32_t DPCD_DEFAULT_RECEIVER_CAPS_ADDRESS = 0x0000;
+
+/**
+ *  The extended DPCD address that stores receiver capabilities (16 bytes)
+ */
+static constexpr uint32_t DPCD_EXTENDED_RECEIVER_CAPS_ADDRESS = 0x2200;
+
+/**
+ *  The DPCD address that stores the eDP version (1 byte)
+ */
+static constexpr uint32_t DPCD_EDP_VERSION_ADDRESS = 0x700;
+
+/**
+ *  The DPCD register value if eDP version is 1.4
+ */
+static constexpr uint32_t DPCD_EDP_VERSION_1_4_VALUE = 0x03;
+
+/**
+ *  The DPCD address that stores link rates supported by the eDP panel (2 bytes * 8)
+ */
+static constexpr uint32_t DPCD_EDP_SUPPORTED_LINK_RATES_ADDRESS = 0x010;
+
+/**
+ *  The maximum number of link rates stored in the table
+ */
+static constexpr size_t DP_MAX_NUM_SUPPORTED_RATES = 8;
+
+/**
  *  Represents the first 16 fields of the receiver capabilities defined in DPCD
  *
  *  Main Reference:
