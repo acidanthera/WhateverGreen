@@ -180,7 +180,7 @@ void IGFX::LSPCONDriverSupport::processKernel(KernelPatcher &patcher, DeviceInfo
 			snprintf(name, sizeof(name), "framebuffer-con%lu-preferred-lspcon-mode", index);
 			(void)WIOKit::getOSDataValue(info->videoBuiltin, name, pmode);
 			// Assuming PCON mode if invalid mode value (i.e. > 1) specified by the user
-			lspcons[index].preferredMode = ::LSPCON::Mode::parse(pmode != 0); // TODO: Remove ::
+			lspcons[index].preferredMode = LSPCON::Mode::parse(pmode != 0);
 		}
 	}
 }
