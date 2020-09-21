@@ -784,6 +784,70 @@ private:
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modCoreDisplayClockFix;
+	
+	/**
+	 *  A submodule to fix the calculation of HDMI dividers to avoid the infinite loop
+	 */
+	class HDMIDividersCalcFix: public PatchSubmodule
+	{
+	private:
+		/**
+		 *  Represents the current context of probing dividers for HDMI connections
+		 */
+		struct ProbeContext {
+			/// The current minimum deviation
+			uint64_t minDeviation;
+
+			/// The current chosen central frequency
+			uint64_t central;
+
+			/// The current DCO frequency
+			uint64_t frequency;
+
+			/// The current selected divider
+			uint32_t divider;
+
+			/// The corresponding pdiv value [P0]
+			uint32_t pdiv;
+
+			/// The corresponding qdiv value [P1]
+			uint32_t qdiv;
+
+			/// The corresponding kqiv value [P2]
+			uint32_t kdiv;
+		};
+		
+		/**
+		 *  [Helper] Compute the final P0, P1, P2 values based on the current frequency divider
+		 *
+		 *  @param context The current context for probing P0, P1 and P2.
+		 *  @note Implementation adopted from the Intel Graphics Programmer Reference Manual;
+		 *        Volume 12 Display, Page 135, Algorithm to Find HDMI and DVI DPLL Programming.
+		 *        Volume 12 Display, Page 135, Pseudo-code for HDMI and DVI DPLL Programming.
+		 *  @ref static void skl_wrpll_get_multipliers(p:p0:p1:p2:)
+		 *  @seealso Intel Linux Graphics Driver
+		 *  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/gpu/drm/i915/intel_dpll_mgr.c?h=v5.1.13#n1112
+		 */
+		static void populateP0P1P2(struct ProbeContext* context);
+
+		/**
+		 *  Compute dividers for a HDMI connection with the given pixel clock
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param pixelClock The pixel clock value (in Hz) used for the HDMI connection
+		 *  @param displayPath The corresponding display path
+		 *  @param parameters CRTC parameters populated on return
+		 *  @return Never used by its caller, so this method might return void.
+		 *  @note Method Signature: `AppleIntelFramebufferController::ComputeHdmiP0P1P2(pixelClock:displayPath:parameters:)`
+		 */
+		static int wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modHDMIDividersCalcFix;
 
 	/**
 	 *	A collection of submodules
