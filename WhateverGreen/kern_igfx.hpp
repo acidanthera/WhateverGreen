@@ -840,7 +840,7 @@ private:
 		 *  @return Never used by its caller, so this method might return void.
 		 *  @note Method Signature: `AppleIntelFramebufferController::ComputeHdmiP0P1P2(pixelClock:displayPath:parameters:)`
 		 */
-		static int wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
+		static void wrapComputeHdmiP0P1P2(void *that, uint32_t pixelClock, void *displayPath, void *parameters);
 		
 	public:
 		// MARK: Patch Submodule IMP
