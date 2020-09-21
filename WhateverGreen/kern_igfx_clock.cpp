@@ -185,7 +185,7 @@ IOReturn IGFX::DPCDMaxLinkRateFix::wrapReadAUX(uint32_t address, void *buffer, u
 
 	// Guard: Check the DPCD register address
 	// The first 16 fields of the receiver capabilities reside at 0x0 (DPCD Register Address)
-	if (address != DPCD_DEFAULT_ADDRESS && address != DPCD_EXTENDED_ADDRESS)
+	if (address != DPCD_DEFAULT_RECEIVER_CAPS_ADDRESS && address != DPCD_EXTENDED_RECEIVER_CAPS_ADDRESS)
 		return retVal;
 
 	// The driver tries to read the first 16 bytes from DPCD (0x0000) or extended DPCD (0x2200)

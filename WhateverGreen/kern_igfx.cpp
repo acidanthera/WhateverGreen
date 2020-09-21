@@ -540,23 +540,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				patcher.clearError();
 			}
 		}
-
-		if (maxLinkRatePatch) {
-			auto readAUXAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
-			if (readAUXAddress) {
-				patcher.eraseCoverageInstPrefix(readAUXAddress);
-				orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(patcher.routeFunction(readAUXAddress, reinterpret_cast<mach_vm_address_t>(wrapReadAUX), true));
-				if (orgReadAUX) {
-					DBGLOG("igfx", "MLR: ReadAUX() has been routed successfully");
-				} else {
-					patcher.clearError();
-					SYSLOG("igfx", "MLR: Failed to route ReadAUX()");
-				}
-			} else {
-				SYSLOG("igfx", "MLR: Failed to find ReadAUX()");
-				patcher.clearError();
-			}
-		}
 		
 		if (coreDisplayClockPatch) {
 			auto pcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController21probeCDClockFrequencyEv", address, size);
@@ -986,61 +969,6 @@ uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
 
 	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
 	return ret;
-}
-
-IOReturn IGFX::wrapReadAUX(void *that, IORegistryEntry *framebuffer, uint32_t address, uint16_t length, void *buffer, void *displayPath) {
-
-	//
-	// Abstract:
-	//
-	// Several fields in an `AppleIntelFramebuffer` instance are left zeroed because of
-	// an invalid value of maximum link rate reported by DPCD of the builtin display.
-	//
-	// One of those fields, namely the number of lanes, is later used as a divisor during
-	// the link training, resulting in a kernel panic triggered by a divison-by-zero.
-	//
-	// DPCD are retrieved from the display via a helper function named ReadAUX().
-	// This wrapper function checks whether the driver is reading receiver capabilities
-	// from DPCD of the builtin display and then provides a custom maximum link rate value,
-	// so that we don't need to update the binary patch on each system update.
-	//
-	// If you are interested in the story behind this fix, take a look at my blog posts.
-	// Phase 1: https://www.firewolf.science/2018/10/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-compromise-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
-	// Phase 2: https://www.firewolf.science/2018/11/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-nearly-ultimate-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
-
-	// Call the original ReadAUX() function to read from DPCD
-	IOReturn retVal = callbackIGFX->orgReadAUX(that, framebuffer, address, length, buffer, displayPath);
-
-	// Guard: Check the DPCD register address
-	// The first 16 fields of the receiver capabilities reside at 0x0 (DPCD Register Address)
-	if (address != DPCD_DEFAULT_ADDRESS && address != DPCD_EXTENDED_ADDRESS)
-		return retVal;
-
-	// The driver tries to read the first 16 bytes from DPCD (0x0000) or extended DPCD (0x2200)
-	// Get the current framebuffer index (An UInt32 field at 0x1dc in a framebuffer instance)
-	// We read the value of "IOFBDependentIndex" instead of accessing that field directly
-	uint32_t index;
-	// Guard: Should be able to retrieve the index from the registry
-	if (!AppleIntelFramebufferExplorer::getIndex(framebuffer, index)) {
-		SYSLOG("igfx", "MLR: wrapReadAUX: Failed to read the current framebuffer index.");
-		return retVal;
-	}
-
-	// Guard: Check the framebuffer index
-	// By default, FB 0 refers the builtin display
-	if (index != 0)
-		// The driver is reading DPCD for an external display
-		return retVal;
-
-	// The driver tries to read the receiver capabilities for the builtin display
-	auto caps = reinterpret_cast<DPCDCap16*>(buffer);
-
-	// Set the custom maximum link rate value
-	caps->maxLinkRate = callbackIGFX->maxLinkRate;
-
-	DBGLOG("igfx", "MLR: wrapReadAUX: Maximum link rate 0x%02x has been set in the DPCD buffer.", caps->maxLinkRate);
-
-	return retVal;
 }
 
 void IGFX::populateP0P1P2(struct ProbeContext *context) {
