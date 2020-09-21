@@ -979,7 +979,115 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modAdvancedI2COverAUXSupport;
 	
+	/**
+	 *  A submodule that adds driver support for the onboard LSPCON chip to enable HDMI 2.0 output on SKL, KBL and CFL platforms
+	 */
+	class LSPCONDriverSupport: public PatchSubmodule {
+	public:
+		/**
+		 *  Original AppleIntelFramebufferController::ReadAUX function
+		 */
+		IOReturn (*orgReadAUX)(void *, IORegistryEntry *, uint32_t, uint16_t, void *, void *) {nullptr};
+		
+	private:
+		/**
+		 *  Original AppleIntelFramebufferController::GetDPCDInfo function
+		 *
+		 *  @seealso Refer to the document of `wrapGetDPCDInfo()` below.
+		 */
+		IOReturn (*orgGetDPCDInfo)(void *, IORegistryEntry *, void *) {nullptr};
+		
+		/**
+		 *  User-defined LSPCON chip info for all possible framebuffers
+		 */
+		FramebufferLSPCON lspcons[MaxFramebufferConnectorCount];
+		
+		/// MARK: Manage user-defined LSPCON chip info for all framebuffers
+
+		/**
+		 *  Setup the LSPCON driver for the given framebuffer
+		 *
+		 *  @param that The opaque framebuffer controller instance
+		 *  @param framebuffer The framebuffer that owns this LSPCON chip
+		 *  @param displayPath The corresponding opaque display path instance
+		 *  @note This method will update fields in `lspcons` accordingly on success.
+		 */
+		void setupLSPCON(void *that, IORegistryEntry *framebuffer, void *displayPath);
+
+		/**
+		 *  [Convenient] Check whether the given framebuffer has an onboard LSPCON chip
+		 *
+		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+		 *  @return `true` if the framebuffer has an onboard LSPCON chip, `false` otherwise.
+		 */
+		inline bool hasLSPCON(uint32_t index) {
+			return lspcons[index].hasLSPCON;
+		}
+
+		/**
+		 *  [Convenient] Check whether the given framebuffer already has LSPCON driver initialized
+		 *
+		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+		 *  @return `true` if the LSPCON driver has already been initialized for this framebuffer, `false` otherwise.
+		 */
+		inline bool hasLSPCONInitialized(uint32_t index) {
+			return lspcons[index].lspcon != nullptr;
+		}
+
+		/**
+		 *  [Convenient] Get the non-null LSPCON driver associated with the given framebuffer
+		 *
+		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+		 *  @return The LSPCON driver instance.
+		 */
+		inline LSPCON *getLSPCON(uint32_t index) {
+			return lspcons[index].lspcon;
+		}
+
+		/**
+		 *  [Convenient] Set the non-null LSPCON driver for the given framebuffer
+		 *
+		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+		 *  @param lspcon A non-null LSPCON driver instance associated with the given framebuffer
+		 */
+		inline void setLSPCON(uint32_t index, LSPCON *lspcon) {
+			lspcons[index].lspcon = lspcon;
+		}
+
+		/**
+		 *  [Convenient] Get the preferred LSPCON mode for the given framebuffer
+		 *
+		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
+		 *  @return The preferred adapter mode.
+		 */
+		inline LSPCON::Mode getLSPCONPreferredMode(uint32_t index) {
+			return lspcons[index].preferredMode;
+		}
+		
+		/**
+		 *  [Wrapper] Retrieve the DPCD info for a given framebuffer port
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param framebuffer A framebuffer instance
+		 *  @param displayPath A display path instance
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::GetDPCDInfo()` method.
+		 *        Used to inject code to initialize the driver for the onboard LSPCON chip.
+		 */
+		static IOReturn wrapGetDPCDInfo(void *that, IORegistryEntry *framebuffer, void *displayPath);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void deinit() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modLSPCONDriverSupport;
 	
+	/**
+	 *  The LSPCON driver requires access to I2C-over-AUX transaction APIs
+	 */
+	friend class LSPCON;
 	
 	/**
 	 *	A collection of submodules
