@@ -844,6 +844,144 @@ private:
 	} modHDMIDividersCalcFix;
 
 	/**
+	 *  A submodule to support advanced I2C-over-AUX transactions on SKL, KBL and CFL platforms
+	 *
+	 *  @note LSPCON driver enables this module automatically.
+	 *  @note This module is not compatible with ICL platforms yet.
+	 *        Not sure if Ice Lake graphics card supports native HDMI 2.0 output.
+	 */
+	class AdvancedI2COverAUXSupport: public PatchSubmodule {
+	private:
+		/**
+		 *  Set to true to enable verbose output in I2C-over-AUX transactions
+		 */
+		bool verbose {false};
+		
+		/**
+		 *  Original AppleIntelFramebufferController::ReadI2COverAUX function
+		 *
+		 *  @seealso Refer to the document of `wrapReadI2COverAUX()` below.
+		 */
+		IOReturn (*orgReadI2COverAUX)(void *, IORegistryEntry *, void *, uint32_t, uint16_t, uint8_t *, bool, uint8_t) {nullptr};
+
+		/**
+		 *  Original AppleIntelFramebufferController::WriteI2COverAUX function
+		 *
+		 *  @seealso Refer to the document of `wrapWriteI2COverAUX()` below.
+		 */
+		IOReturn (*orgWriteI2COverAUX)(void *, IORegistryEntry *, void *, uint32_t, uint16_t, uint8_t *, bool) {nullptr};
+		
+	public:
+		/// MARK: I2C-over-AUX Transaction APIs
+
+		/**
+		 *  [Basic] Read from an I2C slave via the AUX channel
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param framebuffer A framebuffer instance
+		 *  @param displayPath A display path instance
+		 *  @param address The 7-bit address of an I2C slave
+		 *  @param length The number of bytes requested to read and must be <= 16 (See below)
+		 *  @param buffer A buffer to store the read bytes (See below)
+		 *  @param intermediate Set `true` if this is an intermediate read (See below)
+		 *  @param flags A flag reserved by Apple; currently always 0.
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note The number of bytes requested to read cannot be greater than 16, because the burst data size in
+		 *        a single AUX transaction is 20 bytes, in which the first 4 bytes are used for the message header.
+		 *  @note Passing a `0` buffer length and a `NULL` buffer will start or stop an I2C transaction.
+		 *  @note When `intermediate` is `true`, the Middle-of-Transaction (MOT, bit 30 in the header) bit will be set to 1.
+		 *        (See Section 2.7.5.1 I2C-over-AUX Request Transaction Command in VESA DisplayPort Specification 1.2)
+		 *  @note Similar logic could be found at `intel_dp.c` (Intel Linux Graphics Driver; Linux Kernel)
+		 *        static ssize_t intel_dp_aux_transfer(struct drm_dp_aux* aux, struct drm_dp_aux_msg* msg)
+		 *  @note Method Signature: `AppleIntelFramebufferController::ReadI2COverAUX(framebuffer:displayPath:address:length:buffer:intermediate:flags:)`
+		 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::ReadI2COverAUX()` method.
+		 *  @seealso See the actual implementation extracted from my reverse engineering research for detailed information.
+		 */
+		static IOReturn wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate, uint8_t flags);
+
+		/**
+		 *  [Basic] Write to an I2C adapter via the AUX channel
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param framebuffer A framebuffer instance
+		 *  @param displayPath A display path instance
+		 *  @param address The 7-bit address of an I2C slave
+		 *  @param length The number of bytes requested to write and must be <= 16 (See below)
+		 *  @param buffer A buffer that stores the bytes to write (See below)
+		 *  @param intermediate Set `true` if this is an intermediate write (See below)
+		 *  @param flags A flag reserved by Apple; currently always 0.
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note The number of bytes requested to read cannot be greater than 16, because the burst data size in
+		 *        a single AUX transaction is 20 bytes, in which the first 4 bytes are used for the message header.
+		 *  @note Passing a `0` buffer length and a `NULL` buffer will start or stop an I2C transaction.
+		 *  @note When `intermediate` is `true`, the Middle-of-Transaction (MOT, bit 30 in the header) bit will be set to 1.
+		 *        (See Section 2.7.5.1 I2C-over-AUX Request Transaction Command in VESA DisplayPort Specification 1.2)
+		 *  @note Similar logic could be found at `intel_dp.c` (Intel Linux Graphics Driver; Linux Kernel)
+		 *        static ssize_t intel_dp_aux_transfer(struct drm_dp_aux* aux, struct drm_dp_aux_msg* msg)
+		 *  @note Method Signature: `AppleIntelFramebufferController::WriteI2COverAUX(framebuffer:displayPath:address:length:buffer:intermediate:)`
+		 *  @note This is a wrapper for Apple's original `AppleIntelFramebufferController::WriteI2COverAUX()` method.
+		 *  @seealso See the actual implementation extracted from my reverse engineering research for detailed information.
+		 */
+		static IOReturn wrapWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate);
+	
+		/**
+		 *  [Advanced] Reposition the offset for an I2C-over-AUX access
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param framebuffer A framebuffer instance
+		 *  @param displayPath A display path instance
+		 *  @param address The 7-bit address of an I2C slave
+		 *  @param offset The address of the next register to access
+		 *  @param flags A flag reserved by Apple. Currently always 0.
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note Method Signature: `AppleIntelFramebufferController::advSeekI2COverAUX(framebuffer:displayPath:address:offset:flags:)`
+		 *  @note Built upon Apple's original `ReadI2COverAUX()` and `WriteI2COverAUX()` APIs.
+		 */
+		static IOReturn advSeekI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint8_t flags);
+
+		/**
+		 *  [Advanced] Read from an I2C slave via the AUX channel
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param framebuffer A framebuffer instance
+		 *  @param displayPath A display path instance
+		 *  @param address The 7-bit address of an I2C slave
+		 *  @param offset Address of the first register to read from
+		 *  @param length The number of bytes requested to read starting from `offset`
+		 *  @param buffer A non-null buffer to store the bytes
+		 *  @param flags A flag reserved by Apple. Currently always 0.
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note Method Signature: `AppleIntelFramebufferController::advReadI2COverAUX(framebuffer:displayPath:address:offset:length:buffer:flags:)`
+		 *  @note Built upon Apple's original `ReadI2COverAUX()` and `WriteI2COverAUX()` APIs.
+		 */
+		static IOReturn advReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint16_t length, uint8_t *buffer, uint8_t flags);
+
+		/**
+		 *  [Advanced] Write to an I2C slave via the AUX channel
+		 *
+		 *  @param that The hidden implicit `this` pointer
+		 *  @param framebuffer A framebuffer instance
+		 *  @param displayPath A display path instance
+		 *  @param address The 7-bit address of an I2C slave
+		 *  @param offset Address of the first register to write to
+		 *  @param length The number of bytes requested to write starting from `offset`
+		 *  @param buffer A non-null buffer containing the bytes to write
+		 *  @param flags A flag reserved by Apple. Currently always 0.
+		 *  @return `kIOReturnSuccess` on success, other values otherwise.
+		 *  @note Method Signature: `AppleIntelFramebufferController::advWriteI2COverAUX(framebuffer:displayPath:address:offset:length:buffer:flags:)`
+		 *  @note Built upon Apple's original `ReadI2COverAUX()` and `WriteI2COverAUX()` APIs.
+		 */
+		static IOReturn advWriteI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint32_t offset, uint16_t length, uint8_t *buffer, uint8_t flags);
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modAdvancedI2COverAUXSupport;
+	
+	
+	
+	/**
 	 *	A collection of submodules
 	 */
 	PatchSubmodule *submodules[4] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix };
