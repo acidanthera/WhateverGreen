@@ -759,19 +759,12 @@ private:
 		}
 		
 		/**
-		 *  [Helper] Get the maximum link rate value from the given table read from DPCD
-		 *
-		 *  @param table A table of link rates supported by the eDP 1.4 panel
-		 *  @return The maximum link rate value, `0` if failed to find one supported by Apple's driver.
-		 *  @note The driver only supports `0x06` (RBR), `0x0A` (HBR), `0x0C` (Apple's Internal), `0x14` (HBR2), `0x1E` (HBR3).
-		 */
-		uint32_t getMaxLinkRateFromTable(uint16_t table[DP_MAX_NUM_SUPPORTED_RATES]);
-		
-		/**
 		 *  [Helper] Probe the maximum link rate from DPCD
 		 *
 		 *  @return The maximum link rate value on success, `0` otherwise.
 		 *  @note This function is independent of the platform.
+		 *  @note This function also returns `0` if the maximum link rate found in the table is not supported by Apple's driver.
+		 *  @note The driver only supports `0x06` (RBR), `0x0A` (HBR), `0x0C` (Apple's Internal), `0x14` (HBR2), `0x1E` (HBR3).
 		 */
 		uint32_t probeMaxLinkRate();
 		
