@@ -124,8 +124,8 @@ void IGFX::DPCDMaxLinkRateFix::processKernel(KernelPatcher &patcher, DeviceInfo 
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForICL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	auto raux = patcher.solveSymbol(index, "__ZN14AppleIntelPort7readAUXEjPvj", address, index);
-	auto gfbp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController13getFBFromPortEP14AppleIntelPort", address, index);
+	auto raux = patcher.solveSymbol(index, "__ZN14AppleIntelPort7readAUXEjPvj", address, size);
+	auto gfbp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController13getFBFromPortEP14AppleIntelPort", address, size);
 	
 	if (raux && gfbp) {
 		patcher.eraseCoverageInstPrefix(raux);
