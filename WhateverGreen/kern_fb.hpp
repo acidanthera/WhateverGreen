@@ -134,11 +134,11 @@ union ConnectorFlags {
 		uint8_t CNDisableBlitTranslationTable:1;  /* 0x40 */
 		/* Used in AppleIntelFramebufferController::setPowerWellState */
 		/* Activates MISC IO power well (SKL_DISP_PW_MISC_IO) */
-		/* May help with HDMI audio configuration issues */
-		/* REF: https://github.com/acidanthera/bugtracker/issues/1189 */
 		uint8_t CNUseMiscIoPowerWell         :1;  /* 0x80 */
 		/* Used in AppleIntelFramebufferController::setPowerWellState */
 		/* Activates Power Well 2 usage (SKL_PW_CTL_IDX_PW_2) */
+		/* May help with HDMI audio configuration issues */
+		/* REF: https://github.com/acidanthera/bugtracker/issues/1189 */
 		uint8_t CNUsePowerWell2              :1;  /* 0x100 */
 		uint8_t CNUnknownFlag_200            :1;  /* 0x200 */
 		uint8_t CNUnknownFlag_400            :1;  /* 0x400 */
