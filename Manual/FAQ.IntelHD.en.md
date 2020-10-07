@@ -2528,6 +2528,7 @@ igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
 - In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. For a temporary solution try to fake IGPU to use SKL drivers.  
 - The several minutes black screen upon OS boot with mobile CFL is fixed by *WEG*.  
 - The absence in BIOS of an option to change the amount of memory for the frame buffer is resolved with either semantic `framebuffer-stolenmem` and `framebuffer-fbmem` patches, by modifying the BIOS or by manually inputting the values in UEFI Shell. **Otherwise you get a panic.** [Explanation](https://www.applelife.ru/posts/750369)  
+- Some systems with IGPUs (e.g. KBL and CFL) may cause system instability in lower power states. Sometimes it can be noticed by NVMe kernel panics. The generally available workaround is passing `forceRenderStandby=0` to kernel boot arguments to disable RC6 Render Standby. See [this issue](https://github.com/acidanthera/bugtracker/issues/1193) for more details.
   
 **Performance and media content**
 
