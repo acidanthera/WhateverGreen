@@ -1905,6 +1905,7 @@ igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
 - macOS 10.14 下，某些 KBL 核显可能会遇到图像文字发虚问题，可临时仿冒核显设备 ID 为 SKL 平台解决。
 - 移动版 CFL 核显的数分钟黑屏问题已由 *WEG* 修复。
 - BIOS 中缺失更改 FB 内存量选项时：可通过使用 `framebuffer-stolenmem` 和 `framebuffer-fbmem` 语义补丁；或在 UEFI Shell 中手动赋值解决。**否则将会内核崩溃（Kernel Panic）**。[更多解释](https://www.applelife.ru/posts/750369)（译者注：原文发布于俄文社区，所以并无中文版本）
+- 一些核显（如 KBL 和 CFL）在低电压模式 (low power state) 下可能会引发系统不稳定的问题，有时 NVMe 驱动引发的崩溃或许与此有关。目前可行的方案是加入 `forceRenderStandby=0` 启动参数以关闭 RC6 Render Standby。请参阅[这个 issue](https://github.com/acidanthera/bugtracker/issues/1193)以获取更多信息。
 
 *性能和媒体内容*：
 - 在不受支持的配置（NVIDIA + SNB/SKL/KBL; AMD + Ivy）上，与独显的兼容问题已由 *WEG* 修复，从 macOS 10.13.4 起，该问题已被 Apple 官方解决。
