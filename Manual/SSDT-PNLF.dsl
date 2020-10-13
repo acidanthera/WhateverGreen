@@ -15,7 +15,7 @@
 #define SKYLAKE_PWMMAX 0x56c
 #define CUSTOM_PWMMAX_07a1 0x07a1
 #define CUSTOM_PWMMAX_1499 0x1499
-#define COFFEELAKE_PWMMAX 0xffff
+#define COFFEELAKE_PWMMAX 0xff3e
 
 DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
 {
@@ -43,10 +43,20 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
         // 16: Skylake/KabyLake 0x56c (and some Haswell, example 0xa2e0008)
         // 17: custom LMAX=0x7a1
         // 18: custom LMAX=0x1499
-        // 19: CoffeeLake 0xffff
+        // 19: CoffeeLake 0xff3e
         // 99: Other (requires custom AppleBacklightInjector.kext/WhateverGreen.kext)
         Name(_UID, 0)
-        Name(_STA, 0x0B)
+        Method (_STA, 0, NotSerialized)  // _STA: Status
+                    {
+                        If (_OSI ("Darwin"))
+                        {
+                            Return (0x0B)
+                        }
+                        Else
+                        {
+                            Return (Zero)
+                        }
+                    }
 
         Field(^RMP3, AnyAcc, NoLock, Preserve)
         {
