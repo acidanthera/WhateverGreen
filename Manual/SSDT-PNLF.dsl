@@ -54,7 +54,7 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
                         }
                         Else
                         {
-                            Return (Zero)
+                            Return (0)
                         }
                     }
 
