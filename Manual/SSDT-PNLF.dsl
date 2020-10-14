@@ -245,7 +245,7 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
                 If (!(8 & Local4) && Local2 != Local1)
                 {
                     // set new backlight PWMAX but retain current backlight level by scaling
-                    Local0 = (((^LEVX & 0xFF3E) * Local2) / Local1) | (Local2 << 16)
+                    Local0 = (((^LEVX & 0xFFFF) * Local2) / Local1) | (Local2 << 16)
                     //REVIEW: wait for vblank before setting new PWM config
                     //For (Local7 = ^P0BL, ^P0BL == Local7, ) { }
                     ^LEVX = Local0
