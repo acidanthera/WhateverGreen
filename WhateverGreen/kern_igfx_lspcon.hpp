@@ -444,7 +444,7 @@ struct FramebufferLSPCON {
 	 *  @warning If not specified, assuming `PCON` mode is preferred.
 	 *  @warning If invalid mode value found, assuming `PCON` mode
 	 */
-	LSPCON::Mode preferredMode ;//{ LSPCON::Mode::Value::ProtocolConverter };
+	LSPCON::Mode preferredMode { LSPCON::Mode::Value::ProtocolConverter };
 
 	/**
 	 *  The corresponding LSPCON driver; `NULL` if no onboard chip

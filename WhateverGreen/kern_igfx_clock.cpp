@@ -213,7 +213,7 @@ IOReturn IGFX::DPCDMaxLinkRateFix::wrapReadAUX(uint32_t address, void *buffer, u
 	// If you are interested in the story behind this fix, take a look at my blog posts.
 	// Phase 1: https://www.firewolf.science/2018/10/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-compromise-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
 	// Phase 2: https://www.firewolf.science/2018/11/coffee-lake-intel-uhd-graphics-630-on-macos-mojave-a-nearly-ultimate-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
-	// Phase 3: TODO: ADD LINK
+	// Phase 3: https://www.firewolf.science/2020/10/coffee-lake-intel-uhd-graphics-630-on-macos-catalina-the-ultimate-solution-to-the-kernel-panic-due-to-division-by-zero-in-the-framebuffer-driver/
 
 	// Call the original ReadAUX() function to read from DPCD
 	IOReturn retVal = callbackIGFX->modDPCDMaxLinkRateFix.orgReadAUX(address, buffer, length);
