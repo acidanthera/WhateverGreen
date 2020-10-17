@@ -127,15 +127,23 @@ union ConnectorFlags {
 		uint8_t CNUnknownFlag_4              :1;  /* 0x4 */
 		/* Normally set for LVDS displays (i.e. built-in displays) */
 		uint8_t CNConnectorAlwaysConnected   :1;  /* 0x8 */
+		/* AppleIntelFramebuffer::maxSupportedDepths checks this and returns 2 IODisplayModeInformation::maxDepthIndex ?? */
 		uint8_t CNUnknownFlag_10             :1;  /* 0x10 */
 		uint8_t CNUnknownFlag_20             :1;  /* 0x20 */
 		/* Disable blit translation table? AppleIntelFramebufferController::ConfigureBufferTranslation */
 		uint8_t CNDisableBlitTranslationTable:1;  /* 0x40 */
-		uint8_t CNUnknownFlag_80             :1;  /* 0x80 */
-		uint8_t CNUnknownFlag_100            :1;  /* 0x100 */
+		/* Used in AppleIntelFramebufferController::setPowerWellState */
+		/* Activates MISC IO power well (SKL_DISP_PW_MISC_IO) */
+		uint8_t CNUseMiscIoPowerWell         :1;  /* 0x80 */
+		/* Used in AppleIntelFramebufferController::setPowerWellState */
+		/* Activates Power Well 2 usage (SKL_PW_CTL_IDX_PW_2) */
+		/* May help with HDMI audio configuration issues */
+		/* REF: https://github.com/acidanthera/bugtracker/issues/1189 */
+		uint8_t CNUsePowerWell2              :1;  /* 0x100 */
 		uint8_t CNUnknownFlag_200            :1;  /* 0x200 */
 		uint8_t CNUnknownFlag_400            :1;  /* 0x400 */
-		uint8_t CNUnknownFlag_800            :1;  /* 0x800 */
+		/* Sets fAvailableLaneCount to 30 instead of 20 when specified */
+		uint8_t CNIncreaseLaneCount          :1;  /* 0x800 */
 		uint8_t CNUnknownFlag_1000           :1;  /* 0x1000 */
 		uint8_t CNUnknownFlag_2000           :1;  /* 0x2000 */
 		uint8_t CNUnknownFlag_4000           :1;  /* 0x4000 */
