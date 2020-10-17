@@ -343,8 +343,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		};
 
 		auto requiresGraphicsPatches = [this]() {
-			if (modDVMTCalcFix.requiresPatchingGraphics)
-				return true;
 			if (pavpDisablePatch)
 				return true;
 			if (forceOpenGL)
