@@ -27,23 +27,24 @@ void IGFX::AdvancedI2COverAUXSupport::processKernel(KernelPatcher &patcher, Devi
 }
 
 void IGFX::AdvancedI2COverAUXSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	auto roa = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14ReadI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhbh", address, size);
-	auto woa = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController15WriteI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhb", address, size);
-	
-	if (roa && woa) {
-		patcher.eraseCoverageInstPrefix(roa);
-		patcher.eraseCoverageInstPrefix(woa);
-		orgReadI2COverAUX = reinterpret_cast<decltype(orgReadI2COverAUX)>(patcher.routeFunction(roa, reinterpret_cast<mach_vm_address_t>(wrapReadI2COverAUX), true));
-		orgWriteI2COverAUX = reinterpret_cast<decltype(orgWriteI2COverAUX)>(patcher.routeFunction(woa, reinterpret_cast<mach_vm_address_t>(wrapWriteI2COverAUX), true));
-		if (orgReadI2COverAUX && orgWriteI2COverAUX) {
-			DBGLOG("igfx", "I2C: Functions have been routed successfully");
-		} else {
-			patcher.clearError();
-			SYSLOG("igfx", "I2C: Failed to route functions.");
+	KernelPatcher::RouteRequest requests[] = {
+		{
+			"__ZN31AppleIntelFramebufferController14ReadI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhbh",
+			wrapReadI2COverAUX,
+			reinterpret_cast<mach_vm_address_t&>(orgReadI2COverAUX)
+		},
+		{
+			"__ZN31AppleIntelFramebufferController15WriteI2COverAUXEP21AppleIntelFramebufferP21AppleIntelDisplayPathjtPhb",
+			wrapWriteI2COverAUX,
+			reinterpret_cast<mach_vm_address_t&>(orgWriteI2COverAUX)
 		}
+	};
+	
+	if (patcher.routeMultiple(index, requests, address, size)) {
+		DBGLOG("igfx", "I2C: Functions have been routed successfully");
 	} else {
-		SYSLOG("igfx", "I2C: Failed to find symbols.");
 		patcher.clearError();
+		SYSLOG("igfx", "I2C: Failed to route functions.");
 	}
 }
 
