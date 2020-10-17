@@ -308,9 +308,16 @@ uint32_t IGFX::DPCDMaxLinkRateFix::probeMaxLinkRate() {
 		// Calculate the link rate value
 		// Each element in the table is encoded as a multiple of 200 KHz
 		// The decimal value (e.g. 0x14) is encoded as a multiple of 0.27 GHz (270000 KHz)
-		last = rates[index] * 200 / 270000;
+		uint32_t current = rates[index] * 200 / 270000;
+		
 		DBGLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() Table[%d] = %5u; Link Rate = %llu; Decimal Value = 0x%02x.",
-			   index, rates[index], static_cast<uint64_t>(rates[index]) * 200 * 1000, last);
+			   index, rates[index], static_cast<uint64_t>(rates[index]) * 200 * 1000, current);
+		
+		// Guard: Ensure that we are searching for the largest link rate in case of an unsorted table reported by the panel
+		if (current > last)
+			last = current;
+		else
+			SYSLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() Warning: Detected an unsorted table. Please report with your kernel log.");
 	}
 	
 	// Ensure that the maximum link rate found in the table is supported by the driver
