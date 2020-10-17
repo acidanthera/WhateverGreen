@@ -436,6 +436,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
 		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
 		// Solve ReadRegister32 just once as it is shared
+		// FIXME: Refactor generic register access as a separate submodule.
+		//        Submodules that request access to these functions must set `PatchSubmodule::requiresGenericRegisterAccess` to `true`
+		// 	      Also we need to consider the case where multiple submodules want to inject code into these functions.
+		//        At this moment, the backlight fix is the only one that wraps these functions.
 		if (bklCoffeeFb || bklKabyFb ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
@@ -450,6 +454,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (!AppleIntelFramebufferController__WriteRegister32)
 				SYSLOG("igfx", "Failed to find WriteRegister32");
 		}
+		// FIXME: Same issue here.
 		if (RPSControl.enabled || ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
 			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
 		if (bklCoffeeFb || bklKabyFb) {
