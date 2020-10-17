@@ -124,39 +124,34 @@ void IGFX::DPCDMaxLinkRateFix::processKernel(KernelPatcher &patcher, DeviceInfo 
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForICL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	auto raux = patcher.solveSymbol(index, "__ZN14AppleIntelPort7readAUXEjPvj", address, size);
-	auto gfbp = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController13getFBFromPortEP14AppleIntelPort", address, size);
+	KernelPatcher::RouteRequest request = {
+		"__ZN14AppleIntelPort7readAUXEjPvj",
+		wrapICLReadAUX,
+		reinterpret_cast<mach_vm_address_t&>(orgICLReadAUX)
+	};
 	
-	if (raux && gfbp) {
-		patcher.eraseCoverageInstPrefix(raux);
-		orgICLReadAUX = reinterpret_cast<decltype(orgICLReadAUX)>(patcher.routeFunction(raux, reinterpret_cast<mach_vm_address_t>(wrapICLReadAUX), true));
-		orgICLGetFBFromPort = reinterpret_cast<decltype(orgICLGetFBFromPort)>(gfbp);
-		if (orgICLReadAUX && orgICLGetFBFromPort) {
-			DBGLOG("igfx", "MLR: [ICL+] Functions have been routed successfully.");
-		} else {
-			SYSLOG("igfx", "MLR: [ICL+] Failed to route functions.");
-		}
+	orgICLGetFBFromPort = patcher.solveSymbol<decltype(orgICLGetFBFromPort)>(index, "__ZN31AppleIntelFramebufferController13getFBFromPortEP14AppleIntelPort", address, size);
+	
+	if (patcher.routeMultiple(index, &request, 1, address, size) && orgICLGetFBFromPort) {
+		DBGLOG("igfx", "MLR: [ICL+] Functions have been routed successfully.");
 	} else {
-		SYSLOG("igfx", "MLR: [ICL+] Failed to find symbols.");
 		patcher.clearError();
+		SYSLOG("igfx", "MLR: [ICL+] Failed to route functions.");
 	}
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForCFL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	auto raux = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath",
+		wrapCFLReadAUX,
+		reinterpret_cast<mach_vm_address_t&>(orgCFLReadAUX)
+	};
 	
-	if (raux) {
-		patcher.eraseCoverageInstPrefix(raux);
-		orgCFLReadAUX = reinterpret_cast<decltype(orgCFLReadAUX)>(patcher.routeFunction(raux, reinterpret_cast<mach_vm_address_t>(wrapCFLReadAUX), true));
-		if (orgCFLReadAUX) {
-			DBGLOG("igfx", "MLR: [CFL-] Functions have been routed successfully.");
-		} else {
-			patcher.clearError();
-			SYSLOG("igfx", "MLR: [CFL-] Failed to route functions.");
-		}
+	if (patcher.routeMultiple(index, &request, 1, address, size)) {
+		DBGLOG("igfx", "MLR: [CFL-] Functions have been routed successfully.");
 	} else {
-		SYSLOG("igfx", "MLR: [CFL-] Failed to find symbols.");
 		patcher.clearError();
+		SYSLOG("igfx", "MLR: [CFL-] Failed to route functions.");
 	}
 }
 
@@ -481,25 +476,21 @@ void IGFX::CoreDisplayClockFix::processKernel(KernelPatcher &patcher, DeviceInfo
 }
 
 void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	auto pcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController21probeCDClockFrequencyEv", address, size);
-	auto dcdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController14disableCDClockEv", address, size);
-	auto scdcAddress = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", address, size);
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController21probeCDClockFrequencyEv",
+		wrapProbeCDClockFrequency,
+		reinterpret_cast<mach_vm_address_t&>(orgProbeCDClockFrequency)
+	};
 	
-	if (pcdcAddress && dcdcAddress && scdcAddress && callbackIGFX->AppleIntelFramebufferController__ReadRegister32) {
-		patcher.eraseCoverageInstPrefix(pcdcAddress);
-		orgProbeCDClockFrequency = reinterpret_cast<decltype(orgProbeCDClockFrequency)>(patcher.routeFunction(pcdcAddress, reinterpret_cast<mach_vm_address_t>(wrapProbeCDClockFrequency), true));
-		orgDisableCDClock = reinterpret_cast<decltype(orgDisableCDClock)>(dcdcAddress);
-		orgSetCDClockFrequency = reinterpret_cast<decltype(orgSetCDClockFrequency)>(scdcAddress);
-		orgIclReadRegister32 = reinterpret_cast<decltype(orgIclReadRegister32)>(callbackIGFX->AppleIntelFramebufferController__ReadRegister32);
-		if (orgProbeCDClockFrequency && orgIclReadRegister32 && orgDisableCDClock && orgSetCDClockFrequency) {
-			DBGLOG("igfx", "CDC: Functions have been routed successfully.");
-		} else {
-			patcher.clearError();
-			SYSLOG("igfx", "CDC: Failed to route functions.");
-		}
+	orgDisableCDClock = patcher.solveSymbol<decltype(orgDisableCDClock)>(index, "__ZN31AppleIntelFramebufferController14disableCDClockEv", address, size);
+	orgSetCDClockFrequency = patcher.solveSymbol<decltype(orgSetCDClockFrequency)>(index, "__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", address, size);
+	orgIclReadRegister32 = reinterpret_cast<decltype(orgIclReadRegister32)>(callbackIGFX->AppleIntelFramebufferController__ReadRegister32);
+	
+	if (patcher.routeMultiple(index, &request, 1, address, size) && orgDisableCDClock && orgSetCDClockFrequency && orgIclReadRegister32) {
+		DBGLOG("igfx", "CDC: Functions have been routed successfully.");
 	} else {
-		SYSLOG("igfx", "CDC: Failed to find symbols.");
 		patcher.clearError();
+		SYSLOG("igfx", "CDC: Failed to route functions.");
 	}
 }
 

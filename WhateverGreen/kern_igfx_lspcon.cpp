@@ -186,23 +186,19 @@ void IGFX::LSPCONDriverSupport::processKernel(KernelPatcher &patcher, DeviceInfo
 }
 
 void IGFX::LSPCONDriverSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	auto aux = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
-	auto gdi = patcher.solveSymbol(index, "__ZN31AppleIntelFramebufferController11GetDPCDInfoEP21AppleIntelFramebufferP21AppleIntelDisplayPath", address, size);
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController11GetDPCDInfoEP21AppleIntelFramebufferP21AppleIntelDisplayPath",
+		wrapGetDPCDInfo,
+		reinterpret_cast<mach_vm_address_t&>(orgGetDPCDInfo)
+	};
 	
-	if (aux && gdi) {
-		patcher.eraseCoverageInstPrefix(aux);
-		patcher.eraseCoverageInstPrefix(gdi);
-		orgReadAUX = reinterpret_cast<decltype(orgReadAUX)>(aux);
-		orgGetDPCDInfo = reinterpret_cast<decltype(orgGetDPCDInfo)>(patcher.routeFunction(gdi, reinterpret_cast<mach_vm_address_t>(wrapGetDPCDInfo), true));
-		if (orgReadAUX && orgGetDPCDInfo) {
-			DBGLOG("igfx", "SC: Functions have been routed successfully");
-		} else {
-			patcher.clearError();
-			SYSLOG("igfx", "SC: Failed to route functions.");
-		}
+	orgReadAUX = patcher.solveSymbol<decltype(orgReadAUX)>(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
+	
+	if (patcher.routeMultiple(index, &request, 1, address, size) && orgReadAUX) {
+		DBGLOG("igfx", "SC: Functions have been routed successfully");
 	} else {
-		SYSLOG("igfx", "SC: Failed to find symbols.");
 		patcher.clearError();
+		SYSLOG("igfx", "SC: Failed to route functions.");
 	}
 }
 
