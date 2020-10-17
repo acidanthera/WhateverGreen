@@ -1,11 +1,13 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.4
+- Extended the maximum link rate fix: Now probe the rate from DPCD automatically and support Intel ICL platforms. (by @0xFireWolf)
+- Fixed an issue that LSPCON driver causes a page fault if the maximum link rate fix is not enabled. (by @0xFireWolf)
+
 #### v1.4.3
 - Added CFL and CML P630
 - Added MacKernelSDK with Xcode 12 compatibility
 - Fixed loading on macOS 10.11 and earlier
-- Extended the maximum link rate fix: Now probe the rate from DPCD automatically and support Intel ICL platforms. (by @0xFireWolf)
-- Fixed an issue that LSPCON driver causes a page fault if the maximum link rate fix is not enabled. (by @0xFireWolf)
 
 #### v1.4.2
 - Fixed `disable-external-gpu` (`-wegnoegpu`) on some systems
