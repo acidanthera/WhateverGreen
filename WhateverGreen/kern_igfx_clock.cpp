@@ -124,15 +124,19 @@ void IGFX::DPCDMaxLinkRateFix::processKernel(KernelPatcher &patcher, DeviceInfo 
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForICL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest request = {
+	KernelPatcher::RouteRequest routeRequest = {
 		"__ZN14AppleIntelPort7readAUXEjPvj",
 		wrapICLReadAUX,
-		reinterpret_cast<mach_vm_address_t&>(orgICLReadAUX)
+		orgICLReadAUX
 	};
 	
-	orgICLGetFBFromPort = patcher.solveSymbol<decltype(orgICLGetFBFromPort)>(index, "__ZN31AppleIntelFramebufferController13getFBFromPortEP14AppleIntelPort", address, size);
+	KernelPatcher::SolveRequest solveRequest = {
+		"__ZN31AppleIntelFramebufferController13getFBFromPortEP14AppleIntelPort",
+		orgICLGetFBFromPort
+	};
 	
-	if (patcher.routeMultiple(index, &request, 1, address, size) && orgICLGetFBFromPort) {
+	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
+		patcher.solveMultiple(index, &solveRequest, 1, address, size)) {
 		DBGLOG("igfx", "MLR: [ICL+] Functions have been routed successfully.");
 	} else {
 		patcher.clearError();
@@ -144,7 +148,7 @@ void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForCFL(KernelPatcher &patch
 	KernelPatcher::RouteRequest request = {
 		"__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath",
 		wrapCFLReadAUX,
-		reinterpret_cast<mach_vm_address_t&>(orgCFLReadAUX)
+		orgCFLReadAUX
 	};
 	
 	if (patcher.routeMultiple(index, &request, 1, address, size)) {
@@ -483,17 +487,22 @@ void IGFX::CoreDisplayClockFix::processKernel(KernelPatcher &patcher, DeviceInfo
 }
 
 void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest request = {
+	KernelPatcher::RouteRequest routeRequest = {
 		"__ZN31AppleIntelFramebufferController21probeCDClockFrequencyEv",
 		wrapProbeCDClockFrequency,
-		reinterpret_cast<mach_vm_address_t&>(orgProbeCDClockFrequency)
+		orgProbeCDClockFrequency
 	};
 	
-	orgDisableCDClock = patcher.solveSymbol<decltype(orgDisableCDClock)>(index, "__ZN31AppleIntelFramebufferController14disableCDClockEv", address, size);
-	orgSetCDClockFrequency = patcher.solveSymbol<decltype(orgSetCDClockFrequency)>(index, "__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", address, size);
+	KernelPatcher::SolveRequest solveRequests[] = {
+		{"__ZN31AppleIntelFramebufferController14disableCDClockEv", orgDisableCDClock},
+		{"__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", orgSetCDClockFrequency}
+	};
+	
 	orgIclReadRegister32 = reinterpret_cast<decltype(orgIclReadRegister32)>(callbackIGFX->AppleIntelFramebufferController__ReadRegister32);
 	
-	if (patcher.routeMultiple(index, &request, 1, address, size) && orgDisableCDClock && orgSetCDClockFrequency && orgIclReadRegister32) {
+	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
+		patcher.solveMultiple(index, solveRequests, address, size) &&
+		orgIclReadRegister32) {
 		DBGLOG("igfx", "CDC: Functions have been routed successfully.");
 	} else {
 		patcher.clearError();

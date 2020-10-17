@@ -186,15 +186,19 @@ void IGFX::LSPCONDriverSupport::processKernel(KernelPatcher &patcher, DeviceInfo
 }
 
 void IGFX::LSPCONDriverSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest request = {
+	KernelPatcher::RouteRequest routeRequest = {
 		"__ZN31AppleIntelFramebufferController11GetDPCDInfoEP21AppleIntelFramebufferP21AppleIntelDisplayPath",
 		wrapGetDPCDInfo,
-		reinterpret_cast<mach_vm_address_t&>(orgGetDPCDInfo)
+		orgGetDPCDInfo
 	};
 	
-	orgReadAUX = patcher.solveSymbol<decltype(orgReadAUX)>(index, "__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath", address, size);
+	KernelPatcher::SolveRequest solveRequest = {
+		"__ZN31AppleIntelFramebufferController7ReadAUXEP21AppleIntelFramebufferjtPvP21AppleIntelDisplayPath",
+		orgReadAUX
+	};
 	
-	if (patcher.routeMultiple(index, &request, 1, address, size) && orgReadAUX) {
+	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
+		patcher.solveMultiple(index, &solveRequest, 1, address, size)) {
 		DBGLOG("igfx", "SC: Functions have been routed successfully");
 	} else {
 		patcher.clearError();
