@@ -264,17 +264,17 @@ IOReturn IGFX::DPCDMaxLinkRateFix::orgReadAUX(uint32_t address, void *buffer, ui
 		// ICL+
 		DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to ICL IMP with Address = 0x%x; Length = %u.", address, length);
 		return orgICLReadAUX(port, address, buffer, length);
-	} else {
-		// CFL-
-		DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x%x; Length = %u.", address, length);
-		return orgCFLReadAUX(controller, framebuffer, address, length, buffer, displayPath);
 	}
+	
+	// CFL-
+	DBGLOG("igfx", "MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x%x; Length = %u.", address, length);
+	return orgCFLReadAUX(controller, framebuffer, address, length, buffer, displayPath);
 }
 
 bool IGFX::DPCDMaxLinkRateFix::getFramebufferIndex(uint32_t &index) {
-	auto framebuffer = port != nullptr ? orgICLGetFBFromPort(*callbackIGFX->gFramebufferController, port) : this->framebuffer;
-	DBGLOG("igfx", "MLR: [COMM] GetFBIndex() Port at 0x%llx; Framebuffer at 0x%llx.", port, framebuffer);
-	return AppleIntelFramebufferExplorer::getIndex(framebuffer, index);
+	auto fb = port != nullptr ? orgICLGetFBFromPort(*callbackIGFX->gFramebufferController, port) : this->framebuffer;
+	DBGLOG("igfx", "MLR: [COMM] GetFBIndex() Port at 0x%llx; Framebuffer at 0x%llx.", port, fb);
+	return AppleIntelFramebufferExplorer::getIndex(fb, index);
 }
 
 uint32_t IGFX::DPCDMaxLinkRateFix::probeMaxLinkRate() {
@@ -303,7 +303,7 @@ uint32_t IGFX::DPCDMaxLinkRateFix::probeMaxLinkRate() {
 	// Parse all supported link rates reported by DPCD
 	// The last non-zero entry in the table is the maximum link rate supported by the eDP 1.4 panel
 	uint32_t last = 0;
-	for (int index = 0; index < arrsize(rates); index += 1) {
+	for (int index = 0; index < arrsize(rates); index++) {
 		// Guard: Table is terminated by a zero entry
 		if (rates[index] == 0) {
 			DBGLOG("igfx", "MLR: [COMM] ProbeMaxLinkRate() End of table.");

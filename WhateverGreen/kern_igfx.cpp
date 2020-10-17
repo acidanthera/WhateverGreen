@@ -313,8 +313,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		auto submodulesRequiresFramebufferPatch = false;
 		auto submodulesRequiresGraphicsPatch = false;
 		for (auto submodule : submodules) {
-			submodulesRequiresFramebufferPatch = submodulesRequiresFramebufferPatch || submodule->requiresPatchingFramebuffer;
-			submodulesRequiresGraphicsPatch = submodulesRequiresGraphicsPatch || submodule->requiresPatchingGraphics;
+			submodulesRequiresFramebufferPatch |= submodule->requiresPatchingFramebuffer;
+			submodulesRequiresGraphicsPatch |= submodule->requiresPatchingGraphics;
 		}
 		
 		// Ideally, we could get rid of these two lambda expressions

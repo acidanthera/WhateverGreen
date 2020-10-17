@@ -509,7 +509,6 @@ private:
 	 *  A submodule to fix the calculation of DVMT preallocated memory on ICL+ platforms
 	 */
 	class DVMTCalcFix: public PatchSubmodule {
-	private:
 		/**
 		 *  The amount of DVMT preallocated memory in bytes set in the BIOS
 		 */
@@ -531,7 +530,6 @@ private:
 	 *  A submodule to fix the maximum link rate reported by DPCD
 	 */
 	class DPCDMaxLinkRateFix: public PatchSubmodule {
-	private:
 		/**
 		 *  User-specified maximum link rate value in the DPCD buffer
 		 *
@@ -700,7 +698,6 @@ private:
 	 *  A submodule to support all valid Core Display Clock frequencies on ICL+ platforms
 	 */
 	class CoreDisplayClockFix: public PatchSubmodule {
-	private:
 		/**
 		 *  [ICL+] Original AppleIntelFramebufferController::ReadRegister32 function
 		 *
@@ -760,7 +757,6 @@ private:
 	 *  A submodule to fix the calculation of HDMI dividers to avoid the infinite loop
 	 */
 	class HDMIDividersCalcFix: public PatchSubmodule {
-	private:
 		/**
 		 *  Represents the current context of probing dividers for HDMI connections
 		 */
@@ -823,11 +819,9 @@ private:
 	 *  A submodule to support advanced I2C-over-AUX transactions on SKL, KBL and CFL platforms
 	 *
 	 *  @note LSPCON driver enables this module automatically. This module must be placed after the LSPCON module.
-	 *  @note This module is not compatible with ICL platforms yet.
-	 *        Not sure if Ice Lake graphics card supports native HDMI 2.0 output.
+	 *  @note ICL platform does not require this module as it provides native HDMI 2.0 output.
 	 */
 	class AdvancedI2COverAUXSupport: public PatchSubmodule {
-	private:
 		/**
 		 *  Set to true to enable verbose output in I2C-over-AUX transactions
 		 */
@@ -996,7 +990,7 @@ private:
 		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
 		 *  @return `true` if the framebuffer has an onboard LSPCON chip, `false` otherwise.
 		 */
-		inline bool hasLSPCON(uint32_t index) {
+		bool hasLSPCON(uint32_t index) {
 			return lspcons[index].hasLSPCON;
 		}
 
@@ -1006,7 +1000,7 @@ private:
 		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
 		 *  @return `true` if the LSPCON driver has already been initialized for this framebuffer, `false` otherwise.
 		 */
-		inline bool hasLSPCONInitialized(uint32_t index) {
+		bool hasLSPCONInitialized(uint32_t index) {
 			return lspcons[index].lspcon != nullptr;
 		}
 
@@ -1016,7 +1010,7 @@ private:
 		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
 		 *  @return The LSPCON driver instance.
 		 */
-		inline LSPCON *getLSPCON(uint32_t index) {
+		LSPCON *getLSPCON(uint32_t index) {
 			return lspcons[index].lspcon;
 		}
 
@@ -1026,7 +1020,7 @@ private:
 		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
 		 *  @param lspcon A non-null LSPCON driver instance associated with the given framebuffer
 		 */
-		inline void setLSPCON(uint32_t index, LSPCON *lspcon) {
+		void setLSPCON(uint32_t index, LSPCON *lspcon) {
 			lspcons[index].lspcon = lspcon;
 		}
 
@@ -1036,7 +1030,7 @@ private:
 		 *  @param index A **valid** framebuffer index; Must be less than `MaxFramebufferConnectorCount`
 		 *  @return The preferred adapter mode.
 		 */
-		inline LSPCON::Mode getLSPCONPreferredMode(uint32_t index) {
+		LSPCON::Mode getLSPCONPreferredMode(uint32_t index) {
 			return lspcons[index].preferredMode;
 		}
 		
