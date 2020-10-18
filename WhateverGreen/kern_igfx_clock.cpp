@@ -136,12 +136,10 @@ void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForICL(KernelPatcher &patch
 	};
 	
 	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
-		patcher.solveMultiple(index, &solveRequest, 1, address, size)) {
+		patcher.solveMultiple(index, &solveRequest, 1, address, size))
 		DBGLOG("igfx", "MLR: [ICL+] Functions have been routed successfully.");
-	} else {
-		patcher.clearError();
+	else
 		SYSLOG("igfx", "MLR: [ICL+] Failed to route functions.");
-	}
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForCFL(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -151,12 +149,10 @@ void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForCFL(KernelPatcher &patch
 		orgCFLReadAUX
 	};
 	
-	if (patcher.routeMultiple(index, &request, 1, address, size)) {
+	if (patcher.routeMultiple(index, &request, 1, address, size))
 		DBGLOG("igfx", "MLR: [CFL-] Functions have been routed successfully.");
-	} else {
-		patcher.clearError();
+	else
 		SYSLOG("igfx", "MLR: [CFL-] Failed to route functions.");
-	}
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -502,12 +498,10 @@ void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, s
 	
 	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
 		patcher.solveMultiple(index, solveRequests, address, size) &&
-		orgIclReadRegister32) {
+		orgIclReadRegister32)
 		DBGLOG("igfx", "CDC: Functions have been routed successfully.");
-	} else {
-		patcher.clearError();
+	else
 		SYSLOG("igfx", "CDC: Failed to route functions.");
-	}
 }
 
 void IGFX::CoreDisplayClockFix::sanitizeCDClockFrequency(AppleIntelFramebufferController *that) {

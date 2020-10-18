@@ -198,12 +198,10 @@ void IGFX::LSPCONDriverSupport::processFramebufferKext(KernelPatcher &patcher, s
 	};
 	
 	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
-		patcher.solveMultiple(index, &solveRequest, 1, address, size)) {
+		patcher.solveMultiple(index, &solveRequest, 1, address, size))
 		DBGLOG("igfx", "SC: Functions have been routed successfully");
-	} else {
-		patcher.clearError();
+	else
 		SYSLOG("igfx", "SC: Failed to route functions.");
-	}
 }
 
 void IGFX::LSPCONDriverSupport::setupLSPCON(void *that, IORegistryEntry *framebuffer, void *displayPath) {

@@ -40,12 +40,10 @@ void IGFX::AdvancedI2COverAUXSupport::processFramebufferKext(KernelPatcher &patc
 		}
 	};
 	
-	if (patcher.routeMultiple(index, requests, address, size)) {
+	if (patcher.routeMultiple(index, requests, address, size))
 		DBGLOG("igfx", "I2C: Functions have been routed successfully");
-	} else {
-		patcher.clearError();
+	else
 		SYSLOG("igfx", "I2C: Failed to route functions.");
-	}
 }
 
 IOReturn IGFX::AdvancedI2COverAUXSupport::wrapReadI2COverAUX(void *that, IORegistryEntry *framebuffer, void *displayPath, uint32_t address, uint16_t length, uint8_t *buffer, bool intermediate, uint8_t flags) {
