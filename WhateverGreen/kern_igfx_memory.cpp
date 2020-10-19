@@ -38,8 +38,7 @@ void IGFX::DVMTCalcFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) 
 	}
 	
 	// Read the DVMT preallocated memory set in BIOS from the GMCH Graphics Control field at 0x50 (PCI0,2,0)
-	// TODO: Lilu needs to be updated to define the enumeration case `kIOPCIConfigGraphicsControl`
-	auto gms = WIOKit::readPCIConfigValue(info->videoBuiltin, /*WIOKit::kIOPCIConfigGraphicsControl*/ 0x50, 0, 16) >> 8;
+	auto gms = WIOKit::readPCIConfigValue(info->videoBuiltin, WIOKit::kIOPCIConfigGraphicsControl, 0, 16) >> 8;
 	
 	// Disable the fix if the GMS value can be calculated by Apple's formula correctly
 	// Reference: 10th Generation Intel Processor Families: Datasheet, Volume 2, Section 4.1.28

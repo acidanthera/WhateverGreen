@@ -2381,8 +2381,43 @@ Or instead of this property, use the boot-arg `-wegnoegpu`
 
 Add the `enable-dpcd-max-link-rate-fix` property to `IGPU`, otherwise a kernel panic would happen due to a division-by-zero. Or instead of this property, use the boot-arg `-igfxmlr`.  
 Starting from v1.3.7, it also fixes the invalid max link rate value read from the extended DPCD buffer. This fixes the kernel panic on new laptops, such as Dell Inspiron 7590 with Sharp display.  
+Starting from v1.4.4, it probes the maximum link rate value automatically if the property `dpcd-max-link-rate` is not specified, and it now supports Ice Lake platforms.  
 ![dpcd_mlr](./Img/dpcd_mlr.png)  
-You could also manually specify a maximum link rate value via the `dpcd-max-link-rate` for the builtin display. Typically use `0x14` for 4K display and `0x0A` for 1080p display. All possible values are `0x06` (RBR), `0x0A` (HBR), `0x14` (HBR2) and `0x1E` (HBR3). If an invalid value is specified or property `dpcd-max-link-rate` is not specified, the driver will use the default value `0x14`.  
+You could also manually specify a maximum link rate value via the `dpcd-max-link-rate` for the builtin display. Typically use `0x14` for 4K display and `0x0A` for 1080p display. All possible values are `0x06` (RBR), `0x0A` (HBR), `0x14` (HBR2) and `0x1E` (HBR3).   
+If an invalid value is specified or property `dpcd-max-link-rate` is not specified, the driver will probe the maximum link rate from DPCD instead.  
+If the probed value is not supported by the driver (which should rarely happen), you need to manually specify a valid one, otherwise the graphics driver will trigger a kernel panic due to a division-by-zero later.
+
+<details>
+<summary>Spoiler: Debugging</summary>
+When the driver probes the maximum link rate from DPCD, you should be able to see something similar to the following lines in your kernel log.  
+The maximum link rate reported by the 4K panel on Dell XPS 15 9570 is 5.4 Gbps, and thus the fix writes `0x14` to the DPCD buffer.
+
+```
+igfx: @ (DBG) MLR: Found CFL- platforms. Will setup the fix for the CFL- graphics driver.
+igfx: @ (DBG) MLR: [CFL-] Functions have been routed successfully.
+igfx: @ (DBG) MLR: [CFL-] wrapReadAUX() Called with controller at 0xffffff802ca6e000 and framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x0; Length = 16.
+igfx: @ (DBG) MLR: [COMM] GetFBIndex() Port at 0x0; Framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Will probe the maximum link rate from the table.
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x700; Length = 1.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Found eDP version 1.4+ (Value = 0x4).
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x10; Length = 16.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[0] =  8100; Link Rate = 1620000000; Decimal Value = 0x06.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[1] = 10800; Link Rate = 2160000000; Decimal Value = 0x08.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[2] = 12150; Link Rate = 2430000000; Decimal Value = 0x09.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[3] = 13500; Link Rate = 2700000000; Decimal Value = 0x0a.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[4] = 16200; Link Rate = 3240000000; Decimal Value = 0x0c.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[5] = 21600; Link Rate = 4320000000; Decimal Value = 0x10.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() Table[6] = 27000; Link Rate = 5400000000; Decimal Value = 0x14.
+igfx: @ (DBG) MLR: [COMM] ProbeMaxLinkRate() End of table.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Maximum link rate 0x14 has been set in the DPCD buffer.
+igfx: @ (DBG) MLR: [CFL-] wrapReadAUX() Called with controller at 0xffffff802ca6e000 and framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] orgReadAUX() Routed to CFL IMP with Address = 0x2200; Length = 16.
+igfx: @ (DBG) MLR: [COMM] GetFBIndex() Port at 0x0; Framebuffer at 0xffffff81aa5a3000.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Will use the maximum link rate specified by user or cached by the previous probe call.
+igfx: @ (DBG) MLR: [COMM] wrapReadAUX() Maximum link rate 0x14 has been set in the DPCD buffer.
+```
+</details>
 
 ## Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on Skylake, Kaby Lake and Coffee Lake platforms
 Add the `enable-hdmi-dividers-fix` property to `IGPU` or use the `-igfxhdmidivs` boot argument instead to fix the infinite loop when the graphics driver tries to establish a HDMI connection with a higher pixel clock rate, for example connecting to a 2K/4K display with HDMI 1.4, otherwise the system just hangs (and your builtin laptop display remains black) when you plug in the HDMI cable.  

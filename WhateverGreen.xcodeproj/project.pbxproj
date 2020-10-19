@@ -35,6 +35,10 @@
 		CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC0863524331E9B00F5B701 /* kern_agdc.hpp */; };
 		CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */; };
 		CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */; };
+		D515168325195D58003CF0E6 /* kern_igfx_i2c_aux.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D515168125195D58003CF0E6 /* kern_igfx_i2c_aux.cpp */; };
+		D5224EF125172B2500D5CF16 /* kern_igfx_clock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5224EF025172B2500D5CF16 /* kern_igfx_clock.cpp */; };
+		D5224F492518928300D5CF16 /* kern_igfx_lspcon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5224F472518928300D5CF16 /* kern_igfx_lspcon.cpp */; };
+		D5224F4A2518928300D5CF16 /* kern_igfx_lspcon.hpp in Headers */ = {isa = PBXBuildFile; fileRef = D5224F482518928300D5CF16 /* kern_igfx_lspcon.hpp */; };
 		D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */; };
 		E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */; };
 /* End PBXBuildFile section */
@@ -130,6 +134,10 @@
 		CEC8E2EE20F765E700D3CA3A /* kern_cdf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_cdf.cpp; sourceTree = "<group>"; };
 		CEC8E2EF20F765E700D3CA3A /* kern_cdf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cdf.hpp; sourceTree = "<group>"; };
 		CEEF190A239CFDB1005B3BE8 /* FAQ.Chart.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.Chart.md; sourceTree = "<group>"; };
+		D515168125195D58003CF0E6 /* kern_igfx_i2c_aux.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_i2c_aux.cpp; sourceTree = "<group>"; };
+		D5224EF025172B2500D5CF16 /* kern_igfx_clock.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_clock.cpp; sourceTree = "<group>"; };
+		D5224F472518928300D5CF16 /* kern_igfx_lspcon.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_lspcon.cpp; sourceTree = "<group>"; };
+		D5224F482518928300D5CF16 /* kern_igfx_lspcon.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_igfx_lspcon.hpp; sourceTree = "<group>"; };
 		D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_memory.cpp; sourceTree = "<group>"; };
 		E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_fb.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -192,6 +200,10 @@
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
 				CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */,
 				D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */,
+				D5224EF025172B2500D5CF16 /* kern_igfx_clock.cpp */,
+				D5224F472518928300D5CF16 /* kern_igfx_lspcon.cpp */,
+				D5224F482518928300D5CF16 /* kern_igfx_lspcon.hpp */,
+				D515168125195D58003CF0E6 /* kern_igfx_i2c_aux.cpp */,
 				2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
 				CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */,
@@ -319,6 +331,7 @@
 				CE7FC0B520F6809600138088 /* kern_shiki.hpp in Headers */,
 				1C9CB7B11C789FF500231E41 /* kern_rad.hpp in Headers */,
 				CEC8E2F120F765E700D3CA3A /* kern_cdf.hpp in Headers */,
+				D5224F4A2518928300D5CF16 /* kern_igfx_lspcon.hpp in Headers */,
 				CE766ED7210763B200A84567 /* kern_guc.hpp in Headers */,
 				CEB402A61F17F5C400716912 /* kern_con.hpp in Headers */,
 				CE19710021C380DF00B02AB4 /* kern_nvhda.hpp in Headers */,
@@ -441,8 +454,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D515168325195D58003CF0E6 /* kern_igfx_i2c_aux.cpp in Sources */,
 				CE7FC0AE20F5622700138088 /* kern_igfx.cpp in Sources */,
 				CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */,
+				D5224EF125172B2500D5CF16 /* kern_igfx_clock.cpp in Sources */,
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
 				CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */,
 				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
@@ -454,6 +469,7 @@
 				D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
 				CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */,
+				D5224F492518928300D5CF16 /* kern_igfx_lspcon.cpp in Sources */,
 				CE1F61B92432DEE800201DF4 /* kern_igfx_debug.cpp in Sources */,
 				CE7FC0AA20F55E7400138088 /* kern_ngfx.cpp in Sources */,
 				1C748C2D1C21952C0024EED2 /* kern_start.cpp in Sources */,
