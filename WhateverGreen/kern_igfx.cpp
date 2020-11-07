@@ -429,8 +429,10 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
 		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
-		// Find actual framebuffer used (kaby or coffee)
+		// Find actual framebuffer used (ice, kaby or coffee)
 		auto realFramebuffer = (currentFramebuffer && currentFramebuffer->loadIndex == index) ? currentFramebuffer : currentFramebufferOpt;
+		// Accept Ice LP FB and enable backlight patches unless Off (Auto turns them on by default).
+		bool bklIceLPFb = realFramebuffer == &kextIntelICLLPFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
 		// Accept Coffee FB and enable backlight patches unless Off (Auto turns them on by default).
 		bool bklCoffeeFb = realFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
 		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
@@ -440,14 +442,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		//        Submodules that request access to these functions must set `PatchSubmodule::requiresGenericRegisterAccess` to `true`
 		// 	      Also we need to consider the case where multiple submodules want to inject code into these functions.
 		//        At this moment, the backlight fix is the only one that wraps these functions.
-		if (bklCoffeeFb || bklKabyFb ||
+		if (bklIceLPFb || bklCoffeeFb || bklKabyFb ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
 				SYSLOG("igfx", "Failed to find ReadRegister32");
 		}
-		if (bklCoffeeFb || bklKabyFb ||
+		if (bklIceLPFb || bklCoffeeFb || bklKabyFb ||
 			RPSControl.enabled || ForceWakeWorkaround.enabled) {
 			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
@@ -457,7 +459,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// FIXME: Same issue here.
 		if (RPSControl.enabled || ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
 			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
-		if (bklCoffeeFb || bklKabyFb) {
+		if (bklIceLPFb || bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
 			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
 			// Singal-wise it looks as a cycle of signal levels on the timeline:
@@ -490,14 +492,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 			if (AppleIntelFramebufferController__ReadRegister32 &&
 				AppleIntelFramebufferController__WriteRegister32) {
-				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = AppleIntelFramebufferController__ReadRegister32;
+				(bklIceLPFb ? orgIclLPReadRegister32 : (bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32)) = AppleIntelFramebufferController__ReadRegister32;
 
 				patcher.eraseCoverageInstPrefix(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32));
 				auto orgRegWrite = reinterpret_cast<decltype(orgCflWriteRegister32)>
-					(patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32), reinterpret_cast<mach_vm_address_t>(bklCoffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32), true));
+					(patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32), reinterpret_cast<mach_vm_address_t>(bklIceLPFb ? wrapIclLPWriteRegister32 : (bklCoffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32)), true));
 
 				if (orgRegWrite) {
-					(bklCoffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32) = orgRegWrite;
+					(bklIceLPFb ? orgIclLPWriteRegister32 : (bklCoffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32)) = orgRegWrite;
 				} else {
 					SYSLOG("igfx", "failed to route WriteRegister32 for cfl %d", bklCoffeeFb);
 					patcher.clearError();
@@ -886,6 +888,15 @@ uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
 
 	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
 	return ret;
+}
+
+void IGFX::wrapIclLPWriteRegister32(void *that, uint32_t reg, uint32_t value) {
+	uint64_t freq = callbackIGFX->targetBacklightFrequency;
+	if (freq && reg == BXT_BLC_PWM_DUTY1) {
+		value = static_cast<uint32_t>(((static_cast<uint64_t>(0xFFFF) * static_cast<uint64_t>(value))) / freq);
+	}
+
+	callbackIGFX->orgIclLPWriteRegister32(that, reg, value);
 }
 
 void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {

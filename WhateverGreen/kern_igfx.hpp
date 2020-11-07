@@ -295,12 +295,14 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
+	uint32_t (*orgIclLPReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::WriteRegister32 function
 	 */
+	void (*orgIclLPWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
@@ -1237,6 +1239,7 @@ private:
 	/**
 	 *  Wrapped AppleIntelFramebufferController::WriteRegister32 function
 	 */
+	static void wrapIclLPWriteRegister32(void *that, uint32_t reg, uint32_t value);
 	static void wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value);
 	static void wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value);
 
