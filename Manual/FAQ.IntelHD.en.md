@@ -246,11 +246,11 @@ Mac-942B59F58194171B -> SNB5 (iMac12,2) -> no ports
 
 ***Recommended framebuffers:***
 
-- Desktop :
+- Desktop:
   - `0x00030010` (default)
-- Laptop :
+- Laptop:
   - `0x00010000` (default)
-- Empty Framebuffer :
+- Empty Framebuffer:
   - `0x00050000` (default)
 
 HD2000 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD3000 can work with a display.  
@@ -421,15 +421,15 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2
 
 ***Recommended framebuffers :*** 
 
-- Desktop :
+- Desktop:
   - `0x0166000A` (default)
   - `0x01620005`
-- Laptop :
+- Laptop:
   - `0x01660003` (default)
   - `0x01660009`
   - `0x01660004`
-- Empty Framebuffer
-  - `0x01620007` (default).  
+- Empty Framebuffer:
+  - `0x01620007` (default)
 
 HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD4000 can work with a display.  
 
@@ -729,14 +729,14 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 
 ***Recommended framebuffers:***
 
-- Desktop :
+- Desktop:
   - `0x0D220003` (default)
-- Laptop :
+- Laptop:
   - `0x0A160000` (default)
   - `0x0A260005` (recommended)
   - `0x0A260006` (recommended)
-- Empty Framebuffer :
-  - `0x04120004` (default).  
+- Empty Framebuffer:
+  - `0x04120004` (default)
   
 For desktop HD4400 and mobile HD4200/HD4400/HD4600 need fake the `device-id` `12040000` for `IGPU`.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hsw_igpu.png)  
@@ -1036,10 +1036,10 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 ***Recommended framebuffers:*** 
 
-- Desktop :
+- Desktop:
   - `0x16220007` (default)
-- Laptop :
-  - `0x16260006` (default)  
+- Laptop:
+  - `0x16260006` (default)
   
 ## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)))  
 
@@ -1295,18 +1295,18 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 
 ***Recommended framebuffers:*** 
 
-- Desktop :
+- Desktop:
   - `0x19120000` (default)
-- Laptop :
+- Laptop:
   - `0x19160000` (default)
-- Empty Framebuffer :
-  - `0x19120001` (default)  
+- Empty Framebuffer:
+  - `0x19120001` (default)
   
 ## Intel (U)HD Graphics 610-650 ([Kaby Lake](https://en.wikipedia.org/wiki/Kaby_Lake) and [Amber Lake Y](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Amber_Lake_Y_processors) processors)
 
 > Supported since macOS 10.12.6 (`UHD617 Amber Lake Y` supported since macOS 10.14.1)  
 
-***KBL framebuffer list:***
+***KBL/ABL framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -1331,7 +1331,7 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 19120000
 | 0x591B0006  | mobile  | 1          | 39 MB               |
 
 <details>
-<summary>Spoiler: KBL connectors</summary>
+<summary>Spoiler: KBL/ABL connectors</summary>
   
 `AppleIntelKBLGraphicsFramebuffer.kext`  
   
@@ -1553,25 +1553,27 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 59160000
 
 ***Native supported DevIDs:***
 
-- `0x5912`
-- `0x5916`
-- `0x591B`
-- `0x591C`
-- `0x591E`
-- `0x5926`
-- `0x5927`
-- `0x5923`
-- `0x87C0`
+- KBL:
+  - `0x5912`
+  - `0x5916`
+  - `0x591B`
+  - `0x591C`
+  - `0x591E`
+  - `0x5926`
+  - `0x5927`
+  - `0x5923`
+- ABL:
+  - `0x87C0`
 
 ***Recommended framebuffers:***
 
-- Desktop :
+- Desktop:
   - `0x59160000` (default)
   - `0x59120000` (recommended)
-- Laptop -
+- Laptop:
   - `0x591B0000` (default)
-- Empty Framebuffer
-  - `0x59120003` (default)  
+- Empty Framebuffer:
+  - `0x59120003` (default)
   
 For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_8th_generation_Kaby_Lake_R_processors)) fake `device-id` `16590000` for `IGPU`.
 ![kbl-r_igpu](./Img/kbl-r_igpu.png)  
@@ -1580,7 +1582,7 @@ For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_
 
 > Supported since macOS 10.14 (`UHD630 Comet Lake` supported since macOS 10.15.4, recommended 10.15.5)  
   
-***CFL framebuffer list:***
+***CFL/CML framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
 | ----------- | ------- | ---------- | ------------------- |
@@ -1605,7 +1607,7 @@ For UHD620 ([Kaby Lake Refresh](https://en.wikipedia.org/wiki/Kaby_Lake#List_of_
 | 0x9BC40003  | desktop | 0          | 1 MB                |
 
 <details>
-<summary>Spoiler: CFL connectors</summary>
+<summary>Spoiler: CFL/CML connectors</summary>
   
 `AppleIntelCFLGraphicsFramebuffer.kext`  
   
@@ -1799,27 +1801,29 @@ Note, that without AAPL,ig-platform-id the following ID is assumed: 3EA50000
 
 ***Native supported DevIDs:***
 
-- `0x3E9B`
-- `0x3EA5`
-- `0x3EA6`
-- `0x3E92`
-- `0x3E91`
-- `0x3E98`
-- `0x9BC8`
-- `0x9BC5`
-- `0x9BC4`
+- CFL:
+  - `0x3E9B`
+  - `0x3EA5`
+  - `0x3EA6`
+  - `0x3E92`
+  - `0x3E91`
+  - `0x3E98`
+- CML:
+  - `0x9BC8`
+  - `0x9BC5`
+  - `0x9BC4`
 
 ***Recommended framebuffers:***
 
-- Desktop :
+- Desktop:
   - `0x3EA50000` (default)
   - `0x3E9B0007` (recommended)
-- Laptop :
+- Laptop:
   - `0x3EA50009` (default)
-- Empty framebuffer (CFL) :
+- Empty framebuffer (CFL):
   - `0x3E910003` (default)
-- Empty framebuffer (CML) :
-  - `0x9BC80003` (default)  
+- Empty framebuffer (CML):
+  - `0x9BC80003` (default)
   
 If you are using a 9th generation [Coffee Lake Refresh](https://en.wikipedia.org/wiki/Coffee_Lake#List_of_9th_generation_Coffee_Lake_processors) processor, it is necessary to fake `device-id` `923E0000` for `IGPU`. Starting with macOS 10.14.4 the fake is not necessary.  
 ![cfl-r_igpu](./Img/cfl-r_igpu.png)  
@@ -2260,22 +2264,19 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 
 ***Recommended framebuffers:***
 
-- Laptop :
-  - `0x8A520000` (default)  
+- Laptop:
+  - `0x8A520000` (default)
 
-## Adjusting the brightness on a laptop  
+## Adjusting the brightness on a laptop 
 
-**Method 1**
-
+**Method 1**  
 - Enable Clover DSDT fix `AddPNLF`.
 - Enable `SetIntelBacklight` and `SetIntelMaxBacklight`.
 - A specific value is not necessary, it will be automatically injected according to the processor installed.  
 ![ibl](./Img/ibl.png)  
   
-**Method 2**
-
-  Use this ACPI table: [SSDT-PNLF.dsl](./SSDT-PNLF.dsl), [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip)  
-  For CFL+ use other table [SSDT-PNLFCFL.dsl](./SSDT-PNLFCFL.dsl), [SSDT-PNLFCFL.aml](https://i.applelife.ru/2019/12/463488_SSDT-PNLFCFL.aml.zip)  
+**Method 2**  
+Use this ACPI table [SSDT-PNLF](./SSDT-PNLF.dsl), for CFL+ use other table [SSDT-PNLFCFL](./SSDT-PNLFCFL.dsl).  
   
 > ***Attention!*** Do not use both methods at the same time.  
   

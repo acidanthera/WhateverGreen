@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.5
+- Enabled loading in safe mode (mainly for AGDP fixes)
+
 #### v1.4.4
 - Extended the maximum link rate fix: Now probe the rate from DPCD automatically and support Intel ICL platforms. (by @0xFireWolf)
 - Fixed an issue that LSPCON driver causes a page fault if the maximum link rate fix is not enabled. (by @0xFireWolf)

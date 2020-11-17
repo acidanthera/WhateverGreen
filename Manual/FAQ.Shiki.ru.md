@@ -63,7 +63,7 @@ Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/Wha
 
 #### FAQ по настройке системы:
 - _Как мне проверить, что аппаратное декодирование видео работает?_  
-Выполните собранную утилиту [VDADecoderChecker для 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker для 10.12](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (или соберите [сами](https://github.com/cylonbrain/VDADecoderCheck)) и проверьте вывод:  
+Выполните собранную утилиту [VDADecoderChecker для 10.11](https://i.applelife.ru/2019/05/451892_10.11_VDADecoderChecker.zip)/[VDADecoderChecker для 10.12+](https://i.applelife.ru/2019/05/451893_10.12_VDADecoderChecker.zip) (или соберите [сами](https://github.com/cylonbrain/VDADecoderCheck)) и проверьте вывод:  
 `GVA info: Successfully connected to the Intel plugin, offline Gen75`  
 `Hardware acceleration is fully supported` (Аппаратное ускорение полностью поддерживается)
 
