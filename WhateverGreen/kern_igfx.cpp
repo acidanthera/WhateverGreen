@@ -152,6 +152,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			RPSControl.available = true;
 			disableTypeCCheck = true;
 			break;
 		default:
