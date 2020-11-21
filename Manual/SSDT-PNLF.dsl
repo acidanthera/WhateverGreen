@@ -34,7 +34,7 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
     // For backlight control
     Device(_SB.PCI0.GFX0.PNLF)
     {
-        Name(_ADR, Zero)
+     // Name(_ADR, Zero)
         Name(_HID, EisaId("APP0002"))
         Name(_CID, "backlight")
         // _UID is set depending on PWMMax to match profiles in WhateverGreen.kext Info.plist
