@@ -102,6 +102,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
+			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
@@ -110,7 +111,7 @@ void IGFX::init() {
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			RPSControl.available = true;
 			ForceWakeWorkaround.enabled = true;
-			disableTypeCCheck = true;
+			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -528,7 +529,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				SYSLOG("igfx", "failed to route getDisplayStatus");
 		}
 		
-		if (disableTypeCCheck) {
+		if (disableTypeCCheck && (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur)) {
 			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
 			if (!patcher.routeMultiple(index, &req, 1, address, size))
 				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
