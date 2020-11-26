@@ -46,7 +46,17 @@ DefinitionBlock("", "SSDT", 2, "ACDT", "PNLF", 0)
         // 19: CoffeeLake 0xffff
         // 99: Other (requires custom AppleBacklightInjector.kext/WhateverGreen.kext)
         Name(_UID, 0)
-        Name(_STA, 0x0B)
+        Method (_STA, 0, NotSerialized)
+            {
+                If (_OSI ("Darwin"))
+                {
+                    Return (0x0B)
+                }
+                Else
+                {
+                    Return (Zero)
+                }
+            }
 
         Field(^RMP3, AnyAcc, NoLock, Preserve)
         {
