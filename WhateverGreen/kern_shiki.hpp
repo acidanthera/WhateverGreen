@@ -38,7 +38,7 @@ private:
 		// when only IGPU is available.
 		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
 		ForceOnlineRenderer        = 1,
-		// Remve hweBGRA from AppleGVA Info.plist.
+		// Remove hweBGRA from AppleGVA Info.plist.
 		// hweBGRA is not supported by NVIDIA GPUs, so the patch is sometimes required when using NVIDIA
 		// in a mac model meant to be used with AMD or Intel.
 		// See /System/Library/PrivateFrameworks/AppleGVA.framework/Resources/Info.plist for more details.
