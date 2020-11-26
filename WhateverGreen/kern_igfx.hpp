@@ -297,12 +297,14 @@ private:
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
+	uint32_t (*orgIclReadRegister32)(void *, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::WriteRegister32 function
 	 */
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+	void (*orgIclWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
 	/**
 	 *  Set to true if a black screen ComputeLaneCount patch is required
@@ -1239,6 +1241,7 @@ private:
 	 */
 	static void wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value);
 	static void wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value);
+	static void wrapIclWriteRegister32(void *that, uint32_t reg, uint32_t value);
 
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data

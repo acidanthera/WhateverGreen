@@ -156,7 +156,7 @@ void IGFX::DPCDMaxLinkRateFix::processFramebufferKextForCFL(KernelPatcher &patch
 }
 
 void IGFX::DPCDMaxLinkRateFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	if (BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::IceLake) {
+	if (BaseDeviceInfo::get().cpuGeneration == CPUInfo::CpuGeneration::IceLake) {
 		DBGLOG("igfx", "MLR: Found ICL+ platforms. Will setup the fix for the ICL+ graphics driver.");
 		processFramebufferKextForICL(patcher, index, address, size);
 	} else {
