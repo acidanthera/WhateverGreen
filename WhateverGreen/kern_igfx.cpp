@@ -989,7 +989,7 @@ void IGFX::wrapIclWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 			SYSLOG("igfx", "wrapIclWriteRegister32: write PWM_DUTY1 has zero frequency driver (%d) target (%d)",
 				   callbackIGFX->driverBacklightFrequency, callbackIGFX->targetBacklightFrequency);
 		}
-	}else if (reg == BXT_BLC_PWM_CTL1) {
+	} else if (reg == BXT_BLC_PWM_CTL1) {
 		if (callbackIGFX->targetPwmControl == 0) {
 			// Save the original hardware PWM control value
 			callbackIGFX->targetPwmControl = callbackIGFX->orgIclReadRegister32(that, BXT_BLC_PWM_CTL1);
@@ -1058,7 +1058,7 @@ void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
 			value = callbackIGFX->targetPwmControl;
 		}
 	}
-
+	
 	callbackIGFX->orgKblWriteRegister32(that, reg, value);
 }
 
