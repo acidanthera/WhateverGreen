@@ -6,6 +6,7 @@ WhateverGreen
 [Lilu](https://github.com/acidanthera/Lilu) 插件为macOS上的特定GPU提供补丁。需要Lilu 1.4.0或更新版本。
 
 [English] (README.md)
+
 简体中文 (当前)
 
 #### 特性
