@@ -3,6 +3,8 @@ WhateverGreen Changelog
 #### v1.4.5
 - Enabled loading in safe mode (mainly for AGDP fixes)
 - Resolved an issue that the maximum link rate fix is not working properly on Intel Comet Lake platforms. (Thanks @CoronaHack)
+- Allowed enabling `igfxrpsc` on Comet Lake
+- Fixed failed to route IsTypeCOnlySystem warning from Skylake to Ice Lake
 
 #### v1.4.4
 - Extended the maximum link rate fix: Now probe the rate from DPCD automatically and support Intel ICL platforms. (by @0xFireWolf)
