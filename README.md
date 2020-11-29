@@ -5,6 +5,10 @@ WhateverGreen
 
 [Lilu](https://github.com/acidanthera/Lilu) plugin providing patches to select GPUs on macOS. Requires Lilu 1.4.0 or newer.
 
+English (Current)  
+
+[简体中文](README_zh.md)  
+
 #### Features
 
 - Fixes boot to black screen on AMD and NVIDIA
