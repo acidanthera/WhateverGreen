@@ -660,6 +660,11 @@ private:
 		 *  @note This function is called when the main IGFX module processes the kext.
 		 */
 		virtual void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
+		
+		/**
+		 *  Disable submodules that depend on this submodules
+		 */
+		virtual void disableDependentSubmodules() {}
 	};
 	
 	/**
