@@ -1221,6 +1221,10 @@ private:
 	 */
 	friend class LSPCON;
 	
+	//
+	// MARK: Shared Submodules
+	//
+	
 	/**
 	 *  A submodule to provide shared access to global framebuffer controllers
 	 */
@@ -1241,11 +1245,6 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 		void disableDependentSubmodules() override;
 	} modFramebufferControllerAccessSupport;
-	
-	/**
-	 *  [Convenient] Get the default framebuffer controller
-	 */
-	AppleIntelFramebufferController *defaultController() { return modFramebufferControllerAccessSupport.getController(0); }
 	
 	/**
 	 *  Defines the prologue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
@@ -1350,6 +1349,33 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 		void disableDependentSubmodules() override;
 	} modMMIORegistersWriteSupport;
+	
+	/**
+	 *  [Convenient] Get the default framebuffer controller
+	 */
+	AppleIntelFramebufferController *defaultController() { return modFramebufferControllerAccessSupport.getController(0); }
+	
+	/**
+	 *  [Convenient] Invoke the original AppleIntelFramebufferController::ReadRegister32 function
+	 *
+	 *  @param controller The framebuffer controller instance
+	 *  @param address The register address
+	 *  @return The register value.
+	 */
+	uint32_t readRegister32(void *controller, uint32_t address) {
+		return modMMIORegistersReadSupport.orgReadRegister32(controller, address);
+	}
+	
+	/**
+	 *  [Convenient] Invoke the original AppleIntelFramebufferController::WriteRegister32 function
+	 *
+	 *  @param controller The framebuffer controller instance
+	 *  @param address The register address
+	 *  @param value The new register value
+	 */
+	void writeRegister32(void *controller, uint32_t address, uint32_t value) {
+		modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
+	}
 	
 	/**
 	 *	A collection of submodules
