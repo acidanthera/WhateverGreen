@@ -839,15 +839,6 @@ private:
 	 */
 	class CoreDisplayClockFix: public PatchSubmodule {
 		/**
-		 *  [ICL+] Original AppleIntelFramebufferController::ReadRegister32 function
-		 *
-		 *  @param that The implicit hidden framebuffer controller instance
-		 *  @param address Address of the MMIO register
-		 *  @return The 32-bit integer read from the register.
-		 */
-		uint32_t (*orgIclReadRegister32)(AppleIntelFramebufferController *, uint32_t) {nullptr};
-		
-		/**
 		 *  [ICL+] Original AppleIntelFramebufferController::probeCDClockFrequency function
 		 *
 		 *  @seealso Refer to the document of `wrapProbeCDClockFrequency()` below.
