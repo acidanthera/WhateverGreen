@@ -548,6 +548,39 @@ private:
 	};
 	
 	/**
+	 *  An injection coordinator is capable of coordinating multiple requests of injection to a shared function
+	 *
+	 *  @tparam P Specify the type of the prologue injection descriptor that defines how the coordinator injects code before it calls the original function
+	 *  @tparam R Specify the type of the replacer injection descriptor that defines how the coordinator replaces the original function implementation
+	 *  @tparam E Specify the type of the epilogue injection descriptor that defines how the coordinator injects code after it calls the original function
+	 *  @note Patch submodules inherited from this class get coordination support automatically.
+	 *  @note Patch submodules invoke the `add()` method of a list to register injections.
+	 */
+	template <typename P, typename R, typename E>
+	class InjectionCoordinator {
+	public:
+		/**
+		 *  Virtual destructor
+		 */
+		virtual ~InjectionCoordinator() = default;
+		
+		/**
+		 *  A list of prologue injection descriptors
+		 */
+		InjectionDescriptorList<P> prologueList;
+		
+		/**
+		 *  A list of replacer injection descriptors
+		 */
+		InjectionDescriptorList<R> replacerList;
+		
+		/**
+		 *  A list of epilogue injection descriptors
+		 */
+		InjectionDescriptorList<E> epilogueList;
+	};
+	
+	/**
 	 *  Interface of a submodule to fix Intel graphics drivers
 	 */
 	class PatchSubmodule {
