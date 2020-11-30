@@ -607,6 +607,18 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	return false;
 }
 
+void IGFX::FramebufferControllerAccessSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingGraphics = false;
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::FramebufferControllerAccessSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::SolveRequest request("_gController", controllers);
+	if (!patcher.solveMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "FCA: Failed to resolve the symbol of global controllers.");
+}
+
 IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
 	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
 

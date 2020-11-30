@@ -414,6 +414,7 @@ private:
 	// Populated at AppleIntelFramebufferController::start
 	// Useful for getting access to Read/WriteRegister, rather than having
 	// to compute the offsets
+	// TODO: DEPRECATED
 	AppleIntelFramebufferController** gFramebufferController {};
 	
 	// Available on ICL+
@@ -1063,6 +1064,31 @@ private:
 	 *  The LSPCON driver requires access to I2C-over-AUX transaction APIs
 	 */
 	friend class LSPCON;
+	
+	/**
+	 *  A submodule to provide shared access to global framebuffer controllers
+	 */
+	class FramebufferControllerAccessSupport: public PatchSubmodule {
+		/**
+		 *  An array of framebuffer controllers populated by `AppleIntelFramebufferController::start()`
+		 */
+		AppleIntelFramebufferController **controllers {};
+		
+	public:
+		/**
+		 *  Get the framebuffer controller at the given index
+		 */
+		AppleIntelFramebufferController *getController(size_t index) { return controllers[index]; }
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modFramebufferControllerAccessSupport;
+	
+	/**
+	 *  [Convenient] Get the default framebuffer controller
+	 */
+	AppleIntelFramebufferController *defaultController() { return modFramebufferControllerAccessSupport.getController(0); }
 	
 	/**
 	 *	A collection of submodules
