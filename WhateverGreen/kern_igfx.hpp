@@ -421,18 +421,6 @@ private:
 	// Apple has refactored quite a large amount of code into a new class `AppleIntelPort` in the ICL graphics driver,
 	// and the framebuffer controller now maintains an array of `ports`.
 	class AppleIntelPort;
-
-	struct RPSControl {
-		bool available {false};
-		bool enabled {false};
-		uint32_t freq_max {0};
-		
-		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-
-		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
-		mach_vm_address_t orgPmNotifyWrapper;
-	} RPSControl;
 	
 	struct ForceWakeWorkaround {
 		bool enabled {false};
@@ -1221,6 +1209,28 @@ private:
 	 */
 	friend class LSPCON;
 	
+	/**
+	 *  A submodule that patches RPS control for all command streamers
+	 */
+	class RPSControlPatch: public PatchSubmodule {
+		uint32_t freq_max {0};
+		bool patchRCSCheck(mach_vm_address_t& start);
+		int (*orgPmNotifyWrapper)(unsigned int, unsigned int, unsigned long long *, unsigned int *) {nullptr};
+		static int wrapPmNotifyWrapper(unsigned int, unsigned int, unsigned long long *, unsigned int *);
+		
+	public:
+		/**
+		 *  True if this fix is available for the current Intel platform
+		 */
+		bool available {false};
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modRPSControlPatch;
+	
 	//
 	// MARK: Shared Submodules
 	//
@@ -1353,7 +1363,9 @@ private:
 	/**
 	 *  [Convenient] Get the default framebuffer controller
 	 */
-	AppleIntelFramebufferController *defaultController() { return modFramebufferControllerAccessSupport.getController(0); }
+	AppleIntelFramebufferController *defaultController() {
+		return modFramebufferControllerAccessSupport.getController(0);
+	}
 	
 	/**
 	 *  [Convenient] Invoke the original AppleIntelFramebufferController::ReadRegister32 function

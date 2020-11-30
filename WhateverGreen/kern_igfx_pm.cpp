@@ -52,52 +52,6 @@ struct [[gnu::packed]] IGHwCsDesc {
   char unk1[12];
 };
 
-static bool patchRCSCheck(mach_vm_address_t& start) {
-	constexpr unsigned ninsts_max {256};
-	
-	hde64s dis;
-	
-	bool found_cmp = false;
-	bool found_jmp = false;
-
-	for (size_t i = 0; i < ninsts_max; i++) {
-		auto sz = Disassembler::hdeDisasm(start, &dis);
-
-		if (dis.flags & F_ERROR) {
-			SYSLOG(log, "Error disassembling submitExecList");
-			break;
-		}
-
-		/* cmp byte ptr [rcx], 0 */
-		if (!found_cmp && dis.opcode == 0x80 && dis.modrm_reg == 7 && dis.modrm_rm == 1)
-			found_cmp = true;
-		/* jnz rel32 */
-		if (found_cmp && dis.opcode == 0x0f && dis.opcode2 == 0x85) {
-			found_jmp = true;
-			break;
-		}
-
-		start += sz;
-	}
-	
-	if (found_jmp) {
-		auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
-		if (status == KERN_SUCCESS) {
-			constexpr uint8_t nop6[] {0x90, 0x90, 0x90, 0x90, 0x90, 0x90};
-			lilu_os_memcpy(reinterpret_cast<void*>(start), nop6, arrsize(nop6));
-			MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
-			DBGLOG(log, "Patched submitExecList");
-			return true;
-		} else {
-			DBGLOG(log, "Failed to set kernel writing");
-			return false;
-		}
-	} else {
-		SYSLOG(log, "jnz in submitExecList not found");
-		return false;
-	}
-}
-
 constexpr uint32_t MCHBAR_MIRROR_BASE_SNB = 0x140000;
 constexpr uint32_t GEN6_RP_STATE_CAP = MCHBAR_MIRROR_BASE_SNB + 0x5998;
 
@@ -169,58 +123,122 @@ constexpr uint32_t fw_clear(uint32_t v) {
 }
 }
 
-void IGFX::RPSControl::initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	mach_vm_address_t orgIGHardwareCommandStreamer2__submitExecList {};
-	const char* sym = getKernelVersion() >= KernelVersion::Catalina ?
-	"__ZN26IGHardwareCommandStreamer514submitExecListEj" : "__ZN26IGHardwareCommandStreamer214submitExecListEj";
-	orgIGHardwareCommandStreamer2__submitExecList = patcher.solveSymbol(index, sym, address, size);
+// MARK: - RPS Control Patch
 
-	/**
-	 * IGHardwareCommandStreamer2::submitExecList only controls RPS for RCS type streamers.
-	 * Patch it to enable control for any kind of streamer.
-	 */
-	if (orgIGHardwareCommandStreamer2__submitExecList) {
-		mach_vm_address_t start = orgIGHardwareCommandStreamer2__submitExecList;
-		patchRCSCheck(start);
-		// The second patch is to get to patchFrequencyRequest (unused for now)
-//		patchRCSCheck(start);
-	} else {
-		SYSLOG(log, "Failed to solve submitExecList (%d)", patcher.getError());
-		patcher.clearError();
+void IGFX::RPSControlPatch::init() {
+	// We need to patch both drivers
+	requiresPatchingGraphics = true;
+	requiresPatchingFramebuffer = true;
+	
+	// Requires access to global framebuffer controllers
+	requiresGlobalFramebufferControllersAccess = true;
+	
+	// Requires read access to MMIO registers
+	requiresMMIORegistersReadAccess = true;
+}
+
+void IGFX::RPSControlPatch::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	uint32_t rpsc = 0;
+	if (PE_parse_boot_argn("igfxrpsc", &rpsc, sizeof(rpsc)) ||
+		WIOKit::getOSDataValue(info->videoBuiltin, "rps-control", rpsc)) {
+		enabled = rpsc > 0 && available;
+		DBGLOG("weg", "RPS control patch overriden (%u) availabile %d", rpsc, available);
 	}
 }
 
-/**
- * Request maximum RPS at exec list submission.
- * While this sounds dangerous, we are still getting proper power management due to
- * force wake clears.
- */
-int IGFX::RPSControl::pmNotifyWrapper(unsigned int a0,unsigned int a1,unsigned long long * a2,unsigned int * freq) {
-	uint32_t cfreq = 0;
-
-	FunctionCast(IGFX::RPSControl::pmNotifyWrapper, callbackIGFX->RPSControl.orgPmNotifyWrapper)(a0, a1, a2, &cfreq);
+void IGFX::RPSControlPatch::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest routeRequest = {
+		"__ZL15pmNotifyWrapperjjPyPj",
+		wrapPmNotifyWrapper,
+		orgPmNotifyWrapper
+	};
 	
-	if (!callbackIGFX->RPSControl.freq_max) {
-		callbackIGFX->RPSControl.freq_max = callbackIGFX->AppleIntelFramebufferController__ReadRegister32(*callbackIGFX->gFramebufferController, GEN6_RP_STATE_CAP) & 0xff;
-		DBGLOG(log, "Read RP0 %d", callbackIGFX->RPSControl.freq_max);
+	if (!patcher.routeMultiple(index, &routeRequest, 1, address, size))
+		SYSLOG(log, "Failed to route pmNotifyWrapper.");
+}
+
+void IGFX::RPSControlPatch::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	// Address of `IGHardwareCommandStreamer2::submitExecList`
+	mach_vm_address_t orgSubmitExecList;
+	
+	KernelPatcher::SolveRequest request = {
+		getKernelVersion() >= KernelVersion::Catalina ? "__ZN26IGHardwareCommandStreamer514submitExecListEj" : "__ZN26IGHardwareCommandStreamer214submitExecListEj",
+		orgSubmitExecList
+	};
+	
+	if (!patcher.solveMultiple(index, &request, 1, address, size)) {
+		SYSLOG(log, "Failed to solve the symbol for submitExecList.");
+		return;
 	}
 	
-//	DBGLOG(log, "pmNotifyWrapper sets freq 0x%x", cfreq);
-	*freq = (GEN9_FREQ_SCALER << GEN9_FREQUENCY_SHIFT) * callbackIGFX->RPSControl.freq_max;
+	// `submitExecList()` only controls RPS for RCS type streamers
+	// Patch it to enable control for any kind of streamer
+	if (!patchRCSCheck(orgSubmitExecList))
+		SYSLOG(log, "Failed to patch RCS check.");
+}
 
+int IGFX::RPSControlPatch::wrapPmNotifyWrapper(unsigned int a0, unsigned int a1, unsigned long long *a2, unsigned int *freq) {
+	// Request the maximum RPS at exec list submission
+	// While this sounds dangerous, we are still getting proper power management due to force wake clears.
+	uint32_t cfreq = 0;
+	callbackIGFX->modRPSControlPatch.orgPmNotifyWrapper(a0, a1, a2, &cfreq);
+	
+	if (!callbackIGFX->modRPSControlPatch.freq_max) {
+		callbackIGFX->modRPSControlPatch.freq_max = callbackIGFX->readRegister32(callbackIGFX->defaultController(), GEN6_RP_STATE_CAP) & 0xFF;
+		DBGLOG("log", "Read RP0 %d", callbackIGFX->modRPSControlPatch.freq_max);
+	}
+	
+	*freq = (GEN9_FREQ_SCALER << GEN9_FREQUENCY_SHIFT) * callbackIGFX->modRPSControlPatch.freq_max;
 	return 0;
 }
 
-void IGFX::RPSControl::initFB(IGFX& ig,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest req {
-			"__ZL15pmNotifyWrapperjjPyPj",
-			&IGFX::RPSControl::pmNotifyWrapper,
-			orgPmNotifyWrapper
-	};
+bool IGFX::RPSControlPatch::patchRCSCheck(mach_vm_address_t& start) {
+	constexpr unsigned ninsts_max {256};
+	
+	hde64s dis;
+	
+	bool found_cmp = false;
+	bool found_jmp = false;
 
-	if (!(ig.AppleIntelFramebufferController__ReadRegister32 && ig.gFramebufferController && patcher.routeMultiple(index, &req, 1, address, size, true, true)))
-		SYSLOG(log, "failed to route igfx FB PM functions");
+	for (size_t i = 0; i < ninsts_max; i++) {
+		auto sz = Disassembler::hdeDisasm(start, &dis);
+
+		if (dis.flags & F_ERROR) {
+			SYSLOG(log, "Error disassembling submitExecList");
+			break;
+		}
+
+		/* cmp byte ptr [rcx], 0 */
+		if (!found_cmp && dis.opcode == 0x80 && dis.modrm_reg == 7 && dis.modrm_rm == 1)
+			found_cmp = true;
+		/* jnz rel32 */
+		if (found_cmp && dis.opcode == 0x0f && dis.opcode2 == 0x85) {
+			found_jmp = true;
+			break;
+		}
+
+		start += sz;
+	}
+	
+	if (found_jmp) {
+		auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
+		if (status == KERN_SUCCESS) {
+			constexpr uint8_t nop6[] {0x90, 0x90, 0x90, 0x90, 0x90, 0x90};
+			lilu_os_memcpy(reinterpret_cast<void*>(start), nop6, arrsize(nop6));
+			MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
+			DBGLOG(log, "Patched submitExecList");
+			return true;
+		} else {
+			DBGLOG(log, "Failed to set kernel writing");
+			return false;
+		}
+	} else {
+		SYSLOG(log, "jnz in submitExecList not found");
+		return false;
+	}
 }
+
+// MARK: - Force Wake Workaround
 
 bool IGFX::ForceWakeWorkaround::pollRegister(uint32_t reg, uint32_t val, uint32_t mask, uint32_t timeout) {
 	AbsoluteTime now, deadline;
