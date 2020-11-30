@@ -110,7 +110,7 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			modRPSControlPatch.available = true;
-			ForceWakeWorkaround.enabled = true;
+			modForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
@@ -124,7 +124,7 @@ void IGFX::init() {
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
 			modRPSControlPatch.available = true;
-			ForceWakeWorkaround.enabled = true;
+			modForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
@@ -327,8 +327,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (disableAGDC)
 				return true;
-			if (ForceWakeWorkaround.enabled)
-				return true;
 			if (disableTypeCCheck)
 				return true;
 			return false;
@@ -403,9 +401,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 		
-		if (ForceWakeWorkaround.enabled)
-			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
-		
 		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
 		for (auto submodule : submodules)
 			if (submodule->enabled)
@@ -428,21 +423,21 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// 	      Also we need to consider the case where multiple submodules want to inject code into these functions.
 		//        At this moment, the backlight fix is the only one that wraps these functions.
 		if (bklCoffeeFb || bklKabyFb ||
-			/*RPSControl.enabled ||*/ ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
+			/*RPSControl.enabled || ForceWakeWorkaround.enabled || */modCoreDisplayClockFix.enabled) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
 				SYSLOG("igfx", "Failed to find ReadRegister32");
 		}
-		if (bklCoffeeFb || bklKabyFb ||
-			/*RPSControl.enabled ||*/ ForceWakeWorkaround.enabled) {
+		if (bklCoffeeFb || bklKabyFb //||
+			/*RPSControl.enabled || ForceWakeWorkaround.enabled*/) {
 			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
 			if (!AppleIntelFramebufferController__WriteRegister32)
 				SYSLOG("igfx", "Failed to find WriteRegister32");
 		}
 		// FIXME: Same issue here.
-		if (/*RPSControl.enabled ||*/ ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
+		if (/*RPSControl.enabled || ForceWakeWorkaround.enabled || */modDPCDMaxLinkRateFix.enabled)
 			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
 		if (bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
@@ -858,7 +853,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	
 	OSDictionary* developmentDictCpy {};
 
-	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->ForceWakeWorkaround.enabled) {
+	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->modForceWakeWorkaround.enabled) {
 		auto developmentDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
 		if (developmentDict) {
 			auto c = developmentDict->copyCollection();
@@ -899,7 +894,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	// 0: Framebuffer's SafeForceWake
 	// 1: IntelAccelerator::SafeForceWakeMultithreaded (or ForceWakeWorkaround when enabled)
 	// The default is 1. Forcing 0 will result in hangs (due to misbalanced number of calls?)
-	if (callbackIGFX->ForceWakeWorkaround.enabled && developmentDictCpy) {
+	if (callbackIGFX->modForceWakeWorkaround.enabled && developmentDictCpy) {
 		auto num = OSNumber::withNumber(1ull, 32);
 		if (num) {
 			developmentDictCpy->setObject("MultiForceWakeSelect", num);

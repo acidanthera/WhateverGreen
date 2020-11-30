@@ -422,16 +422,6 @@ private:
 	// and the framebuffer controller now maintains an array of `ports`.
 	class AppleIntelPort;
 	
-	struct ForceWakeWorkaround {
-		bool enabled {false};
-
-		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-		
-		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
-		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
-		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
-	} ForceWakeWorkaround;
-	
 	/**
 	 *  Describes how to inject code into a shared submodule
 	 *
@@ -1230,6 +1220,20 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modRPSControlPatch;
+	
+	/**
+	 *  A submodule that fixes the kernel panic due to a rare force wake timeout on KBL and CFL platforms.
+	 */
+	class ForceWakeWorkaround: public PatchSubmodule {
+		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
+		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
+		static void forceWake(void *, uint8_t set, uint32_t dom, uint32_t);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceWakeWorkaround;
 	
 	//
 	// MARK: Shared Submodules
