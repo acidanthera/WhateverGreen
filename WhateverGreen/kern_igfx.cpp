@@ -607,16 +607,146 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	return false;
 }
 
+// MARK: - Global Framebuffer Controller Access Support
+
 void IGFX::FramebufferControllerAccessSupport::init() {
 	// We only need to patch the framebuffer driver
-	requiresPatchingGraphics = false;
 	requiresPatchingFramebuffer = true;
 }
 
 void IGFX::FramebufferControllerAccessSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	KernelPatcher::SolveRequest request("_gController", controllers);
-	if (!patcher.solveMultiple(index, &request, 1, address, size))
-		SYSLOG("igfx", "FCA: Failed to resolve the symbol of global controllers.");
+	if (!patcher.solveMultiple(index, &request, 1, address, size)) {
+		SYSLOG("igfx", "FCA: Failed to resolve the symbol of global controllers. Will disable all submodules that rely on this one.");
+		disableDependentSubmodules();
+	}
+}
+
+void IGFX::FramebufferControllerAccessSupport::disableDependentSubmodules() {
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->requiresGlobalFramebufferControllersAccess)
+			submodule->enabled = false;
+}
+
+// MARK: - MMIO Registers Read Support
+
+void IGFX::MMIORegistersReadSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::MMIORegistersReadSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the verbose output if the boot argument is found
+	verbose = checkKernelArgument("-igfxvamregs");
+}
+
+void IGFX::MMIORegistersReadSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController14ReadRegister32Em",
+		wrapReadRegister32,
+		orgReadRegister32
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
+		SYSLOG("igfx", "RRS: Failed to resolve the symbol of ReadRegister32. Will disable all submodules that rely on this one.");
+		disableDependentSubmodules();
+	}
+}
+
+void IGFX::MMIORegistersReadSupport::disableDependentSubmodules() {
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->requiresMMIORegistersReadAccess)
+			submodule->enabled = false;
+}
+
+uint32_t IGFX::MMIORegistersReadSupport::wrapReadRegister32(void *controller, uint32_t address) {
+	// Guard: Perform prologue injections
+	auto prologueInjector = callbackIGFX->modMMIORegistersReadSupport.prologueList.getInjector(address);
+	if (prologueInjector) {
+		DBGLOG("igfx", "RRS: Found a prologue injector triggered by the register address 0x%x.", address);
+		prologueInjector(controller, address);
+	}
+	
+	// Guard: Perform replacer injections
+	auto replacerInjector = callbackIGFX->modMMIORegistersReadSupport.replacerList.getInjector(address);
+	if (replacerInjector) {
+		DBGLOG("igfx", "RRS: Found a replacer injector triggered by the register value 0x%x.", address);
+		return replacerInjector(controller, address);
+	}
+	
+	// Invoke the original function
+	uint32_t retVal = callbackIGFX->modMMIORegistersReadSupport.orgReadRegister32(controller, address);
+	if (callbackIGFX->modMMIORegistersReadSupport.verbose)
+		DBGLOG("igfx", "RRS: Read MMIO Register = 0x%x; Value = 0x%x.", address, retVal);
+	
+	// Guard: Perform epilogue injections
+	auto epilogueInjector = callbackIGFX->modMMIORegistersReadSupport.epilogueList.getInjector(address);
+	if (epilogueInjector) {
+		DBGLOG("igfx", "RRS: Found a epilogue injector triggered by the register value 0x%x.", address);
+		return epilogueInjector(controller, address, retVal);
+	}
+	
+	// Return the register value retrieved from the original function
+	return retVal;
+}
+
+// MARK: - MMIO Registers Write Support
+
+void IGFX::MMIORegistersWriteSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::MMIORegistersWriteSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the verbose output if the boot argument is found
+	verbose = checkKernelArgument("-igfxvamregs");
+}
+
+void IGFX::MMIORegistersWriteSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController15WriteRegister32Emj",
+		wrapWriteRegister32,
+		orgWriteRegister32
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
+		SYSLOG("igfx", "RWS: Failed to resolve the symbol of WriteRegister32. Will disable all submodules that rely on this one.");
+		disableDependentSubmodules();
+	}
+}
+
+void IGFX::MMIORegistersWriteSupport::disableDependentSubmodules() {
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->requiresMMIORegistersWriteAccess)
+			submodule->enabled = false;
+}
+
+void IGFX::MMIORegistersWriteSupport::wrapWriteRegister32(void *controller, uint32_t address, uint32_t value) {
+	// Guard: Perform prologue injections
+	auto prologueInjector = callbackIGFX->modMMIORegistersWriteSupport.prologueList.getInjector(address);
+	if (prologueInjector) {
+		DBGLOG("igfx", "RRS: Found a prologue injector triggered by the register address 0x%x.", address);
+		prologueInjector(controller, address, value);
+	}
+	
+	// Guard: Perform replacer injections
+	auto replacerInjector = callbackIGFX->modMMIORegistersWriteSupport.replacerList.getInjector(address);
+	if (replacerInjector) {
+		DBGLOG("igfx", "RRS: Found a replacer injector triggered by the register value 0x%x.", address);
+		return replacerInjector(controller, address, value);
+	}
+	
+	// Invoke the original function
+	callbackIGFX->modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
+	if (callbackIGFX->modMMIORegistersWriteSupport.verbose)
+		DBGLOG("igfx", "RRS: Write MMIO Register = 0x%x; Value = 0x%x.", address, value);
+	
+	// Guard: Perform epilogue injections
+	auto epilogueInjector = callbackIGFX->modMMIORegistersWriteSupport.epilogueList.getInjector(address);
+	if (epilogueInjector) {
+		DBGLOG("igfx", "RRS: Found a epilogue injector triggered by the register value 0x%x.", address);
+		return epilogueInjector(controller, address, value);
+	}
 }
 
 IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
