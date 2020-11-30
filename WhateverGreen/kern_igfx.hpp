@@ -455,19 +455,24 @@ private:
 		virtual ~PatchSubmodule() = default;
 		
 		/**
-		 *  True if this submodule should be enabled
+		 *  Set to `true` if this submodule should be enabled
 		 */
 		bool enabled {false};
 		
 		/**
-		 *  True if this submodule requires patching the framebuffer driver
+		 *  Set to `true` if this submodule requires patching the framebuffer driver
 		 */
 		bool requiresPatchingFramebuffer {false};
 		
 		/**
-		 *  True if this submodule requires patching the graphics acceleration driver
+		 *  Set to `true` if this submodule requires patching the graphics acceleration driver
 		 */
 		bool requiresPatchingGraphics {false};
+		
+		/**
+		 *  Set to `true` if this submodule requires accessing global framebuffer controllers
+		 */
+		bool requiresAccessingToGlobalFramebufferControllers {false};
 		
 		/**
 		 *  Initialize any data structure required by this submodule if necessary
