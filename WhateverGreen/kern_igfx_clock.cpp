@@ -98,6 +98,7 @@ void IGFX::DPCDMaxLinkRateFix::init() {
 	// We only need to patch the framebuffer driver
 	requiresPatchingGraphics = false;
 	requiresPatchingFramebuffer = true;
+	requiresAccessingToGlobalFramebufferControllers = true;
 }
 
 void IGFX::DPCDMaxLinkRateFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
@@ -268,7 +269,7 @@ IOReturn IGFX::DPCDMaxLinkRateFix::orgReadAUX(uint32_t address, void *buffer, ui
 }
 
 bool IGFX::DPCDMaxLinkRateFix::getFramebufferIndex(uint32_t &index) {
-	auto fb = port != nullptr ? orgICLGetFBFromPort(*callbackIGFX->gFramebufferController, port) : this->framebuffer;
+	auto fb = port != nullptr ? orgICLGetFBFromPort(callbackIGFX->defaultController(), port) : this->framebuffer;
 	DBGLOG("igfx", "MLR: [COMM] GetFBIndex() Port at 0x%llx; Framebuffer at 0x%llx.", port, fb);
 	return AppleIntelFramebufferExplorer::getIndex(fb, index);
 }
