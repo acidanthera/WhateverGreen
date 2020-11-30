@@ -238,62 +238,6 @@ bool IGFX::RPSControlPatch::patchRCSCheck(mach_vm_address_t& start) {
 	}
 }
 
-// TODO: DEPRECATED
-//void IGFX::RPSControl::initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-//	mach_vm_address_t orgIGHardwareCommandStreamer2__submitExecList {};
-//	const char* sym = getKernelVersion() >= KernelVersion::Catalina ?
-//	"__ZN26IGHardwareCommandStreamer514submitExecListEj" : "__ZN26IGHardwareCommandStreamer214submitExecListEj";
-//	orgIGHardwareCommandStreamer2__submitExecList = patcher.solveSymbol(index, sym, address, size);
-//
-//	/**
-//	 * IGHardwareCommandStreamer2::submitExecList only controls RPS for RCS type streamers.
-//	 * Patch it to enable control for any kind of streamer.
-//	 */
-//	if (orgIGHardwareCommandStreamer2__submitExecList) {
-//		mach_vm_address_t start = orgIGHardwareCommandStreamer2__submitExecList;
-//		//patchRCSCheck(start);
-//		// The second patch is to get to patchFrequencyRequest (unused for now)
-////		patchRCSCheck(start);
-//	} else {
-//		SYSLOG(log, "Failed to solve submitExecList (%d)", patcher.getError());
-//		patcher.clearError();
-//	}
-//}
-//
-//// TODO: DEPRECATED
-///**
-// * Request maximum RPS at exec list submission.
-// * While this sounds dangerous, we are still getting proper power management due to
-// * force wake clears.
-// */
-//int IGFX::RPSControl::pmNotifyWrapper(unsigned int a0,unsigned int a1,unsigned long long * a2,unsigned int * freq) {
-//	uint32_t cfreq = 0;
-//
-//	FunctionCast(IGFX::RPSControl::pmNotifyWrapper, callbackIGFX->RPSControl.orgPmNotifyWrapper)(a0, a1, a2, &cfreq);
-//	
-//	if (!callbackIGFX->RPSControl.freq_max) {
-//		callbackIGFX->RPSControl.freq_max = callbackIGFX->AppleIntelFramebufferController__ReadRegister32(*callbackIGFX->gFramebufferController, GEN6_RP_STATE_CAP) & 0xff;
-//		DBGLOG(log, "Read RP0 %d", callbackIGFX->RPSControl.freq_max);
-//	}
-//	
-////	DBGLOG(log, "pmNotifyWrapper sets freq 0x%x", cfreq);
-//	*freq = (GEN9_FREQ_SCALER << GEN9_FREQUENCY_SHIFT) * callbackIGFX->RPSControl.freq_max;
-//
-//	return 0;
-//}
-//
-//// TODO: DEPRECATED
-//void IGFX::RPSControl::initFB(IGFX& ig,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-//	KernelPatcher::RouteRequest req {
-//			"__ZL15pmNotifyWrapperjjPyPj",
-//			&IGFX::RPSControl::pmNotifyWrapper,
-//			orgPmNotifyWrapper
-//	};
-//
-//	if (!(ig.AppleIntelFramebufferController__ReadRegister32 && ig.gFramebufferController && patcher.routeMultiple(index, &req, 1, address, size, true, true)))
-//		SYSLOG(log, "failed to route igfx FB PM functions");
-//}
-
 // MARK: - Force Wake Workaround
 
 bool IGFX::ForceWakeWorkaround::pollRegister(uint32_t reg, uint32_t val, uint32_t mask, uint32_t timeout) {

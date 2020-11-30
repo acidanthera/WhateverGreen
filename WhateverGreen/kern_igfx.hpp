@@ -421,19 +421,6 @@ private:
 	// Apple has refactored quite a large amount of code into a new class `AppleIntelPort` in the ICL graphics driver,
 	// and the framebuffer controller now maintains an array of `ports`.
 	class AppleIntelPort;
-
-	// TODO: DEPRECATED
-//	struct RPSControl {
-//		bool available {false};
-//		bool enabled {false};
-//		uint32_t freq_max {0};
-//
-//		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-//		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-//
-//		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
-//		mach_vm_address_t orgPmNotifyWrapper;
-//	} RPSControl;
 	
 	struct ForceWakeWorkaround {
 		bool enabled {false};
