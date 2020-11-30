@@ -489,6 +489,65 @@ private:
 	};
 	
 	/**
+	 *  Represents a list of injection descriptors
+	 *
+	 *  @tparam D Specify the concrete type of the descriptor
+	 */
+	template <typename D>
+	struct InjectionDescriptorList {
+	private:
+		/**
+		 *  Head of the list
+		 */
+		D *head {nullptr};
+		
+		/**
+		 *  Tail of the list
+		 */
+		D *tail {nullptr};
+		
+	public:
+		/**
+		 *  Get the injector function associated with the given trigger
+		 *
+		 *  @param trigger The trigger value
+		 *  @return The injector function on success, `nullptr` if the given trigger is not in the list.
+		 */
+		typename D::Injector getInjector(typename D::Trigger trigger) {
+			for (auto current = head; current != nullptr; current = current->next)
+				if (current->trigger == trigger)
+					return current->injector;
+			
+			return nullptr;
+		}
+		
+		/**
+		 *  Add an injection descriptor to the list
+		 *
+		 *  @param descriptor A non-null descriptor that specifies the trigger and the injector function
+		 *  @warning Patch developers must ensure that triggers are unique.
+		 *           The coordinator registers injections on a first come, first served basis.
+		 *           i.e. The latter descriptor will NOT overwrite the injection function of the existing one.
+		 *  @note This function assumes that the trigger value of the given descriptor has not been registered yet.
+		 */
+		void add(D *descriptor NONNULL) {
+			// Sanitize garbage value
+			descriptor->next = nullptr;
+			
+			// Append the new descriptor
+			if (head == nullptr)
+				// Empty list
+				head = descriptor;
+			else
+				// Non-empty list
+				tail->next = descriptor;
+			
+			// Update the tail
+			tail = descriptor;
+		}
+	};
+	
+	/**
 	 *  Interface of a submodule to fix Intel graphics drivers
 	 */
 	class PatchSubmodule {
