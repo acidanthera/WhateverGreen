@@ -445,6 +445,50 @@ private:
 	} ForceWakeWorkaround;
 	
 	/**
+	 *  Describes how to inject code into a shared submodule
+	 *
+	 *  @tparam T Specify the type of the trigger
+	 *  @tparam I Specify the type of the function to inject code
+	 *  @tparam D Specify the concrete type of the descriptor
+	 *  @example The trigger type can be an integer type to inject code based on a register address.
+	 */
+	template <typename T, typename I, typename D>
+	struct InjectionDescriptor {
+		/**
+		 *  The trigger value to be monitored by the coordinator
+		 */
+		T trigger;
+
+		/**
+		 *  A function to invoke when the trigger value is observed
+		 *
+		 *  @example One may monitor a specific register address and modify its value in the injector function.
+		 */
+		I injector;
+
+		/**
+		 *  A pointer to the next descriptor in a linked list
+		 */
+		D *next;
+
+		/**
+		 *  Create an injection descriptor conveniently
+		 */
+		InjectionDescriptor(T t, I i) :
+			trigger(t), injector(i), next(nullptr) { }
+		
+		/**
+		 *  Member type `Trigger` is required by the coordinator
+		 */
+		using Trigger = T;
+		
+		/**
+		 *  Member type `Injector` is required by the coordinator
+		 */
+		using Injector = I;
+	};
+	
+	/**
 	 *  Interface of a submodule to fix Intel graphics drivers
 	 */
 	class PatchSubmodule {
