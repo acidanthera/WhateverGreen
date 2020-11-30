@@ -109,7 +109,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.available = true;
+			modRPSControlPatch.available = true;
 			ForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
 			break;
@@ -123,7 +123,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.available = true;
+			modRPSControlPatch.available = true;
 			ForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
 			break;
@@ -152,7 +152,7 @@ void IGFX::init() {
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.available = true;
+			modRPSControlPatch.available = true;
 			disableTypeCCheck = true;
 			break;
 		default:
@@ -192,12 +192,13 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
 #endif
 		
-		uint32_t rpsc = 0;
-		if (PE_parse_boot_argn("igfxrpsc", &rpsc, sizeof(rpsc)) ||
-			WIOKit::getOSDataValue(info->videoBuiltin, "rps-control", rpsc)) {
-			RPSControl.enabled = rpsc > 0 && RPSControl.available;
-			DBGLOG("weg", "RPS control patch overriden (%u) availabile %d", rpsc, RPSControl.available);
-		}
+		// TODO: DEPRECATED
+//		uint32_t rpsc = 0;
+//		if (PE_parse_boot_argn("igfxrpsc", &rpsc, sizeof(rpsc)) ||
+//			WIOKit::getOSDataValue(info->videoBuiltin, "rps-control", rpsc)) {
+//			RPSControl.enabled = rpsc > 0 && RPSControl.available;
+//			DBGLOG("weg", "RPS control patch overriden (%u) availabile %d", rpsc, RPSControl.available);
+//		}
 
 		uint32_t forceCompleteModeSet = 0;
 		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
@@ -334,8 +335,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (disableAGDC)
 				return true;
-			if (RPSControl.enabled)
-				return true;
+			// TODO: DEPRECATED
+//			if (RPSControl.enabled)
+//				return true;
 			if (ForceWakeWorkaround.enabled)
 				return true;
 			if (disableTypeCCheck)
@@ -356,8 +358,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (readDescriptorPatch)
 				return true;
-			if (RPSControl.enabled)
-				return true;
+			// TODO: DEPRECATED
+//			if (RPSControl.enabled)
+//				return true;
 			if (disableAccel)
 				return true;
 			return false;
@@ -414,8 +417,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 
-		if (RPSControl.enabled)
-			RPSControl.initGraphics(patcher, index, address, size);
+		// TODO: DEPRECATED
+//		if (RPSControl.enabled)
+//			RPSControl.initGraphics(patcher, index, address, size);
 		
 		if (ForceWakeWorkaround.enabled)
 			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
@@ -442,21 +446,21 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		// 	      Also we need to consider the case where multiple submodules want to inject code into these functions.
 		//        At this moment, the backlight fix is the only one that wraps these functions.
 		if (bklCoffeeFb || bklKabyFb ||
-			RPSControl.enabled || ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
+			/*RPSControl.enabled ||*/ ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
 				SYSLOG("igfx", "Failed to find ReadRegister32");
 		}
 		if (bklCoffeeFb || bklKabyFb ||
-			RPSControl.enabled || ForceWakeWorkaround.enabled) {
+			/*RPSControl.enabled ||*/ ForceWakeWorkaround.enabled) {
 			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
 			if (!AppleIntelFramebufferController__WriteRegister32)
 				SYSLOG("igfx", "Failed to find WriteRegister32");
 		}
 		// FIXME: Same issue here.
-		if (RPSControl.enabled || ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
+		if (/*RPSControl.enabled ||*/ ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
 			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
 		if (bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
@@ -535,8 +539,9 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
 		}
 		
-		if (RPSControl.enabled)
-			RPSControl.initFB(*this, patcher, index, address, size);
+		// TODO: DEPRECATED
+//		if (RPSControl.enabled)
+//			RPSControl.initFB(*this, patcher, index, address, size);
 
 		if (disableAGDC) {
 			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
