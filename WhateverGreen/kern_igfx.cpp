@@ -422,8 +422,8 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		//        Submodules that request access to these functions must set `PatchSubmodule::requiresGenericRegisterAccess` to `true`
 		// 	      Also we need to consider the case where multiple submodules want to inject code into these functions.
 		//        At this moment, the backlight fix is the only one that wraps these functions.
-		if (bklCoffeeFb || bklKabyFb ||
-			/*RPSControl.enabled || ForceWakeWorkaround.enabled || */modCoreDisplayClockFix.enabled) {
+		if (bklCoffeeFb || bklKabyFb //||
+			/*RPSControl.enabled || ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled*/) {
 			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
 			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
 			if (!AppleIntelFramebufferController__ReadRegister32)
@@ -436,9 +436,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (!AppleIntelFramebufferController__WriteRegister32)
 				SYSLOG("igfx", "Failed to find WriteRegister32");
 		}
-		// FIXME: Same issue here.
-		if (/*RPSControl.enabled || ForceWakeWorkaround.enabled || */modDPCDMaxLinkRateFix.enabled)
-			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
 		if (bklCoffeeFb || bklKabyFb) {
 			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
 			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf

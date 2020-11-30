@@ -410,12 +410,8 @@ private:
 	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
 	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
 
+	// The opaque framebuffer controller type on BDW+
 	class AppleIntelFramebufferController;
-	// Populated at AppleIntelFramebufferController::start
-	// Useful for getting access to Read/WriteRegister, rather than having
-	// to compute the offsets
-	// TODO: DEPRECATED
-	AppleIntelFramebufferController** gFramebufferController {};
 	
 	// Available on ICL+
 	// Apple has refactored quite a large amount of code into a new class `AppleIntelPort` in the ICL graphics driver,
