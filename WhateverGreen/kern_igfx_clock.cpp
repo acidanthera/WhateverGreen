@@ -98,7 +98,7 @@ void IGFX::DPCDMaxLinkRateFix::init() {
 	// We only need to patch the framebuffer driver
 	requiresPatchingGraphics = false;
 	requiresPatchingFramebuffer = true;
-	requiresAccessingToGlobalFramebufferControllers = true;
+	requiresGlobalFramebufferControllersAccess = true;
 }
 
 void IGFX::DPCDMaxLinkRateFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {

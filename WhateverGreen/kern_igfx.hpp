@@ -472,7 +472,17 @@ private:
 		/**
 		 *  Set to `true` if this submodule requires accessing global framebuffer controllers
 		 */
-		bool requiresAccessingToGlobalFramebufferControllers {false};
+		bool requiresGlobalFramebufferControllersAccess {false};
+		
+		/**
+		 *  Set to `true` if this submodules requires read access to MMIO registers
+		 */
+		bool requiresMMIORegistersReadAccess {false};
+		
+		/**
+		 *  Set to `true` if this submodules requires write access to MMIO registers
+		 */
+		bool requiresMMIORegistersWriteAccess {false};
 		
 		/**
 		 *  Initialize any data structure required by this submodule if necessary
