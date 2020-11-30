@@ -246,7 +246,7 @@ bool IGFX::ForceWakeWorkaround::pollRegister(uint32_t reg, uint32_t val, uint32_
 	clock_interval_to_deadline(timeout, kMillisecondScale, &deadline);
 	
 	for (clock_get_uptime(&now); now < deadline; clock_get_uptime(&now)) {
-		auto rd = callbackIGFX->AppleIntelFramebufferController__ReadRegister32(*callbackIGFX->gFramebufferController, reg);
+		auto rd = callbackIGFX->readRegister32(callbackIGFX->defaultController(), reg);
 
 //		DBGLOG(log, "Rd 0x%x = 0x%x, expected 0x%x", reg, rd, val);
 
@@ -260,21 +260,18 @@ bool IGFX::ForceWakeWorkaround::pollRegister(uint32_t reg, uint32_t val, uint32_
 bool IGFX::ForceWakeWorkaround::forceWakeWaitAckFallback(uint32_t d, uint32_t val, uint32_t mask) {
 	unsigned pass = 1;
 	bool ack = false;
+	auto controller = callbackIGFX->defaultController();
 	
 	do {
 		pollRegister(ackForDom(d), 0, FORCEWAKE_KERNEL_FALLBACK, FORCEWAKE_ACK_TIMEOUT_MS);
-		
-		callbackIGFX->AppleIntelFramebufferController__WriteRegister32(*callbackIGFX->gFramebufferController,
-																	   regForDom(d), fw_set(FORCEWAKE_KERNEL_FALLBACK));
+		callbackIGFX->writeRegister32(controller, regForDom(d), fw_set(FORCEWAKE_KERNEL_FALLBACK));
 		
 		IODelay(10 * pass);
 		pollRegister(ackForDom(d), FORCEWAKE_KERNEL_FALLBACK, FORCEWAKE_KERNEL_FALLBACK, FORCEWAKE_ACK_TIMEOUT_MS);
 		
-		ack = (callbackIGFX->AppleIntelFramebufferController__ReadRegister32(*callbackIGFX->gFramebufferController,
-																			ackForDom(d)) & mask) == val;
+		ack = (callbackIGFX->readRegister32(controller, ackForDom(d)) & mask) == val;
 
-		callbackIGFX->AppleIntelFramebufferController__WriteRegister32(*callbackIGFX->gFramebufferController,
-																	   regForDom(d), fw_clear(FORCEWAKE_KERNEL_FALLBACK));
+		callbackIGFX->writeRegister32(controller, regForDom(d), fw_clear(FORCEWAKE_KERNEL_FALLBACK));
 	} while (!ack && pass++ < 10);
 	
 //	DBGLOG(log, "Force wake fallback used to %s %s in %u passes", set ? "set" : "clear", strForDom(d), pass);
@@ -291,9 +288,6 @@ bool IGFX::ForceWakeWorkaround::forceWakeWaitAckFallback(uint32_t d, uint32_t va
 
 // NOTE: We are either in IRQ context, or in a spinlock critical section
 void IGFX::ForceWakeWorkaround::forceWake(void*, uint8_t set, uint32_t dom, uint32_t ctx) {
-	assert(callbackIGFX->gFramebufferController && *callbackIGFX->gFramebufferController);
-//	DBGLOG(log, "ForceWake %u %u", set, dom);
-	
 	// ctx 2: IRQ, 1: normal
 	
 	uint32_t ack_exp = set << ctx;
@@ -302,8 +296,7 @@ void IGFX::ForceWakeWorkaround::forceWake(void*, uint8_t set, uint32_t dom, uint
 	
 	for (unsigned d = DOM_FIRST; d <= DOM_LAST; d <<= 1)
 	if (dom & d) {
-		callbackIGFX->AppleIntelFramebufferController__WriteRegister32(*callbackIGFX->gFramebufferController,
-			regForDom(d), wr);
+		callbackIGFX->writeRegister32(callbackIGFX->defaultController(), regForDom(d), wr);
 		IOPause(100);
 		if (!pollRegister(ackForDom(d), ack_exp, mask, FORCEWAKE_ACK_TIMEOUT_MS) &&
 			!forceWakeWaitAckFallback(d, ack_exp, mask) &&
@@ -312,13 +305,24 @@ void IGFX::ForceWakeWorkaround::forceWake(void*, uint8_t set, uint32_t dom, uint
 	}
 }
 
-void IGFX::ForceWakeWorkaround::initGraphics(IGFX& ig, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+void IGFX::ForceWakeWorkaround::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+	
+	// Requires access to global framebuffer controllers
+	requiresGlobalFramebufferControllersAccess = true;
+	
+	// Requires read and write access to MMIO registers
+	requiresMMIORegistersReadAccess = true;
+	requiresMMIORegistersWriteAccess = true;
+}
 
-	KernelPatcher::RouteRequest req {
-			"__ZN16IntelAccelerator26SafeForceWakeMultithreadedEbjj",
-			&IGFX::ForceWakeWorkaround::forceWake
+void IGFX::ForceWakeWorkaround::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN16IntelAccelerator26SafeForceWakeMultithreadedEbjj",
+		forceWake
 	};
-	if (!(ig.AppleIntelFramebufferController__ReadRegister32 && ig.gFramebufferController &&
-		  patcher.routeMultiple(index, &req, 1, address, size, true, true)))
-		SYSLOG(log, "Failed to route SafeForceWake");
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "Failed to route SafeForceWake.");
 }
