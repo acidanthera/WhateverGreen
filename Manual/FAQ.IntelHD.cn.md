@@ -1628,15 +1628,15 @@ macOS 10.14 下，对于 SKL 或更新平台，无法直接从 kext 二进制文
 
 二进制补丁示例：
 
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/bin.png)  
+![](./Img/bin.png)  
 
 语义补丁示例一：修改端口索引为 1, 2, 3 的 `connector-type` 为 HDMI：(connector-type=00080000)
 
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/con.png)  
+![](./Img/connector.png)  
 
 语义补丁示例二：对于 DVMT 为 32 MB 且需要更大值时：(stolenmem=19MB, fbmem=9MB)
 
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/sem.png) 
+![](./Img/sem.png)  
 
 [此部分补丁](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) 完全等同于使用 AzulPatcher4600.kext，如曾在使用，请改用这些补丁。（在 [某些](https://github.com/coderobe/AzulPatcher4600#tested-onHaswell) Haswell 微架构的笔记本上，使用 `0x0A260006` 这组 FB 会改善花屏的情况）
 

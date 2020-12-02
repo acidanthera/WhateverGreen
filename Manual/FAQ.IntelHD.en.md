@@ -2296,7 +2296,7 @@ Example of a binary patch using WEG.
 ![bin](./Img/bin.png)  
   
 Example of a semantic patch: HDMI type connector (connector-type=00080000 for connectors with index 1, 2 and 3).  
-![con](./Img/con.png)  
+![con](./Img/connector.png)  
   
 Example of a semantic patch for bios with DVMT Pre-Alloc 32MB when higher is required. (stolenmem=19MB, fbmem=9MB)  
 ![sem](./Img/sem.png)  
