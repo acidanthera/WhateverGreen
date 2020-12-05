@@ -278,19 +278,9 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
-	 */
-	mach_vm_address_t orgHwRegsNeedUpdate {};
-
-	/**
 	 *  Original IntelFBClientControl::doAttribute function
 	 */
 	mach_vm_address_t orgFBClientDoAttribute {};
-
-	/**
-	 *  Original AppleIntelFramebuffer::getDisplayStatus function
-	 */
-	mach_vm_address_t orgGetDisplayStatus {};
 
 	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
@@ -385,26 +375,6 @@ private:
 	 *  Trace framebuffer logic
 	 */
 	bool debugFramebuffer {false};
-
-	/**
-	 * Per-framebuffer helper script.
-	 */
-	struct FramebufferModifer {
-		bool supported {false}; // compatible CPU
-		bool legacy {false}; // legacy CPU (Skylake)
-		bool enable {false}; // enable the patch
-		bool customised {false}; // override default patch behaviour
-		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
-
-		bool inList(IORegistryEntry* fb) {
-			uint32_t idx;
-			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
-				for (auto i : fbs)
-					if (i == idx)
-						return true;
-			return false;
-		}
-	};
 	
 	// NOTE: the MMIO space is also available at RC6_RegBase
 	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
@@ -1244,6 +1214,7 @@ private:
 			return false;
 		}
 		
+	public:
 		/**
 		 *  `True` if this patch is supported on the current platform
 		 */
@@ -1466,16 +1437,6 @@ private:
 	PatchSubmodule *submodules[6] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix, &modLSPCONDriverSupport, &modAdvancedI2COverAUXSupport };
 	
 	/**
-	 * Ensure each modeset is a complete modeset.
-	 */
-	FramebufferModifer forceCompleteModeset;
-
-	/**
-	 * Ensure each display is online.
-	 */
-	FramebufferModifer forceOnlineDisplay;
-	
-	/**
 	 * Prevent IntelAccelerator from starting.
 	 */
 	bool disableAccel {false};
@@ -1570,11 +1531,6 @@ private:
 	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 	 */
 	uint32_t driverBacklightFrequency {};
-
-	/**
-	 * See function definition for explanation
-	 */
-	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
 
 	/**
 	 *  Explore the framebuffer structure in Apple's Intel graphics driver
@@ -1688,11 +1644,6 @@ private:
 	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
 	 */
 	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
-
-	/**
-	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
-	 */
-	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
 	
 	static uint64_t wrapIsTypeCOnlySystem(void*);
 

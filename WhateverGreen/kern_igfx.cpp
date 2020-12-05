@@ -101,14 +101,14 @@ void IGFX::init() {
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
-			forceCompleteModeset.supported = forceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
+			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
 			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
 			modForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
@@ -122,7 +122,7 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
 			modForceWakeWorkaround.enabled = true;
 			disableTypeCCheck = true;
@@ -131,7 +131,7 @@ void IGFX::init() {
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			disableTypeCCheck = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
@@ -139,7 +139,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modDVMTCalcFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
@@ -151,7 +151,7 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
 			disableTypeCCheck = true;
 			break;
@@ -191,49 +191,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		dumpPlatformTable = checkKernelArgument("-igfxfbdump");
 		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
 #endif
-
-		// TODO: DEPRECATED
-		uint32_t forceCompleteModeSet = 0;
-		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
-			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
-			DBGLOG("weg", "force complete-modeset overriden by boot-argument %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
-		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset", forceCompleteModeSet)) {
-			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
-			DBGLOG("weg", "force complete-modeset overriden by device property %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
-		} else if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
-			forceCompleteModeset.enable = false; // may interfere with FV2
-			DBGLOG("weg", "force complete-modeset overriden by Apple firmware -> %d", forceCompleteModeset.enable);
-		}
-
-		if (forceCompleteModeset.enable) {
-			uint64_t fbs;
-			if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
-				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers", fbs)) {
-				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
-					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
-				forceCompleteModeset.customised = true;
-			}
-		}
-
-		// TODO: DEPRECATED
-		uint32_t forceOnline = 0;
-		if (PE_parse_boot_argn("igfxonln", &forceOnline, sizeof(forceOnline))) {
-			forceOnlineDisplay.enable = forceOnline != 0;
-			DBGLOG("weg", "force online overriden by boot-argument %u", forceOnline);
-		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "force-online", forceOnline)) {
-			forceOnlineDisplay.enable = forceOnline != 0;
-			DBGLOG("weg", "force online overriden by device property %u", forceOnline);
-		}
-
-		if (forceOnlineDisplay.enable) {
-			uint64_t fbs;
-			if (PE_parse_boot_argn("igfxonlnfbs", &fbs, sizeof(fbs)) ||
-				WIOKit::getOSDataValue(info->videoBuiltin, "force-online-framebuffers", fbs)) {
-				for (size_t i = 0; i < arrsize(forceOnlineDisplay.fbs); i++)
-					forceOnlineDisplay.fbs[i] = (fbs >> (8 * i)) & 0xffU;
-				forceOnlineDisplay.customised = true;
-			}
-		}
 
 		if (supportsGuCFirmware && getKernelVersion() >= KernelVersion::HighSierra) {
 			if (!PE_parse_boot_argn("igfxfw", &fwLoadMode, sizeof(fwLoadMode)))
@@ -322,10 +279,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
 				return true;
 			if (cflBacklightPatch != CoffeeBacklightPatch::Off)
-				return true;
-			if (forceCompleteModeset.enable)
-				return true;
-			if (forceOnlineDisplay.enable)
 				return true;
 			if (disableAGDC)
 				return true;
@@ -493,23 +446,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		for (auto submodule : submodules)
 			if (submodule->enabled)
 				submodule->processFramebufferKext(patcher, index, address, size);
-		
-		// TODO: DEPRECATED
-		if (forceCompleteModeset.enable) {
-			const char *sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2";
-			if (forceCompleteModeset.legacy)
-				sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE";
-			KernelPatcher::RouteRequest request(sym, wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
-			if (!patcher.routeMultiple(index, &request, 1, address, size))
-				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
-		}
-
-		// TODO: DEPRECATED
-		if (forceOnlineDisplay.enable) {
-			KernelPatcher::RouteRequest request("__ZN21AppleIntelFramebuffer16getDisplayStatusEP21AppleIntelDisplayPath", wrapGetDisplayStatus, orgGetDisplayStatus);
-			if (!patcher.routeMultiple(index, &request, 1, address, size))
-				SYSLOG("igfx", "failed to route getDisplayStatus");
-		}
 		
 		if (disableTypeCCheck && (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur)) {
 			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
@@ -1071,47 +1007,6 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	return ret;
 }
 
-// TODO: DEPRECATED
-bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo) {
-	// The framebuffer controller can perform panel fitter, partial, or a
-	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
-	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
-	// boot: it was observed that for HDMI framebuffer a complete modeset
-	// eventually occured, but for DVI it never did until after sleep and wake
-	// sequence.
-	//
-	// Function AppleIntelFramebufferController::hwRegsNeedUpdate checks
-	// whether a complete modeset needs to be issued. It does so by comparing
-	// sets of pipes and transcoder parameters. For some reason, the result was
-	// never true in the above scenario, so a complete modeset never occured.
-	// Consequently, AppleIntelFramebufferController::LightUpTMDS was never
-	// called for that framebuffer.
-	//
-	// Patching hwRegsNeedUpdate to always return true seems to be a rather
-	// safe solution to that. Note that the root cause of the problem is
-	// somewhere deeper.
-
-	// On older Skylake versions this function has no detailedInfo and does not use framebuffer argument.
-	// As a result the compiler does not pass framebuffer to the target function. Since the fix is disabled
-	// by default for Skylake, just force complete modeset on all framebuffers when actually requested.
-	if (callbackIGFX->forceCompleteModeset.legacy)
-		return true;
-
-	// Either this framebuffer is in override list
-	if (callbackIGFX->forceCompleteModeset.customised) {
-		return callbackIGFX->forceCompleteModeset.inList(framebuffer)
-		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
-			controller, framebuffer, displayPath, crtParams, detailedInfo);
-	}
-
-	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
-	// this framebuffer.
-	// Note we need to check this at every invocation, as this property may reappear
-	return !framebuffer->getProperty("built-in")
-			|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
-			controller, framebuffer, displayPath, crtParams, detailedInfo);
-}
-
 IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
 	if (attribute == kAGDCRegisterCallback) {
 		DBGLOG("igfx", "ignoring AGDC registration in FBClientControl::doAttribute");
@@ -1130,21 +1025,6 @@ IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsig
 uint64_t IGFX::wrapIsTypeCOnlySystem(void*) {
 	DBGLOG("igfx", "Forcing IsTypeCOnlySystem 0");
 	return 0;
-}
-
-// TODO: DEPRECATED
-uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
-	// 0 - offline, 1 - online, 2 - empty dongle.
-	uint32_t ret = FunctionCast(wrapGetDisplayStatus, callbackIGFX->orgGetDisplayStatus)(framebuffer, displayPath);
-	if (ret != 1) {
-		if (callbackIGFX->forceOnlineDisplay.customised)
-			ret = callbackIGFX->forceOnlineDisplay.inList(framebuffer) ? 1 : ret;
-		else
-			ret = 1;
-	}
-
-	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
-	return ret;
 }
 
 void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {
