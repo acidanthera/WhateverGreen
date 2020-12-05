@@ -1222,6 +1222,86 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modForceWakeWorkaround;
 	
+	/**
+	 *  A submodule that applies patches based on the framebuffer index
+	 */
+	class FramebufferModiferV2: public PatchSubmodule {
+	protected:
+		/**
+		 *  Indices of framebuffers to be patched
+		 */
+		uint8_t fbs[sizeof(uint64_t)] {};
+
+		/**
+		 *  Check whether the given framebuffer is in the list
+		 */
+		bool inList(IORegistryEntry* fb) {
+			uint32_t idx;
+			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
+				for (auto i : fbs)
+					if (i == idx)
+						return true;
+			return false;
+		}
+		
+		/**
+		 *  `True` if this patch is supported on the current platform
+		 */
+		bool supported {false};
+		
+		/**
+		 *  `True` if the current platform is Skylake
+		 */
+		bool legacy {false};
+		
+		/**
+		 *  `True` if patch behavior should be overridden
+		 */
+		bool customised {false};
+	};
+	
+	/**
+	 *  A submodule to ensure that each modeset operation is a complete one
+	 */
+	class ForceCompleteModeset: public FramebufferModiferV2 {
+		/**
+		 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
+		 */
+		bool (*orgHwRegsNeedUpdate)(void *, IORegistryEntry *, void *, void *, void *) {nullptr};
+		
+		/**
+		 *  Wrapper to force a complete modeset
+		 */
+		static bool wrapHwRegsNeedUpdate(void *controller, IORegistryEntry *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceCompleteModeset;
+	
+	/**
+	 *  A submodule to ensure that each display is online
+	 */
+	class ForceOnlineDisplay: public FramebufferModiferV2 {
+		/**
+		 *  Original AppleIntelFramebuffer::getDisplayStatus function
+		 */
+		uint32_t (*orgGetDisplayStatus)(IORegistryEntry *, void *) {nullptr};
+		
+		/**
+		 *  Wrapper to report that a display is online
+		 */
+		static uint32_t wrapGetDisplayStatus(IORegistryEntry *framebuffer, void *displayPath);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceOnlineDisplay;	
+	
 	//
 	// MARK: Shared Submodules
 	//
