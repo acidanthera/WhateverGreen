@@ -278,19 +278,9 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
-	 */
-	mach_vm_address_t orgHwRegsNeedUpdate {};
-
-	/**
 	 *  Original IntelFBClientControl::doAttribute function
 	 */
 	mach_vm_address_t orgFBClientDoAttribute {};
-
-	/**
-	 *  Original AppleIntelFramebuffer::getDisplayStatus function
-	 */
-	mach_vm_address_t orgGetDisplayStatus {};
 
 	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
@@ -385,26 +375,6 @@ private:
 	 *  Trace framebuffer logic
 	 */
 	bool debugFramebuffer {false};
-
-	/**
-	 * Per-framebuffer helper script.
-	 */
-	struct FramebufferModifer {
-		bool supported {false}; // compatible CPU
-		bool legacy {false}; // legacy CPU (Skylake)
-		bool enable {false}; // enable the patch
-		bool customised {false}; // override default patch behaviour
-		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
-
-		bool inList(IORegistryEntry* fb) {
-			uint32_t idx;
-			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
-				for (auto i : fbs)
-					if (i == idx)
-						return true;
-			return false;
-		}
-	};
 	
 	// NOTE: the MMIO space is also available at RC6_RegBase
 	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
@@ -1222,6 +1192,87 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modForceWakeWorkaround;
 	
+	/**
+	 *  A submodule that applies patches based on the framebuffer index
+	 */
+	class FramebufferModiferV2: public PatchSubmodule {
+	protected:
+		/**
+		 *  Indices of framebuffers to be patched
+		 */
+		uint8_t fbs[sizeof(uint64_t)] {};
+
+		/**
+		 *  Check whether the given framebuffer is in the list
+		 */
+		bool inList(IORegistryEntry* fb) {
+			uint32_t idx;
+			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
+				for (auto i : fbs)
+					if (i == idx)
+						return true;
+			return false;
+		}
+		
+	public:
+		/**
+		 *  `True` if this patch is supported on the current platform
+		 */
+		bool supported {false};
+		
+		/**
+		 *  `True` if the current platform is Skylake
+		 */
+		bool legacy {false};
+		
+		/**
+		 *  `True` if patch behavior should be overridden
+		 */
+		bool customised {false};
+	};
+	
+	/**
+	 *  A submodule to ensure that each modeset operation is a complete one
+	 */
+	class ForceCompleteModeset: public FramebufferModiferV2 {
+		/**
+		 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
+		 */
+		bool (*orgHwRegsNeedUpdate)(void *, IORegistryEntry *, void *, void *, void *) {nullptr};
+		
+		/**
+		 *  Wrapper to force a complete modeset
+		 */
+		static bool wrapHwRegsNeedUpdate(void *controller, IORegistryEntry *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceCompleteModeset;
+	
+	/**
+	 *  A submodule to ensure that each display is online
+	 */
+	class ForceOnlineDisplay: public FramebufferModiferV2 {
+		/**
+		 *  Original AppleIntelFramebuffer::getDisplayStatus function
+		 */
+		uint32_t (*orgGetDisplayStatus)(IORegistryEntry *, void *) {nullptr};
+		
+		/**
+		 *  Wrapper to report that a display is online
+		 */
+		static uint32_t wrapGetDisplayStatus(IORegistryEntry *framebuffer, void *displayPath);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceOnlineDisplay;	
+	
 	//
 	// MARK: Shared Submodules
 	//
@@ -1386,16 +1437,6 @@ private:
 	PatchSubmodule *submodules[6] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix, &modLSPCONDriverSupport, &modAdvancedI2COverAUXSupport };
 	
 	/**
-	 * Ensure each modeset is a complete modeset.
-	 */
-	FramebufferModifer forceCompleteModeset;
-
-	/**
-	 * Ensure each display is online.
-	 */
-	FramebufferModifer forceOnlineDisplay;
-	
-	/**
 	 * Prevent IntelAccelerator from starting.
 	 */
 	bool disableAccel {false};
@@ -1490,11 +1531,6 @@ private:
 	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 	 */
 	uint32_t driverBacklightFrequency {};
-
-	/**
-	 * See function definition for explanation
-	 */
-	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
 
 	/**
 	 *  Explore the framebuffer structure in Apple's Intel graphics driver
@@ -1608,11 +1644,6 @@ private:
 	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
 	 */
 	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
-
-	/**
-	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
-	 */
-	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
 	
 	static uint64_t wrapIsTypeCOnlySystem(void*);
 
