@@ -235,6 +235,7 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::ComputeLaneCount function used for DP lane count calculation
 	 */
+	// TODO: DEPRECATED
 	mach_vm_address_t orgComputeLaneCount {};
 
 	/**
@@ -292,6 +293,7 @@ private:
 	/**
 	 *  Set to true if a black screen ComputeLaneCount patch is required
 	 */
+	// TODO: DEPRECATED
 	bool blackScreenPatch {false};
 
 	/**
@@ -1284,6 +1286,27 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modAGDCDisabler;
 	
+	/**
+	 *  A submodule that disables the check of Type-C platforms
+	 */
+	class TypeCCheckDisabler: public PatchSubmodule {
+		/**
+		 *  A wrapper to always report that this is not a Type-C platform
+		 *
+		 *  @note Apparently, platforms with (ig-platform-id & 0xf != 0) have only Type C connectivity.
+		 *        Framebuffer kext uses this fact to sanitise connector type, forcing it to DP.
+		 *        This breaks many systems, so we undo this check.
+		 *        Affected drivers: KBL and newer?
+		 */
+		static bool wrapIsTypeCOnlySystem(void *controller);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modTypeCCheckDisabler;
+	
 	//
 	// MARK: Shared Submodules
 	//
@@ -1451,11 +1474,6 @@ private:
 	 * Prevent IntelAccelerator from starting.
 	 */
 	bool disableAccel {false};
-
-	/**
-	 * Disable Type C framebuffer check.
-	 */
-	bool disableTypeCCheck {false};
 	
 	/**
 	 *  Perform platform table dump to ioreg
@@ -1650,13 +1668,6 @@ private:
 	 *  IGMappedBuffer::getGPUVirtualAddress wrapper to trick GuC firmware virtual addresses
 	 */
 	static uint64_t wrapIgBufferGetGpuVirtualAddress(void *that);
-
-	/**
-	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
-	 */
-	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
-	
-	static uint64_t wrapIsTypeCOnlySystem(void*);
 
 	/**
 	 *  Load GuC-specific patches and hooks
