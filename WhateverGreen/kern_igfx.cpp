@@ -244,6 +244,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
 
+		// TODO: DEPRECATED
 		int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
 		PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
 		disableAGDC = agdc == 0;
@@ -447,12 +448,14 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (submodule->enabled)
 				submodule->processFramebufferKext(patcher, index, address, size);
 		
+		// TODO: PORT
 		if (disableTypeCCheck && (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur)) {
 			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
 			if (!patcher.routeMultiple(index, &req, 1, address, size))
 				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
 		}
 
+		// TODO: PORT
 		if (disableAGDC) {
 			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
 			if (!patcher.routeMultiple(index, &request, 1, address, size))
@@ -462,6 +465,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		if (debugFramebuffer)
 			loadFramebufferDebug(patcher, index, address, size);
 
+		// TODO: PORT
 		if (blackScreenPatch) {
 			bool foundSymbol = false;
 
@@ -797,7 +801,40 @@ uint32_t IGFX::ForceOnlineDisplay::wrapGetDisplayStatus(IORegistryEntry *framebu
 	return ret;
 }
 
-// MARK: TODO
+// MARK: - AGDC Disabler
+
+void IGFX::AGDCDisabler::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::AGDCDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
+	PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
+	enabled = agdc == 0;
+}
+
+void IGFX::AGDCDisabler::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments",
+		wrapFBClientDoAttribute,
+		orgFBClientDoAttribute
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "AGDCD: Failed to route the function FBClientControl::doAttribute.");
+}
+
+IOReturn IGFX::AGDCDisabler::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
+	if (attribute == kAGDCRegisterCallback) {
+		DBGLOG("igfx", "AGDCD: Ignoring AGDC registration in FBClientControl::doAttribute.");
+		return kIOReturnUnsupported;
+	}
+	
+	return callbackIGFX->modAGDCDisabler.orgFBClientDoAttribute(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
+}
+
+// MARK: - TODO
 
 IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
 	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
