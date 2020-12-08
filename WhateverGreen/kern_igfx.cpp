@@ -207,6 +207,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
 		
+		// TODO: DEPRECATED
 		disableTypeCCheck &= !checkKernelArgument("-igfxtypec");
 
 		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
@@ -820,6 +821,36 @@ IOReturn IGFX::AGDCDisabler::wrapFBClientDoAttribute(void *fbclient, uint32_t at
 	return callbackIGFX->modAGDCDisabler.orgFBClientDoAttribute(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
 }
 
+// MARK: - Type-C Check Disabler
+
+void IGFX::TypeCCheckDisabler::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::TypeCCheckDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	enabled &= !checkKernelArgument("-igfxtypec");
+}
+
+void IGFX::TypeCCheckDisabler::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	// TODO: Helper Function `getRealFramebuffer()`?
+	auto realFramebuffer = (callbackIGFX->currentFramebuffer && callbackIGFX->currentFramebuffer->loadIndex == index) ? callbackIGFX->currentFramebuffer : callbackIGFX->currentFramebufferOpt;
+	
+	if (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur) {
+		KernelPatcher::RouteRequest request = {
+			"__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv",
+			wrapIsTypeCOnlySystem
+		};
+		if (!patcher.routeMultiple(index, &request, 1, address, size))
+			SYSLOG("igfx", "TCCD: Failed to route the function IsTypeCOnlySystem.");
+	}
+}
+
+bool IGFX::TypeCCheckDisabler::wrapIsTypeCOnlySystem(void *controller) {
+	DBGLOG("igfx", "TCCD: Forcing IsTypeCOnlySystem false.");
+	return false;
+}
+
 // MARK: - TODO
 
 IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
@@ -1036,6 +1067,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
  * This breaks many systems, so we undo this check.
  * Affected drivers: KBL and newer?
  */
+// TODO: DEPRECATED
 uint64_t IGFX::wrapIsTypeCOnlySystem(void*) {
 	DBGLOG("igfx", "Forcing IsTypeCOnlySystem 0");
 	return 0;

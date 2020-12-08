@@ -1284,6 +1284,27 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modAGDCDisabler;
 	
+	/**
+	 *  A submodule that disables the check of Type-C platforms
+	 */
+	class TypeCCheckDisabler: public PatchSubmodule {
+		/**
+		 *  A wrapper to always report that this is not a Type-C platform
+		 *
+		 *  @note Apparently, platforms with (ig-platform-id & 0xf != 0) have only Type C connectivity.
+		 *        Framebuffer kext uses this fact to sanitise connector type, forcing it to DP.
+		 *        This breaks many systems, so we undo this check.
+		 *        Affected drivers: KBL and newer?
+		 */
+		static bool wrapIsTypeCOnlySystem(void *controller);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modTypeCCheckDisabler;
+	
 	//
 	// MARK: Shared Submodules
 	//
@@ -1455,6 +1476,7 @@ private:
 	/**
 	 * Disable Type C framebuffer check.
 	 */
+	// TODO: DEPRECATED
 	bool disableTypeCCheck {false};
 	
 	/**
