@@ -330,7 +330,7 @@ static IOReturn fbdebugWrapFBClientDoAttribute(void *fbclient, uint32_t attribut
 void IGFX::loadFramebufferDebug(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	SYSLOG("igfx", "using framebuffer debug r15");
 
-	if (disableAGDC)
+	if (modAGDCDisabler.enabled)
 		PANIC("igfx", "igfxagdc=0 is not compatible with framebuffer debugging");
 
 	KernelPatcher::RouteRequest requests[] = {

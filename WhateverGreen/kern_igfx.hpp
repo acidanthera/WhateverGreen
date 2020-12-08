@@ -278,12 +278,6 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *  Original IntelFBClientControl::doAttribute function
-	 */
-	// TODO: DEPRECATED
-	mach_vm_address_t orgFBClientDoAttribute {};
-
-	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
@@ -341,12 +335,6 @@ private:
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};
-
-	/**
-	 *  Disable AGDC configuration
-	 */
-	// TODO: DEPRECATED
-	bool disableAGDC {false};
 
 	/**
 	 *  GuC firmware loading scheme

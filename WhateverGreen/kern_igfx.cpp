@@ -244,11 +244,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
 
-		// TODO: DEPRECATED
-		int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
-		PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
-		disableAGDC = agdc == 0;
-
 		// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
 		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
 
@@ -280,8 +275,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
 				return true;
 			if (cflBacklightPatch != CoffeeBacklightPatch::Off)
-				return true;
-			if (disableAGDC)
 				return true;
 			if (disableTypeCCheck)
 				return true;
@@ -453,13 +446,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
 			if (!patcher.routeMultiple(index, &req, 1, address, size))
 				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
-		}
-
-		// TODO: PORT
-		if (disableAGDC) {
-			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
-			if (!patcher.routeMultiple(index, &request, 1, address, size))
-				SYSLOG("igfx", "failed to route FBClientControl::doAttribute");
 		}
 
 		if (debugFramebuffer)
@@ -1042,15 +1028,6 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	}
 
 	return ret;
-}
-
-IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
-	if (attribute == kAGDCRegisterCallback) {
-		DBGLOG("igfx", "ignoring AGDC registration in FBClientControl::doAttribute");
-		return kIOReturnUnsupported;
-	}
-
-	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
 }
 
 /**
