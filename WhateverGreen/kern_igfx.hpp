@@ -278,11 +278,6 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *  Original IntelFBClientControl::doAttribute function
-	 */
-	mach_vm_address_t orgFBClientDoAttribute {};
-
-	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
@@ -340,11 +335,6 @@ private:
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};
-
-	/**
-	 *  Disable AGDC configuration
-	 */
-	bool disableAGDC {false};
 
 	/**
 	 *  GuC firmware loading scheme
@@ -1271,7 +1261,28 @@ private:
 		void init() override;
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
-	} modForceOnlineDisplay;	
+	} modForceOnlineDisplay;
+	
+	/**
+	 *  A submodule that disables Apple's Graphics Device Control (AGDC)
+	 */
+	class AGDCDisabler: public PatchSubmodule {
+		/**
+		 *  Original IntelFBClientControl::doAttribute function
+		 */
+		IOReturn (*orgFBClientDoAttribute)(void *, uint32_t, unsigned long *, unsigned long, unsigned long *, unsigned long *, void *) {nullptr};
+		
+		/**
+		 *  A wrapper to ignore AGDC registration request
+		 */
+		static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modAGDCDisabler;
 	
 	//
 	// MARK: Shared Submodules
