@@ -207,6 +207,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
 
+		// TODO: DEPRECATED
 		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
 		int bkl = 0;
 		if (PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl)))
@@ -767,10 +768,7 @@ void IGFX::TypeCCheckDisabler::processKernel(KernelPatcher &patcher, DeviceInfo 
 }
 
 void IGFX::TypeCCheckDisabler::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	// TODO: Helper Function `getRealFramebuffer()`?
-	auto realFramebuffer = (callbackIGFX->currentFramebuffer && callbackIGFX->currentFramebuffer->loadIndex == index) ? callbackIGFX->currentFramebuffer : callbackIGFX->currentFramebufferOpt;
-	
-	if (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur) {
+	if (callbackIGFX->getRealFramebuffer(index) == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur) {
 		KernelPatcher::RouteRequest request = {
 			"__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv",
 			wrapIsTypeCOnlySystem

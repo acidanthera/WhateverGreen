@@ -359,6 +359,13 @@ private:
 	// and the framebuffer controller now maintains an array of `ports`.
 	class AppleIntelPort;
 	
+	/**
+	 *  Get the real framebuffer in use from the given bundle index
+	 */
+	KernelPatcher::KextInfo *getRealFramebuffer(size_t index) {
+		return (currentFramebuffer && currentFramebuffer->loadIndex == index) ? currentFramebuffer : currentFramebufferOpt;
+	}
+	
 	//
 	// MARK: - Patch Submodule & Injection Kits
 	//
