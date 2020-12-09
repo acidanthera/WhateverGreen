@@ -221,6 +221,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
+		// TODO: DERECATED
 		// PAVP patch is only necessary when we have no discrete GPU.
 		int pavpMode = connectorLessFrame || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
 		if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
@@ -895,8 +896,60 @@ bool IGFX::BlackScreenFix::wrapComputeLaneCountNouveau(void *controller, void *d
 	return r;
 }
 
+// MARK: - PAVP Disabler
+
+void IGFX::PAVPDisabler::init() {
+	// We only need to patch the accelerator driver
+	requiresPatchingGraphics = true;
+}
+
+void IGFX::PAVPDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	int pavpMode = info->reportedFramebufferIsConnectorLess || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
+	if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
+		WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
+	enabled = pavpMode == 0 && BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge;
+}
+
+void IGFX::PAVPDisabler::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	const char* symbol;
+	switch (BaseDeviceInfo::get().cpuGeneration) {
+		case CPUInfo::CpuGeneration::SandyBridge:
+			symbol = "__ZN15Gen6Accelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
+			break;
+			
+		case CPUInfo::CpuGeneration::IvyBridge:
+			symbol = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
+			break;
+			
+		default:
+			symbol = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_tjPjb";
+			break;
+	}
+
+	KernelPatcher::RouteRequest request = {
+		symbol,
+		wrapPavpSessionCallback,
+		orgPavpSessionCallback
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "PAVP: Failed to route the function PAVPCommandCallback.");
+}
+
+IOReturn IGFX::PAVPDisabler::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
+	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
+
+	if (sessionCommand == 4) {
+		DBGLOG("igfx", "pavpSessionCallback: enforcing error on cmd 4 (send to ring?)!");
+		return kIOReturnTimeout; // or kIOReturnSuccess
+	}
+
+	return callbackIGFX->modPAVPDisabler.orgPavpSessionCallback(intelAccelerator, sessionCommand, sessionAppId, a4, flag);
+}
+
 // MARK: - TODO
 
+// TODO: DEPRECATED
 IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
 	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
 
