@@ -143,14 +143,6 @@ private:
 	static constexpr size_t MaxFramebufferPatchCount = 10;
 
 	/**
-	 *  Backlight registers
-	 */
-	// TODO: DEPRECATED
-	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
-	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
-	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
-
-	/**
 	 *  Number of SNB frames in a framebuffer kext
 	 */
 	static constexpr size_t SandyPlatformNum = 9;
@@ -269,39 +261,6 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *  Original AppleIntelFramebufferController::ReadRegister32 function
-	 */
-	// TODO: DEPRECATED
-	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
-	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
-
-	/**
-	 *  Original AppleIntelFramebufferController::WriteRegister32 function
-	 */
-	// TODO: DEPRECATED
-	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-
-	/**
-	 *  Coffee Lake backlight patch configuration options
-	 */
-	// TODO: DEPRECATED REMOVED
-	enum class CoffeeBacklightPatch {
-		Auto = -1,
-		On = 1,
-		Off = 0
-	};
-
-	/**
-	 *  Set to On if Coffee Lake backlight patch type required
-	 *  - boot-arg igfxcflbklt=0/1 forcibly turns patch on or off (override)
-	 *  - IGPU property enable-cfl-backlight-fix turns patch on
-	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
-	 */
-	// TODO: DEPRECATED REMOVED
-	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
-
-	/**
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
@@ -345,11 +304,6 @@ private:
 	 *  Trace framebuffer logic
 	 */
 	bool debugFramebuffer {false};
-	
-	// TODO: DEPRECATED
-	// NOTE: the MMIO space is also available at RC6_RegBase
-	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
-	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
 
 	// The opaque framebuffer controller type on BDW+
 	class AppleIntelFramebufferController;
@@ -1691,37 +1645,6 @@ private:
 	uint32_t realBinarySize {};
 
 	/**
-	 *  Store backlight level
-	 */
-	// TODO: UNUSED
-	uint32_t backlightLevel {}; // Unused
-
-	/**
-	 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
-	 */
-	// TODO: DEPRECATED
-	static constexpr uint32_t FallbackTargetBacklightFrequency {120000};
-
-	/**
-	 *  User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
-	 *  Can be specified via max-backlight-freq property.
-	 */
-	// TODO: DEPRECATED
-	uint32_t targetBacklightFrequency {};
-
-	/**
-	 *  User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
-	 */
-	// TODO: DEPRECATED
-	uint32_t targetPwmControl {};
-
-	/**
-	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
-	 */
-	// TODO: DEPRECATED
-	uint32_t driverBacklightFrequency {};
-
-	/**
 	 *  Explore the framebuffer structure in Apple's Intel graphics driver
 	 */
 	struct AppleIntelFramebufferExplorer {
@@ -1754,12 +1677,6 @@ private:
 	 *  IntelAccelerator::start wrapper to support vesa mode, force OpenGL, prevent fw loading, etc.
 	 */
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
-
-	/**
-	 *  Wrapped AppleIntelFramebufferController::WriteRegister32 function
-	 */
-	static void wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value);
-	static void wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value);
 
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
