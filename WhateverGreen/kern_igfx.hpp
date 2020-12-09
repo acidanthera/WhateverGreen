@@ -299,6 +299,7 @@ private:
 	/**
 	 *  Set to true if read descriptor patch should be enabled
 	 */
+	// TODO: DEPRECATED
 	bool readDescriptorPatch {false};
 
 	/**
@@ -1344,6 +1345,22 @@ private:
 		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modPAVPDisabler;
 	
+	/**
+	 *  A submodule to patch read descriptors and thus avoid random kernel panics on SKL+
+	 */
+	class ReadDescriptorPatch: public PatchSubmodule {
+		/**
+		 *  Global page table read wrapper for Kaby Lake.
+		 */
+		static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modReadDescriptorPatch;
+	
 	//
 	// MARK: Shared Submodules
 	//
@@ -1625,6 +1642,7 @@ private:
 	/**
 	 *  Global page table read wrapper for Kaby Lake.
 	 */
+	// TODO: DEPRECATED
 	static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
 
 	/**

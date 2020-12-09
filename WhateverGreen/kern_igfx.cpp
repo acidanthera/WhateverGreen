@@ -229,6 +229,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
 
+		// TODO: DEPRECATED
 		// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
 		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
 
@@ -313,6 +314,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				loadIGScheduler4Patches(patcher, index, address, size);
 		}
 
+		// TODO: DEPRECATED
 		if (readDescriptorPatch) {
 			KernelPatcher::RouteRequest request("__ZNK25IGHardwareGlobalPageTable4readEyRyS0_", globalPageTableRead);
 			patcher.routeMultiple(index, &request, 1, address, size);
@@ -927,9 +929,29 @@ IOReturn IGFX::PAVPDisabler::wrapPavpSessionCallback(void *intelAccelerator, int
 	return callbackIGFX->modPAVPDisabler.orgPavpSessionCallback(intelAccelerator, sessionCommand, sessionAppId, a4, flag);
 }
 
-// MARK: - TODO
+// MARK: - Read Descriptors Patch
 
-bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, uint64_t &physAddress, uint64_t &flags) {
+void IGFX::ReadDescriptorPatch::init() {
+	// We only need to patch the accelerator driver
+	requiresPatchingGraphics = true;
+}
+
+void IGFX::ReadDescriptorPatch::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
+	enabled = BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
+}
+
+void IGFX::ReadDescriptorPatch::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZNK25IGHardwareGlobalPageTable4readEyRyS0_",
+		globalPageTableRead
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "RDP: Failed to route the function IGHardwareGlobalPageTable::read.");
+}
+
+bool IGFX::ReadDescriptorPatch::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, uint64_t &physAddress, uint64_t &flags) {
 	uint64_t pageNumber = address >> PAGE_SHIFT;
 	uint64_t pageEntry = getMember<uint64_t *>(hardwareGlobalPageTable, 0x28)[pageNumber];
 	// PTE: Page Table Entry for 4KB Page, page 82:
@@ -982,6 +1004,8 @@ bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, 
 	// over page table instead of obtaining valid mapped physical address.
 	return (flags & 3U) != 0;
 }
+
+// MARK: - TODO
 
 OSObject *IGFX::wrapCopyExistingServices(OSDictionary *matching, IOOptionBits inState, IOOptionBits options) {
 	if (matching && inState == kIOServiceMatchedState && options == 0) {
