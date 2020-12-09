@@ -368,10 +368,9 @@ private:
 	 *
 	 *  @tparam T Specify the type of the trigger
 	 *  @tparam I Specify the type of the function to inject code
-	 *  @tparam D Specify the concrete type of the descriptor
 	 *  @example The trigger type can be an integer type to inject code based on a register address.
 	 */
-	template <typename T, typename I, typename D>
+	template <typename T, typename I>
 	struct InjectionDescriptor {
 		/**
 		 *  The trigger value to be monitored by the coordinator
@@ -388,7 +387,7 @@ private:
 		/**
 		 *  A pointer to the next descriptor in a linked list
 		 */
-		D *next;
+		InjectionDescriptor *next;
 
 		/**
 		 *  Create an injection descriptor conveniently
@@ -618,12 +617,7 @@ private:
 	 *  @note The injector function takes the controller along with the register address and returns void.
 	 *  @note The injection is performed before the original function is invoked.
 	 */
-	struct MMIOReadPrologue: InjectionDescriptor<uint32_t, void (*)(void *, uint32_t), MMIOReadPrologue> {
-		/**
-		 *  Inherits the constructor from the super class
-		 */
-		using InjectionDescriptor::InjectionDescriptor;
-	};
+	using MMIOReadPrologue = InjectionDescriptor<uint32_t, void (*)(void *, uint32_t)>;
 	
 	/**
 	 *  Defines the replacer injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
@@ -632,12 +626,7 @@ private:
 	 *  @note The injector function takes the controller along with the register address and returns the register value.
 	 *  @note The injection replaced the original function call.
 	 */
-	struct MMIOReadReplacer: InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t), MMIOReadReplacer> {
-		/**
-		 *  Inherits the constructor from the super class
-		 */
-		using InjectionDescriptor::InjectionDescriptor;
-	};
+	using MMIOReadReplacer = InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t)>;
 	
 	/**
 	 *  Defines the epilogue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
@@ -646,12 +635,7 @@ private:
 	 *  @note The injector function takes the controller along with the register address and its value, and returns the new value.
 	 *  @note The injection is performed after the original function is invoked.
 	 */
-	struct MMIOReadEpilogue: InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t, uint32_t), MMIOReadEpilogue> {
-		/**
-		 *  Inherits the constructor from the super class
-		 */
-		using InjectionDescriptor::InjectionDescriptor;
-	};
+	using MMIOReadEpilogue = InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t, uint32_t)>;
 	
 	/**
 	 *  A submodule that provides read access to MMIO registers and coordinates injections to the read function
@@ -694,12 +678,7 @@ private:
 	 *  @note The injector function takes the controller along with the register address and its new value, and returns void.
 	 *  @note This type is shared by all three kinds of injection descriptors.
 	 */
-	struct MMIOWriteInjectionDescriptor: InjectionDescriptor<uint32_t, void (*)(void *, uint32_t, uint32_t), MMIOWriteInjectionDescriptor> {
-		/**
-		 *  Inherits the constructor from the super class
-		 */
-		using InjectionDescriptor::InjectionDescriptor;
-	};
+	using MMIOWriteInjectionDescriptor = InjectionDescriptor<uint32_t, void (*)(void *, uint32_t, uint32_t)>;
 	
 	/**
 	 *  A submodule that provides write access to MMIO registers and coordinates injections to the write function
