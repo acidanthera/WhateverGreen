@@ -303,6 +303,7 @@ private:
 	/**
 	 *  Trace framebuffer logic
 	 */
+	// TODO: DEPRECATED
 	bool debugFramebuffer {false};
 
 	// The opaque framebuffer controller type on BDW+
@@ -1573,6 +1574,17 @@ private:
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modBacklightRegistersFix;
+	
+	/**
+	 *  A submodule to provide support for debugging the framebuffer driver
+	 */
+	class FramebufferDebugSupport: public PatchSubmodule {
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modFramebufferDebugSupport;
 	
 	/**
 	 *	A collection of submodules

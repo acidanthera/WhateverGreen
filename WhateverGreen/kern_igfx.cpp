@@ -189,7 +189,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #ifdef DEBUG
 		dumpFramebufferToDisk = checkKernelArgument("-igfxdump");
 		dumpPlatformTable = checkKernelArgument("-igfxfbdump");
-		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
+		debugFramebuffer = checkKernelArgument("-igfxfbdbg"); // TODO: DEPRECATED
 #endif
 
 		if (supportsGuCFirmware && getKernelVersion() >= KernelVersion::HighSierra) {
