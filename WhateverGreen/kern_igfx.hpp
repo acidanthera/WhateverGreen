@@ -1307,6 +1307,42 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modTypeCCheckDisabler;
 	
+	/**
+	 *  A submodule to fix the black screen on external HDMI/DVI displays
+	 */
+	class BlackScreenFix: public PatchSubmodule {
+		/**
+		 *  [Legacy] Original AppleIntelFramebufferController::ComputeLaneCount function
+		 *
+		 *  @note This function is used for DP lane count calculation.
+		 */
+		bool (*orgComputeLaneCount)(void *, void *, uint32_t, int, int *) {nullptr};
+		
+		/**
+		 *  [Nouveau] Original AppleIntelFramebufferController::ComputeLaneCount function
+		 *
+		 *  @note This function is used for DP lane count calculation.
+		 *  @note Available on KBL+ and as of macOS 10.14.1.
+		 */
+		bool (*orgComputeLaneCountNouveau)(void *, void *, int, int *) {nullptr};
+		
+		/**
+		 *  [Legacy] A wrapper to report a working lane count for HDMI connections
+		 */
+		static bool wrapComputeLaneCount(void *controller, void *detailedTiming, uint32_t bpp, int availableLanes, int *laneCount);
+		
+		/**
+		 *  [Legacy] A wrapper to report a working lane count for HDMI connections
+		 */
+		static bool wrapComputeLaneCountNouveau(void *controller, void *detailedTiming, int availableLanes, int *laneCount);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBlackScreenFix;
+	
 	//
 	// MARK: Shared Submodules
 	//
