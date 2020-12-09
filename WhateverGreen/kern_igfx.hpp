@@ -1534,6 +1534,93 @@ private:
 	} modReadDescriptorPatch;
 	
 	/**
+	 *  A submodule to patch backlight register values and thus avoid 3-minute black screen on KBL+
+	 */
+	class BacklightRegistersFix: public PatchSubmodule {
+		/**
+		 *  Backlight registers
+		 */
+		static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
+		static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
+		static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
+		
+		/**
+		 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
+		 */
+		static constexpr uint32_t FallbackTargetBacklightFrequency = 120000;
+		
+		/**
+		 *  [Common] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
+		 *  Can be specified via max-backlight-freq property.
+		 */
+		uint32_t targetBacklightFrequency {};
+		
+		/**
+		 *  [KBL] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
+		 */
+		uint32_t targetPwmControl {};
+		
+		/**
+		 *  [CFL, ICL] Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
+		 */
+		uint32_t driverBacklightFrequency {};
+		
+		/**
+		 *  [KBL] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
+		 */
+		static void wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [KBL] Wrapper to fix the value of BXT_BLC_PWM_CTL1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_CTL1`.
+		 */
+		static void wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [CFL, ICL] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
+		 */
+		static void wrapCFLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [CFL, ICL] Wrapper to fix the value of BXT_BLC_PWM_DUTY1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_DUTY1`.
+		 */
+		static void wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [KBL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 */
+		MMIOWriteInjectionDescriptor dKBLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapKBLWriteRegisterPWMFreq1};
+		
+		/**
+		 *  [KBL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
+		 */
+		MMIOWriteInjectionDescriptor dKBLPWMCtrl1 {BXT_BLC_PWM_CTL1 , wrapKBLWriteRegisterPWMCtrl1};
+		
+		/**
+		 *  [CFL, ICL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 */
+		MMIOWriteInjectionDescriptor dCFLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapCFLWriteRegisterPWMFreq1};
+		
+		/**
+		 *  [CFL, ICL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_DUTY1
+		 */
+		MMIOWriteInjectionDescriptor dCFLPWMDuty1 {BXT_BLC_PWM_DUTY1, wrapCFLWriteRegisterPWMDuty1};
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBacklightRegistersFix;
+	
+	/**
 	 *	A collection of submodules
 	 */
 	PatchSubmodule *submodules[6] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix, &modLSPCONDriverSupport, &modAdvancedI2COverAUXSupport };
