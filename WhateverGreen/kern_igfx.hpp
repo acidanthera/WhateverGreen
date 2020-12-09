@@ -297,12 +297,6 @@ private:
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
 
 	/**
-	 *  Set to true if read descriptor patch should be enabled
-	 */
-	// TODO: DEPRECATED
-	bool readDescriptorPatch {false};
-
-	/**
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
@@ -1638,12 +1632,6 @@ private:
 			return false;
 		}
 	};
-
-	/**
-	 *  Global page table read wrapper for Kaby Lake.
-	 */
-	// TODO: DEPRECATED
-	static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
 
 	/**
 	 *  copyExistingServices wrapper used to rename Gen6Accelerator from userspace calls

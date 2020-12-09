@@ -229,10 +229,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
 
-		// TODO: DEPRECATED
-		// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
-		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
-
 		// Automatically enable HDMI -> DP patches
 		bool nohdmi = info->videoBuiltin->getProperty("disable-hdmi-patches") != nullptr;
 		hdmiAutopatch = !applyFramebufferPatch && !connectorLessFrame && getKernelVersion() >= Yosemite &&
@@ -272,8 +268,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (fwLoadMode != FW_APPLE)
 				return true;
-			if (readDescriptorPatch)
-				return true;
 			if (disableAccel)
 				return true;
 			return false;
@@ -312,12 +306,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 			if (fwLoadMode == FW_GENERIC && getKernelVersion() <= KernelVersion::Mojave)
 				loadIGScheduler4Patches(patcher, index, address, size);
-		}
-
-		// TODO: DEPRECATED
-		if (readDescriptorPatch) {
-			KernelPatcher::RouteRequest request("__ZNK25IGHardwareGlobalPageTable4readEyRyS0_", globalPageTableRead);
-			patcher.routeMultiple(index, &request, 1, address, size);
 		}
 		
 		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
