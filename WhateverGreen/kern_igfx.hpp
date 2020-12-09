@@ -233,12 +233,6 @@ private:
 	mach_vm_address_t orgPavpSessionCallback {};
 
 	/**
-	 *  Original AppleIntelFramebufferController::ComputeLaneCount function used for DP lane count calculation
-	 */
-	// TODO: DEPRECATED
-	mach_vm_address_t orgComputeLaneCount {};
-
-	/**
 	 *  Original IOService::copyExistingServices function from the kernel
 	 */
 	mach_vm_address_t orgCopyExistingServices {};
@@ -289,12 +283,6 @@ private:
 	 */
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-
-	/**
-	 *  Set to true if a black screen ComputeLaneCount patch is required
-	 */
-	// TODO: DEPRECATED
-	bool blackScreenPatch {false};
 
 	/**
 	 *  Coffee Lake backlight patch configuration options
@@ -1327,12 +1315,14 @@ private:
 		bool (*orgComputeLaneCountNouveau)(void *, void *, int, int *) {nullptr};
 		
 		/**
-		 *  [Legacy] A wrapper to report a working lane count for HDMI connections
+		 *  [Legacy] A wrapper to report a working lane count for HDMI/DVI connections
 		 */
 		static bool wrapComputeLaneCount(void *controller, void *detailedTiming, uint32_t bpp, int availableLanes, int *laneCount);
 		
 		/**
-		 *  [Legacy] A wrapper to report a working lane count for HDMI connections
+		 *  [Nouveau] A wrapper to report a working lane count for HDMI/DVI connections
+		 *
+		 *  @note Available on KBL+ and as of macOS 10.14.1.
 		 */
 		static bool wrapComputeLaneCountNouveau(void *controller, void *detailedTiming, int availableLanes, int *laneCount);
 		
@@ -1630,16 +1620,6 @@ private:
 	 *  Global page table read wrapper for Kaby Lake.
 	 */
 	static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
-
-	/**
-	 *  DP ComputeLaneCount wrapper to report success on non-DP screens to avoid black screen
-	 */
-	static bool wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t availableLanes, int32_t *laneCount);
-
-	/**
-	 *  DP ComputeLaneCount wrapper to report success on non-DP screens to avoid black screen (10.14.1+ KBL/CFL version)
-	 */
-	static bool wrapComputeLaneCountNouveau(void *that, void *timing, int32_t availableLanes, int32_t *laneCount);
 
 	/**
 	 *  copyExistingServices wrapper used to rename Gen6Accelerator from userspace calls

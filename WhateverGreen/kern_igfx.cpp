@@ -221,14 +221,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
-		// TODO:DEPRECATED
-		// Black screen (ComputeLaneCount) happened from 10.12.4
-		// It only affects SKL, KBL, and CFL drivers with a frame with connectors.
-		if (!connectorLessFrame && cpuGeneration >= CPUInfo::CpuGeneration::Skylake &&
-			((getKernelVersion() == KernelVersion::Sierra && getKernelMinorVersion() >= 5) || getKernelVersion() >= KernelVersion::HighSierra)) {
-			blackScreenPatch = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
-		}
-
 		// PAVP patch is only necessary when we have no discrete GPU.
 		int pavpMode = connectorLessFrame || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
 		if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
@@ -267,8 +259,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		
 		// Ideally, we could get rid of these two lambda expressions
 		auto requiresFramebufferPatches = [this]() {
-			if (blackScreenPatch)
-				return true;
 			if (applyFramebufferPatch || hdmiAutopatch)
 				return true;
 			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
@@ -440,22 +430,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 		if (debugFramebuffer)
 			loadFramebufferDebug(patcher, index, address, size);
-
-		// TODO: DEPRECATED
-		if (blackScreenPatch) {
-			bool foundSymbol = false;
-
-			// Currently it is 10.14.1 and Kaby+...
-			if (getKernelVersion() >= KernelVersion::Mojave && cpuGeneration >= CPUInfo::CpuGeneration::KabyLake) {
-				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jPj", wrapComputeLaneCountNouveau, orgComputeLaneCount);
-				foundSymbol = patcher.routeMultiple(index, &request, 1, address, size);
-			}
-
-			if (!foundSymbol) {
-				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj", wrapComputeLaneCount, orgComputeLaneCount);
-				patcher.routeMultiple(index, &request, 1, address, size);
-			}
-		}
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
 			framebufferStart = reinterpret_cast<uint8_t *>(address);
@@ -988,44 +962,6 @@ bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, 
 	return (flags & 3U) != 0;
 }
 
-// TODO: DEPRECATED
-bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t availableLanes, int32_t *laneCount) {
-	DBGLOG("igfx", "computeLaneCount: bpp = %u, available = %d", bpp, availableLanes);
-
-	// It seems that AGDP fails to properly detect external boot monitors. As a result computeLaneCount
-	// is mistakengly called for any boot monitor (e.g. HDMI/DVI), while it is only meant to be used for
-	// DP (eDP) displays. More details could be found at:
-	// https://github.com/vit9696/Lilu/issues/27#issuecomment-372103559
-	// Since the only problematic function is AppleIntelFramebuffer::validateDetailedTiming, there are
-	// multiple ways to workaround it.
-	// 1. In 10.13.4 Apple added an additional extended timing validation call, which happened to be
-	// guardded by a HDMI 2.0 enable boot-arg, which resulted in one bug fixing the other, and 10.13.5
-	// broke it again.
-	// 2. Another good way is to intercept AppleIntelFramebufferController::RegisterAGDCCallback and
-	// make sure AppleGraphicsDevicePolicy::_VendorEventHandler returns mode 2 (not 0) for event 10.
-	// 3. Disabling AGDC by nopping AppleIntelFramebufferController::RegisterAGDCCallback is also fine.
-	// Simply returning true from computeLaneCount and letting 0 to be compared against zero so far was
-	// least destructive and most reliable. Let's stick with it until we could solve more problems.
-	bool r = FunctionCast(wrapComputeLaneCount, callbackIGFX->orgComputeLaneCount)(that, timing, bpp, availableLanes, laneCount);
-	if (!r && *laneCount == 0) {
-		DBGLOG("igfx", "reporting worked lane count (legacy)");
-		r = true;
-	}
-
-	return r;
-}
-
-// TODO: DEPRECATED
-bool IGFX::wrapComputeLaneCountNouveau(void *that, void *timing, int32_t availableLanes, int32_t *laneCount) {
-	bool r = FunctionCast(wrapComputeLaneCountNouveau, callbackIGFX->orgComputeLaneCount)(that, timing, availableLanes, laneCount);
-	if (!r && *laneCount == 0) {
-		DBGLOG("igfx", "reporting worked lane count (nouveau)");
-		r = true;
-	}
-
-	return r;
-}
-
 OSObject *IGFX::wrapCopyExistingServices(OSDictionary *matching, IOOptionBits inState, IOOptionBits options) {
 	if (matching && inState == kIOServiceMatchedState && options == 0) {
 		auto name = OSDynamicCast(OSString, matching->getObject(gIONameMatchKey));
@@ -1131,18 +1067,6 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	}
 
 	return ret;
-}
-
-/**
- * Apparently, platforms with (ig-platform-id & 0xf != 0) have only Type C connectivity.
- * Framebuffer kext uses this fact to sanitise connector type, forcing it to DP.
- * This breaks many systems, so we undo this check.
- * Affected drivers: KBL and newer?
- */
-// TODO: DEPRECATED
-uint64_t IGFX::wrapIsTypeCOnlySystem(void*) {
-	DBGLOG("igfx", "Forcing IsTypeCOnlySystem 0");
-	return 0;
 }
 
 void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {
