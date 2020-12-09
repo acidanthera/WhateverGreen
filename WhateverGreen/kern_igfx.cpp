@@ -102,7 +102,7 @@ void IGFX::init() {
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
 			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
-			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
+			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
@@ -111,7 +111,7 @@ void IGFX::init() {
 			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
 			modForceWakeWorkaround.enabled = true;
-			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
+			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -125,14 +125,14 @@ void IGFX::init() {
 			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
 			modForceWakeWorkaround.enabled = true;
-			disableTypeCCheck = true;
+			modTypeCCheckDisabler.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
 			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
-			disableTypeCCheck = true;
+			modTypeCCheckDisabler.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			supportsGuCFirmware = true;
@@ -153,7 +153,7 @@ void IGFX::init() {
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
 			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
-			disableTypeCCheck = true;
+			modTypeCCheckDisabler.enabled = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -206,9 +206,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			submodule->processKernel(patcher, info);
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
-		
-		// TODO: DEPRECATED
-		disableTypeCCheck &= !checkKernelArgument("-igfxtypec");
 
 		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
 		int bkl = 0;
@@ -224,6 +221,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
+		// TODO:DEPRECATED
 		// Black screen (ComputeLaneCount) happened from 10.12.4
 		// It only affects SKL, KBL, and CFL drivers with a frame with connectors.
 		if (!connectorLessFrame && cpuGeneration >= CPUInfo::CpuGeneration::Skylake &&
@@ -276,8 +274,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
 				return true;
 			if (cflBacklightPatch != CoffeeBacklightPatch::Off)
-				return true;
-			if (disableTypeCCheck)
 				return true;
 			return false;
 		};
@@ -441,18 +437,11 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		for (auto submodule : submodules)
 			if (submodule->enabled)
 				submodule->processFramebufferKext(patcher, index, address, size);
-		
-		// TODO: PORT
-		if (disableTypeCCheck && (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur)) {
-			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
-			if (!patcher.routeMultiple(index, &req, 1, address, size))
-				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
-		}
 
 		if (debugFramebuffer)
 			loadFramebufferDebug(patcher, index, address, size);
 
-		// TODO: PORT
+		// TODO: DEPRECATED
 		if (blackScreenPatch) {
 			bool foundSymbol = false;
 
@@ -918,6 +907,7 @@ bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, 
 	return (flags & 3U) != 0;
 }
 
+// TODO: DEPRECATED
 bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t availableLanes, int32_t *laneCount) {
 	DBGLOG("igfx", "computeLaneCount: bpp = %u, available = %d", bpp, availableLanes);
 
@@ -944,6 +934,7 @@ bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t 
 	return r;
 }
 
+// TODO: DEPRECATED
 bool IGFX::wrapComputeLaneCountNouveau(void *that, void *timing, int32_t availableLanes, int32_t *laneCount) {
 	bool r = FunctionCast(wrapComputeLaneCountNouveau, callbackIGFX->orgComputeLaneCount)(that, timing, availableLanes, laneCount);
 	if (!r && *laneCount == 0) {
