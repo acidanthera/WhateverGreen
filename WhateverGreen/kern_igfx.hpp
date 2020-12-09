@@ -1282,7 +1282,7 @@ private:
 	public:
 		// MARK: Patch Submodule IMP
 		void init() override;
-		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modForceWakeWorkaround;
 	
 	/**

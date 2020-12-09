@@ -306,8 +306,8 @@ void IGFX::ForceWakeWorkaround::forceWake(void*, uint8_t set, uint32_t dom, uint
 }
 
 void IGFX::ForceWakeWorkaround::init() {
-	// We only need to patch the framebuffer driver
-	requiresPatchingFramebuffer = true;
+	// We only need to patch the acceleration driver
+	requiresPatchingGraphics = true;
 	
 	// Requires access to global framebuffer controllers
 	requiresGlobalFramebufferControllersAccess = true;
@@ -317,7 +317,7 @@ void IGFX::ForceWakeWorkaround::init() {
 	requiresMMIORegistersWriteAccess = true;
 }
 
-void IGFX::ForceWakeWorkaround::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+void IGFX::ForceWakeWorkaround::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	KernelPatcher::RouteRequest request = {
 		"__ZN16IntelAccelerator26SafeForceWakeMultithreadedEbjj",
 		forceWake
