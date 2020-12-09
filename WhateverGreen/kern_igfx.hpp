@@ -145,6 +145,7 @@ private:
 	/**
 	 *  Backlight registers
 	 */
+	// TODO: DEPRECATED
 	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
 	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
 	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
@@ -270,18 +271,21 @@ private:
 	/**
 	 *  Original AppleIntelFramebufferController::ReadRegister32 function
 	 */
+	// TODO: DEPRECATED
 	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
 	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
 
 	/**
 	 *  Original AppleIntelFramebufferController::WriteRegister32 function
 	 */
+	// TODO: DEPRECATED
 	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
 
 	/**
 	 *  Coffee Lake backlight patch configuration options
 	 */
+	// TODO: DEPRECATED REMOVED
 	enum class CoffeeBacklightPatch {
 		Auto = -1,
 		On = 1,
@@ -294,6 +298,7 @@ private:
 	 *  - IGPU property enable-cfl-backlight-fix turns patch on
 	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
 	 */
+	// TODO: DEPRECATED REMOVED
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
 
 	/**
@@ -341,6 +346,7 @@ private:
 	 */
 	bool debugFramebuffer {false};
 	
+	// TODO: DEPRECATED
 	// NOTE: the MMIO space is also available at RC6_RegBase
 	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
 	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
@@ -352,6 +358,10 @@ private:
 	// Apple has refactored quite a large amount of code into a new class `AppleIntelPort` in the ICL graphics driver,
 	// and the framebuffer controller now maintains an array of `ports`.
 	class AppleIntelPort;
+	
+	//
+	// MARK: - Patch Submodule & Injection Kits
+	//
 	
 	/**
 	 *  Describes how to inject code into a shared submodule
@@ -575,6 +585,188 @@ private:
 		 */
 		virtual void disableDependentSubmodules() {}
 	};
+	
+	//
+	// MARK: - Shared Submodules
+	//
+	
+	/**
+	 *  A submodule to provide shared access to global framebuffer controllers
+	 */
+	class FramebufferControllerAccessSupport: public PatchSubmodule {
+		/**
+		 *  An array of framebuffer controllers populated by `AppleIntelFramebufferController::start()`
+		 */
+		AppleIntelFramebufferController **controllers {};
+		
+	public:
+		/**
+		 *  Get the framebuffer controller at the given index
+		 */
+		AppleIntelFramebufferController *getController(size_t index) { return controllers[index]; }
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void disableDependentSubmodules() override;
+	} modFramebufferControllerAccessSupport;
+	
+	/**
+	 *  Defines the prologue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and returns void.
+	 *  @note The injection is performed before the original function is invoked.
+	 */
+	struct MMIOReadPrologue: InjectionDescriptor<uint32_t, void (*)(void *, uint32_t), MMIOReadPrologue> {
+		/**
+		 *  Inherits the constructor from the super class
+		 */
+		using InjectionDescriptor::InjectionDescriptor;
+	};
+	
+	/**
+	 *  Defines the replacer injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and returns the register value.
+	 *  @note The injection replaced the original function call.
+	 */
+	struct MMIOReadReplacer: InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t), MMIOReadReplacer> {
+		/**
+		 *  Inherits the constructor from the super class
+		 */
+		using InjectionDescriptor::InjectionDescriptor;
+	};
+	
+	/**
+	 *  Defines the epilogue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and its value, and returns the new value.
+	 *  @note The injection is performed after the original function is invoked.
+	 */
+	struct MMIOReadEpilogue: InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t, uint32_t), MMIOReadEpilogue> {
+		/**
+		 *  Inherits the constructor from the super class
+		 */
+		using InjectionDescriptor::InjectionDescriptor;
+	};
+	
+	/**
+	 *  A submodule that provides read access to MMIO registers and coordinates injections to the read function
+	 */
+	class MMIORegistersReadSupport: public PatchSubmodule, public InjectionCoordinator<MMIOReadPrologue, MMIOReadReplacer, MMIOReadEpilogue> {
+		/**
+		 *  Set to `true` to print detailed register access information
+		 */
+		bool verbose;
+		
+	public:
+		/**
+		 *  Original AppleIntelFramebufferController::ReadRegister32 function
+		 *
+		 *  @note Other submodules may use this function pointer to skip injected code.
+		 */
+		uint32_t (*orgReadRegister32)(void *, uint32_t) {nullptr};
+		
+		/**
+		 *  Wrapper for the AppleIntelFramebufferController::ReadRegister32 function
+		 *
+		 *  @param controller The implicit controller instance
+		 *  @param address The register address
+		 *  @return The register value.
+		 *  @note This wrapper function monitors the register address and invokes registered injectors.
+		 */
+		static uint32_t wrapReadRegister32(void *controller, uint32_t address);
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void disableDependentSubmodules() override;
+	} modMMIORegistersReadSupport;
+	
+	/**
+	 *  Defines the injection descriptor for `AppleIntelFramebufferController::WriteRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and its new value, and returns void.
+	 *  @note This type is shared by all three kinds of injection descriptors.
+	 */
+	struct MMIOWriteInjectionDescriptor: InjectionDescriptor<uint32_t, void (*)(void *, uint32_t, uint32_t), MMIOWriteInjectionDescriptor> {
+		/**
+		 *  Inherits the constructor from the super class
+		 */
+		using InjectionDescriptor::InjectionDescriptor;
+	};
+	
+	/**
+	 *  A submodule that provides write access to MMIO registers and coordinates injections to the write function
+	 */
+	class MMIORegistersWriteSupport: public PatchSubmodule, public InjectionCoordinator<MMIOWriteInjectionDescriptor, MMIOWriteInjectionDescriptor, MMIOWriteInjectionDescriptor> {
+		/**
+		 *  Set to `true` to print detailed register access information
+		 */
+		bool verbose;
+		
+	public:
+		/**
+		 *  Original AppleIntelFramebufferController::WriteRegister32 function
+		 *
+		 *  @note Other submodules may use this function pointer to skip injected code.
+		 */
+		void (*orgWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+		
+		/**
+		 *  Wrapper for the AppleIntelFramebufferController::WriteRegister32 function
+		 *
+		 *  @param controller The implicit controller instance
+		 *  @param address The register address
+		 *  @param value The new register value
+		 *  @note This wrapper function monitors the register address and invokes registered injectors.
+		 */
+		static void wrapWriteRegister32(void *controller, uint32_t address, uint32_t value);
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void disableDependentSubmodules() override;
+	} modMMIORegistersWriteSupport;
+	
+	/**
+	 *  [Convenient] Get the default framebuffer controller
+	 */
+	AppleIntelFramebufferController *defaultController() {
+		return modFramebufferControllerAccessSupport.getController(0);
+	}
+	
+	/**
+	 *  [Convenient] Invoke the original AppleIntelFramebufferController::ReadRegister32 function
+	 *
+	 *  @param controller The framebuffer controller instance
+	 *  @param address The register address
+	 *  @return The register value.
+	 */
+	uint32_t readRegister32(void *controller, uint32_t address) {
+		return modMMIORegistersReadSupport.orgReadRegister32(controller, address);
+	}
+	
+	/**
+	 *  [Convenient] Invoke the original AppleIntelFramebufferController::WriteRegister32 function
+	 *
+	 *  @param controller The framebuffer controller instance
+	 *  @param address The register address
+	 *  @param value The new register value
+	 */
+	void writeRegister32(void *controller, uint32_t address, uint32_t value) {
+		modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
+	}
+	
+	//
+	// MARK: - Individual Fixes
+	//
 	
 	/**
 	 *  A submodule to fix the calculation of DVMT preallocated memory on ICL+ platforms
@@ -1355,164 +1547,6 @@ private:
 		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modReadDescriptorPatch;
 	
-	//
-	// MARK: Shared Submodules
-	//
-	
-	/**
-	 *  A submodule to provide shared access to global framebuffer controllers
-	 */
-	class FramebufferControllerAccessSupport: public PatchSubmodule {
-		/**
-		 *  An array of framebuffer controllers populated by `AppleIntelFramebufferController::start()`
-		 */
-		AppleIntelFramebufferController **controllers {};
-		
-	public:
-		/**
-		 *  Get the framebuffer controller at the given index
-		 */
-		AppleIntelFramebufferController *getController(size_t index) { return controllers[index]; }
-		
-		// MARK: Patch Submodule IMP
-		void init() override;
-		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
-		void disableDependentSubmodules() override;
-	} modFramebufferControllerAccessSupport;
-	
-	/**
-	 *  Defines the prologue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
-	 *
-	 *  @note The trigger is the register address.
-	 *  @note The injector function takes the controller along with the register address and returns void.
-	 *  @note The injection is performed before the original function is invoked.
-	 */
-	struct MMIOReadPrologue: InjectionDescriptor<uint32_t, void (*)(void *, uint32_t), MMIOReadPrologue> {};
-	
-	/**
-	 *  Defines the replacer injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
-	 *
-	 *  @note The trigger is the register address.
-	 *  @note The injector function takes the controller along with the register address and returns the register value.
-	 *  @note The injection replaced the original function call.
-	 */
-	struct MMIOReadReplacer: InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t), MMIOReadReplacer> {};
-	
-	/**
-	 *  Defines the epilogue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
-	 *
-	 *  @note The trigger is the register address.
-	 *  @note The injector function takes the controller along with the register address and its value, and returns the new value.
-	 *  @note The injection is performed after the original function is invoked.
-	 */
-	struct MMIOReadEpilogue: InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t, uint32_t), MMIOReadEpilogue> {};
-	
-	/**
-	 *  A submodule that provides read access to MMIO registers and coordinates injections to the read function
-	 */
-	class MMIORegistersReadSupport: public PatchSubmodule, public InjectionCoordinator<MMIOReadPrologue, MMIOReadReplacer, MMIOReadEpilogue> {
-		/**
-		 *  Set to `true` to print detailed register access information
-		 */
-		bool verbose;
-		
-	public:
-		/**
-		 *  Original AppleIntelFramebufferController::ReadRegister32 function
-		 *
-		 *  @note Other submodules may use this function pointer to skip injected code.
-		 */
-		uint32_t (*orgReadRegister32)(void *, uint32_t) {nullptr};
-		
-		/**
-		 *  Wrapper for the AppleIntelFramebufferController::ReadRegister32 function
-		 *
-		 *  @param controller The implicit controller instance
-		 *  @param address The register address
-		 *  @return The register value.
-		 *  @note This wrapper function monitors the register address and invokes registered injectors.
-		 */
-		static uint32_t wrapReadRegister32(void *controller, uint32_t address);
-		
-		// MARK: Patch Submodule IMP
-		void init() override;
-		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
-		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
-		void disableDependentSubmodules() override;
-	} modMMIORegistersReadSupport;
-	
-	/**
-	 *  Defines the injection descriptor for `AppleIntelFramebufferController::WriteRegister32()`
-	 *
-	 *  @note The trigger is the register address.
-	 *  @note The injector function takes the controller along with the register address and its new value, and returns void.
-	 *  @note This type is shared by all three kinds of injection descriptors.
-	 */
-	struct MMIOWriteInjectionDescriptor: InjectionDescriptor<uint32_t, void (*)(void *, uint32_t, uint32_t), MMIOWriteInjectionDescriptor> {};
-	
-	/**
-	 *  A submodule that provides write access to MMIO registers and coordinates injections to the write function
-	 */
-	class MMIORegistersWriteSupport: public PatchSubmodule, public InjectionCoordinator<MMIOWriteInjectionDescriptor, MMIOWriteInjectionDescriptor, MMIOWriteInjectionDescriptor> {
-		/**
-		 *  Set to `true` to print detailed register access information
-		 */
-		bool verbose;
-		
-	public:
-		/**
-		 *  Original AppleIntelFramebufferController::WriteRegister32 function
-		 *
-		 *  @note Other submodules may use this function pointer to skip injected code.
-		 */
-		void (*orgWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-		
-		/**
-		 *  Wrapper for the AppleIntelFramebufferController::WriteRegister32 function
-		 *
-		 *  @param controller The implicit controller instance
-		 *  @param address The register address
-		 *  @param value The new register value
-		 *  @note This wrapper function monitors the register address and invokes registered injectors.
-		 */
-		static void wrapWriteRegister32(void *controller, uint32_t address, uint32_t value);
-		
-		// MARK: Patch Submodule IMP
-		void init() override;
-		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
-		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
-		void disableDependentSubmodules() override;
-	} modMMIORegistersWriteSupport;
-	
-	/**
-	 *  [Convenient] Get the default framebuffer controller
-	 */
-	AppleIntelFramebufferController *defaultController() {
-		return modFramebufferControllerAccessSupport.getController(0);
-	}
-	
-	/**
-	 *  [Convenient] Invoke the original AppleIntelFramebufferController::ReadRegister32 function
-	 *
-	 *  @param controller The framebuffer controller instance
-	 *  @param address The register address
-	 *  @return The register value.
-	 */
-	uint32_t readRegister32(void *controller, uint32_t address) {
-		return modMMIORegistersReadSupport.orgReadRegister32(controller, address);
-	}
-	
-	/**
-	 *  [Convenient] Invoke the original AppleIntelFramebufferController::WriteRegister32 function
-	 *
-	 *  @param controller The framebuffer controller instance
-	 *  @param address The register address
-	 *  @param value The new register value
-	 */
-	void writeRegister32(void *controller, uint32_t address, uint32_t value) {
-		modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
-	}
-	
 	/**
 	 *	A collection of submodules
 	 */
@@ -1586,27 +1620,32 @@ private:
 	/**
 	 *  Store backlight level
 	 */
-	uint32_t backlightLevel {};
+	// TODO: UNUSED
+	uint32_t backlightLevel {}; // Unused
 
 	/**
 	 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
 	 */
+	// TODO: DEPRECATED
 	static constexpr uint32_t FallbackTargetBacklightFrequency {120000};
 
 	/**
 	 *  User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
 	 *  Can be specified via max-backlight-freq property.
 	 */
+	// TODO: DEPRECATED
 	uint32_t targetBacklightFrequency {};
 
 	/**
 	 *  User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
 	 */
+	// TODO: DEPRECATED
 	uint32_t targetPwmControl {};
 
 	/**
 	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 	 */
+	// TODO: DEPRECATED
 	uint32_t driverBacklightFrequency {};
 
 	/**
