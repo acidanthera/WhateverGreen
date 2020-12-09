@@ -189,7 +189,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #ifdef DEBUG
 		dumpFramebufferToDisk = checkKernelArgument("-igfxdump");
 		dumpPlatformTable = checkKernelArgument("-igfxfbdump");
-		debugFramebuffer = checkKernelArgument("-igfxfbdbg"); // TODO: DEPRECATED
 #endif
 
 		if (supportsGuCFirmware && getKernelVersion() >= KernelVersion::HighSierra) {
@@ -240,7 +239,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		auto requiresFramebufferPatches = [this]() {
 			if (applyFramebufferPatch || hdmiAutopatch)
 				return true;
-			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
+			if (dumpFramebufferToDisk || dumpPlatformTable)
 				return true;
 			return false;
 		};
@@ -309,9 +308,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		for (auto submodule : submodules)
 			if (submodule->enabled)
 				submodule->processFramebufferKext(patcher, index, address, size);
-
-		if (debugFramebuffer)
-			loadFramebufferDebug(patcher, index, address, size);
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
 			framebufferStart = reinterpret_cast<uint8_t *>(address);

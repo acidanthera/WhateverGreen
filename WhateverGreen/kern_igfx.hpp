@@ -300,12 +300,6 @@ private:
 	 */
 	bool dumpFramebufferToDisk {false};
 
-	/**
-	 *  Trace framebuffer logic
-	 */
-	// TODO: DEPRECATED
-	bool debugFramebuffer {false};
-
 	// The opaque framebuffer controller type on BDW+
 	class AppleIntelFramebufferController;
 	
