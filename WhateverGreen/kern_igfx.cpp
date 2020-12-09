@@ -64,6 +64,8 @@ void IGFX::init() {
 	// Initialize each submodule
 	for (auto submodule : submodules)
 		submodule->init();
+	for (auto submodule : sharedSubmodules)
+		submodule->init();
 	auto &bdi = BaseDeviceInfo::get();
 	auto generation = bdi.cpuGeneration;
 	auto family = bdi.cpuFamily;
@@ -174,6 +176,8 @@ void IGFX::deinit() {
 	// Deinitialize each submodule
 	for (auto submodule : submodules)
 		submodule->deinit();
+	for (auto submodule : sharedSubmodules)
+		submodule->deinit();
 }
 
 void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
@@ -200,10 +204,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			fwLoadMode = FW_APPLE; /* Do nothing, GuC is either unsupported due to low OS or Apple */
 		}
 		
-		// Iterate through each submodule and redirect the request
-		for (auto submodule : submodules)
-			submodule->processKernel(patcher, info);
-		
 		disableAccel = checkKernelArgument("-igfxvesa");
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
@@ -226,6 +226,16 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			uint8_t dualLinkBytes[] { 0x00, 0x00, 0x00, 0x00 };
 			info->videoBuiltin->setProperty("AAPL00,DualLink", dualLinkBytes, sizeof(dualLinkBytes));
 		}
+		
+		// Note that the order does matter
+		// We first iterate through each submodule and redirect the request
+		for (auto submodule : submodules)
+			submodule->processKernel(patcher, info);
+		
+		// Then process shared submodules
+		// A shared submodule will disable itself if no active submodule depends on it
+		for (auto submodule : sharedSubmodules)
+			submodule->processKernel(patcher, info);
 		
 		// Iterate through each submodule and see if we need to patch the graphics and the framebuffer kext
 		auto submodulesRequiresFramebufferPatch = false;
@@ -293,7 +303,15 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				loadIGScheduler4Patches(patcher, index, address, size);
 		}
 		
-		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
+		// Note that the order is reversed at this stage
+		// We first process shared submodules
+		// If a shared submodule fails to process the acceleration driver,
+		// all subdmoules that depend on it will be disabled automatically.
+		for (auto submodule : sharedSubmodules)
+			if (submodule->enabled)
+				submodule->processGraphicsKext(patcher, index, address, size);
+		
+		// Then iterate through each submodule and redirect the request if and only if it is enabled
 		for (auto submodule : submodules)
 			if (submodule->enabled)
 				submodule->processGraphicsKext(patcher, index, address, size);
@@ -304,7 +322,15 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
 		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
 		
-		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
+		// Note that the order is reversed at this stage
+		// We first process shared submodules
+		// If a shared submodule fails to process the framebuffer driver,
+		// all subdmoules that depend on it will be disabled automatically.
+		for (auto submodule : sharedSubmodules)
+			if (submodule->enabled)
+				submodule->processFramebufferKext(patcher, index, address, size);
+		
+		// Then iterate through each submodule and redirect the request if and only if it is enabled
 		for (auto submodule : submodules)
 			if (submodule->enabled)
 				submodule->processFramebufferKext(patcher, index, address, size);
