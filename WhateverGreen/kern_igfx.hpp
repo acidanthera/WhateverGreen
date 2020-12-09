@@ -228,11 +228,6 @@ private:
 	KernelPatcher::KextInfo *currentFramebufferOpt {nullptr};
 
 	/**
-	 *  Original PAVP session callback function used for PAVP command handling
-	 */
-	mach_vm_address_t orgPavpSessionCallback {};
-
-	/**
 	 *  Original IOService::copyExistingServices function from the kernel
 	 */
 	mach_vm_address_t orgCopyExistingServices {};
@@ -300,11 +295,6 @@ private:
 	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
 	 */
 	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
-
-	/**
-	 *  Set to true if PAVP code should be disabled
-	 */
-	bool pavpDisablePatch {false};
 
 	/**
 	 *  Set to true if read descriptor patch should be enabled
@@ -1333,6 +1323,27 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modBlackScreenFix;
 	
+	/**
+	 *  A submodule to disable PAVP code and thus prevent freezes
+	 */
+	class PAVPDisabler: public PatchSubmodule {
+		/**
+		 *  Original PAVP session callback function used for PAVP command handling
+		 */
+		IOReturn (*orgPavpSessionCallback)(void *, int32_t, uint32_t, uint32_t *, bool) {nullptr};
+		
+		/**
+		 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
+		 */
+		static IOReturn wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modPAVPDisabler;
+	
 	//
 	// MARK: Shared Submodules
 	//
@@ -1610,11 +1621,6 @@ private:
 			return false;
 		}
 	};
-	
-	/**
-	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
-	 */
-	static IOReturn wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag);
 
 	/**
 	 *  Global page table read wrapper for Kaby Lake.

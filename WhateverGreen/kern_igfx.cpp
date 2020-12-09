@@ -221,12 +221,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
-		// PAVP patch is only necessary when we have no discrete GPU.
-		int pavpMode = connectorLessFrame || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
-		if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
-			WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
-		pavpDisablePatch = pavpMode == 0 && cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge;
-
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
 		forceOpenGL = gl == 1;
@@ -269,8 +263,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		};
 
 		auto requiresGraphicsPatches = [this]() {
-			if (pavpDisablePatch)
-				return true;
 			if (forceOpenGL)
 				return true;
 			if (forceMetal)
@@ -313,17 +305,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	if (currentGraphics && currentGraphics->loadIndex == index) {
-		if (pavpDisablePatch) {
-			auto callbackSym = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_tjPjb";
-			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
-				callbackSym = "__ZN15Gen6Accelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
-			else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
-				callbackSym = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
-
-			KernelPatcher::RouteRequest request(callbackSym, wrapPavpSessionCallback, orgPavpSessionCallback);
-			patcher.routeMultiple(index, &request, 1, address, size);
-		}
-
 		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
 			KernelPatcher::RouteRequest request("__ZN16IntelAccelerator5startEP9IOService", wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
@@ -895,18 +876,58 @@ bool IGFX::BlackScreenFix::wrapComputeLaneCountNouveau(void *controller, void *d
 	return r;
 }
 
-// MARK: - TODO
+// MARK: - PAVP Disabler
 
-IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
+void IGFX::PAVPDisabler::init() {
+	// We only need to patch the accelerator driver
+	requiresPatchingGraphics = true;
+}
+
+void IGFX::PAVPDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	int pavpMode = info->reportedFramebufferIsConnectorLess || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
+	if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
+		WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
+	enabled = pavpMode == 0 && BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge;
+}
+
+void IGFX::PAVPDisabler::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	const char* symbol;
+	switch (BaseDeviceInfo::get().cpuGeneration) {
+		case CPUInfo::CpuGeneration::SandyBridge:
+			symbol = "__ZN15Gen6Accelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
+			break;
+			
+		case CPUInfo::CpuGeneration::IvyBridge:
+			symbol = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
+			break;
+			
+		default:
+			symbol = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_tjPjb";
+			break;
+	}
+
+	KernelPatcher::RouteRequest request = {
+		symbol,
+		wrapPavpSessionCallback,
+		orgPavpSessionCallback
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "PAVP: Failed to route the function PAVPCommandCallback.");
+}
+
+IOReturn IGFX::PAVPDisabler::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
 	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
 
 	if (sessionCommand == 4) {
-		DBGLOG("igfx", "pavpSessionCallback: enforcing error on cmd 4 (send to ring?)!");
+		DBGLOG("igfx", "PAVP: PavpSessionCallback: Enforcing error on cmd 4 (send to ring?)!");
 		return kIOReturnTimeout; // or kIOReturnSuccess
 	}
 
-	return FunctionCast(wrapPavpSessionCallback, callbackIGFX->orgPavpSessionCallback)(intelAccelerator, sessionCommand, sessionAppId, a4, flag);
+	return callbackIGFX->modPAVPDisabler.orgPavpSessionCallback(intelAccelerator, sessionCommand, sessionAppId, a4, flag);
 }
+
+// MARK: - TODO
 
 bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, uint64_t &physAddress, uint64_t &flags) {
 	uint64_t pageNumber = address >> PAGE_SHIFT;
