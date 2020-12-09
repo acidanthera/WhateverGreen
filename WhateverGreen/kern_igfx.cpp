@@ -361,6 +361,15 @@ void IGFX::FramebufferControllerAccessSupport::init() {
 	requiresPatchingFramebuffer = true;
 }
 
+void IGFX::FramebufferControllerAccessSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable if at least one active submodule relies on this shared module
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->enabled)
+			enabled |= submodule->requiresGlobalFramebufferControllersAccess;
+	
+	DBGLOG("igfx", "FCA: Enabled = %d.", enabled);
+}
+
 void IGFX::FramebufferControllerAccessSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	KernelPatcher::SolveRequest request("_gController", controllers);
 	if (!patcher.solveMultiple(index, &request, 1, address, size)) {
@@ -385,6 +394,14 @@ void IGFX::MMIORegistersReadSupport::init() {
 void IGFX::MMIORegistersReadSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	// Enable the verbose output if the boot argument is found
 	verbose = checkKernelArgument("-igfxvamregs");
+	enabled |= verbose;
+	
+	// Enable if at least one active submodule relies on this shared module
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->enabled)
+			enabled |= submodule->requiresMMIORegistersReadAccess;
+	
+	DBGLOG("igfx", "RRS: Enabled = %d.", enabled);
 }
 
 void IGFX::MMIORegistersReadSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -447,6 +464,14 @@ void IGFX::MMIORegistersWriteSupport::init() {
 void IGFX::MMIORegistersWriteSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	// Enable the verbose output if the boot argument is found
 	verbose = checkKernelArgument("-igfxvamregs");
+	enabled |= verbose;
+	
+	// Enable if at least one active submodule relies on this shared module
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->enabled)
+			enabled |= submodule->requiresMMIORegistersWriteAccess;
+	
+	DBGLOG("igfx", "RWS: Enabled = %d.", enabled);
 }
 
 void IGFX::MMIORegistersWriteSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {

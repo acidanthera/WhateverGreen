@@ -562,6 +562,7 @@ private:
 		
 		// MARK: Patch Submodule IMP
 		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 		void disableDependentSubmodules() override;
 	} modFramebufferControllerAccessSupport;
@@ -1287,7 +1288,7 @@ private:
 	/**
 	 *  A submodule that applies patches based on the framebuffer index
 	 */
-	class FramebufferModiferV2: public PatchSubmodule {
+	class FramebufferModifer: public PatchSubmodule {
 	protected:
 		/**
 		 *  Indices of framebuffers to be patched
@@ -1326,7 +1327,7 @@ private:
 	/**
 	 *  A submodule to ensure that each modeset operation is a complete one
 	 */
-	class ForceCompleteModeset: public FramebufferModiferV2 {
+	class ForceCompleteModeset: public FramebufferModifer {
 		/**
 		 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
 		 */
@@ -1347,7 +1348,7 @@ private:
 	/**
 	 *  A submodule to ensure that each display is online
 	 */
-	class ForceOnlineDisplay: public FramebufferModiferV2 {
+	class ForceOnlineDisplay: public FramebufferModifer {
 		/**
 		 *  Original AppleIntelFramebuffer::getDisplayStatus function
 		 */
@@ -1581,9 +1582,36 @@ private:
 	} modFramebufferDebugSupport;
 	
 	/**
+	 *  A collection of shared submodules
+	 */
+	PatchSubmodule *sharedSubmodules[3] = {
+		&modFramebufferControllerAccessSupport,
+		&modMMIORegistersReadSupport,
+		&modMMIORegistersWriteSupport
+	};
+	
+	/**
 	 *	A collection of submodules
 	 */
-	PatchSubmodule *submodules[6] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix, &modLSPCONDriverSupport, &modAdvancedI2COverAUXSupport };
+	PatchSubmodule *submodules[17] = {
+		&modDVMTCalcFix,
+		&modDPCDMaxLinkRateFix,
+		&modCoreDisplayClockFix,
+		&modHDMIDividersCalcFix,
+		&modLSPCONDriverSupport,
+		&modAdvancedI2COverAUXSupport,
+		&modRPSControlPatch,
+		&modForceWakeWorkaround,
+		&modForceCompleteModeset,
+		&modForceOnlineDisplay,
+		&modAGDCDisabler,
+		&modTypeCCheckDisabler,
+		&modBlackScreenFix,
+		&modPAVPDisabler,
+		&modReadDescriptorPatch,
+		&modBacklightRegistersFix,
+		&modFramebufferDebugSupport
+	};
 	
 	/**
 	 * Prevent IntelAccelerator from starting.
