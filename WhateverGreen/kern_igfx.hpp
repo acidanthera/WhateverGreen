@@ -1485,6 +1485,8 @@ private:
 	
 	/**
 	 *  A submodule to patch backlight register values and thus avoid 3-minute black screen on KBL+
+	 *
+	 *  @note Supported Platforms: KBL, CFL, ICL.
 	 */
 	class BacklightRegistersFix: public PatchSubmodule {
 		/**
@@ -1516,50 +1518,50 @@ private:
 		uint32_t driverBacklightFrequency {};
 		
 		/**
-		 *  [KBL] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
 		 */
 		static void wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [KBL] Wrapper to fix the value of BXT_BLC_PWM_CTL1
+		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_CTL1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_CTL1`.
 		 */
 		static void wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [CFL, ICL] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *  [CFL+] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
 		 */
 		static void wrapCFLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [CFL, ICL] Wrapper to fix the value of BXT_BLC_PWM_DUTY1
+		 *  [CFL+] Wrapper to fix the value of BXT_BLC_PWM_DUTY1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_DUTY1`.
 		 */
 		static void wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [KBL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
 		 */
 		MMIOWriteInjectionDescriptor dKBLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapKBLWriteRegisterPWMFreq1};
 		
 		/**
-		 *  [KBL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
+		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
 		 */
 		MMIOWriteInjectionDescriptor dKBLPWMCtrl1 {BXT_BLC_PWM_CTL1 , wrapKBLWriteRegisterPWMCtrl1};
 		
 		/**
-		 *  [CFL, ICL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 *  [CFL+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
 		 */
 		MMIOWriteInjectionDescriptor dCFLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapCFLWriteRegisterPWMFreq1};
 		
 		/**
-		 *  [CFL, ICL] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_DUTY1
+		 *  [CFL+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_DUTY1
 		 */
 		MMIOWriteInjectionDescriptor dCFLPWMDuty1 {BXT_BLC_PWM_DUTY1, wrapCFLWriteRegisterPWMDuty1};
 		
