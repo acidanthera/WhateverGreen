@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.6
+- Backlight registers fix replaces the previous Coffee Lake backlight fix and is now available on Intel Ice Lake platforms.
+- Boot argument `igfxcflbklt=1` as well as device property `enable-cfl-backlight-fix` are deprecated and replaced by `-igfxblr` and `enable-backlight-registers-fix`.
+
 #### v1.4.5
 - Enabled loading in safe mode (mainly for AGDP fixes)
 - Resolved an issue that the maximum link rate fix is not working properly on Intel Comet Lake platforms. (Thanks @CoronaHack)
