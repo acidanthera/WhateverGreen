@@ -1593,7 +1593,7 @@ private:
 	};
 	
 	/**
-	 *	A collection of submodules
+	 *  A collection of submodules
 	 */
 	PatchSubmodule *submodules[17] = {
 		&modDVMTCalcFix,
