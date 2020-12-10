@@ -1,7 +1,7 @@
 WhateverGreen
 =============
 
-[![Build Status](https://travis-ci.com/acidanthera/WhateverGreen.svg?branch=master)](https://travis-ci.com/acidanthera/WhateverGreen) [![Scan Status](https://scan.coverity.com/projects/16177/badge.svg?flat=1)](https://scan.coverity.com/projects/16177)
+[![Build Status](https://github.com/acidanthera/WhateverGreen/workflows/CI/badge.svg?branch=master)](https://github.com/acidanthera/WhateverGreen/actions) [![Scan Status](https://scan.coverity.com/projects/16177/badge.svg?flat=1)](https://scan.coverity.com/projects/16177)
 
 [Lilu](https://github.com/acidanthera/Lilu) plugin providing patches to select GPUs on macOS. Requires Lilu 1.4.0 or newer.
 

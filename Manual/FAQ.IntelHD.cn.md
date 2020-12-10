@@ -45,6 +45,7 @@ macOS 对 HD 2000（Sandy Bridge 微架构）及以上提供了相对完整支�
 - `FixIntelGfx`
 - `AddIMEI`
 - `FixHDA`
+- `AddPNLF`
 
 6. 关闭 Clover 的 `UseIntelHDMI`
 
@@ -1598,17 +1599,7 @@ macOS High Sierra 10.13.6 的特别版本 17G2208 包含对 CFL 平台核显的�
 </details> 
 
 ## 调节笔记本亮度
-**方案一**
-启用 Clover 中名为 `AddPNLF` 的 DSDT 补丁与 `SetIntelBacklight`, `SetIntelMaxBacklight` 两项。（如图所示）
-
-无需为其赋值，Clover 会根据相应的处理器型号自动适配。
-
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/ibl.png)  
-
-**方案二**
-使用此 ACPI 表 ([SSDT-PNLF.dsl](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl) / [SSDT-PNLF.aml](https://i.applelife.ru/2019/09/457190_SSDT-PNLF.aml.zip))
-
-**两种方案不要同时使用！**
+使用此 ACPI 表 [SSDT-PNLF](https://raw.githubusercontent.com/acidanthera/WhateverGreen/master/Manual/SSDT-PNLF.dsl)
 
 ## 数字音频支持 (HDMI / DVI / DP)
 若要启用数字音频，需要设置必要的属性，通常还需要修正端口信息。
@@ -1628,15 +1619,15 @@ macOS 10.14 下，对于 SKL 或更新平台，无法直接从 kext 二进制文
 
 二进制补丁示例：
 
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/bin.png)  
+![](./Img/bin.png)  
 
 语义补丁示例一：修改端口索引为 1, 2, 3 的 `connector-type` 为 HDMI：(connector-type=00080000)
 
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/con.png)  
+![](./Img/connector.png)  
 
 语义补丁示例二：对于 DVMT 为 32 MB 且需要更大值时：(stolenmem=19MB, fbmem=9MB)
 
-![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/sem.png) 
+![](./Img/sem.png)  
 
 [此部分补丁](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/AzulPatcher4600_equivalent.plist) 完全等同于使用 AzulPatcher4600.kext，如曾在使用，请改用这些补丁。（在 [某些](https://github.com/coderobe/AzulPatcher4600#tested-onHaswell) Haswell 微架构的笔记本上，使用 `0x0A260006` 这组 FB 会改善花屏的情况）
 
@@ -1741,6 +1732,7 @@ EDID 信息可以通过诸如使用 [Linux](https://unix.stackexchange.com/quest
 为核显添加 `enable-dpcd-max-link-rate-fix` 属性或者直接使用 `-igfxmlr` 启动参数以解决系统在点亮内屏时直接崩溃的问题。  
 从 1.3.7 版本开始，此补丁同时修正从屏幕扩展属性里读取的错误速率值问题以解决在 Dell 灵越 7590 系列等新款笔记本上内核崩溃的问题。  
 从 1.4.4 版本开始，如果用户未定义 `dpcd-max-link-rate` 属性的话，此补丁将自动从 DPCD 寻找内屏支持的最大链路速率值。此外此补丁已适配 Ice Lake 平台。
+  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/dpcd_mlr.png)  
 另外可使用 `dpcd-max-link-rate` 这个属性来为笔记本内屏指定一个最大链路速率值。  
 4K 内屏一般使用 `0x14`，1080p 内屏使用 `0x0A` 即可。  

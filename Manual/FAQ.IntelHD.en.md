@@ -40,9 +40,10 @@ Some faulty BIOSes show a higher value, but actually allocate less. In such case
 — `FixDisplay`  
 — `FixIntelGfx`  
 — `AddIMEI`  
-— `FixHDA`
+— `FixHDA`  
+— `AddPNLF`
 
-6. Turn off Clover's `UseIntelHDMI`.  
+6. Turn off Clover's: `UseIntelHDMI`, `SetIntelBacklight` and `SetIntelMaxBacklight`.  
 7. Disable Clover's `Devices` - `Inject` (usually this parameter is absent and that is good, but if it is there, turn off or delete).  
 ![Clover2](./Img/Clover2.png)  
   
@@ -2267,18 +2268,9 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 - Laptop:
   - `0x8A520000` (default)
 
-## Adjusting the brightness on a laptop 
+## Adjusting the brightness on a laptop
 
-**Method 1**  
-- Enable Clover DSDT fix `AddPNLF`.
-- Enable `SetIntelBacklight` and `SetIntelMaxBacklight`.
-- A specific value is not necessary, it will be automatically injected according to the processor installed.  
-![ibl](./Img/ibl.png)  
-  
-**Method 2**  
 Use this ACPI table [SSDT-PNLF](./SSDT-PNLF.dsl), for CFL+ use other table [SSDT-PNLFCFL](./SSDT-PNLFCFL.dsl).  
-  
-> ***Attention!*** Do not use both methods at the same time.  
   
 ## Digital Audio (HDMI / DVI / DP)
 
@@ -2296,7 +2288,7 @@ Example of a binary patch using WEG.
 ![bin](./Img/bin.png)  
   
 Example of a semantic patch: HDMI type connector (connector-type=00080000 for connectors with index 1, 2 and 3).  
-![con](./Img/con.png)  
+![con](./Img/connector.png)  
   
 Example of a semantic patch for bios with DVMT Pre-Alloc 32MB when higher is required. (stolenmem=19MB, fbmem=9MB)  
 ![sem](./Img/sem.png)  
