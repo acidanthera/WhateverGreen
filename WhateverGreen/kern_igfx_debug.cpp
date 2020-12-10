@@ -326,18 +326,6 @@ static IOReturn fbdebugWrapFBClientDoAttribute(void *fbclient, uint32_t attribut
 
 	return ret;
 }
-#endif
-
-void IGFX::FramebufferDebugSupport::init() {
-	// We only need to patch the framebuffer driver
-	requiresPatchingFramebuffer = true;
-}
-
-void IGFX::FramebufferDebugSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
-#ifdef DEBUG
-	enabled = checkKernelArgument("-igfxfbdbg");
-#endif
-}
 
 void IGFX::FramebufferDebugSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	SYSLOG("igfx", "using framebuffer debug r15");
@@ -365,4 +353,21 @@ void IGFX::FramebufferDebugSupport::processFramebufferKext(KernelPatcher &patche
 
 	if (!patcher.routeMultiple(index, requests, address, size, true, true))
 		SYSLOG("igfx", "DBG: Failed to route igfx tracing.");
+}
+
+#else
+void IGFX::FramebufferDebugSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	PANIC("igfx", "DBG: Framebuffer debug support is only available in debug build.");
+}
+#endif
+
+void IGFX::FramebufferDebugSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::FramebufferDebugSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+#ifdef DEBUG
+	enabled = checkKernelArgument("-igfxfbdbg");
+#endif
 }
