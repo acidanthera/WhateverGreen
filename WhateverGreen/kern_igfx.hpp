@@ -601,7 +601,7 @@ private:
 		/**
 		 *  Set to `true` to print detailed register access information
 		 */
-		bool verbose;
+		bool verbose {false};
 		
 	public:
 		/**
@@ -644,7 +644,7 @@ private:
 		/**
 		 *  Set to `true` to print detailed register access information
 		 */
-		bool verbose;
+		bool verbose {false};
 		
 	public:
 		/**
