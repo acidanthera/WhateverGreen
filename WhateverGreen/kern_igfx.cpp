@@ -64,6 +64,8 @@ void IGFX::init() {
 	// Initialize each submodule
 	for (auto submodule : submodules)
 		submodule->init();
+	for (auto submodule : sharedSubmodules)
+		submodule->init();
 	auto &bdi = BaseDeviceInfo::get();
 	auto generation = bdi.cpuGeneration;
 	auto family = bdi.cpuFamily;
@@ -101,17 +103,17 @@ void IGFX::init() {
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
-			forceCompleteModeset.supported = forceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
-			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
+			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
+			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
 			currentFramebuffer = &kextIntelKBLFb;
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.available = true;
-			ForceWakeWorkaround.enabled = true;
-			disableTypeCCheck = getKernelVersion() >= KernelVersion::BigSur;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
+			modRPSControlPatch.available = true;
+			modForceWakeWorkaround.enabled = true;
+			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -122,24 +124,24 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.available = true;
-			ForceWakeWorkaround.enabled = true;
-			disableTypeCCheck = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
+			modRPSControlPatch.available = true;
+			modForceWakeWorkaround.enabled = true;
+			modTypeCCheckDisabler.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelCNL;
 			currentFramebuffer = &kextIntelCNLFb;
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			disableTypeCCheck = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
+			modTypeCCheckDisabler.enabled = true;
 			break;
 		case CPUInfo::CpuGeneration::IceLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modDVMTCalcFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
@@ -151,9 +153,9 @@ void IGFX::init() {
 			// Note, several CFL GPUs are completely broken. They freeze in IGMemoryManager::initCache due to incompatible
 			// configuration, supposedly due to Apple not supporting new MOCS table and forcing Skylake-based format.
 			// See: https://github.com/torvalds/linux/blob/135c5504a600ff9b06e321694fbcac78a9530cd4/drivers/gpu/drm/i915/intel_mocs.c#L181
-			forceCompleteModeset.supported = forceCompleteModeset.enable = true;
-			RPSControl.available = true;
-			disableTypeCCheck = true;
+			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
+			modRPSControlPatch.available = true;
+			modTypeCCheckDisabler.enabled = true;
 			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
@@ -174,6 +176,8 @@ void IGFX::deinit() {
 	// Deinitialize each submodule
 	for (auto submodule : submodules)
 		submodule->deinit();
+	for (auto submodule : sharedSubmodules)
+		submodule->deinit();
 }
 
 void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
@@ -189,56 +193,7 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 #ifdef DEBUG
 		dumpFramebufferToDisk = checkKernelArgument("-igfxdump");
 		dumpPlatformTable = checkKernelArgument("-igfxfbdump");
-		debugFramebuffer = checkKernelArgument("-igfxfbdbg");
 #endif
-		
-		uint32_t rpsc = 0;
-		if (PE_parse_boot_argn("igfxrpsc", &rpsc, sizeof(rpsc)) ||
-			WIOKit::getOSDataValue(info->videoBuiltin, "rps-control", rpsc)) {
-			RPSControl.enabled = rpsc > 0 && RPSControl.available;
-			DBGLOG("weg", "RPS control patch overriden (%u) availabile %d", rpsc, RPSControl.available);
-		}
-
-		uint32_t forceCompleteModeSet = 0;
-		if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
-			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
-			DBGLOG("weg", "force complete-modeset overriden by boot-argument %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
-		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset", forceCompleteModeSet)) {
-			forceCompleteModeset.enable = forceCompleteModeset.supported && forceCompleteModeSet != 0;
-			DBGLOG("weg", "force complete-modeset overriden by device property %u -> %d", forceCompleteModeSet, forceCompleteModeset.enable);
-		} else if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
-			forceCompleteModeset.enable = false; // may interfere with FV2
-			DBGLOG("weg", "force complete-modeset overriden by Apple firmware -> %d", forceCompleteModeset.enable);
-		}
-
-		if (forceCompleteModeset.enable) {
-			uint64_t fbs;
-			if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
-				WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers", fbs)) {
-				for (size_t i = 0; i < arrsize(forceCompleteModeset.fbs); i++)
-					forceCompleteModeset.fbs[i] = (fbs >> (8 * i)) & 0xffU;
-				forceCompleteModeset.customised = true;
-			}
-		}
-
-		uint32_t forceOnline = 0;
-		if (PE_parse_boot_argn("igfxonln", &forceOnline, sizeof(forceOnline))) {
-			forceOnlineDisplay.enable = forceOnline != 0;
-			DBGLOG("weg", "force online overriden by boot-argument %u", forceOnline);
-		} else if (WIOKit::getOSDataValue(info->videoBuiltin, "force-online", forceOnline)) {
-			forceOnlineDisplay.enable = forceOnline != 0;
-			DBGLOG("weg", "force online overriden by device property %u", forceOnline);
-		}
-
-		if (forceOnlineDisplay.enable) {
-			uint64_t fbs;
-			if (PE_parse_boot_argn("igfxonlnfbs", &fbs, sizeof(fbs)) ||
-				WIOKit::getOSDataValue(info->videoBuiltin, "force-online-framebuffers", fbs)) {
-				for (size_t i = 0; i < arrsize(forceOnlineDisplay.fbs); i++)
-					forceOnlineDisplay.fbs[i] = (fbs >> (8 * i)) & 0xffU;
-				forceOnlineDisplay.customised = true;
-			}
-		}
 
 		if (supportsGuCFirmware && getKernelVersion() >= KernelVersion::HighSierra) {
 			if (!PE_parse_boot_argn("igfxfw", &fwLoadMode, sizeof(fwLoadMode)))
@@ -249,40 +204,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			fwLoadMode = FW_APPLE; /* Do nothing, GuC is either unsupported due to low OS or Apple */
 		}
 		
-		// Iterate through each submodule and redirect the request
-		for (auto submodule : submodules)
-			submodule->processKernel(patcher, info);
-		
 		disableAccel = checkKernelArgument("-igfxvesa");
-		
-		disableTypeCCheck &= !checkKernelArgument("-igfxtypec");
-
-		// Enable CFL backlight patch on mobile CFL or if IGPU propery enable-cfl-backlight-fix is set
-		int bkl = 0;
-		if (PE_parse_boot_argn("igfxcflbklt", &bkl, sizeof(bkl)))
-			cflBacklightPatch = bkl == 1 ? CoffeeBacklightPatch::On : CoffeeBacklightPatch::Off;
-		else if (info->videoBuiltin->getProperty("enable-cfl-backlight-fix"))
-			cflBacklightPatch = CoffeeBacklightPatch::On;
-		else if (currentFramebuffer == &kextIntelCFLFb && BaseDeviceInfo::get().modelType == WIOKit::ComputerModel::ComputerLaptop)
-			cflBacklightPatch = CoffeeBacklightPatch::Auto;
-
-		if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
-			DBGLOG("igfx", "read custom backlight frequency %u", targetBacklightFrequency);
 
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
-
-		// Black screen (ComputeLaneCount) happened from 10.12.4
-		// It only affects SKL, KBL, and CFL drivers with a frame with connectors.
-		if (!connectorLessFrame && cpuGeneration >= CPUInfo::CpuGeneration::Skylake &&
-			((getKernelVersion() == KernelVersion::Sierra && getKernelMinorVersion() >= 5) || getKernelVersion() >= KernelVersion::HighSierra)) {
-			blackScreenPatch = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
-		}
-
-		// PAVP patch is only necessary when we have no discrete GPU.
-		int pavpMode = connectorLessFrame || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
-		if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
-			WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
-		pavpDisablePatch = pavpMode == 0 && cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge;
 
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
 		PE_parse_boot_argn("igfxgl", &gl, sizeof(gl));
@@ -291,13 +215,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		int metal = info->videoBuiltin->getProperty("enable-metal") != nullptr;
 		PE_parse_boot_argn("igfxmetal", &metal, sizeof(metal));
 		forceMetal = metal == 1;
-
-		int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
-		PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
-		disableAGDC = agdc == 0;
-
-		// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
-		readDescriptorPatch = cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
 
 		// Automatically enable HDMI -> DP patches
 		bool nohdmi = info->videoBuiltin->getProperty("disable-hdmi-patches") != nullptr;
@@ -310,6 +227,16 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			info->videoBuiltin->setProperty("AAPL00,DualLink", dualLinkBytes, sizeof(dualLinkBytes));
 		}
 		
+		// Note that the order does matter
+		// We first iterate through each submodule and redirect the request
+		for (auto submodule : submodules)
+			submodule->processKernel(patcher, info);
+		
+		// Then process shared submodules
+		// A shared submodule will disable itself if no active submodule depends on it
+		for (auto submodule : sharedSubmodules)
+			submodule->processKernel(patcher, info);
+		
 		// Iterate through each submodule and see if we need to patch the graphics and the framebuffer kext
 		auto submodulesRequiresFramebufferPatch = false;
 		auto submodulesRequiresGraphicsPatch = false;
@@ -320,32 +247,14 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		
 		// Ideally, we could get rid of these two lambda expressions
 		auto requiresFramebufferPatches = [this]() {
-			if (blackScreenPatch)
-				return true;
 			if (applyFramebufferPatch || hdmiAutopatch)
 				return true;
-			if (dumpFramebufferToDisk || dumpPlatformTable || debugFramebuffer)
-				return true;
-			if (cflBacklightPatch != CoffeeBacklightPatch::Off)
-				return true;
-			if (forceCompleteModeset.enable)
-				return true;
-			if (forceOnlineDisplay.enable)
-				return true;
-			if (disableAGDC)
-				return true;
-			if (RPSControl.enabled)
-				return true;
-			if (ForceWakeWorkaround.enabled)
-				return true;
-			if (disableTypeCCheck)
+			if (dumpFramebufferToDisk || dumpPlatformTable)
 				return true;
 			return false;
 		};
 
 		auto requiresGraphicsPatches = [this]() {
-			if (pavpDisablePatch)
-				return true;
 			if (forceOpenGL)
 				return true;
 			if (forceMetal)
@@ -353,10 +262,6 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			if (moderniseAccelerator)
 				return true;
 			if (fwLoadMode != FW_APPLE)
-				return true;
-			if (readDescriptorPatch)
-				return true;
-			if (RPSControl.enabled)
 				return true;
 			if (disableAccel)
 				return true;
@@ -390,17 +295,6 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	if (currentGraphics && currentGraphics->loadIndex == index) {
-		if (pavpDisablePatch) {
-			auto callbackSym = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_tjPjb";
-			if (cpuGeneration == CPUInfo::CpuGeneration::SandyBridge)
-				callbackSym = "__ZN15Gen6Accelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
-			else if (cpuGeneration == CPUInfo::CpuGeneration::IvyBridge)
-				callbackSym = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
-
-			KernelPatcher::RouteRequest request(callbackSym, wrapPavpSessionCallback, orgPavpSessionCallback);
-			patcher.routeMultiple(index, &request, 1, address, size);
-		}
-
 		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
 			KernelPatcher::RouteRequest request("__ZN16IntelAccelerator5startEP9IOService", wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
@@ -408,19 +302,16 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 			if (fwLoadMode == FW_GENERIC && getKernelVersion() <= KernelVersion::Mojave)
 				loadIGScheduler4Patches(patcher, index, address, size);
 		}
-
-		if (readDescriptorPatch) {
-			KernelPatcher::RouteRequest request("__ZNK25IGHardwareGlobalPageTable4readEyRyS0_", globalPageTableRead);
-			patcher.routeMultiple(index, &request, 1, address, size);
-		}
-
-		if (RPSControl.enabled)
-			RPSControl.initGraphics(patcher, index, address, size);
 		
-		if (ForceWakeWorkaround.enabled)
-			ForceWakeWorkaround.initGraphics(*this, patcher, index, address, size);
+		// Note that the order is reversed at this stage
+		// We first process shared submodules
+		// If a shared submodule fails to process the acceleration driver,
+		// all subdmoules that depend on it will be disabled automatically.
+		for (auto submodule : sharedSubmodules)
+			if (submodule->enabled)
+				submodule->processGraphicsKext(patcher, index, address, size);
 		
-		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
+		// Then iterate through each submodule and redirect the request if and only if it is enabled
 		for (auto submodule : submodules)
 			if (submodule->enabled)
 				submodule->processGraphicsKext(patcher, index, address, size);
@@ -430,137 +321,19 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 	if ((currentFramebuffer && currentFramebuffer->loadIndex == index) ||
 		(currentFramebufferOpt && currentFramebufferOpt->loadIndex == index)) {
-		// Find actual framebuffer used (kaby or coffee)
-		auto realFramebuffer = (currentFramebuffer && currentFramebuffer->loadIndex == index) ? currentFramebuffer : currentFramebufferOpt;
-		// Accept Coffee FB and enable backlight patches unless Off (Auto turns them on by default).
-		bool bklCoffeeFb = realFramebuffer == &kextIntelCFLFb && cflBacklightPatch != CoffeeBacklightPatch::Off;
-		// Accept Kaby FB and enable backlight patches if On (Auto is irrelevant here).
-		bool bklKabyFb = realFramebuffer == &kextIntelKBLFb && cflBacklightPatch == CoffeeBacklightPatch::On;
-		// Solve ReadRegister32 just once as it is shared
-		// FIXME: Refactor generic register access as a separate submodule.
-		//        Submodules that request access to these functions must set `PatchSubmodule::requiresGenericRegisterAccess` to `true`
-		// 	      Also we need to consider the case where multiple submodules want to inject code into these functions.
-		//        At this moment, the backlight fix is the only one that wraps these functions.
-		if (bklCoffeeFb || bklKabyFb ||
-			RPSControl.enabled || ForceWakeWorkaround.enabled || modCoreDisplayClockFix.enabled) {
-			AppleIntelFramebufferController__ReadRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__ReadRegister32)>
-			(index, "__ZN31AppleIntelFramebufferController14ReadRegister32Em", address, size);
-			if (!AppleIntelFramebufferController__ReadRegister32)
-				SYSLOG("igfx", "Failed to find ReadRegister32");
-		}
-		if (bklCoffeeFb || bklKabyFb ||
-			RPSControl.enabled || ForceWakeWorkaround.enabled) {
-			AppleIntelFramebufferController__WriteRegister32 = patcher.solveSymbol<decltype(AppleIntelFramebufferController__WriteRegister32)>
-			(index, "__ZN31AppleIntelFramebufferController15WriteRegister32Emj", address, size);
-			if (!AppleIntelFramebufferController__WriteRegister32)
-				SYSLOG("igfx", "Failed to find WriteRegister32");
-		}
-		// FIXME: Same issue here.
-		if (RPSControl.enabled || ForceWakeWorkaround.enabled || modDPCDMaxLinkRateFix.enabled)
-			gFramebufferController = patcher.solveSymbol<decltype(gFramebufferController)>(index, "_gController", address, size);
-		if (bklCoffeeFb || bklKabyFb) {
-			// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
-			// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
-			// Singal-wise it looks as a cycle of signal levels on the timeline:
-			// 22111100221111002211110022111100 (4 cycles)
-			// 0 - no signal, 1 - no value (no pulse), 2 - pulse (light on)
-			// - Physical Cycle (0+1+2) defines maximum backlight frequency, limited by HW precision.
-			// - Base Cycle (1+2) defines [1/PWM Base Frequency], limited by physical cycle, see BXT_BLC_PWM_FREQ1.
-			// - Duty Cycle (2) defines [1/PWM Increment] - backlight level,
-			//   [PWM Frequency Divider] - backlight max, see BXT_BLC_PWM_DUTY1.
-			// - Duty Cycle position (first vs last) is [PWM Polarity]
-			//
-			// Duty cycle = PWM Base Frequeny * (1 / PWM Increment) / PWM Frequency Divider
-			//
-			// On macOS there are extra limitations:
-			// - All values and operations are u32 (32-bit unsigned)
-			// - [1/PWM Increment] has 0 to 0xFFFF range
-			// - [PWM Frequency Divider] is fixed to be 0xFFFF
-			// - [PWM Base Frequency] is capped by 0xFFFF (to avoid u32 wraparound), and is hardcoded
-			//   either in Framebuffer data (pre-CFL) or in the code (CFL: 7777 or 22222).
-			//
-			// On CFL the following patches have to be applied:
-			// - Hardcoded [PWM Base Frequency] should be patched or set after the hardcoded value is written by patching
-			//   hardcoded frequencies. 65535 is used by default.
-			// - If [PWM Base Frequency] is > 65535, to avoid a wraparound code calculating BXT_BLC_PWM_DUTY1
-			//   should be replaced to use 64-bit arithmetics.
-			// [PWM Base Frequency] can be specified via igfxbklt=1 boot-arg or backlight-base-frequency property.
-
-			// This patch will overwrite WriteRegister32 function to rescale all the register writes of backlight controller.
-			// Slightly different methods are used for CFL hardware running on KBL and CFL drivers.
-
-			if (AppleIntelFramebufferController__ReadRegister32 &&
-				AppleIntelFramebufferController__WriteRegister32) {
-				(bklCoffeeFb ? orgCflReadRegister32 : orgKblReadRegister32) = AppleIntelFramebufferController__ReadRegister32;
-
-				patcher.eraseCoverageInstPrefix(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32));
-				auto orgRegWrite = reinterpret_cast<decltype(orgCflWriteRegister32)>
-					(patcher.routeFunction(reinterpret_cast<mach_vm_address_t>(AppleIntelFramebufferController__WriteRegister32), reinterpret_cast<mach_vm_address_t>(bklCoffeeFb ? wrapCflWriteRegister32 : wrapKblWriteRegister32), true));
-
-				if (orgRegWrite) {
-					(bklCoffeeFb ? orgCflWriteRegister32 : orgKblWriteRegister32) = orgRegWrite;
-				} else {
-					SYSLOG("igfx", "failed to route WriteRegister32 for cfl %d", bklCoffeeFb);
-					patcher.clearError();
-				}
-			} else {
-				SYSLOG("igfx", "failed to find ReadRegister32 for cfl %d", bklCoffeeFb);
-				patcher.clearError();
-			}
-		}
-
-		// Iterate through each submodule and redirect the request if and only if the submodule is enabled
-		for (auto submodule : submodules)
+		
+		// Note that the order is reversed at this stage
+		// We first process shared submodules
+		// If a shared submodule fails to process the framebuffer driver,
+		// all subdmoules that depend on it will be disabled automatically.
+		for (auto submodule : sharedSubmodules)
 			if (submodule->enabled)
 				submodule->processFramebufferKext(patcher, index, address, size);
 		
-		if (forceCompleteModeset.enable) {
-			const char *sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2";
-			if (forceCompleteModeset.legacy)
-				sym = "__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE";
-			KernelPatcher::RouteRequest request(sym, wrapHwRegsNeedUpdate, orgHwRegsNeedUpdate);
-			if (!patcher.routeMultiple(index, &request, 1, address, size))
-				SYSLOG("igfx", "failed to route hwRegsNeedUpdate");
-		}
-
-		if (forceOnlineDisplay.enable) {
-			KernelPatcher::RouteRequest request("__ZN21AppleIntelFramebuffer16getDisplayStatusEP21AppleIntelDisplayPath", wrapGetDisplayStatus, orgGetDisplayStatus);
-			if (!patcher.routeMultiple(index, &request, 1, address, size))
-				SYSLOG("igfx", "failed to route getDisplayStatus");
-		}
-		
-		if (disableTypeCCheck && (realFramebuffer == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur)) {
-			KernelPatcher::RouteRequest req("__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv", wrapIsTypeCOnlySystem);
-			if (!patcher.routeMultiple(index, &req, 1, address, size))
-				SYSLOG("igfx", "failed to route IsTypeCOnlySystem");
-		}
-		
-		if (RPSControl.enabled)
-			RPSControl.initFB(*this, patcher, index, address, size);
-
-		if (disableAGDC) {
-			KernelPatcher::RouteRequest request {"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments", wrapFBClientDoAttribute, orgFBClientDoAttribute};
-			if (!patcher.routeMultiple(index, &request, 1, address, size))
-				SYSLOG("igfx", "failed to route FBClientControl::doAttribute");
-		}
-
-		if (debugFramebuffer)
-			loadFramebufferDebug(patcher, index, address, size);
-
-		if (blackScreenPatch) {
-			bool foundSymbol = false;
-
-			// Currently it is 10.14.1 and Kaby+...
-			if (getKernelVersion() >= KernelVersion::Mojave && cpuGeneration >= CPUInfo::CpuGeneration::KabyLake) {
-				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jPj", wrapComputeLaneCountNouveau, orgComputeLaneCount);
-				foundSymbol = patcher.routeMultiple(index, &request, 1, address, size);
-			}
-
-			if (!foundSymbol) {
-				KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj", wrapComputeLaneCount, orgComputeLaneCount);
-				patcher.routeMultiple(index, &request, 1, address, size);
-			}
-		}
+		// Then iterate through each submodule and redirect the request if and only if it is enabled
+		for (auto submodule : submodules)
+			if (submodule->enabled)
+				submodule->processFramebufferKext(patcher, index, address, size);
 
 		if (applyFramebufferPatch || dumpFramebufferToDisk || dumpPlatformTable || hdmiAutopatch) {
 			framebufferStart = reinterpret_cast<uint8_t *>(address);
@@ -607,18 +380,521 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	return false;
 }
 
-IOReturn IGFX::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
+// MARK: - Global Framebuffer Controller Access Support
+
+void IGFX::FramebufferControllerAccessSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::FramebufferControllerAccessSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable if at least one active submodule relies on this shared module
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->enabled)
+			enabled |= submodule->requiresGlobalFramebufferControllersAccess;
+	
+	DBGLOG("igfx", "FCA: Enabled = %d.", enabled);
+}
+
+void IGFX::FramebufferControllerAccessSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::SolveRequest request("_gController", controllers);
+	if (!patcher.solveMultiple(index, &request, 1, address, size)) {
+		SYSLOG("igfx", "FCA: Failed to resolve the symbol of global controllers. Will disable all submodules that rely on this one.");
+		disableDependentSubmodules();
+	}
+}
+
+void IGFX::FramebufferControllerAccessSupport::disableDependentSubmodules() {
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->requiresGlobalFramebufferControllersAccess)
+			submodule->enabled = false;
+}
+
+// MARK: - MMIO Registers Read Support
+
+void IGFX::MMIORegistersReadSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::MMIORegistersReadSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the verbose output if the boot argument is found
+	verbose = checkKernelArgument("-igfxvamregs");
+	enabled |= verbose;
+	
+	// Enable if at least one active submodule relies on this shared module
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->enabled)
+			enabled |= submodule->requiresMMIORegistersReadAccess;
+	
+	DBGLOG("igfx", "RRS: Enabled = %d.", enabled);
+}
+
+void IGFX::MMIORegistersReadSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController14ReadRegister32Em",
+		wrapReadRegister32,
+		orgReadRegister32
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
+		SYSLOG("igfx", "RRS: Failed to resolve the symbol of ReadRegister32. Will disable all submodules that rely on this one.");
+		disableDependentSubmodules();
+	}
+}
+
+void IGFX::MMIORegistersReadSupport::disableDependentSubmodules() {
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->requiresMMIORegistersReadAccess)
+			submodule->enabled = false;
+}
+
+uint32_t IGFX::MMIORegistersReadSupport::wrapReadRegister32(void *controller, uint32_t address) {
+	// Guard: Perform prologue injections
+	auto prologueInjector = callbackIGFX->modMMIORegistersReadSupport.prologueList.getInjector(address);
+	if (prologueInjector) {
+		DBGLOG("igfx", "RRS: Found a prologue injector triggered by the register address 0x%x.", address);
+		prologueInjector(controller, address);
+	}
+	
+	// Guard: Perform replacer injections
+	auto replacerInjector = callbackIGFX->modMMIORegistersReadSupport.replacerList.getInjector(address);
+	if (replacerInjector) {
+		DBGLOG("igfx", "RRS: Found a replacer injector triggered by the register value 0x%x.", address);
+		return replacerInjector(controller, address);
+	}
+	
+	// Invoke the original function
+	uint32_t retVal = callbackIGFX->modMMIORegistersReadSupport.orgReadRegister32(controller, address);
+	if (callbackIGFX->modMMIORegistersReadSupport.verbose)
+		DBGLOG("igfx", "RRS: Read MMIO Register = 0x%x; Value = 0x%x.", address, retVal);
+	
+	// Guard: Perform epilogue injections
+	auto epilogueInjector = callbackIGFX->modMMIORegistersReadSupport.epilogueList.getInjector(address);
+	if (epilogueInjector) {
+		DBGLOG("igfx", "RRS: Found a epilogue injector triggered by the register value 0x%x.", address);
+		return epilogueInjector(controller, address, retVal);
+	}
+	
+	// Return the register value retrieved from the original function
+	return retVal;
+}
+
+// MARK: - MMIO Registers Write Support
+
+void IGFX::MMIORegistersWriteSupport::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::MMIORegistersWriteSupport::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the verbose output if the boot argument is found
+	verbose = checkKernelArgument("-igfxvamregs");
+	enabled |= verbose;
+	
+	// Enable if at least one active submodule relies on this shared module
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->enabled)
+			enabled |= submodule->requiresMMIORegistersWriteAccess;
+	
+	DBGLOG("igfx", "RWS: Enabled = %d.", enabled);
+}
+
+void IGFX::MMIORegistersWriteSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN31AppleIntelFramebufferController15WriteRegister32Emj",
+		wrapWriteRegister32,
+		orgWriteRegister32
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
+		SYSLOG("igfx", "RWS: Failed to resolve the symbol of WriteRegister32. Will disable all submodules that rely on this one.");
+		disableDependentSubmodules();
+	}
+}
+
+void IGFX::MMIORegistersWriteSupport::disableDependentSubmodules() {
+	for (auto submodule : callbackIGFX->submodules)
+		if (submodule->requiresMMIORegistersWriteAccess)
+			submodule->enabled = false;
+}
+
+void IGFX::MMIORegistersWriteSupport::wrapWriteRegister32(void *controller, uint32_t address, uint32_t value) {
+	// Guard: Perform prologue injections
+	auto prologueInjector = callbackIGFX->modMMIORegistersWriteSupport.prologueList.getInjector(address);
+	if (prologueInjector) {
+		DBGLOG("igfx", "RRS: Found a prologue injector triggered by the register address 0x%x.", address);
+		prologueInjector(controller, address, value);
+	}
+	
+	// Guard: Perform replacer injections
+	auto replacerInjector = callbackIGFX->modMMIORegistersWriteSupport.replacerList.getInjector(address);
+	if (replacerInjector) {
+		DBGLOG("igfx", "RRS: Found a replacer injector triggered by the register value 0x%x.", address);
+		return replacerInjector(controller, address, value);
+	}
+	
+	// Invoke the original function
+	callbackIGFX->modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
+	if (callbackIGFX->modMMIORegistersWriteSupport.verbose)
+		DBGLOG("igfx", "RRS: Write MMIO Register = 0x%x; Value = 0x%x.", address, value);
+	
+	// Guard: Perform epilogue injections
+	auto epilogueInjector = callbackIGFX->modMMIORegistersWriteSupport.epilogueList.getInjector(address);
+	if (epilogueInjector) {
+		DBGLOG("igfx", "RRS: Found a epilogue injector triggered by the register value 0x%x.", address);
+		return epilogueInjector(controller, address, value);
+	}
+}
+
+// MARK: - Force Complete Modeset
+
+void IGFX::ForceCompleteModeset::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::ForceCompleteModeset::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	uint32_t forceCompleteModeSet = 0;
+	if (PE_parse_boot_argn("igfxfcms", &forceCompleteModeSet, sizeof(forceCompleteModeSet))) {
+		enabled = supported && forceCompleteModeSet != 0;
+		DBGLOG("weg", "force complete-modeset overriden by boot-argument %u -> %d", forceCompleteModeSet, enabled);
+	} else if (WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset", forceCompleteModeSet)) {
+		enabled = supported && forceCompleteModeSet != 0;
+		DBGLOG("weg", "force complete-modeset overriden by device property %u -> %d", forceCompleteModeSet, enabled);
+	} else if (info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple) {
+		enabled = false; // may interfere with FV2
+		DBGLOG("weg", "force complete-modeset overriden by Apple firmware -> %d", enabled);
+	}
+	
+	if (enabled) {
+		uint64_t fbs;
+		if (PE_parse_boot_argn("igfxfcmsfbs", &fbs, sizeof(fbs)) ||
+			WIOKit::getOSDataValue(info->videoBuiltin, "complete-modeset-framebuffers", fbs)) {
+			for (size_t i = 0; i < arrsize(this->fbs); i++)
+				this->fbs[i] = (fbs >> (8 * i)) & 0xffU;
+			customised = true;
+		}
+	}
+}
+
+void IGFX::ForceCompleteModeset::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		legacy ?
+		"__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsE" :
+		"__ZN31AppleIntelFramebufferController16hwRegsNeedUpdateEP21AppleIntelFramebufferP21AppleIntelDisplayPathPNS_10CRTCParamsEPK29IODetailedTimingInformationV2",
+		wrapHwRegsNeedUpdate,
+		orgHwRegsNeedUpdate
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "FCM: Failed to route the function hwRegsNeedUpdate.");
+}
+
+bool IGFX::ForceCompleteModeset::wrapHwRegsNeedUpdate(void *controller, IORegistryEntry *framebuffer, void *displayPath, void *crtParams, void *detailedInfo) {
+	// The framebuffer controller can perform panel fitter, partial, or a
+	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
+	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
+	// boot: it was observed that for HDMI framebuffer a complete modeset
+	// eventually occured, but for DVI it never did until after sleep and wake
+	// sequence.
+	//
+	// Function AppleIntelFramebufferController::hwRegsNeedUpdate checks
+	// whether a complete modeset needs to be issued. It does so by comparing
+	// sets of pipes and transcoder parameters. For some reason, the result was
+	// never true in the above scenario, so a complete modeset never occured.
+	// Consequently, AppleIntelFramebufferController::LightUpTMDS was never
+	// called for that framebuffer.
+	//
+	// Patching hwRegsNeedUpdate to always return true seems to be a rather
+	// safe solution to that. Note that the root cause of the problem is
+	// somewhere deeper.
+
+	// On older Skylake versions this function has no detailedInfo and does not use framebuffer argument.
+	// As a result the compiler does not pass framebuffer to the target function. Since the fix is disabled
+	// by default for Skylake, just force complete modeset on all framebuffers when actually requested.
+	if (callbackIGFX->modForceCompleteModeset.legacy)
+		return true;
+
+	// Either this framebuffer is in override list
+	if (callbackIGFX->modForceCompleteModeset.customised) {
+		return callbackIGFX->modForceCompleteModeset.inList(framebuffer) || callbackIGFX->modForceCompleteModeset.orgHwRegsNeedUpdate(controller, framebuffer, displayPath, crtParams, detailedInfo);
+	}
+
+	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
+	// this framebuffer.
+	// Note we need to check this at every invocation, as this property may reappear
+	return !framebuffer->getProperty("built-in") || callbackIGFX->modForceCompleteModeset.orgHwRegsNeedUpdate(controller, framebuffer, displayPath, crtParams, detailedInfo);
+}
+
+// MARK: - Force Online Display
+
+void IGFX::ForceOnlineDisplay::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::ForceOnlineDisplay::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	uint32_t forceOnline = 0;
+	if (PE_parse_boot_argn("igfxonln", &forceOnline, sizeof(forceOnline))) {
+		enabled = forceOnline != 0;
+		DBGLOG("weg", "force online overriden by boot-argument %u", forceOnline);
+	} else if (WIOKit::getOSDataValue(info->videoBuiltin, "force-online", forceOnline)) {
+		enabled = forceOnline != 0;
+		DBGLOG("weg", "force online overriden by device property %u", forceOnline);
+	}
+
+	if (enabled) {
+		uint64_t fbs;
+		if (PE_parse_boot_argn("igfxonlnfbs", &fbs, sizeof(fbs)) ||
+			WIOKit::getOSDataValue(info->videoBuiltin, "force-online-framebuffers", fbs)) {
+			for (size_t i = 0; i < arrsize(this->fbs); i++)
+				this->fbs[i] = (fbs >> (8 * i)) & 0xffU;
+			customised = true;
+		}
+	}
+}
+
+void IGFX::ForceOnlineDisplay::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN21AppleIntelFramebuffer16getDisplayStatusEP21AppleIntelDisplayPath",
+		wrapGetDisplayStatus,
+		orgGetDisplayStatus
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "FOD: Failed to route the function getDisplayStatus.");
+}
+
+uint32_t IGFX::ForceOnlineDisplay::wrapGetDisplayStatus(IORegistryEntry *framebuffer, void *displayPath) {
+	// 0 - offline, 1 - online, 2 - empty dongle.
+	uint32_t ret = callbackIGFX->modForceOnlineDisplay.orgGetDisplayStatus(framebuffer, displayPath);
+	if (ret != 1) {
+		if (callbackIGFX->modForceOnlineDisplay.customised)
+			ret = callbackIGFX->modForceOnlineDisplay.inList(framebuffer) ? 1 : ret;
+		else
+			ret = 1;
+	}
+
+	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
+	return ret;
+}
+
+// MARK: - AGDC Disabler
+
+void IGFX::AGDCDisabler::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::AGDCDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	int agdc = info->videoBuiltin->getProperty("disable-agdc") != nullptr ? 0 : 1;
+	PE_parse_boot_argn("igfxagdc", &agdc, sizeof(agdc));
+	enabled = agdc == 0;
+}
+
+void IGFX::AGDCDisabler::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZN20IntelFBClientControl11doAttributeEjPmmS0_S0_P25IOExternalMethodArguments",
+		wrapFBClientDoAttribute,
+		orgFBClientDoAttribute
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "AGDCD: Failed to route the function FBClientControl::doAttribute.");
+}
+
+IOReturn IGFX::AGDCDisabler::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
+	if (attribute == kAGDCRegisterCallback) {
+		DBGLOG("igfx", "AGDCD: Ignoring AGDC registration in FBClientControl::doAttribute.");
+		return kIOReturnUnsupported;
+	}
+	
+	return callbackIGFX->modAGDCDisabler.orgFBClientDoAttribute(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
+}
+
+// MARK: - Type-C Check Disabler
+
+void IGFX::TypeCCheckDisabler::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::TypeCCheckDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	enabled &= !checkKernelArgument("-igfxtypec");
+}
+
+void IGFX::TypeCCheckDisabler::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	if (callbackIGFX->getRealFramebuffer(index) == &kextIntelCFLFb || getKernelVersion() >= KernelVersion::BigSur) {
+		KernelPatcher::RouteRequest request = {
+			"__ZN31AppleIntelFramebufferController17IsTypeCOnlySystemEv",
+			wrapIsTypeCOnlySystem
+		};
+		if (!patcher.routeMultiple(index, &request, 1, address, size))
+			SYSLOG("igfx", "TCCD: Failed to route the function IsTypeCOnlySystem.");
+	}
+}
+
+bool IGFX::TypeCCheckDisabler::wrapIsTypeCOnlySystem(void *controller) {
+	DBGLOG("igfx", "TCCD: Forcing IsTypeCOnlySystem false.");
+	return false;
+}
+
+// MARK: - Black Screen Fix (HDMI/DVI Displays)
+
+void IGFX::BlackScreenFix::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::BlackScreenFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Black screen (ComputeLaneCount) happened from 10.12.4
+	// It only affects SKL, KBL, and CFL drivers with a frame with connectors.
+	if (!info->reportedFramebufferIsConnectorLess &&
+		BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::Skylake &&
+		((getKernelVersion() == KernelVersion::Sierra && getKernelMinorVersion() >= 5) ||
+		 getKernelVersion() >= KernelVersion::HighSierra)) {
+		enabled = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;
+	}
+}
+
+void IGFX::BlackScreenFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	bool foundSymbol = false;
+
+	// Currently it is 10.14.1 and Kaby+...
+	if (getKernelVersion() >= KernelVersion::Mojave &&
+		BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::KabyLake) {
+		KernelPatcher::RouteRequest request = {
+			"__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jPj",
+			wrapComputeLaneCountNouveau,
+			orgComputeLaneCountNouveau
+		};
+		
+		foundSymbol = patcher.routeMultiple(index, &request, 1, address, size);
+	}
+
+	if (!foundSymbol) {
+		KernelPatcher::RouteRequest request = {
+			"__ZN31AppleIntelFramebufferController16ComputeLaneCountEPK29IODetailedTimingInformationV2jjPj",
+			wrapComputeLaneCount,
+			orgComputeLaneCount
+		};
+		
+		if (!patcher.routeMultiple(index, &request, 1, address, size))
+			SYSLOG("igfx", "BSF: Failed to route the function ComputeLaneCount.");
+	}
+}
+
+bool IGFX::BlackScreenFix::wrapComputeLaneCount(void *controller, void *detailedTiming, uint32_t bpp, int availableLanes, int *laneCount) {
+	DBGLOG("igfx", "BSF: ComputeLaneCount: bpp = %u, available lanes = %d", bpp, availableLanes);
+
+	// It seems that AGDP fails to properly detect external boot monitors. As a result computeLaneCount
+	// is mistakengly called for any boot monitor (e.g. HDMI/DVI), while it is only meant to be used for
+	// DP (eDP) displays. More details could be found at:
+	// https://github.com/vit9696/Lilu/issues/27#issuecomment-372103559
+	// Since the only problematic function is AppleIntelFramebuffer::validateDetailedTiming, there are
+	// multiple ways to workaround it.
+	// 1. In 10.13.4 Apple added an additional extended timing validation call, which happened to be
+	// guardded by a HDMI 2.0 enable boot-arg, which resulted in one bug fixing the other, and 10.13.5
+	// broke it again.
+	// 2. Another good way is to intercept AppleIntelFramebufferController::RegisterAGDCCallback and
+	// make sure AppleGraphicsDevicePolicy::_VendorEventHandler returns mode 2 (not 0) for event 10.
+	// 3. Disabling AGDC by nopping AppleIntelFramebufferController::RegisterAGDCCallback is also fine.
+	// Simply returning true from computeLaneCount and letting 0 to be compared against zero so far was
+	// least destructive and most reliable. Let's stick with it until we could solve more problems.
+	bool r = callbackIGFX->modBlackScreenFix.orgComputeLaneCount(controller, detailedTiming, bpp, availableLanes, laneCount);
+	if (!r && *laneCount == 0) {
+		DBGLOG("igfx", "BSF: Reporting worked lane count (legacy)");
+		r = true;
+	}
+
+	return r;
+}
+
+bool IGFX::BlackScreenFix::wrapComputeLaneCountNouveau(void *controller, void *detailedTiming, int availableLanes, int *laneCount) {
+	bool r = callbackIGFX->modBlackScreenFix.orgComputeLaneCountNouveau(controller, detailedTiming, availableLanes, laneCount);
+	if (!r && *laneCount == 0) {
+		DBGLOG("igfx", "reporting worked lane count (nouveau)");
+		r = true;
+	}
+
+	return r;
+}
+
+// MARK: - PAVP Disabler
+
+void IGFX::PAVPDisabler::init() {
+	// We only need to patch the accelerator driver
+	requiresPatchingGraphics = true;
+}
+
+void IGFX::PAVPDisabler::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	int pavpMode = info->reportedFramebufferIsConnectorLess || info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple;
+	if (!PE_parse_boot_argn("igfxpavp", &pavpMode, sizeof(pavpMode)))
+		WIOKit::getOSDataValue(info->videoBuiltin, "igfxpavp", pavpMode);
+	enabled = pavpMode == 0 && BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::SandyBridge;
+}
+
+void IGFX::PAVPDisabler::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	const char* symbol;
+	switch (BaseDeviceInfo::get().cpuGeneration) {
+		case CPUInfo::CpuGeneration::SandyBridge:
+			symbol = "__ZN15Gen6Accelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
+			break;
+			
+		case CPUInfo::CpuGeneration::IvyBridge:
+			symbol = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_t18PAVPSessionAppID_tPjb";
+			break;
+			
+		default:
+			symbol = "__ZN16IntelAccelerator19PAVPCommandCallbackE22PAVPSessionCommandID_tjPjb";
+			break;
+	}
+
+	KernelPatcher::RouteRequest request = {
+		symbol,
+		wrapPavpSessionCallback,
+		orgPavpSessionCallback
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "PAVP: Failed to route the function PAVPCommandCallback.");
+}
+
+IOReturn IGFX::PAVPDisabler::wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag) {
 	//DBGLOG("igfx, "pavpCallback: cmd = %d, flag = %d, app = %u, a4 = %s", sessionCommand, flag, sessionAppId, a4 == nullptr ? "null" : "not null");
 
 	if (sessionCommand == 4) {
-		DBGLOG("igfx", "pavpSessionCallback: enforcing error on cmd 4 (send to ring?)!");
+		DBGLOG("igfx", "PAVP: PavpSessionCallback: Enforcing error on cmd 4 (send to ring?)!");
 		return kIOReturnTimeout; // or kIOReturnSuccess
 	}
 
-	return FunctionCast(wrapPavpSessionCallback, callbackIGFX->orgPavpSessionCallback)(intelAccelerator, sessionCommand, sessionAppId, a4, flag);
+	return callbackIGFX->modPAVPDisabler.orgPavpSessionCallback(intelAccelerator, sessionCommand, sessionAppId, a4, flag);
 }
 
-bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, uint64_t &physAddress, uint64_t &flags) {
+// MARK: - Read Descriptors Patch
+
+void IGFX::ReadDescriptorPatch::init() {
+	// We only need to patch the accelerator driver
+	requiresPatchingGraphics = true;
+}
+
+void IGFX::ReadDescriptorPatch::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Starting from 10.14.4b1 Skylake+ graphics randomly kernel panics on GPU usage
+	enabled = BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Mojave;
+}
+
+void IGFX::ReadDescriptorPatch::processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request = {
+		"__ZNK25IGHardwareGlobalPageTable4readEyRyS0_",
+		globalPageTableRead
+	};
+	
+	if (!patcher.routeMultiple(index, &request, 1, address, size))
+		SYSLOG("igfx", "RDP: Failed to route the function IGHardwareGlobalPageTable::read.");
+}
+
+bool IGFX::ReadDescriptorPatch::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, uint64_t &physAddress, uint64_t &flags) {
 	uint64_t pageNumber = address >> PAGE_SHIFT;
 	uint64_t pageEntry = getMember<uint64_t *>(hardwareGlobalPageTable, 0x28)[pageNumber];
 	// PTE: Page Table Entry for 4KB Page, page 82:
@@ -672,41 +948,184 @@ bool IGFX::globalPageTableRead(void *hardwareGlobalPageTable, uint64_t address, 
 	return (flags & 3U) != 0;
 }
 
-bool IGFX::wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t availableLanes, int32_t *laneCount) {
-	DBGLOG("igfx", "computeLaneCount: bpp = %u, available = %d", bpp, availableLanes);
+// MARK: - Backlight Registers Fix
 
-	// It seems that AGDP fails to properly detect external boot monitors. As a result computeLaneCount
-	// is mistakengly called for any boot monitor (e.g. HDMI/DVI), while it is only meant to be used for
-	// DP (eDP) displays. More details could be found at:
-	// https://github.com/vit9696/Lilu/issues/27#issuecomment-372103559
-	// Since the only problematic function is AppleIntelFramebuffer::validateDetailedTiming, there are
-	// multiple ways to workaround it.
-	// 1. In 10.13.4 Apple added an additional extended timing validation call, which happened to be
-	// guardded by a HDMI 2.0 enable boot-arg, which resulted in one bug fixing the other, and 10.13.5
-	// broke it again.
-	// 2. Another good way is to intercept AppleIntelFramebufferController::RegisterAGDCCallback and
-	// make sure AppleGraphicsDevicePolicy::_VendorEventHandler returns mode 2 (not 0) for event 10.
-	// 3. Disabling AGDC by nopping AppleIntelFramebufferController::RegisterAGDCCallback is also fine.
-	// Simply returning true from computeLaneCount and letting 0 to be compared against zero so far was
-	// least destructive and most reliable. Let's stick with it until we could solve more problems.
-	bool r = FunctionCast(wrapComputeLaneCount, callbackIGFX->orgComputeLaneCount)(that, timing, bpp, availableLanes, laneCount);
-	if (!r && *laneCount == 0) {
-		DBGLOG("igfx", "reporting worked lane count (legacy)");
-		r = true;
-	}
-
-	return r;
+void IGFX::BacklightRegistersFix::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+	
+	// We need R/W access to MMIO registers
+	requiresMMIORegistersReadAccess = true;
+	requiresMMIORegistersWriteAccess = true;
 }
 
-bool IGFX::wrapComputeLaneCountNouveau(void *that, void *timing, int32_t availableLanes, int32_t *laneCount) {
-	bool r = FunctionCast(wrapComputeLaneCountNouveau, callbackIGFX->orgComputeLaneCount)(that, timing, availableLanes, laneCount);
-	if (!r && *laneCount == 0) {
-		DBGLOG("igfx", "reporting worked lane count (nouveau)");
-		r = true;
+void IGFX::BacklightRegistersFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	enabled = checkKernelArgument("-igfxblr");
+	if (!enabled)
+		enabled = info->videoBuiltin->getProperty("enable-backlight-registers-fix") != nullptr;
+	if (!enabled)
+		return;
+	
+	if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
+		DBGLOG("igfx", "BLR: Will use the custom backlight frequency %u.", targetBacklightFrequency);
+}
+
+void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
+	// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
+	// Singal-wise it looks as a cycle of signal levels on the timeline:
+	// 22111100221111002211110022111100 (4 cycles)
+	// 0 - no signal, 1 - no value (no pulse), 2 - pulse (light on)
+	// - Physical Cycle (0+1+2) defines maximum backlight frequency, limited by HW precision.
+	// - Base Cycle (1+2) defines [1/PWM Base Frequency], limited by physical cycle, see BXT_BLC_PWM_FREQ1.
+	// - Duty Cycle (2) defines [1/PWM Increment] - backlight level,
+	//   [PWM Frequency Divider] - backlight max, see BXT_BLC_PWM_DUTY1.
+	// - Duty Cycle position (first vs last) is [PWM Polarity]
+	//
+	// Duty cycle = PWM Base Frequeny * (1 / PWM Increment) / PWM Frequency Divider
+	//
+	// On macOS there are extra limitations:
+	// - All values and operations are u32 (32-bit unsigned)
+	// - [1/PWM Increment] has 0 to 0xFFFF range
+	// - [PWM Frequency Divider] is fixed to be 0xFFFF
+	// - [PWM Base Frequency] is capped by 0xFFFF (to avoid u32 wraparound), and is hardcoded
+	//   either in Framebuffer data (pre-CFL) or in the code (CFL: 7777 or 22222).
+	//
+	// On CFL the following patches have to be applied:
+	// - Hardcoded [PWM Base Frequency] should be patched or set after the hardcoded value is written by patching
+	//   hardcoded frequencies. 65535 is used by default.
+	// - If [PWM Base Frequency] is > 65535, to avoid a wraparound code calculating BXT_BLC_PWM_DUTY1
+	//   should be replaced to use 64-bit arithmetics.
+	// [PWM Base Frequency] can be specified via igfxbklt=1 boot-arg or backlight-base-frequency property.
+
+	// This patch will overwrite WriteRegister32 function to rescale all the register writes of backlight controller.
+	// Slightly different methods are used for CFL hardware running on KBL and CFL drivers.
+	// Guard: Register injections based on the current framebuffer in use
+	if (callbackIGFX->getRealFramebuffer(index) == &kextIntelKBLFb) {
+		DBGLOG("igfx", "BLR: [KBL*] Will setup the fix for KBL platform.");
+		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMFreq1);
+		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMCtrl1);
+	} else {
+		DBGLOG("igfx", "BLR: [CFL+] Will setup the fix for CFL/ICL platform.");
+		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMFreq1);
+		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMDuty1);
+	}
+}
+
+void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
+	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
+	assertf(reg == BXT_BLC_PWM_FREQ1, "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
+	
+	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
+		// Populate the hardware PWM frequency as initially set up by the system firmware.
+		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
+		DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.",
+			   callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+		DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_CTL1 = 0x%x.",
+			   callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
+
+		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
+			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
+			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
+			SYSLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
+		}
 	}
 
-	return r;
+	// For the KBL driver, 0xc8254 (BLC_PWM_PCH_CTL2) controls the backlight intensity.
+	// High 16 of this write are the denominator (frequency), low 16 are the numerator (duty cycle).
+	// Translate this into a write to c8258 (BXT_BLC_PWM_DUTY1) for the CFL hardware, scaled by the system-provided value in c8254 (BXT_BLC_PWM_FREQ1).
+	uint16_t frequency = (value & 0xffff0000U) >> 16U;
+	uint16_t dutyCycle = value & 0xffffU;
+
+	uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(frequency));
+	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.",
+		   dutyCycle, frequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+
+	// Reset the hardware PWM frequency. Write the original system value if the driver-requested value is nonzero. If the driver requests
+	// zero, we allow that, since it's trying to turn off the backlight PWM for sleep.
+	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency ? callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency : 0);
+
+	// Finish by writing the duty cycle.
+	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
 }
+
+void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value) {
+	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_CTL1>: Called with register 0x%x and value 0x%x.", reg, value);
+	assertf(reg == BXT_BLC_PWM_CTL1, "Fatal Error: Register should be BXT_BLC_PWM_CTL1.");
+	
+	if (callbackIGFX->modBacklightRegistersFix.targetPwmControl == 0) {
+		// Save the original hardware PWM control value
+		callbackIGFX->modBacklightRegistersFix.targetPwmControl = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1);
+	}
+
+	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_CTL1>: Write BXT_BLC_PWM_CTL1 0x%x, previous was 0x%x.",
+		   value, callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
+
+	if (value) {
+		// Set the PWM frequency before turning it on to avoid the 3 minute blackout bug
+		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+
+		// Use the original hardware PWM control value.
+		value = callbackIGFX->modBacklightRegistersFix.targetPwmControl;
+	}
+	
+	// Finish by writing the new value
+	callbackIGFX->writeRegister32(controller, reg, value);
+}
+
+void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
+	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
+	assertf(reg == BXT_BLC_PWM_FREQ1, "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
+	
+	if (value && value != callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency) {
+		DBGLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: Driver requested BXT_BLC_PWM_FREQ1 = 0x%x.", value);
+		callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency = value;
+	}
+
+	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
+		// Save the hardware PWM frequency as initially set up by the system firmware.
+		// We'll need this to restore later after system sleep.
+		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
+		DBGLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.", callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+
+		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
+			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
+			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
+			SYSLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
+		}
+	}
+
+	if (value) {
+		// Nonzero writes to this register need to use the original system value.
+		// Yet the driver can safely write zero to this register as part of system sleep.
+		value = callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency;
+	}
+	
+	// Finish by writing the new value
+	callbackIGFX->writeRegister32(controller, reg, value);
+}
+
+void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value) {
+	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Called with register 0x%x and value 0x%x.", reg, value);
+	assertf(reg == BXT_BLC_PWM_DUTY1, "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
+	
+	if (callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency && callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency) {
+		// Translate the PWM duty cycle between the driver scale value and the HW scale value
+		uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency));
+		DBGLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.", value,
+			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+		value = rescaledValue;
+	} else {
+		// This should never happen, but in case it does we should log it at the very least.
+		SYSLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 has zero frequency driver (%d) target (%d).",
+			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+	}
+	
+	// Finish by writing the new value
+	callbackIGFX->writeRegister32(controller, reg, value);
+}
+
+// MARK: - TODO
 
 OSObject *IGFX::wrapCopyExistingServices(OSDictionary *matching, IOOptionBits inState, IOOptionBits options) {
 	if (matching && inState == kIOServiceMatchedState && options == 0) {
@@ -733,7 +1152,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	
 	OSDictionary* developmentDictCpy {};
 
-	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->ForceWakeWorkaround.enabled) {
+	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->modForceWakeWorkaround.enabled) {
 		auto developmentDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
 		if (developmentDict) {
 			auto c = developmentDict->copyCollection();
@@ -774,7 +1193,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	// 0: Framebuffer's SafeForceWake
 	// 1: IntelAccelerator::SafeForceWakeMultithreaded (or ForceWakeWorkaround when enabled)
 	// The default is 1. Forcing 0 will result in hangs (due to misbalanced number of calls?)
-	if (callbackIGFX->ForceWakeWorkaround.enabled && developmentDictCpy) {
+	if (callbackIGFX->modForceWakeWorkaround.enabled && developmentDictCpy) {
 		auto num = OSNumber::withNumber(1ull, 32);
 		if (num) {
 			developmentDictCpy->setObject("MultiForceWakeSelect", num);
@@ -813,176 +1232,6 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	}
 
 	return ret;
-}
-
-bool IGFX::wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo) {
-	// The framebuffer controller can perform panel fitter, partial, or a
-	// complete modeset (see AppleIntelFramebufferController::hwSetMode).
-	// In a dual-monitor CFL DVI+HDMI setup, only HDMI output was working after
-	// boot: it was observed that for HDMI framebuffer a complete modeset
-	// eventually occured, but for DVI it never did until after sleep and wake
-	// sequence.
-	//
-	// Function AppleIntelFramebufferController::hwRegsNeedUpdate checks
-	// whether a complete modeset needs to be issued. It does so by comparing
-	// sets of pipes and transcoder parameters. For some reason, the result was
-	// never true in the above scenario, so a complete modeset never occured.
-	// Consequently, AppleIntelFramebufferController::LightUpTMDS was never
-	// called for that framebuffer.
-	//
-	// Patching hwRegsNeedUpdate to always return true seems to be a rather
-	// safe solution to that. Note that the root cause of the problem is
-	// somewhere deeper.
-
-	// On older Skylake versions this function has no detailedInfo and does not use framebuffer argument.
-	// As a result the compiler does not pass framebuffer to the target function. Since the fix is disabled
-	// by default for Skylake, just force complete modeset on all framebuffers when actually requested.
-	if (callbackIGFX->forceCompleteModeset.legacy)
-		return true;
-
-	// Either this framebuffer is in override list
-	if (callbackIGFX->forceCompleteModeset.customised) {
-		return callbackIGFX->forceCompleteModeset.inList(framebuffer)
-		|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
-			controller, framebuffer, displayPath, crtParams, detailedInfo);
-	}
-
-	// Or it is not built-in, as indicated by AppleBacklightDisplay setting property "built-in" for
-	// this framebuffer.
-	// Note we need to check this at every invocation, as this property may reappear
-	return !framebuffer->getProperty("built-in")
-			|| FunctionCast(callbackIGFX->wrapHwRegsNeedUpdate, callbackIGFX->orgHwRegsNeedUpdate)(
-			controller, framebuffer, displayPath, crtParams, detailedInfo);
-}
-
-IOReturn IGFX::wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments) {
-	if (attribute == kAGDCRegisterCallback) {
-		DBGLOG("igfx", "ignoring AGDC registration in FBClientControl::doAttribute");
-		return kIOReturnUnsupported;
-	}
-
-	return FunctionCast(wrapFBClientDoAttribute, callbackIGFX->orgFBClientDoAttribute)(fbclient, attribute, unk1, unk2, unk3, unk4, externalMethodArguments);
-}
-
-/**
- * Apparently, platforms with (ig-platform-id & 0xf != 0) have only Type C connectivity.
- * Framebuffer kext uses this fact to sanitise connector type, forcing it to DP.
- * This breaks many systems, so we undo this check.
- * Affected drivers: KBL and newer?
- */
-uint64_t IGFX::wrapIsTypeCOnlySystem(void*) {
-	DBGLOG("igfx", "Forcing IsTypeCOnlySystem 0");
-	return 0;
-}
-
-uint32_t IGFX::wrapGetDisplayStatus(IOService *framebuffer, void *displayPath) {
-	// 0 - offline, 1 - online, 2 - empty dongle.
-	uint32_t ret = FunctionCast(wrapGetDisplayStatus, callbackIGFX->orgGetDisplayStatus)(framebuffer, displayPath);
-	if (ret != 1) {
-		if (callbackIGFX->forceOnlineDisplay.customised)
-			ret = callbackIGFX->forceOnlineDisplay.inList(framebuffer) ? 1 : ret;
-		else
-			ret = 1;
-	}
-
-	DBGLOG("igfx", "getDisplayStatus forces %u", ret);
-	return ret;
-}
-
-void IGFX::wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value) {
-	if (reg == BXT_BLC_PWM_FREQ1) {
-		if (value && value != callbackIGFX->driverBacklightFrequency) {
-			DBGLOG("igfx", "wrapCflWriteRegister32: driver requested BXT_BLC_PWM_FREQ1 = 0x%x", value);
-			callbackIGFX->driverBacklightFrequency = value;
-		}
-
-		if (callbackIGFX->targetBacklightFrequency == 0) {
-			// Save the hardware PWM frequency as initially set up by the system firmware.
-			// We'll need this to restore later after system sleep.
-			callbackIGFX->targetBacklightFrequency = callbackIGFX->orgCflReadRegister32(that, BXT_BLC_PWM_FREQ1);
-			DBGLOG("igfx", "wrapCflWriteRegister32: system initialized BXT_BLC_PWM_FREQ1 = 0x%x", callbackIGFX->targetBacklightFrequency);
-
-			if (callbackIGFX->targetBacklightFrequency == 0) {
-				// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
-				callbackIGFX->targetBacklightFrequency = FallbackTargetBacklightFrequency;
-				SYSLOG("igfx", "wrapCflWriteRegister32: system initialized BXT_BLC_PWM_FREQ1 is ZERO");
-			}
-		}
-
-		if (value) {
-			// Nonzero writes to this register need to use the original system value.
-			// Yet the driver can safely write zero to this register as part of system sleep.
-			value = callbackIGFX->targetBacklightFrequency;
-		}
-	} else if (reg == BXT_BLC_PWM_DUTY1) {
-		if (callbackIGFX->driverBacklightFrequency && callbackIGFX->targetBacklightFrequency) {
-			// Translate the PWM duty cycle between the driver scale value and the HW scale value
-			uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
-				static_cast<uint64_t>(callbackIGFX->driverBacklightFrequency));
-			DBGLOG("igfx", "wrapCflWriteRegister32: write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x", value,
-				   callbackIGFX->driverBacklightFrequency, rescaledValue, callbackIGFX->targetBacklightFrequency);
-			value = rescaledValue;
-		} else {
-			// This should never happen, but in case it does we should log it at the very least.
-			SYSLOG("igfx", "wrapCflWriteRegister32: write PWM_DUTY1 has zero frequency driver (%d) target (%d)",
-				   callbackIGFX->driverBacklightFrequency, callbackIGFX->targetBacklightFrequency);
-		}
-	}
-
-	callbackIGFX->orgCflWriteRegister32(that, reg, value);
-}
-
-void IGFX::wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value) {
-	if (reg == BXT_BLC_PWM_FREQ1) { // aka BLC_PWM_PCH_CTL2
-		if (callbackIGFX->targetBacklightFrequency == 0) {
-			// Populate the hardware PWM frequency as initially set up by the system firmware.
-			callbackIGFX->targetBacklightFrequency = callbackIGFX->orgKblReadRegister32(that, BXT_BLC_PWM_FREQ1);
-			DBGLOG("igfx", "wrapKblWriteRegister32: system initialized BXT_BLC_PWM_FREQ1 = 0x%x", callbackIGFX->targetBacklightFrequency);
-			DBGLOG("igfx", "wrapKblWriteRegister32: system initialized BXT_BLC_PWM_CTL1 = 0x%x", callbackIGFX->orgKblReadRegister32(that, BXT_BLC_PWM_CTL1));
-
-			if (callbackIGFX->targetBacklightFrequency == 0) {
-				// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
-				callbackIGFX->targetBacklightFrequency = FallbackTargetBacklightFrequency;
-				SYSLOG("igfx", "wrapKblWriteRegister32: system initialized BXT_BLC_PWM_FREQ1 is ZERO");
-			}
-		}
-
-		// For the KBL driver, 0xc8254 (BLC_PWM_PCH_CTL2) controls the backlight intensity.
-		// High 16 of this write are the denominator (frequency), low 16 are the numerator (duty cycle).
-		// Translate this into a write to c8258 (BXT_BLC_PWM_DUTY1) for the CFL hardware, scaled by the system-provided value in c8254 (BXT_BLC_PWM_FREQ1).
-		uint16_t frequency = (value & 0xffff0000U) >> 16U;
-		uint16_t dutyCycle = value & 0xffffU;
-
-		uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->targetBacklightFrequency)) /
-										    static_cast<uint64_t>(frequency));
-		DBGLOG("igfx", "wrapKblWriteRegister32: write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x",
-			   dutyCycle, frequency, rescaledValue, callbackIGFX->targetBacklightFrequency);
-
-		// Reset the hardware PWM frequency. Write the original system value if the driver-requested value is nonzero. If the driver requests
-		// zero, we allow that, since it's trying to turn off the backlight PWM for sleep.
-		callbackIGFX->orgKblWriteRegister32(that, BXT_BLC_PWM_FREQ1, frequency ? callbackIGFX->targetBacklightFrequency : 0);
-
-		// Finish by writing the duty cycle.
-		reg = BXT_BLC_PWM_DUTY1;
-		value = rescaledValue;
-	} else if (reg == BXT_BLC_PWM_CTL1) {
-		if (callbackIGFX->targetPwmControl == 0) {
-			// Save the original hardware PWM control value
-			callbackIGFX->targetPwmControl = callbackIGFX->orgKblReadRegister32(that, BXT_BLC_PWM_CTL1);
-		}
-
-		DBGLOG("igfx", "wrapKblWriteRegister32: write BXT_BLC_PWM_CTL1 0x%x, previous was 0x%x", value, callbackIGFX->orgKblReadRegister32(that, BXT_BLC_PWM_CTL1));
-
-		if (value) {
-			// Set the PWM frequency before turning it on to avoid the 3 minute blackout bug
-			callbackIGFX->orgKblWriteRegister32(that, BXT_BLC_PWM_FREQ1, callbackIGFX->targetBacklightFrequency);
-
-			// Use the original hardware PWM control value.
-			value = callbackIGFX->targetPwmControl;
-		}
-	}
-
-	callbackIGFX->orgKblWriteRegister32(that, reg, value);
 }
 
 bool IGFX::wrapGetOSInformation(IOService *that) {

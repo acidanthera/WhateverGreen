@@ -143,13 +143,6 @@ private:
 	static constexpr size_t MaxFramebufferPatchCount = 10;
 
 	/**
-	 *  Backlight registers
-	 */
-	static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
-	static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
-	static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
-
-	/**
 	 *  Number of SNB frames in a framebuffer kext
 	 */
 	static constexpr size_t SandyPlatformNum = 9;
@@ -228,16 +221,6 @@ private:
 	KernelPatcher::KextInfo *currentFramebufferOpt {nullptr};
 
 	/**
-	 *  Original PAVP session callback function used for PAVP command handling
-	 */
-	mach_vm_address_t orgPavpSessionCallback {};
-
-	/**
-	 *  Original AppleIntelFramebufferController::ComputeLaneCount function used for DP lane count calculation
-	 */
-	mach_vm_address_t orgComputeLaneCount {};
-
-	/**
 	 *  Original IOService::copyExistingServices function from the kernel
 	 */
 	mach_vm_address_t orgCopyExistingServices {};
@@ -278,65 +261,6 @@ private:
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
 
 	/**
-	 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
-	 */
-	mach_vm_address_t orgHwRegsNeedUpdate {};
-
-	/**
-	 *  Original IntelFBClientControl::doAttribute function
-	 */
-	mach_vm_address_t orgFBClientDoAttribute {};
-
-	/**
-	 *  Original AppleIntelFramebuffer::getDisplayStatus function
-	 */
-	mach_vm_address_t orgGetDisplayStatus {};
-
-	/**
-	 *  Original AppleIntelFramebufferController::ReadRegister32 function
-	 */
-	uint32_t (*orgCflReadRegister32)(void *, uint32_t) {nullptr};
-	uint32_t (*orgKblReadRegister32)(void *, uint32_t) {nullptr};
-
-	/**
-	 *  Original AppleIntelFramebufferController::WriteRegister32 function
-	 */
-	void (*orgCflWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-	void (*orgKblWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
-
-	/**
-	 *  Set to true if a black screen ComputeLaneCount patch is required
-	 */
-	bool blackScreenPatch {false};
-
-	/**
-	 *  Coffee Lake backlight patch configuration options
-	 */
-	enum class CoffeeBacklightPatch {
-		Auto = -1,
-		On = 1,
-		Off = 0
-	};
-
-	/**
-	 *  Set to On if Coffee Lake backlight patch type required
-	 *  - boot-arg igfxcflbklt=0/1 forcibly turns patch on or off (override)
-	 *  - IGPU property enable-cfl-backlight-fix turns patch on
-	 *  - laptop with CFL CPU and CFL IGPU drivers turns patch on
-	 */
-	CoffeeBacklightPatch cflBacklightPatch {CoffeeBacklightPatch::Off};
-
-	/**
-	 *  Set to true if PAVP code should be disabled
-	 */
-	bool pavpDisablePatch {false};
-
-	/**
-	 *  Set to true if read descriptor patch should be enabled
-	 */
-	bool readDescriptorPatch {false};
-
-	/**
 	 *  Set to true to disable Metal support
 	 */
 	bool forceOpenGL {false};
@@ -350,11 +274,6 @@ private:
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};
-
-	/**
-	 *  Disable AGDC configuration
-	 */
-	bool disableAGDC {false};
 
 	/**
 	 *  GuC firmware loading scheme
@@ -381,67 +300,159 @@ private:
 	 */
 	bool dumpFramebufferToDisk {false};
 
-	/**
-	 *  Trace framebuffer logic
-	 */
-	bool debugFramebuffer {false};
-
-	/**
-	 * Per-framebuffer helper script.
-	 */
-	struct FramebufferModifer {
-		bool supported {false}; // compatible CPU
-		bool legacy {false}; // legacy CPU (Skylake)
-		bool enable {false}; // enable the patch
-		bool customised {false}; // override default patch behaviour
-		uint8_t fbs[sizeof(uint64_t)] {}; // framebuffers to force modeset for on override
-
-		bool inList(IORegistryEntry* fb) {
-			uint32_t idx;
-			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
-				for (auto i : fbs)
-					if (i == idx)
-						return true;
-			return false;
-		}
-	};
-	
-	// NOTE: the MMIO space is also available at RC6_RegBase
-	uint32_t (*AppleIntelFramebufferController__ReadRegister32)(void*,uint32_t) {};
-	void (*AppleIntelFramebufferController__WriteRegister32)(void*,uint32_t,uint32_t) {};
-
+	// The opaque framebuffer controller type on BDW+
 	class AppleIntelFramebufferController;
-	// Populated at AppleIntelFramebufferController::start
-	// Useful for getting access to Read/WriteRegister, rather than having
-	// to compute the offsets
-	AppleIntelFramebufferController** gFramebufferController {};
 	
 	// Available on ICL+
 	// Apple has refactored quite a large amount of code into a new class `AppleIntelPort` in the ICL graphics driver,
 	// and the framebuffer controller now maintains an array of `ports`.
 	class AppleIntelPort;
-
-	struct RPSControl {
-		bool available {false};
-		bool enabled {false};
-		uint32_t freq_max {0};
-		
-		void initFB(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-		void initGraphics(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
-
-		static int pmNotifyWrapper(unsigned int,unsigned int,unsigned long long *,unsigned int *);
-		mach_vm_address_t orgPmNotifyWrapper;
-	} RPSControl;
 	
-	struct ForceWakeWorkaround {
-		bool enabled {false};
+	/**
+	 *  Get the real framebuffer in use from the given bundle index
+	 */
+	KernelPatcher::KextInfo *getRealFramebuffer(size_t index) {
+		return (currentFramebuffer && currentFramebuffer->loadIndex == index) ? currentFramebuffer : currentFramebufferOpt;
+	}
+	
+	//
+	// MARK: - Patch Submodule & Injection Kits
+	//
+	
+	/**
+	 *  Describes how to inject code into a shared submodule
+	 *
+	 *  @tparam T Specify the type of the trigger
+	 *  @tparam I Specify the type of the function to inject code
+	 *  @example The trigger type can be an integer type to inject code based on a register address.
+	 */
+	template <typename T, typename I>
+	struct InjectionDescriptor {
+		/**
+		 *  The trigger value to be monitored by the coordinator
+		 */
+		T trigger;
 
-		void initGraphics(IGFX&,KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size);
+		/**
+		 *  A function to invoke when the trigger value is observed
+		 *
+		 *  @example One may monitor a specific register address and modify its value in the injector function.
+		 */
+		I injector;
+
+		/**
+		 *  A pointer to the next descriptor in a linked list
+		 */
+		InjectionDescriptor *next;
+
+		/**
+		 *  Create an injection descriptor conveniently
+		 */
+		InjectionDescriptor(T t, I i) :
+			trigger(t), injector(i), next(nullptr) { }
 		
-		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
-		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
-		static void forceWake(void*, uint8_t set, uint32_t dom, uint32_t);
-	} ForceWakeWorkaround;
+		/**
+		 *  Member type `Trigger` is required by the coordinator
+		 */
+		using Trigger = T;
+		
+		/**
+		 *  Member type `Injector` is required by the coordinator
+		 */
+		using Injector = I;
+	};
+	
+	/**
+	 *  Represents a list of injection descriptors
+	 *
+	 *  @tparam D Specify the concrete type of the descriptor
+	 */
+	template <typename D>
+	struct InjectionDescriptorList {
+	private:
+		/**
+		 *  Head of the list
+		 */
+		D *head {nullptr};
+		
+		/**
+		 *  Tail of the list
+		 */
+		D *tail {nullptr};
+		
+	public:
+		/**
+		 *  Get the injector function associated with the given trigger
+		 *
+		 *  @param trigger The trigger value
+		 *  @return The injector function on success, `nullptr` if the given trigger is not in the list.
+		 */
+		typename D::Injector getInjector(typename D::Trigger trigger) {
+			for (auto current = head; current != nullptr; current = current->next)
+				if (current->trigger == trigger)
+					return current->injector;
+			
+			return nullptr;
+		}
+		
+		/**
+		 *  Add an injection descriptor to the list
+		 *
+		 *  @param descriptor A non-null descriptor that specifies the trigger and the injector function
+		 *  @warning Patch developers must ensure that triggers are unique.
+		 *           The coordinator registers injections on a first come, first served basis.
+		 *           i.e. The latter descriptor will NOT overwrite the injection function of the existing one.
+		 *  @note This function assumes that the trigger value of the given descriptor has not been registered yet.
+		 */
+		void add(D *descriptor NONNULL) {
+			// Sanitize garbage value
+			descriptor->next = nullptr;
+			
+			// Append the new descriptor
+			if (head == nullptr)
+				// Empty list
+				head = descriptor;
+			else
+				// Non-empty list
+				tail->next = descriptor;
+			
+			// Update the tail
+			tail = descriptor;
+		}
+	};
+	
+	/**
+	 *  An injection coordinator is capable of coordinating multiple requests of injection to a shared function
+	 *
+	 *  @tparam P Specify the type of the prologue injection descriptor that defines how the coordinator injects code before it calls the original function
+	 *  @tparam R Specify the type of the replacer injection descriptor that defines how the coordinator replaces the original function implementation
+	 *  @tparam E Specify the type of the epilogue injection descriptor that defines how the coordinator injects code after it calls the original function
+	 *  @note Patch submodules inherited from this class get coordination support automatically.
+	 *  @note Patch submodules invoke the `add()` method of a list to register injections.
+	 */
+	template <typename P, typename R, typename E>
+	class InjectionCoordinator {
+	public:
+		/**
+		 *  Virtual destructor
+		 */
+		virtual ~InjectionCoordinator() = default;
+		
+		/**
+		 *  A list of prologue injection descriptors
+		 */
+		InjectionDescriptorList<P> prologueList;
+		
+		/**
+		 *  A list of replacer injection descriptors
+		 */
+		InjectionDescriptorList<R> replacerList;
+		
+		/**
+		 *  A list of epilogue injection descriptors
+		 */
+		InjectionDescriptorList<E> epilogueList;
+	};
 	
 	/**
 	 *  Interface of a submodule to fix Intel graphics drivers
@@ -454,19 +465,34 @@ private:
 		virtual ~PatchSubmodule() = default;
 		
 		/**
-		 *  True if this submodule should be enabled
+		 *  Set to `true` if this submodule should be enabled
 		 */
 		bool enabled {false};
 		
 		/**
-		 *  True if this submodule requires patching the framebuffer driver
+		 *  Set to `true` if this submodule requires patching the framebuffer driver
 		 */
 		bool requiresPatchingFramebuffer {false};
 		
 		/**
-		 *  True if this submodule requires patching the graphics acceleration driver
+		 *  Set to `true` if this submodule requires patching the graphics acceleration driver
 		 */
 		bool requiresPatchingGraphics {false};
+		
+		/**
+		 *  Set to `true` if this submodule requires accessing global framebuffer controllers
+		 */
+		bool requiresGlobalFramebufferControllersAccess {false};
+		
+		/**
+		 *  Set to `true` if this submodules requires read access to MMIO registers
+		 */
+		bool requiresMMIORegistersReadAccess {false};
+		
+		/**
+		 *  Set to `true` if this submodules requires write access to MMIO registers
+		 */
+		bool requiresMMIORegistersWriteAccess {false};
 		
 		/**
 		 *  Initialize any data structure required by this submodule if necessary
@@ -508,7 +534,175 @@ private:
 		 *  @note This function is called when the main IGFX module processes the kext.
 		 */
 		virtual void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {}
+		
+		/**
+		 *  Disable submodules that depend on this submodules
+		 */
+		virtual void disableDependentSubmodules() {}
 	};
+	
+	//
+	// MARK: - Shared Submodules
+	//
+	
+	/**
+	 *  A submodule to provide shared access to global framebuffer controllers
+	 */
+	class FramebufferControllerAccessSupport: public PatchSubmodule {
+		/**
+		 *  An array of framebuffer controllers populated by `AppleIntelFramebufferController::start()`
+		 */
+		AppleIntelFramebufferController **controllers {};
+		
+	public:
+		/**
+		 *  Get the framebuffer controller at the given index
+		 */
+		AppleIntelFramebufferController *getController(size_t index) { return controllers[index]; }
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void disableDependentSubmodules() override;
+	} modFramebufferControllerAccessSupport;
+	
+	/**
+	 *  Defines the prologue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and returns void.
+	 *  @note The injection is performed before the original function is invoked.
+	 */
+	using MMIOReadPrologue = InjectionDescriptor<uint32_t, void (*)(void *, uint32_t)>;
+	
+	/**
+	 *  Defines the replacer injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and returns the register value.
+	 *  @note The injection replaced the original function call.
+	 */
+	using MMIOReadReplacer = InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t)>;
+	
+	/**
+	 *  Defines the epilogue injection descriptor for `AppleIntelFramebufferController::ReadRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and its value, and returns the new value.
+	 *  @note The injection is performed after the original function is invoked.
+	 */
+	using MMIOReadEpilogue = InjectionDescriptor<uint32_t, uint32_t (*)(void *, uint32_t, uint32_t)>;
+	
+	/**
+	 *  A submodule that provides read access to MMIO registers and coordinates injections to the read function
+	 */
+	class MMIORegistersReadSupport: public PatchSubmodule, public InjectionCoordinator<MMIOReadPrologue, MMIOReadReplacer, MMIOReadEpilogue> {
+		/**
+		 *  Set to `true` to print detailed register access information
+		 */
+		bool verbose;
+		
+	public:
+		/**
+		 *  Original AppleIntelFramebufferController::ReadRegister32 function
+		 *
+		 *  @note Other submodules may use this function pointer to skip injected code.
+		 */
+		uint32_t (*orgReadRegister32)(void *, uint32_t) {nullptr};
+		
+		/**
+		 *  Wrapper for the AppleIntelFramebufferController::ReadRegister32 function
+		 *
+		 *  @param controller The implicit controller instance
+		 *  @param address The register address
+		 *  @return The register value.
+		 *  @note This wrapper function monitors the register address and invokes registered injectors.
+		 */
+		static uint32_t wrapReadRegister32(void *controller, uint32_t address);
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void disableDependentSubmodules() override;
+	} modMMIORegistersReadSupport;
+	
+	/**
+	 *  Defines the injection descriptor for `AppleIntelFramebufferController::WriteRegister32()`
+	 *
+	 *  @note The trigger is the register address.
+	 *  @note The injector function takes the controller along with the register address and its new value, and returns void.
+	 *  @note This type is shared by all three kinds of injection descriptors.
+	 */
+	using MMIOWriteInjectionDescriptor = InjectionDescriptor<uint32_t, void (*)(void *, uint32_t, uint32_t)>;
+	
+	/**
+	 *  A submodule that provides write access to MMIO registers and coordinates injections to the write function
+	 */
+	class MMIORegistersWriteSupport: public PatchSubmodule, public InjectionCoordinator<MMIOWriteInjectionDescriptor, MMIOWriteInjectionDescriptor, MMIOWriteInjectionDescriptor> {
+		/**
+		 *  Set to `true` to print detailed register access information
+		 */
+		bool verbose;
+		
+	public:
+		/**
+		 *  Original AppleIntelFramebufferController::WriteRegister32 function
+		 *
+		 *  @note Other submodules may use this function pointer to skip injected code.
+		 */
+		void (*orgWriteRegister32)(void *, uint32_t, uint32_t) {nullptr};
+		
+		/**
+		 *  Wrapper for the AppleIntelFramebufferController::WriteRegister32 function
+		 *
+		 *  @param controller The implicit controller instance
+		 *  @param address The register address
+		 *  @param value The new register value
+		 *  @note This wrapper function monitors the register address and invokes registered injectors.
+		 */
+		static void wrapWriteRegister32(void *controller, uint32_t address, uint32_t value);
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void disableDependentSubmodules() override;
+	} modMMIORegistersWriteSupport;
+	
+	/**
+	 *  [Convenient] Get the default framebuffer controller
+	 */
+	AppleIntelFramebufferController *defaultController() {
+		return modFramebufferControllerAccessSupport.getController(0);
+	}
+	
+	/**
+	 *  [Convenient] Invoke the original AppleIntelFramebufferController::ReadRegister32 function
+	 *
+	 *  @param controller The framebuffer controller instance
+	 *  @param address The register address
+	 *  @return The register value.
+	 */
+	uint32_t readRegister32(void *controller, uint32_t address) {
+		return modMMIORegistersReadSupport.orgReadRegister32(controller, address);
+	}
+	
+	/**
+	 *  [Convenient] Invoke the original AppleIntelFramebufferController::WriteRegister32 function
+	 *
+	 *  @param controller The framebuffer controller instance
+	 *  @param address The register address
+	 *  @param value The new register value
+	 */
+	void writeRegister32(void *controller, uint32_t address, uint32_t value) {
+		modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
+	}
+	
+	//
+	// MARK: - Individual Fixes
+	//
 	
 	/**
 	 *  A submodule to fix the calculation of DVMT preallocated memory on ICL+ platforms
@@ -703,15 +897,6 @@ private:
 	 *  A submodule to support all valid Core Display Clock frequencies on ICL+ platforms
 	 */
 	class CoreDisplayClockFix: public PatchSubmodule {
-		/**
-		 *  [ICL+] Original AppleIntelFramebufferController::ReadRegister32 function
-		 *
-		 *  @param that The implicit hidden framebuffer controller instance
-		 *  @param address Address of the MMIO register
-		 *  @return The 32-bit integer read from the register.
-		 */
-		uint32_t (*orgIclReadRegister32)(AppleIntelFramebufferController *, uint32_t) {nullptr};
-		
 		/**
 		 *  [ICL+] Original AppleIntelFramebufferController::probeCDClockFrequency function
 		 *
@@ -1065,29 +1250,375 @@ private:
 	friend class LSPCON;
 	
 	/**
-	 *	A collection of submodules
+	 *  A submodule that patches RPS control for all command streamers
 	 */
-	PatchSubmodule *submodules[6] = { &modDVMTCalcFix, &modDPCDMaxLinkRateFix, &modCoreDisplayClockFix, &modHDMIDividersCalcFix, &modLSPCONDriverSupport, &modAdvancedI2COverAUXSupport };
+	class RPSControlPatch: public PatchSubmodule {
+		uint32_t freq_max {0};
+		bool patchRCSCheck(mach_vm_address_t& start);
+		int (*orgPmNotifyWrapper)(unsigned int, unsigned int, unsigned long long *, unsigned int *) {nullptr};
+		static int wrapPmNotifyWrapper(unsigned int, unsigned int, unsigned long long *, unsigned int *);
+		
+	public:
+		/**
+		 *  True if this fix is available for the current Intel platform
+		 */
+		bool available {false};
+		
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modRPSControlPatch;
 	
 	/**
-	 * Ensure each modeset is a complete modeset.
+	 *  A submodule that fixes the kernel panic due to a rare force wake timeout on KBL and CFL platforms.
 	 */
-	FramebufferModifer forceCompleteModeset;
-
+	class ForceWakeWorkaround: public PatchSubmodule {
+		static bool pollRegister(uint32_t, uint32_t, uint32_t, uint32_t);
+		static bool forceWakeWaitAckFallback(uint32_t, uint32_t, uint32_t);
+		static void forceWake(void *, uint8_t set, uint32_t dom, uint32_t);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceWakeWorkaround;
+	
 	/**
-	 * Ensure each display is online.
+	 *  A submodule that applies patches based on the framebuffer index
 	 */
-	FramebufferModifer forceOnlineDisplay;
+	class FramebufferModifer: public PatchSubmodule {
+	protected:
+		/**
+		 *  Indices of framebuffers to be patched
+		 */
+		uint8_t fbs[sizeof(uint64_t)] {};
+
+		/**
+		 *  Check whether the given framebuffer is in the list
+		 */
+		bool inList(IORegistryEntry* fb) {
+			uint32_t idx;
+			if (AppleIntelFramebufferExplorer::getIndex(fb, idx))
+				for (auto i : fbs)
+					if (i == idx)
+						return true;
+			return false;
+		}
+		
+	public:
+		/**
+		 *  `True` if this patch is supported on the current platform
+		 */
+		bool supported {false};
+		
+		/**
+		 *  `True` if the current platform is Skylake
+		 */
+		bool legacy {false};
+		
+		/**
+		 *  `True` if patch behavior should be overridden
+		 */
+		bool customised {false};
+	};
+	
+	/**
+	 *  A submodule to ensure that each modeset operation is a complete one
+	 */
+	class ForceCompleteModeset: public FramebufferModifer {
+		/**
+		 *  Original AppleIntelFramebufferController::hwRegsNeedUpdate function
+		 */
+		bool (*orgHwRegsNeedUpdate)(void *, IORegistryEntry *, void *, void *, void *) {nullptr};
+		
+		/**
+		 *  Wrapper to force a complete modeset
+		 */
+		static bool wrapHwRegsNeedUpdate(void *controller, IORegistryEntry *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceCompleteModeset;
+	
+	/**
+	 *  A submodule to ensure that each display is online
+	 */
+	class ForceOnlineDisplay: public FramebufferModifer {
+		/**
+		 *  Original AppleIntelFramebuffer::getDisplayStatus function
+		 */
+		uint32_t (*orgGetDisplayStatus)(IORegistryEntry *, void *) {nullptr};
+		
+		/**
+		 *  Wrapper to report that a display is online
+		 */
+		static uint32_t wrapGetDisplayStatus(IORegistryEntry *framebuffer, void *displayPath);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modForceOnlineDisplay;
+	
+	/**
+	 *  A submodule that disables Apple's Graphics Device Control (AGDC)
+	 */
+	class AGDCDisabler: public PatchSubmodule {
+		/**
+		 *  Original IntelFBClientControl::doAttribute function
+		 */
+		IOReturn (*orgFBClientDoAttribute)(void *, uint32_t, unsigned long *, unsigned long, unsigned long *, unsigned long *, void *) {nullptr};
+		
+		/**
+		 *  A wrapper to ignore AGDC registration request
+		 */
+		static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modAGDCDisabler;
+	
+	/**
+	 *  A submodule that disables the check of Type-C platforms
+	 */
+	class TypeCCheckDisabler: public PatchSubmodule {
+		/**
+		 *  A wrapper to always report that this is not a Type-C platform
+		 *
+		 *  @note Apparently, platforms with (ig-platform-id & 0xf != 0) have only Type C connectivity.
+		 *        Framebuffer kext uses this fact to sanitise connector type, forcing it to DP.
+		 *        This breaks many systems, so we undo this check.
+		 *        Affected drivers: KBL and newer?
+		 */
+		static bool wrapIsTypeCOnlySystem(void *controller);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modTypeCCheckDisabler;
+	
+	/**
+	 *  A submodule to fix the black screen on external HDMI/DVI displays
+	 */
+	class BlackScreenFix: public PatchSubmodule {
+		/**
+		 *  [Legacy] Original AppleIntelFramebufferController::ComputeLaneCount function
+		 *
+		 *  @note This function is used for DP lane count calculation.
+		 */
+		bool (*orgComputeLaneCount)(void *, void *, uint32_t, int, int *) {nullptr};
+		
+		/**
+		 *  [Nouveau] Original AppleIntelFramebufferController::ComputeLaneCount function
+		 *
+		 *  @note This function is used for DP lane count calculation.
+		 *  @note Available on KBL+ and as of macOS 10.14.1.
+		 */
+		bool (*orgComputeLaneCountNouveau)(void *, void *, int, int *) {nullptr};
+		
+		/**
+		 *  [Legacy] A wrapper to report a working lane count for HDMI/DVI connections
+		 */
+		static bool wrapComputeLaneCount(void *controller, void *detailedTiming, uint32_t bpp, int availableLanes, int *laneCount);
+		
+		/**
+		 *  [Nouveau] A wrapper to report a working lane count for HDMI/DVI connections
+		 *
+		 *  @note Available on KBL+ and as of macOS 10.14.1.
+		 */
+		static bool wrapComputeLaneCountNouveau(void *controller, void *detailedTiming, int availableLanes, int *laneCount);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBlackScreenFix;
+	
+	/**
+	 *  A submodule to disable PAVP code and thus prevent freezes
+	 */
+	class PAVPDisabler: public PatchSubmodule {
+		/**
+		 *  Original PAVP session callback function used for PAVP command handling
+		 */
+		IOReturn (*orgPavpSessionCallback)(void *, int32_t, uint32_t, uint32_t *, bool) {nullptr};
+		
+		/**
+		 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
+		 */
+		static IOReturn wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modPAVPDisabler;
+	
+	/**
+	 *  A submodule to patch read descriptors and thus avoid random kernel panics on SKL+
+	 */
+	class ReadDescriptorPatch: public PatchSubmodule {
+		/**
+		 *  Global page table read wrapper for Kaby Lake.
+		 */
+		static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processGraphicsKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modReadDescriptorPatch;
+	
+	/**
+	 *  A submodule to patch backlight register values and thus avoid 3-minute black screen on KBL+
+	 *
+	 *  @note Supported Platforms: KBL, CFL, ICL.
+	 */
+	class BacklightRegistersFix: public PatchSubmodule {
+		/**
+		 *  Backlight registers
+		 */
+		static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
+		static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
+		static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
+		
+		/**
+		 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
+		 */
+		static constexpr uint32_t FallbackTargetBacklightFrequency = 120000;
+		
+		/**
+		 *  [Common] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
+		 *  Can be specified via max-backlight-freq property.
+		 */
+		uint32_t targetBacklightFrequency {};
+		
+		/**
+		 *  [KBL] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
+		 */
+		uint32_t targetPwmControl {};
+		
+		/**
+		 *  [CFL, ICL] Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
+		 */
+		uint32_t driverBacklightFrequency {};
+		
+		/**
+		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
+		 */
+		static void wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_CTL1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_CTL1`.
+		 */
+		static void wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [CFL+] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
+		 */
+		static void wrapCFLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [CFL+] Wrapper to fix the value of BXT_BLC_PWM_DUTY1
+		 *
+		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_DUTY1`.
+		 */
+		static void wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value);
+		
+		/**
+		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 */
+		MMIOWriteInjectionDescriptor dKBLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapKBLWriteRegisterPWMFreq1};
+		
+		/**
+		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
+		 */
+		MMIOWriteInjectionDescriptor dKBLPWMCtrl1 {BXT_BLC_PWM_CTL1 , wrapKBLWriteRegisterPWMCtrl1};
+		
+		/**
+		 *  [CFL+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 */
+		MMIOWriteInjectionDescriptor dCFLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapCFLWriteRegisterPWMFreq1};
+		
+		/**
+		 *  [CFL+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_DUTY1
+		 */
+		MMIOWriteInjectionDescriptor dCFLPWMDuty1 {BXT_BLC_PWM_DUTY1, wrapCFLWriteRegisterPWMDuty1};
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBacklightRegistersFix;
+	
+	/**
+	 *  A submodule to provide support for debugging the framebuffer driver
+	 */
+	class FramebufferDebugSupport: public PatchSubmodule {
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modFramebufferDebugSupport;
+	
+	/**
+	 *  A collection of shared submodules
+	 */
+	PatchSubmodule *sharedSubmodules[3] = {
+		&modFramebufferControllerAccessSupport,
+		&modMMIORegistersReadSupport,
+		&modMMIORegistersWriteSupport
+	};
+	
+	/**
+	 *  A collection of submodules
+	 */
+	PatchSubmodule *submodules[17] = {
+		&modDVMTCalcFix,
+		&modDPCDMaxLinkRateFix,
+		&modCoreDisplayClockFix,
+		&modHDMIDividersCalcFix,
+		&modLSPCONDriverSupport,
+		&modAdvancedI2COverAUXSupport,
+		&modRPSControlPatch,
+		&modForceWakeWorkaround,
+		&modForceCompleteModeset,
+		&modForceOnlineDisplay,
+		&modAGDCDisabler,
+		&modTypeCCheckDisabler,
+		&modBlackScreenFix,
+		&modPAVPDisabler,
+		&modReadDescriptorPatch,
+		&modBacklightRegistersFix,
+		&modFramebufferDebugSupport
+	};
 	
 	/**
 	 * Prevent IntelAccelerator from starting.
 	 */
 	bool disableAccel {false};
-
-	/**
-	 * Disable Type C framebuffer check.
-	 */
-	bool disableTypeCCheck {false};
 	
 	/**
 	 *  Perform platform table dump to ioreg
@@ -1150,37 +1681,6 @@ private:
 	uint32_t realBinarySize {};
 
 	/**
-	 *  Store backlight level
-	 */
-	uint32_t backlightLevel {};
-
-	/**
-	 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
-	 */
-	static constexpr uint32_t FallbackTargetBacklightFrequency {120000};
-
-	/**
-	 *  User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
-	 *  Can be specified via max-backlight-freq property.
-	 */
-	uint32_t targetBacklightFrequency {};
-
-	/**
-	 *  User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
-	 */
-	uint32_t targetPwmControl {};
-
-	/**
-	 *  Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
-	 */
-	uint32_t driverBacklightFrequency {};
-
-	/**
-	 * See function definition for explanation
-	 */
-	static bool wrapHwRegsNeedUpdate(void *controller, IOService *framebuffer, void *displayPath, void *crtParams, void *detailedInfo);
-
-	/**
 	 *  Explore the framebuffer structure in Apple's Intel graphics driver
 	 */
 	struct AppleIntelFramebufferExplorer {
@@ -1203,26 +1703,6 @@ private:
 			return false;
 		}
 	};
-	
-	/**
-	 *  PAVP session callback wrapper used to prevent freezes on incompatible PAVP certificates
-	 */
-	static IOReturn wrapPavpSessionCallback(void *intelAccelerator, int32_t sessionCommand, uint32_t sessionAppId, uint32_t *a4, bool flag);
-
-	/**
-	 *  Global page table read wrapper for Kaby Lake.
-	 */
-	static bool globalPageTableRead(void *hardwareGlobalPageTable, uint64_t a1, uint64_t &a2, uint64_t &a3);
-
-	/**
-	 *  DP ComputeLaneCount wrapper to report success on non-DP screens to avoid black screen
-	 */
-	static bool wrapComputeLaneCount(void *that, void *timing, uint32_t bpp, int32_t availableLanes, int32_t *laneCount);
-
-	/**
-	 *  DP ComputeLaneCount wrapper to report success on non-DP screens to avoid black screen (10.14.1+ KBL/CFL version)
-	 */
-	static bool wrapComputeLaneCountNouveau(void *that, void *timing, int32_t availableLanes, int32_t *laneCount);
 
 	/**
 	 *  copyExistingServices wrapper used to rename Gen6Accelerator from userspace calls
@@ -1233,12 +1713,6 @@ private:
 	 *  IntelAccelerator::start wrapper to support vesa mode, force OpenGL, prevent fw loading, etc.
 	 */
 	static bool wrapAcceleratorStart(IOService *that, IOService *provider);
-
-	/**
-	 *  Wrapped AppleIntelFramebufferController::WriteRegister32 function
-	 */
-	static void wrapCflWriteRegister32(void *that, uint32_t reg, uint32_t value);
-	static void wrapKblWriteRegister32(void *that, uint32_t reg, uint32_t value);
 
 	/**
 	 *  AppleIntelFramebufferController::getOSInformation wrapper to patch framebuffer data
@@ -1287,18 +1761,6 @@ private:
 	 *  IGMappedBuffer::getGPUVirtualAddress wrapper to trick GuC firmware virtual addresses
 	 */
 	static uint64_t wrapIgBufferGetGpuVirtualAddress(void *that);
-
-	/**
-	 *  IntelFBClientControl::doAttribute wrapper to filter attributes like AGDC.
-	 */
-	static IOReturn wrapFBClientDoAttribute(void *fbclient, uint32_t attribute, unsigned long *unk1, unsigned long unk2, unsigned long *unk3, unsigned long *unk4, void *externalMethodArguments);
-
-	/**
-	 *  AppleIntelFramebuffer::getDisplayStatus to force display status on configured screens.
-	 */
-	static uint32_t wrapGetDisplayStatus(IOService *framebuffer, void *displayPath);
-	
-	static uint64_t wrapIsTypeCOnlySystem(void*);
 
 	/**
 	 *  Load GuC-specific patches and hooks

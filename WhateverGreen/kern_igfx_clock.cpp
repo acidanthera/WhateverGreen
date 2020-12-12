@@ -98,6 +98,7 @@ void IGFX::DPCDMaxLinkRateFix::init() {
 	// We only need to patch the framebuffer driver
 	requiresPatchingGraphics = false;
 	requiresPatchingFramebuffer = true;
+	requiresGlobalFramebufferControllersAccess = true;
 }
 
 void IGFX::DPCDMaxLinkRateFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
@@ -268,7 +269,7 @@ IOReturn IGFX::DPCDMaxLinkRateFix::orgReadAUX(uint32_t address, void *buffer, ui
 }
 
 bool IGFX::DPCDMaxLinkRateFix::getFramebufferIndex(uint32_t &index) {
-	auto fb = port != nullptr ? orgICLGetFBFromPort(*callbackIGFX->gFramebufferController, port) : this->framebuffer;
+	auto fb = port != nullptr ? orgICLGetFBFromPort(callbackIGFX->defaultController(), port) : this->framebuffer;
 	DBGLOG("igfx", "MLR: [COMM] GetFBIndex() Port at 0x%llx; Framebuffer at 0x%llx.", port, fb);
 	return AppleIntelFramebufferExplorer::getIndex(fb, index);
 }
@@ -473,6 +474,9 @@ void IGFX::CoreDisplayClockFix::init() {
 	// We only need to patch the framebuffer driver
 	requiresPatchingGraphics = false;
 	requiresPatchingFramebuffer = true;
+	
+	// Requires read access to MMIO registers
+	requiresMMIORegistersReadAccess = true;
 }
 
 void IGFX::CoreDisplayClockFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
@@ -495,11 +499,8 @@ void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, s
 		{"__ZN31AppleIntelFramebufferController19setCDClockFrequencyEy", orgSetCDClockFrequency}
 	};
 	
-	orgIclReadRegister32 = reinterpret_cast<decltype(orgIclReadRegister32)>(callbackIGFX->AppleIntelFramebufferController__ReadRegister32);
-	
 	if (patcher.routeMultiple(index, &routeRequest, 1, address, size) &&
-		patcher.solveMultiple(index, solveRequests, address, size) &&
-		orgIclReadRegister32)
+		patcher.solveMultiple(index, solveRequests, address, size))
 		DBGLOG("igfx", "CDC: Functions have been routed successfully.");
 	else
 		SYSLOG("igfx", "CDC: Failed to route functions.");
@@ -508,7 +509,7 @@ void IGFX::CoreDisplayClockFix::processFramebufferKext(KernelPatcher &patcher, s
 void IGFX::CoreDisplayClockFix::sanitizeCDClockFrequency(AppleIntelFramebufferController *that) {
 	// Read the hardware reference frequency from the DSSM register
 	// Bits 29-31 store the reference frequency value
-	auto referenceFrequency = callbackIGFX->modCoreDisplayClockFix.orgIclReadRegister32(that, ICL_REG_DSSM) >> 29;
+	auto referenceFrequency = callbackIGFX->readRegister32(that, ICL_REG_DSSM) >> 29;
 	
 	// Frequency of Core Display Clock PLL is determined by the reference frequency
 	uint32_t newCdclkFrequency = 0;
@@ -551,7 +552,7 @@ void IGFX::CoreDisplayClockFix::sanitizeCDClockFrequency(AppleIntelFramebufferCo
 	DBGLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock has been reprogrammed and PLL has been re-enabled.");
 	
 	// "Verify" that the new frequency is effective
-	auto cdclk = callbackIGFX->modCoreDisplayClockFix.orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
+	auto cdclk = callbackIGFX->readRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
 	SYSLOG("igfx", "CDC: sanitizeCDClockFrequency() DInfo: Core Display Clock frequency is %s MHz now.",
 		   coreDisplayClockDecimalFrequency2String(cdclk));
 }
@@ -585,7 +586,7 @@ uint32_t IGFX::CoreDisplayClockFix::wrapProbeCDClockFrequency(AppleIntelFramebuf
 	
 	// Read the Core Display Clock frequency from the CDCLK_CTL register
 	// Bit 0 - 11 stores the decimal frequency
-	auto cdclk = callbackIGFX->modCoreDisplayClockFix.orgIclReadRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
+	auto cdclk = callbackIGFX->readRegister32(that, ICL_REG_CDCLK_CTL) & 0x7FF;
 	SYSLOG("igfx", "CDC: ProbeCDClockFrequency() DInfo: The current core display clock frequency is %s MHz.",
 		   coreDisplayClockDecimalFrequency2String(cdclk));
 	
