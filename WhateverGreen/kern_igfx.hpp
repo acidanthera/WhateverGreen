@@ -135,7 +135,7 @@ private:
 	 *  Patch value for fCursorMemorySize in Haswell framebuffer
 	 *  This member is not present in FramebufferCFL, hence its addition here.
 	 */
-	uint32_t fPatchCursorMemorySize;
+	uint32_t fPatchCursorMemorySize {};
 
 	/**
 	 *  Maximum find / replace patches
