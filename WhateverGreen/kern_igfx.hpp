@@ -1584,6 +1584,32 @@ private:
 	} modFramebufferDebugSupport;
 	
 	/**
+	 *  A submodule to override the max pixel clock limit in the framebuffer driver.
+	 */
+	class MaxPixelClockOverride: public PatchSubmodule {
+		/**
+		 * Override for max pixel clock frequency (Hz).
+		 */
+		uint64_t maxPixelClockFrequency = 675000000;
+
+		/**
+		 *  Original AppleIntelFramebuffer::connectionProbe function
+		 */
+		IOReturn (*orgConnectionProbe)(IOService *, unsigned int, unsigned int) {nullptr};
+
+		/**
+		 *  AppleIntelFramebuffer::connectionProbe wrapper to override max pixel clock
+		 */
+		static IOReturn wrapConnectionProbe(IOService *that, unsigned int unk1, unsigned int unk2);
+
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modMaxPixelClockOverride;
+
+	/**
 	 *  A collection of shared submodules
 	 */
 	PatchSubmodule *sharedSubmodules[3] = {
@@ -1595,7 +1621,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[17] = {
+	PatchSubmodule *submodules[18] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1612,7 +1638,8 @@ private:
 		&modPAVPDisabler,
 		&modReadDescriptorPatch,
 		&modBacklightRegistersFix,
-		&modFramebufferDebugSupport
+		&modFramebufferDebugSupport,
+		&modMaxPixelClockOverride
 	};
 	
 	/**
