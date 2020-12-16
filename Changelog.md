@@ -3,6 +3,7 @@ WhateverGreen Changelog
 #### v1.4.6
 - Backlight registers fix replaces the previous Coffee Lake backlight fix and is now available on Intel Ice Lake platforms.
 - Boot argument `igfxcflbklt=1` as well as device property `enable-cfl-backlight-fix` are deprecated and replaced by `-igfxblr` and `enable-backlight-registers-fix`.
+- Add max pixel clock override through `-igfxmpc` boot argument or `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` device properties
 
 #### v1.4.5
 - Enabled loading in safe mode (mainly for AGDP fixes)
