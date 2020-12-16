@@ -1467,7 +1467,7 @@ void IGFX::loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm
 			patcher.clearError();
 		}
 	} else {
-		SYSLOG("igfx", "failed to resoolve __KmGen9GuCBinary %d", patcher.getError());
+		SYSLOG("igfx", "failed to resolve __KmGen9GuCBinary %d", patcher.getError());
 		patcher.clearError();
 	}
 }
