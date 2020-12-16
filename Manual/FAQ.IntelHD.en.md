@@ -2358,11 +2358,23 @@ In some cases the EDID dump may be incompatible with macOS and leads to distorti
 
 ## HDMI in UHD resolution with 60FPS
 
-Add the `enable-hdmi20` property to `IGPU`, otherwise you will get a black screen.  
-![hdmi20](./Img/hdmi20.png)  
-Or instead of this property use the boot-arg `-cdfon`  
-  
-In addtion to HDMI, this should be enabled on some notebooks like ThinkPad P71 / 7700HQ / HD630 / 4K, where gIOScreenLockState3 error may occur.  
+Add the `enable-max-pixel-clock-override` property to `IGPU` or use the `-igfxmpc` boot-arg instead to raise the max pixel clock limit.
+This is needed for 4K@60Hz on laptops like ThinkPad P71 or XPS 15, otherwise you will get a black screen. It can also be used for 4K@60Hz over HDMI 2.0.
+
+![igfxmpc](./Img/max-pixel-clock.png)
+
+The `CheckTimingWithRange` function in CoreDisplay.framework (userspace) is responsible for validating display timings.
+It reads the IOFBTimingRange property, which contains the IODisplayTimingRange structure with various limits, including the max pixel clock limit.
+At least on KBL, the framebuffer driver sets the max pixel clock frequency in the IODisplayTimingRange structure to 450 MHz, which is insufficient for 4K@60Hz.
+`-igfxmpc` modifies the IODisplayTimingRange structure and raises the max pixel clock limit to 675 MHz. This will allow `CheckTimingWithRange` to succeed with 4K@60Hz displays.
+The default 675 MHz limit can be changed with the `max-pixel-clock-frequency` property in `IGPU`, which overrides the new max pixel clock limit (in hertz).
+
+Another approach is to patch `CheckTimingWithRange` in CoreDisplay.framework to skip validation of the pixel clock.
+To use this patch, add the `enable-hdmi20` property to `IGPU` or use the `-cdfon` boot-arg.
+
+![hdmi20](./Img/hdmi20.png)
+
+`-igfxmpc` is the preferred approach to bypass the 450 MHz pixel clock limit, as `-cdfon` depends on the userspace patcher.
 
 ## Disabling a discrete graphics card
 
