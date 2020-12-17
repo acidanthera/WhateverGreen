@@ -84,6 +84,9 @@
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_pm.cpp; sourceTree = "<group>"; };
+		5B9131F2258A8EFB0008530D /* FAQ.IntelHD.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.en.md; sourceTree = "<group>"; };
+		5B9131F3258A8F090008530D /* FAQ.IntelHD.cn.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.cn.md; sourceTree = "<group>"; };
+		5B9131F4258A8F1C0008530D /* FAQ.OldPlugins.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.OldPlugins.en.md; sourceTree = "<group>"; };
 		CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_nvhda.cpp; sourceTree = "<group>"; };
 		CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_nvhda.hpp; sourceTree = "<group>"; };
 		CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_debug.cpp; sourceTree = "<group>"; };
@@ -304,6 +307,9 @@
 			children = (
 				CEEF190A239CFDB1005B3BE8 /* FAQ.Chart.md */,
 				CE7FC0CD20F687F500138088 /* FAQ.GeForce.en.md */,
+				5B9131F2258A8EFB0008530D /* FAQ.IntelHD.en.md */,
+				5B9131F3258A8F090008530D /* FAQ.IntelHD.cn.md */,
+				5B9131F4258A8F1C0008530D /* FAQ.OldPlugins.en.md */,
 				CEAEA1171F26905A00918651 /* FAQ.Radeon.en.md */,
 				CEAEA1181F26905A00918651 /* FAQ.Radeon.ru.md */,
 				CE7FC0CE20F6882400138088 /* FAQ.Shiki.en.md */,
