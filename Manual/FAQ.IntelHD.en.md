@@ -2270,7 +2270,7 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 
 ## Adjusting the brightness on a laptop
 
-Use this ACPI table [SSDT-PNLF](./SSDT-PNLF.dsl), for CFL+ use other table [SSDT-PNLFCFL](./SSDT-PNLFCFL.dsl).  
+Use this ACPI table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-PNLF.dsl), for CFL+ use other table [SSDT-PNLFCFL](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-PNLFCFL.dsl).  
   
 ## Digital Audio (HDMI / DVI / DP)
 
