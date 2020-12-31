@@ -4,9 +4,12 @@
 // See: https://stackoverflow.com/questions/3783030/free-vram-on-os-x
 // 
 
+#define OBJC_OLD_DISPATCH_PROTOTYPES 1
+
 #include <stdio.h>
 #include <stdint.h>
 #include <dlfcn.h>
+#include <unistd.h>
 
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -56,7 +59,7 @@ uint64_t currentFreeVRAM(uint64_t *total) {
     return 0;
 }
 
-int main() {
+void printInfo(void) {
     uint64_t total_vram = 0;
     uint64_t free_vram = currentFreeVRAM(&total_vram);
     if (total_vram > 0)
@@ -80,5 +83,17 @@ int main() {
         }
     } else {
         printf("Metal is not supported by this operating system!\n");
+    }
+}
+
+int main(int argc, char *argv[]) {
+    if (argc > 1 && !strcmp(argv[1], "-l")) {
+        while (1) {
+            system("clear");
+            printInfo();
+            sleep(1);
+        }
+    } else {
+        printInfo();
     }
 }
