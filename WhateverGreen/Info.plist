@@ -60,17 +60,17 @@
 	<key>OSBundleLibraries</key>
 	<dict>
 		<key>com.apple.kpi.bsd</key>
-		<string>12.0.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.dsep</key>
-		<string>12.0.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.iokit</key>
-		<string>12.0.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.libkern</key>
-		<string>12.0.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.mach</key>
-		<string>12.0.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.unsupported</key>
-		<string>12.0.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.iokit.IOPCIFamily</key>
 		<string>1.0.0b1</string>
 		<key>as.vit9696.Lilu</key>
