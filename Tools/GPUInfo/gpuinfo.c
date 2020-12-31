@@ -2,7 +2,7 @@
 // GPU Info
 // Based on freevram and MetalInfo tools.
 // See: https://stackoverflow.com/questions/3783030/free-vram-on-os-x
-// 
+//
 
 #define OBJC_OLD_DISPATCH_PROTOTYPES 1
 
@@ -18,7 +18,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 uint64_t currentFreeVRAM(uint64_t *total) {
-    kern_return_t krc;  
+    kern_return_t krc;
     mach_port_t masterPort;
     krc = IOMasterPort(bootstrap_port, &masterPort);
 
@@ -63,9 +63,9 @@ void printInfo(void) {
     uint64_t total_vram = 0;
     uint64_t free_vram = currentFreeVRAM(&total_vram);
     if (total_vram > 0)
-        printf("Total VRAM availabile: %zu MB\n", (size_t)total_vram);
+        printf("Total VRAM available: %zu MB\n", (size_t)total_vram);
     if (free_vram > 0)
-        printf("Free VRAM availabile: %zu MB (%zu Bytes)\n", (size_t)(free_vram/(1024*1024)), (size_t)free_vram);
+        printf("Free VRAM available: %zu MB (%zu Bytes)\n", (size_t)(free_vram/(1024*1024)), (size_t)free_vram);
 
     void *mtl = dlopen("/System/Library/Frameworks/Metal.framework/Metal", RTLD_LAZY);
     id (*create_dev)(void) = (id (*)(void))dlsym(mtl, "MTLCreateSystemDefaultDevice");
