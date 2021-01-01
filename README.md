@@ -95,6 +95,7 @@ indices of connectors for which online status is enforced. Format is similar to 
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
+- [Andrey1970AppleLife](https://github.com/Andrey1970AppleLife) for [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/)
 - [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, and DVMT pre-allocated memory calculation fix for ICL platforms.
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
