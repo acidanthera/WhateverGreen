@@ -24,7 +24,7 @@
 - IMP/MP - iMacPro/MacPro models without IGPU.
 - Other configurations are used at your own risk, use `-shikioff` to disable modifications
 
-# DRM Compatibiluty on macOS 11
+# DRM Compatibility on macOS 11
 
 Things to keep in mind:
 
