@@ -33,6 +33,7 @@ Things to keep in mind:
 - WhateverGreen Shiki functionality is not planned for inclusion for macOS 11
 - AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming)
 - Only IGPU-free Mac models allow for full DRM content access given a compatible AMD GPU video decoder
+- For old CPUs (e.g. Xeons or Quad 2 Quad) and supported AMD GPUs injecting `unfairgva` with `<01 00 00 00>` value is required for streaming DRM
 
 List of overrides:
 

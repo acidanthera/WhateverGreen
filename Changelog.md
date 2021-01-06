@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.7
+- Implemented `unfairgva` device property (use `<01 00 00 00>` value for MP5,1 to enable streaming DRM)
+
 #### v1.4.6
 - Backlight registers fix replaces the previous Coffee Lake backlight fix and is now available on Intel Ice Lake platforms.
 - Boot argument `igfxcflbklt=1` as well as device property `enable-cfl-backlight-fix` are deprecated and replaced by `-igfxblr` and `enable-backlight-registers-fix`.

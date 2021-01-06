@@ -137,16 +137,26 @@ void WEG::init() {
 	igfx.init();
 	ngfx.init();
 	rad.init();
-	shiki.init();
-	cdf.init();
+
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		unfair.init();
+	} else {
+		shiki.init();
+		cdf.init();
+	}
 }
 
 void WEG::deinit() {
 	igfx.deinit();
 	ngfx.deinit();
 	rad.deinit();
-	shiki.deinit();
-	cdf.deinit();
+
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		unfair.deinit();
+	} else {
+		shiki.deinit();
+		cdf.deinit();
+	}
 }
 
 void WEG::processKernel(KernelPatcher &patcher) {
@@ -307,8 +317,13 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		igfx.processKernel(patcher, devInfo);
 		ngfx.processKernel(patcher, devInfo);
 		rad.processKernel(patcher, devInfo);
-		shiki.processKernel(patcher, devInfo);
-		cdf.processKernel(patcher, devInfo);
+
+		if (getKernelVersion() >= KernelVersion::BigSur) {
+			unfair.processKernel(patcher, devInfo);
+		} else {
+			shiki.processKernel(patcher, devInfo);
+			cdf.processKernel(patcher, devInfo);
+		}
 
 		DeviceInfo::deleter(devInfo);
 	}
@@ -380,7 +395,7 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	if (rad.processKext(patcher, index, address, size))
 		return;
 
-	if (cdf.processKext(patcher, index, address, size))
+	if (getKernelVersion() < KernelVersion::BigSur && cdf.processKext(patcher, index, address, size))
 		return;
 }
 
@@ -823,4 +838,31 @@ bool WEG::wrapApplePanelSetDisplay(IOService *that, IODisplay *display) {
 	DBGLOG("weg", "panel display set returned %d", result);
 
 	return result;
+}
+
+bool WEG::getVideoArgument(DeviceInfo *info, const char *name, void *bootarg, int size) {
+	if (PE_parse_boot_argn(name, bootarg, size))
+		return true;
+
+	for (size_t i = 0; i < info->videoExternal.size(); i++) {
+		auto prop = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty(name));
+		auto propSize = prop ? prop->getLength() : 0;
+		if (propSize > 0 && propSize <= size) {
+			lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
+			memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
+			return true;
+		}
+	}
+
+	if (info->videoBuiltin) {
+		auto prop = OSDynamicCast(OSData, info->videoBuiltin->getProperty(name));
+		auto propSize = prop ? prop->getLength() : 0;
+		if (propSize > 0 && propSize <= size) {
+			lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
+			memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
+			return true;
+		}
+	}
+
+	return false;
 }

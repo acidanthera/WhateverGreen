@@ -136,11 +136,6 @@ private:
 	bool setCompatibleRendererPatch();
 
 	/**
-	 *  Get overridable boot argument from kernel args (priority) and GPU properties
-	 */
-	bool getBootArgument(DeviceInfo *info, const char *name, void *bootarg, int size);
-
-	/**
 	 *  Get patch by section
 	 */
 	UserPatcher::BinaryModPatch *getPatchSection(uint32_t section);
