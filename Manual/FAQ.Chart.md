@@ -23,3 +23,23 @@
 - IM/MM - iMac/Macmini models with IGPU, IGPU must have connector-less framebuffer-id when AMD/NV is used.
 - IMP/MP - iMacPro/MacPro models without IGPU.
 - Other configurations are used at your own risk, use `-shikioff` to disable modifications
+
+# DRM Compatibiluty on macOS 11
+
+Things to keep in mind:
+
+- All kinds of software DRM decoders were removed from macOS 11
+- All kinds of legacy hardware DRM decoders (e.g. NVIDIA VP3) were removed from macOS 11
+- WhateverGreen Shiki functionality is not planned for inclusion for macOS 11
+- AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming)
+- Only IGPU-free Mac models allow for full DRM content access given a compatible AMD GPU video decoder
+
+List of overrides:
+
+- `defaults write com.apple.AppleGVA gvaForceAMDKE -boolean yes` forces AMD DRM decoder for streaming services (like Apple TV and iTunes movie streaming)
+- `defaults write com.apple.AppleGVA gvaForceAMDAVCDecode -boolean yes` forces AMD AVC accelerated decoder
+- `defaults write com.apple.AppleGVA gvaForceAMDAVCEncode -boolean yes` forces AMD AVC accelerated encoder
+- `defaults write com.apple.AppleGVA gvaForceAMDHEVCDecode -boolean yes` forces AMD HEVC accelerated decoder
+- `defaults write com.apple.AppleGVA disableGVAEncryption -string YES` forces AMD HEVC accelerated decoder
+- `defaults write com.apple.coremedia hardwareVideoDecoder -string force` forces hardware accelerated video decoder (for any resolution)
+- `defaults write com.apple.coremedia hardwareVideoDecoder -string disable` disables hardware accelerated video decoder (in QuickTime / Apple TV)
