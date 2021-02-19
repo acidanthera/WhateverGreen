@@ -27,16 +27,51 @@ static const char *pathNVDAStartupWeb[] {
 	"/System/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb"
 };
 
+static const char *pathIONDRVSupport[] {
+	"/System/Library/Extensions/IONDRVSupport.kext/IONDRVSupport"
+};
+
 static KernelPatcher::KextInfo kextList[] {
 	{ "com.apple.GeForce", pathGeForce, arrsize(pathGeForce), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	{ "com.nvidia.web.GeForceWeb", pathGeForceWeb, arrsize(pathGeForceWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
-	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded }
+	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	{ "com.apple.iokit.IONDRVSupport", pathIONDRVSupport, arrsize(pathIONDRVSupport), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 enum KextIndex {
 	IndexGeForce,
 	IndexGeForceWeb,
-	IndexNVDAStartupWeb
+	IndexNVDAStartupWeb,
+	IndexIONDRVSupport
+};
+
+// Patches
+
+// Suppress debug(?) noise from IONDRVFramebuffer::_doControl( IONDRVFramebuffer * fb, UInt32 code, void * params )
+// when function was compiled with #define IONDRVCHECK 1.
+// Ref: https://opensource.apple.com/source/IOGraphics/IOGraphics-585/IONDRVSupport/IONDRVFramebuffer.cpp.auto.html
+
+static const uint8_t doControlFind[] = {
+	0x85, 0xC0,							// test eax, eax
+	0x74, 0x34,							// je 0x25d1
+	0x83, 0xBB, 0x18, 0x02, 0x00, 0x00, 0x00	// cmp dword [rbx] + 0x218], 0
+};
+static const uint8_t doControlRepl[] = {
+	0x90, 0x90,							// nop; nop
+	0x90, 0x90,							// nop; nop
+	0x83, 0xBB, 0x18, 0x02, 0x00, 0x00, 0x00	// cmp dword [rbx] + 0x218], 0
+};
+
+static UserPatcher::BinaryModPatch doControlPatch {
+	CPU_TYPE_X86_64,
+	0,
+	doControlFind,
+	doControlRepl,
+	arrsize(doControlFind),
+	0,            // skip  = 0 -> replace all occurrences
+	1,            // count = 1 -> 1 set of hex inside the target binaries
+	UserPatcher::FileSegment::SegmentTextText,
+	0
 };
 
 NGFX *NGFX::callbackNGFX;
@@ -102,6 +137,18 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if (kextList[IndexNVDAStartupWeb].loadIndex == index) {
 		KernelPatcher::RouteRequest request("__ZN14NVDAStartupWeb5probeEP9IOServicePi", wrapStartupWebProbe, orgStartupWebProbe);
 		patcher.routeMultiple(index, &request, 1, address, size);
+		return true;
+	}
+
+	if (kextList[IndexIONDRVSupport].loadIndex == index) {
+		if (getKernelVersion() > KernelVersion::Catalina) {
+			KernelPatcher::LookupPatch patch {&kextList[IndexIONDRVSupport], doControlFind, doControlRepl, sizeof(doControlFind), 1};
+			patcher.applyLookupPatch(&patch);
+			if (patcher.getError() != KernelPatcher::Error::NoError) {
+				SYSLOG("ngfx", "failed to apply _doControl patch (err code %d)", patcher.getError());
+				patcher.clearError();
+			}
+		}
 		return true;
 	}
 
