@@ -62,18 +62,6 @@ static const uint8_t doControlRepl[] = {
 	0x83, 0xBB, 0x18, 0x02, 0x00, 0x00, 0x00	// cmp dword [rbx] + 0x218], 0
 };
 
-static UserPatcher::BinaryModPatch doControlPatch {
-	CPU_TYPE_X86_64,
-	0,
-	doControlFind,
-	doControlRepl,
-	arrsize(doControlFind),
-	0,            // skip  = 0 -> replace all occurrences
-	1,            // count = 1 -> 1 set of hex inside the target binaries
-	UserPatcher::FileSegment::SegmentTextText,
-	0
-};
-
 NGFX *NGFX::callbackNGFX;
 
 void NGFX::init() {
