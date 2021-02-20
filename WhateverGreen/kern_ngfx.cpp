@@ -143,13 +143,16 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if (kextList[IndexIONDRVSupport].loadIndex == index) {
 		if (getKernelVersion() > KernelVersion::Catalina) {
 			KernelPatcher::LookupPatch patch {&kextList[IndexIONDRVSupport], doControlFind, doControlRepl, sizeof(doControlFind), 1};
+
 			patcher.applyLookupPatch(&patch);
-			if (patcher.getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("ngfx", "failed to apply _doControl patch (err code %d)", patcher.getError());
-				patcher.clearError();
-			}
+
+			KernelPatcher::Error rc = patcher.getError();
+
+			if (rc == KernelPatcher::Error::NoError) { return true; }
+
+			SYSLOG("ngfx", "failed to apply IONDRVFramebuffer::_doControl() patch [err code %d]", rc);
+			patcher.clearError();
 		}
-		return true;
 	}
 
 	return false;
