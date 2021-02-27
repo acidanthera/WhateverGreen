@@ -13,6 +13,7 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <IOKit/IOService.h>
+#include <IOKit/ndrvsupport/IONDRVFramebuffer.h>
 
 // Assembly exports for restoreLegacyOptimisations
 extern "C" bool wrapVaddrPreSubmitTrampoline(void *that);
@@ -107,6 +108,11 @@ private:
 	mach_vm_address_t orgStartupWebProbe {};
 
 	/**
+	 *  Original IONDRVFramebuffer::_doControl function
+	 */
+	mach_vm_address_t orgNdrvDoControl {};
+
+	/**
 	 *  Restore legacy optimisations from 10.13.0, which fix lags for Kepler GPUs.
 	 *  For Web drivers it is very experimental, since they have a lot of additional different (broken) code.
 	 *
@@ -152,6 +158,12 @@ private:
 	 *  NVDAStartup::probe wrapper used to force-enable web-drivers
 	 */
 	static IOService *wrapStartupWebProbe(IOService *that, IOService *provider, SInt32 *score);
+
+	/**
+	 *  IONDRVFramebuffer::_doControl wrapper used to avoid debug spam
+	 */
+
+	static IOReturn wrapNdrvDoControl(IONDRVFramebuffer *fb, UInt32 code, void *params);
 };
 
 #endif /* kern_ngfx_hpp */
