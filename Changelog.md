@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.4.8
+- Fixed debug messages from cursor manipulation with NVIDIA GPUs on macOS 11
+
 #### v1.4.7
 - Implemented `unfairgva` device property (use `<01 00 00 00>` value for MP5,1 to enable streaming DRM)
 

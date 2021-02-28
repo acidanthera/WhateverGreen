@@ -27,16 +27,22 @@ static const char *pathNVDAStartupWeb[] {
 	"/System/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb"
 };
 
+static const char *pathIONDRVSupport[] {
+	"/System/Library/Extensions/IONDRVSupport.kext/IONDRVSupport"
+};
+
 static KernelPatcher::KextInfo kextList[] {
 	{ "com.apple.GeForce", pathGeForce, arrsize(pathGeForce), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	{ "com.nvidia.web.GeForceWeb", pathGeForceWeb, arrsize(pathGeForceWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
-	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded }
+	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	{ "com.apple.iokit.IONDRVSupport", pathIONDRVSupport, arrsize(pathIONDRVSupport), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 enum KextIndex {
 	IndexGeForce,
 	IndexGeForceWeb,
-	IndexNVDAStartupWeb
+	IndexNVDAStartupWeb,
+	IndexIONDRVSupport
 };
 
 NGFX *NGFX::callbackNGFX;
@@ -79,6 +85,9 @@ void NGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				}
 			}
 		}
+
+		if (getKernelVersion() <= KernelVersion::Catalina)
+			kextList[IndexIONDRVSupport].switchOff();
 	} else {
 		for (size_t i = 0; i < arrsize(kextList); i++)
 			kextList[i].switchOff();
@@ -103,6 +112,11 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 		KernelPatcher::RouteRequest request("__ZN14NVDAStartupWeb5probeEP9IOServicePi", wrapStartupWebProbe, orgStartupWebProbe);
 		patcher.routeMultiple(index, &request, 1, address, size);
 		return true;
+	}
+
+	if (kextList[IndexIONDRVSupport].loadIndex == index) {
+		KernelPatcher::RouteRequest request("__ZN17IONDRVFramebuffer10_doControlEPS_jPv", wrapNdrvDoControl, orgNdrvDoControl);
+		patcher.routeMultiple(index, &request, 1, address, size);
 	}
 
 	return false;
@@ -328,4 +342,29 @@ IOService *NGFX::wrapStartupWebProbe(IOService *that, IOService *provider, SInt3
 	}
 
 	return FunctionCast(wrapStartupWebProbe, callbackNGFX->orgStartupWebProbe)(that, provider, score);
+}
+
+// This is a hack to let us access protected properties.
+struct NDRVFramebufferViewer : public IONDRVFramebuffer {
+	static UInt32 &getState(IONDRVFramebuffer *fb) {
+		return static_cast<NDRVFramebufferViewer *>(fb)->ndrvState;
+	}
+};
+
+IOReturn NGFX::wrapNdrvDoControl(IONDRVFramebuffer *fb, UInt32 code, void *params) {
+	// Suppress debug(?) noise from IONDRVFramebuffer::_doControl( IONDRVFramebuffer * fb, UInt32 code, void * params )
+	// when function was compiled with #define IONDRVCHECK 1.
+	// Ref: https://opensource.apple.com/source/IOGraphics/IOGraphics-585/IONDRVSupport/IONDRVFramebuffer.cpp.auto.html
+
+	if (code == cscSetHardwareCursor || code == cscDrawHardwareCursor) {
+		if (NDRVFramebufferViewer::getState(fb) == 0)
+			return kIOReturnNotOpen;
+
+		IONDRVControlParameters pb;
+		pb.code = code;
+		pb.params = params;
+		return fb->doDriverIO(/*ID*/ 1, &pb, kIONDRVControlCommand, kIONDRVImmediateIOCommandKind);
+	}
+
+	return FunctionCast(wrapNdrvDoControl, callbackNGFX->orgNdrvDoControl)(fb, code, params);
 }
