@@ -163,32 +163,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 	// Correct GPU properties
 	auto devInfo = DeviceInfo::create();
 	if (devInfo) {
-		if (devInfo->requestedExternalSwitchOff) {
-			DBGLOG("weg", "disabling all external GPUs");
-			size_t extNum = devInfo->videoExternal.size();
-			for (size_t i = 0; i < extNum; i++) {
-				auto &v = devInfo->videoExternal[i];
-				WIOKit::awaitPublishing(v.video);
-
-				auto gpu = OSDynamicCast(IOService, v.video);
-				auto hda = OSDynamicCast(IOService, v.audio);
-				auto pci = OSDynamicCast(IOService, v.video->getParentEntry(gIOServicePlane));
-				if (gpu && pci) {
-					if (gpu->requestTerminate(pci, 0) && gpu->terminate())
-						gpu->stop(pci);
-					else
-						SYSLOG("weg", "failed to terminate external gpu %ld", i);
-					if (hda && hda->requestTerminate(pci, 0) && hda->terminate())
-						hda->stop(pci);
-					else if (hda)
-						SYSLOG("weg", "failed to terminate external hdau %ld", i);
-				} else {
-					SYSLOG("weg", "incompatible external gpu %ld discovered", i);
-				}
-			}
-
-			devInfo->videoExternal.deinit();
-		}
+		devInfo->processSwitchOff();
 
 		if (graphicsDisplayPolicyMod == AGDP_DETECT) { /* Default detect only */
 			auto getAgpdMod = [this](IORegistryEntry *device) {
