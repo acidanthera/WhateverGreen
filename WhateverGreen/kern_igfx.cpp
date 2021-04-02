@@ -157,6 +157,9 @@ void IGFX::init() {
 			modRPSControlPatch.available = true;
 			modTypeCCheckDisabler.enabled = true;
 			break;
+		case CPUInfo::CpuGeneration::RocketLake:
+			gPlatformGraphicsSupported = false;
+			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
 			break;
@@ -187,7 +190,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
-	if (info->videoBuiltin) {
+	if (info->videoBuiltin && !gPlatformGraphicsSupported) {
+		switchOffGraphics = switchOffFramebuffer = true;
+	} else if (info->videoBuiltin) {
 		applyFramebufferPatch = loadPatchesFromDevice(info->videoBuiltin, info->reportedFramebufferId);
 
 #ifdef DEBUG

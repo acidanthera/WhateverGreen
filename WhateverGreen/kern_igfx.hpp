@@ -201,6 +201,11 @@ private:
 	bool gPlatformListIsSNB {false};
 
 	/**
+	 *  IGPU support
+	 */
+	bool gPlatformGraphicsSupported {true};
+
+	/**
 	 *  Private self instance for callbacks
 	 */
 	static IGFX *callbackIGFX;

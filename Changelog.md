@@ -3,6 +3,8 @@ WhateverGreen Changelog
 #### v1.4.9
 - Added per-GPU disabling API: inject `disable-gpu` to disable
 - Added per-GPU disabling kernel version specification: inject `disable-gpu-min` / `disable-gpu-max` to select kernel version to disable (inclusive range)
+- Added IGPU disabling API: inject `disable-gpu` to disable or use `-wegnoigpu` boot argument
+- Optimised Rocket Lake startup as IGPU is unsupported
 
 #### v1.4.8
 - Fixed debug messages from cursor manipulation with NVIDIA GPUs on macOS 11
