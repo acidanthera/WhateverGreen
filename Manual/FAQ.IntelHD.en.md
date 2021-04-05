@@ -90,7 +90,7 @@ Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.
 
 Most typical configuration will require `framebuffer-patch-enable` and `framebuffer-singlelink`. `AAPL,ig-platform-id` is not required.
 
-If there are display or wake issues, `framebuffer-fbccontrol-*` and `framebuffer-featurecontrol-*` properties may be helpful. These mirror the settings present in the `Info.plist` of the framebuffer kext and are simple 0 or 1 settings.
+If there are display or wake issues, `framebuffer-fbccontrol-*` and `framebuffer-featurecontrol-*` properties may be helpful. These mirror the settings present in the `Info.plist` of the AppleIntelHDGraphicsFB.kext and are simple 0 or 1 settings.
 
 **Semantic:**  
 *framebuffer-patch-enable (enable patching)  
