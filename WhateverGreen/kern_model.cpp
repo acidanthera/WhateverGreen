@@ -418,7 +418,7 @@ static constexpr Model dev67df[] {
 };
 
 static constexpr Model dev67e0[] {
-	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Pro WX 7100"}
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon Pro WX 4170"}
 };
 
 static constexpr Model dev67e3[] {
