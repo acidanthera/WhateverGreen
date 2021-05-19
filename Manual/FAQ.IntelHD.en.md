@@ -739,7 +739,7 @@ Mobile: 1, PipeCount: 3, PortCount: 1, FBMemoryCount: 1
 - Empty Framebuffer:
   - `0x04120004` (default)
   
-For desktop HD4400 and mobile HD4200/HD4400 (**not the HD4600**) need fake the `device-id` `12040000` for `IGPU`.  
+For desktop HD4400 and mobile HD4400 (**not the HD 4200 neither HD4600**) need fake the `device-id` `12040000` for `IGPU`.  
 ![](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/Img/hsw_igpu.png)  
 
 
