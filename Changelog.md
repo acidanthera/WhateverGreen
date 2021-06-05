@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.5.0
 - Fixed AMD WX-4170 name for 67E0 device id
+- Added NVIDIA driver error logging with `-ngfxdbg`
 
 #### v1.4.9
 - Added per-GPU disabling API: inject `disable-gpu` to disable

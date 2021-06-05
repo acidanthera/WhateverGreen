@@ -27,6 +27,10 @@ static const char *pathNVDAStartupWeb[] {
 	"/System/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb"
 };
 
+static const char *pathNVDAResman[] {
+	"/System/Library/Extensions/NVDAResman.kext/Contents/MacOS/NVDAResman"
+};
+
 static const char *pathIONDRVSupport[] {
 	"/System/Library/Extensions/IONDRVSupport.kext/IONDRVSupport"
 };
@@ -35,6 +39,7 @@ static KernelPatcher::KextInfo kextList[] {
 	{ "com.apple.GeForce", pathGeForce, arrsize(pathGeForce), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	{ "com.nvidia.web.GeForceWeb", pathGeForceWeb, arrsize(pathGeForceWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	{ "com.apple.nvidia.driver.NVDAResman", pathNVDAResman, arrsize(pathNVDAResman), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	{ "com.apple.iokit.IONDRVSupport", pathIONDRVSupport, arrsize(pathIONDRVSupport), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
@@ -42,7 +47,8 @@ enum KextIndex {
 	IndexGeForce,
 	IndexGeForceWeb,
 	IndexNVDAStartupWeb,
-	IndexIONDRVSupport
+	IndexNVDAResman,
+	IndexIONDRVSupport,
 };
 
 NGFX *NGFX::callbackNGFX;
@@ -51,6 +57,7 @@ void NGFX::init() {
 	callbackNGFX = this;
 
 	PE_parse_boot_argn("ngfxcompat", &forceDriverCompatibility, sizeof(forceDriverCompatibility));
+	enableDebugLogging = checkKernelArgument("-ngfxdbg");
 	disableTeamUnrestrict = checkKernelArgument("-ngfxlibvalfix");
 
 	lilu.onKextLoadForce(kextList, arrsize(kextList));
@@ -88,6 +95,9 @@ void NGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 		if (getKernelVersion() <= KernelVersion::Catalina)
 			kextList[IndexIONDRVSupport].switchOff();
+
+		if (!enableDebugLogging)
+			kextList[IndexNVDAResman].switchOff();
 	} else {
 		for (size_t i = 0; i < arrsize(kextList); i++)
 			kextList[i].switchOff();
@@ -117,6 +127,13 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	if (kextList[IndexIONDRVSupport].loadIndex == index) {
 		KernelPatcher::RouteRequest request("__ZN17IONDRVFramebuffer10_doControlEPS_jPv", wrapNdrvDoControl, orgNdrvDoControl);
 		patcher.routeMultiple(index, &request, 1, address, size);
+		return true;
+	}
+
+	if (kextList[IndexNVDAResman].loadIndex == index) {
+		KernelPatcher::RouteRequest request("_nvErrorLog_va", resmanErrorLogVA);
+		patcher.routeMultiple(index, &request, 1, address, size);
+		return true;
 	}
 
 	return false;
@@ -367,4 +384,13 @@ IOReturn NGFX::wrapNdrvDoControl(IONDRVFramebuffer *fb, UInt32 code, void *param
 	}
 
 	return FunctionCast(wrapNdrvDoControl, callbackNGFX->orgNdrvDoControl)(fb, code, params);
+}
+
+void NGFX::resmanErrorLogVA(void *context, uint32_t id, const char *format, ...) {
+	char buf[1024];
+	va_list va;
+	va_start(va, format);
+	vsnprintf(buf, sizeof(buf), format, va);
+	va_end(va);
+	SYSLOG("ngfx", "RM%u: %s", id, buf);
 }

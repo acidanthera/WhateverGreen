@@ -67,6 +67,11 @@ private:
 	int fifoSubmit {-1};
 
 	/**
+	 *  Enable debug logging in NVIDIA drivers
+	 */
+	bool enableDebugLogging {false};
+
+	/**
 	 *  Disable team unrestriction patches fixing visual glitches on 10.12 with Web drivers
 	 */
 	bool disableTeamUnrestrict {false};
@@ -162,8 +167,12 @@ private:
 	/**
 	 *  IONDRVFramebuffer::_doControl wrapper used to avoid debug spam
 	 */
-
 	static IOReturn wrapNdrvDoControl(IONDRVFramebuffer *fb, UInt32 code, void *params);
+
+	/**
+	 *  nvErrorLog_va replacement with logging support
+	 */
+	static void resmanErrorLogVA(void *context, uint32_t id, const char *format, ...);
 };
 
 #endif /* kern_ngfx_hpp */

@@ -56,6 +56,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support on NVIDIA
 - `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
 - `ngfxsubmit=0` boot argument (and `disable-gfx-submit` property) to disable interface stuttering fix on 10.13
+- `-ngfxdbg` boot argument to enable NVIDIA driver error logging
 - `gfxrst=1` to prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying.
 - `gfxrst=4` to disable framebuffer init interaction during 2nd boot stage.
 - `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).
