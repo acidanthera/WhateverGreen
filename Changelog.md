@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.1
+- Added constants required for 12.0 update
+
 #### v1.5.0
 - Fixed AMD WX-4170 name for 67E0 device id
 - Added NVIDIA driver error logging with `-ngfxdbg`
