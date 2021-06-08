@@ -270,7 +270,7 @@ For an "empty framebuffer" a different device-id is required, more in this [thre
 
 ## Intel HD Graphics 2500/4000 ([Ivy Bridge](https://en.wikipedia.org/wiki/Ivy_Bridge_(microarchitecture)) processors)  
 
-> Supported since OS X 10.8.x to macOS 11.x  
+> Supported from OS X 10.8.x to macOS 11.x  
   
 ***Capri framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
