@@ -83,7 +83,7 @@ Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.
 
 ## Intel HD Graphics (first generation / Ironlake) ([Arrandale](https://en.wikipedia.org/wiki/Arrandale) processors)  
 
-> Supported from Mac OS X 10.6.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6 and are unsupported on newer operating systems. Metal support is absent.  
+> Supported from Mac OS X 10.6.4 to macOS 10.13.6. The instructions are for OS X 10.6.4 - macOS 10.13.6 and are unsupported on newer operating systems. Metal support is absent.  
 > Laptops with LVDS displays are the only supported combination. All other display types are unsupported.    
 
 > For more information, reference [this](https://github.com/Goldfish64/ArrandaleGraphicsHackintosh) and [this](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/).
