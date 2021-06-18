@@ -264,6 +264,11 @@ private:
 	 *  Original IGMappedBuffer::getGPUVirtualAddress function
 	 */
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
+	
+	/**
+	 *  Original AppleIntelHDGraphicsFB::TrainFDI function
+	 */
+	mach_vm_address_t orgTrainFDI {};
 
 	/**
 	 *  Set to true to disable Metal support
@@ -1755,6 +1760,11 @@ private:
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
 	 */
 	static bool wrapLoadGuCBinary(void *that, bool flag);
+	
+	/**
+	 *	AppleIntelHDGraphicsFB::TrainFDI wrapper to set correct link width settings on device
+	 */
+	static void wrapTrainFDI(IOService *that, int32_t value, void *params);
 
 	/**
 	 *  Actual firmware loader
