@@ -189,6 +189,14 @@ private:
 	 *  Framebuffer patches for first generation (Westmere).
 	 */
 	FramebufferWestmerePatches framebufferWestmerePatches;
+	
+	/**
+	 *	First generation registers (Westmere).
+	 */
+	static constexpr uint32_t WESTMERE_TXA_CTL 					= 0x60100;
+	static constexpr uint32_t WESTMERE_RXA_CTL 					= 0xF000C;
+	static constexpr uint32_t WESTMERE_LINK_WIDTH_MASK	= 0xFFC7FFFF;
+	static constexpr uint32_t WESTMERE_LINK_WIDTH_SHIFT = 19;
 
 	/**
 	 *  Framebuffer list, imported from the framebuffer kext
