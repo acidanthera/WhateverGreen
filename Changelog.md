@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.5.1
 - Added constants required for macOS 12 update
+- Added Intel Arrandale graphics support on 10.6 and 10.7 64-bit
 
 #### v1.5.0
 - Fixed AMD WX-4170 name for 67E0 device id
