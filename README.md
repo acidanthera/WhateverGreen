@@ -45,6 +45,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `-wegbeta` to enable WhateverGreen on unsupported OS versions (12 and below are enabled by default).
 - `-wegnoegpu` to disable all external GPUs (or add `disable-gpu` property to each GFX0).
 - `-wegnoigpu` to disable internal GPU (or add `disable-gpu` property to IGPU)
+- `-wegswitchgpu` to disable internal GPU when external GPU is installed (or add `switch-to-external-gpu` property to IGPU)
 - `-radvesa` to disable ATI/AMD video acceleration completely.
 - `-rad24` to enforce 24-bit display mode.
 - `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).
