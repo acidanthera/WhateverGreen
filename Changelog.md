@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.2
+- Added `device-id` spoofing support for AMD graphics
+
 #### v1.5.1
 - Added constants required for macOS 12 update
 - Added Intel Arrandale graphics support on 10.6 and 10.7 64-bit

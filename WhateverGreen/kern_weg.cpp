@@ -381,6 +381,8 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 	if (!name || strcmp(name, "IGPU") != 0)
 		WIOKit::renameDevice(device, "IGPU");
 
+	WIOKit::awaitPublishing(device);
+	
 	// Obtain the real device info, should we cast to IOPCIDevice here?
 	auto obj = OSDynamicCast(IOService, device);
 	if (obj) {
@@ -415,11 +417,10 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 					   bus, dev, fun, acpiDevice, fakeDevice);
 			}
 			if (fakeDevice != realDevice) {
-				if (KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16) &&
-					KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32))
-					DBGLOG("weg", "hooked configRead read methods!");
-				else
-					SYSLOG("weg", "failed to hook configRead read methods!");
+				hasIgpuSpoof = true;
+				KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
+				KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
+				DBGLOG("weg", "hooked configRead read methods!");
 			}
 		}
 	} else {
@@ -493,6 +494,23 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 				device->setProperty("model", const_cast<char *>(model), static_cast<unsigned>(strlen(model)+1));
 			}
 		}
+	}
+
+	if (vendor == WIOKit::VendorID::ATIAMD) {
+		WIOKit::awaitPublishing(device);
+		uint32_t realDevice = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigDeviceID);
+		uint32_t acpiDevice = 0;
+		if (WIOKit::getOSDataValue(device, "device-id", acpiDevice)) {
+			DBGLOG("weg", "found AMD GPU with device-id 0x%04X actual 0x%04X", acpiDevce, realDevice);
+			if (acpiDevice != realDevice) {
+				hasGfxSpoof = true;
+				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
+				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
+			}
+		} else {
+			DBGLOG("weg", "missing AMD GPU device-id");
+		}
+		DBGLOG("weg", "hooked configRead read methods!");
 	}
 
 	// Ensure built-in.
@@ -704,11 +722,14 @@ uint16_t WEG::wrapConfigRead16(IORegistryEntry *service, uint32_t space, uint8_t
 	auto result = callbackWEG->orgConfigRead16(service, space, offset);
 	if (offset == WIOKit::kIOPCIConfigDeviceID && service != nullptr) {
 		auto name = service->getName();
-		if (name && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U') {
-			DBGLOG("weg", "configRead16 IGPU 0x%08X at off 0x%02X, result = 0x%04x", space, offset, result);
+		if (!name) return result;
+		bool doSpoof = (callbackWEG->hasIgpuSpoof && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U')
+			|| (callbackWEG->hasGfxSpoof && name[0] == 'G' && name[1] == 'F' && name[2] == 'X');
+		if (doSpoof) {
+			DBGLOG("weg", "configRead16 %s 0x%08X at off 0x%02X, result = 0x%04x", name, space, offset, result);
 			uint32_t device;
 			if (WIOKit::getOSDataValue(service, "device-id", device) && device != result) {
-				DBGLOG("weg", "configRead16 IGPU reported 0x%04x instead of 0x%04x", device, result);
+				DBGLOG("weg", "configRead16 %s reported 0x%04x instead of 0x%04x", name, device, result);
 				return device;
 			}
 		}
@@ -722,12 +743,15 @@ uint32_t WEG::wrapConfigRead32(IORegistryEntry *service, uint32_t space, uint8_t
 	// According to lvs1974 unaligned reads may actually happen!
 	if ((offset == WIOKit::kIOPCIConfigDeviceID || offset == WIOKit::kIOPCIConfigVendorID) && service != nullptr) {
 		auto name = service->getName();
-		if (name && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U') {
-			DBGLOG("weg", "configRead32 IGPU 0x%08X at off 0x%02X, result = 0x%08X", space, offset, result);
+		if (!name) return result;
+		bool doSpoof = (callbackWEG->hasIgpuSpoof && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U')
+			|| (callbackWEG->hasGfxSpoof && name[0] == 'G' && name[1] == 'F' && name[2] == 'X');
+		if (doSpoof) {
+			DBGLOG("weg", "configRead32 %s 0x%08X at off 0x%02X, result = 0x%08X", name, space, offset, result);
 			uint32_t device;
 			if (WIOKit::getOSDataValue(service, "device-id", device) && device != (result & 0xFFFF)) {
 				device = (result & 0xFFFF) | (device << 16);
-				DBGLOG("weg", "configRead32 reported 0x%08x instead of 0x%08x", device, result);
+				DBGLOG("weg", "configRead32 %s reported 0x%08x instead of 0x%08x", name, device, result);
 				return device;
 			}
 		}

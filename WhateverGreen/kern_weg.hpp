@@ -193,6 +193,16 @@ private:
 	 *  vinfo presence status
 	 */
 	bool gotConsoleVinfo {false};
+	
+	/**
+	 *  Device identification spoofing for IGPU
+	 */
+	bool hasIgpuSpoof {false};
+
+	/**
+	 *  Device identification spoofing for GFX0
+	 */
+	bool hasGfxSpoof {false};
 
 	/**
 	 *  Maximum GFX naming index (due to ACPI name restrictions)
