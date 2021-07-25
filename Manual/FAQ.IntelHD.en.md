@@ -2270,7 +2270,8 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 
 ## Adjusting the brightness on a laptop
 
-Use this ACPI table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl), for CFL+ use other table [SSDT-PNLFCFL](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLFCFL.dsl).  
+Use this ACPI table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl)  
+Table SSDT-PNLFCFL is deprecated, use updated table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl) from OpenCore 0.7.2+ for any IntelHD graphics.  
 For laptop brightness keys use [BrightnessKeys.kext](https://github.com/acidanthera/BrightnessKeys).  
   
 ## Digital Audio (HDMI / DVI / DP)
