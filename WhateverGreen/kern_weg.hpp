@@ -16,6 +16,7 @@
 #include "kern_ngfx.hpp"
 #include "kern_rad.hpp"
 #include "kern_shiki.hpp"
+#include "kern_unfair.hpp"
 
 class IOFramebuffer;
 class IODisplay;
@@ -24,6 +25,11 @@ class WEG {
 public:
 	void init();
 	void deinit();
+
+	/**
+	 *  Get overridable boot argument from kernel args (priority) and GPU properties
+	 */
+	static bool getVideoArgument(DeviceInfo *info, const char *name, void *bootarg, int size);
 
 private:
 	/**
@@ -55,6 +61,11 @@ private:
 	 *  Hardware acceleration and FairPlay fixes instance
 	 */
 	SHIKI shiki;
+
+	/**
+	 *  FairPlay fixes for modern operating systems
+	 */
+	UNFAIR unfair;
 
 	/**
 	 *  FB_DETECT   autodetects based on the installed GPU.
@@ -182,6 +193,16 @@ private:
 	 *  vinfo presence status
 	 */
 	bool gotConsoleVinfo {false};
+	
+	/**
+	 *  Device identification spoofing for IGPU
+	 */
+	bool hasIgpuSpoof {false};
+
+	/**
+	 *  Device identification spoofing for GFX0
+	 */
+	bool hasGfxSpoof {false};
 
 	/**
 	 *  Maximum GFX naming index (due to ACPI name restrictions)

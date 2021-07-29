@@ -83,14 +83,14 @@ Unlike in `Properties` the normal byte order and the `0x` prefix are to be used.
 
 ## Intel HD Graphics (first generation / Ironlake) ([Arrandale](https://en.wikipedia.org/wiki/Arrandale) processors)  
 
-> Supported from Mac OS X 10.6.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6 and are unsupported on newer operating systems. Metal support is absent.  
+> Supported from Mac OS X 10.6.4 to macOS 10.13.6. The instructions are for OS X 10.6.4 - macOS 10.13.6 and are unsupported on newer operating systems. Metal support is absent.  
 > Laptops with LVDS displays are the only supported combination. All other display types are unsupported.    
 
 > For more information, reference [this](https://github.com/Goldfish64/ArrandaleGraphicsHackintosh) and [this](https://www.insanelymac.com/forum/topic/286092-guide-1st-generation-intel-hd-graphics-qeci/).
 
 Most typical configuration will require `framebuffer-patch-enable` and `framebuffer-singlelink`. `AAPL,ig-platform-id` is not required.
 
-If there are display or wake issues, `framebuffer-fbccontrol-*` and `framebuffer-featurecontrol-*` properties may be helpful. These mirror the settings present in the `Info.plist` of the framebuffer kext and are simple 0 or 1 settings.
+If there are display or wake issues, `framebuffer-fbccontrol-*` and `framebuffer-featurecontrol-*` properties may be helpful. These mirror the settings present in the `Info.plist` of the AppleIntelHDGraphicsFB.kext and are simple 0 or 1 settings.
 
 **Semantic:**  
 *framebuffer-patch-enable (enable patching)  
@@ -265,12 +265,12 @@ Desktops require a fake `device-id` `26010000` for `IGPU`:
 
 For an "empty framebuffer" a different device-id is required, more in this [thread](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/)
   
->**Attention!** If you are using a motherboard with a [7 series](https://ark.intel.com/products/series/98460/Intel-7-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1C0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-IMEI.dsl)  
+>**Attention!** If you are using a motherboard with a [7 series](https://ark.intel.com/products/series/98460/Intel-7-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1C0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-IMEI.dsl)  
 ![snv_imei](./Img/snb_imei.png)  
 
 ## Intel HD Graphics 2500/4000 ([Ivy Bridge](https://en.wikipedia.org/wiki/Ivy_Bridge_(microarchitecture)) processors)  
 
-> Supported since OS X 10.8.x  
+> Supported from OS X 10.8.x to macOS 11.x. On newer operating systems these are not supported. [But if you really want to - read this.](https://github.com/dortania/OpenCore-Legacy-Patcher)  
   
 ***Capri framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
@@ -434,7 +434,7 @@ Mobile: 0, PipeCount: 2, PortCount: 3, FBMemoryCount: 2
 
 HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and should) use it with an "empty framebuffer" (0 connectors) for [IQSV](https://www.applelife.ru/threads/zavod-intel-quick-sync-video.817923/). Only the HD4000 can work with a display.  
 
->***Attention!*** If you are using a motherboard with a  [6-series](https://ark.intel.com/products/series/98461/Intel-6-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1E0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/SSDT-IMEI.dsl)  
+>***Attention!*** If you are using a motherboard with a  [6-series](https://ark.intel.com/products/series/98461/Intel-6-Series-Chipsets) chipset, it is necessary to fake the `device-id` `3A1E0000` for `IMEI` and add ACPI table [SSDT-IMEI](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-IMEI.dsl)  
 ![ivy_imei](./Img/ivy_imei.png)  
 
 ## Intel HD Graphics 4200-5200 ([Haswell](https://en.wikipedia.org/wiki/Haswell_(microarchitecture)) processors)  
@@ -2270,7 +2270,9 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 
 ## Adjusting the brightness on a laptop
 
-Use this ACPI table [SSDT-PNLF](./SSDT-PNLF.dsl), for CFL+ use other table [SSDT-PNLFCFL](./SSDT-PNLFCFL.dsl).  
+Use this ACPI table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl)  
+Table SSDT-PNLFCFL is deprecated, use updated table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl) from OpenCore 0.7.2+ for any IntelHD graphics.  
+For laptop brightness keys use [BrightnessKeys.kext](https://github.com/acidanthera/BrightnessKeys).  
   
 ## Digital Audio (HDMI / DVI / DP)
 
@@ -2358,11 +2360,23 @@ In some cases the EDID dump may be incompatible with macOS and leads to distorti
 
 ## HDMI in UHD resolution with 60FPS
 
-Add the `enable-hdmi20` property to `IGPU`, otherwise you will get a black screen.  
-![hdmi20](./Img/hdmi20.png)  
-Or instead of this property use the boot-arg `-cdfon`  
-  
-In addtion to HDMI, this should be enabled on some notebooks like ThinkPad P71 / 7700HQ / HD630 / 4K, where gIOScreenLockState3 error may occur.  
+Add the `enable-max-pixel-clock-override` property to `IGPU` or use the `-igfxmpc` boot-arg instead to raise the max pixel clock limit.
+This is needed for 4K@60Hz on laptops like ThinkPad P71 or XPS 15, otherwise you will get a black screen. It can also be used for 4K@60Hz over HDMI 2.0.
+
+![igfxmpc](./Img/max-pixel-clock.png)
+
+The `CheckTimingWithRange` function in CoreDisplay.framework (userspace) is responsible for validating display timings.
+It reads the IOFBTimingRange property, which contains the IODisplayTimingRange structure with various limits, including the max pixel clock limit.
+At least on KBL, the framebuffer driver sets the max pixel clock frequency in the IODisplayTimingRange structure to 450 MHz, which is insufficient for 4K@60Hz.
+`-igfxmpc` modifies the IODisplayTimingRange structure and raises the max pixel clock limit to 675 MHz. This will allow `CheckTimingWithRange` to succeed with 4K@60Hz displays.
+The default 675 MHz limit can be changed with the `max-pixel-clock-frequency` property in `IGPU`, which overrides the new max pixel clock limit (in hertz).
+
+Another approach is to patch `CheckTimingWithRange` in CoreDisplay.framework to skip validation of the pixel clock.
+To use this patch, add the `enable-hdmi20` property to `IGPU` or use the `-cdfon` boot-arg.
+
+![hdmi20](./Img/hdmi20.png)
+
+`-igfxmpc` is the preferred approach to bypass the 450 MHz pixel clock limit, as `-cdfon` depends on the userspace patcher.
 
 ## Disabling a discrete graphics card
 

@@ -15,6 +15,8 @@
 #include <Headers/kern_file.hpp>
 #include <Headers/kern_iokit.hpp>
 
+#include <IOKit/pci/IOPCIDevice.h>
+
 static const char *pathIntelHD[]      { "/System/Library/Extensions/AppleIntelHDGraphics.kext/Contents/MacOS/AppleIntelHDGraphics" };
 static const char *pathIntelHDFb[]    { "/System/Library/Extensions/AppleIntelHDGraphicsFB.kext/Contents/MacOS/AppleIntelHDGraphicsFB" };
 static const char *pathIntelHD3000[]  { "/System/Library/Extensions/AppleIntelHD3000Graphics.kext/Contents/MacOS/AppleIntelHD3000Graphics" };
@@ -157,6 +159,9 @@ void IGFX::init() {
 			modRPSControlPatch.available = true;
 			modTypeCCheckDisabler.enabled = true;
 			break;
+		case CPUInfo::CpuGeneration::RocketLake:
+			gPlatformGraphicsSupported = false;
+			break;
 		default:
 			SYSLOG("igfx", "found an unsupported processor 0x%X:0x%X, please report this!", family, model);
 			break;
@@ -187,7 +192,9 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
-	if (info->videoBuiltin) {
+	if (info->videoBuiltin && !gPlatformGraphicsSupported) {
+		switchOffGraphics = switchOffFramebuffer = true;
+	} else if (info->videoBuiltin) {
 		applyFramebufferPatch = loadPatchesFromDevice(info->videoBuiltin, info->reportedFramebufferId);
 
 #ifdef DEBUG
@@ -371,8 +378,12 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 				patcher.clearError();
 			}
 			
-			if (applyFramebufferPatch && cpuGeneration == CPUInfo::CpuGeneration::Westmere)
+			if (applyFramebufferPatch && cpuGeneration == CPUInfo::CpuGeneration::Westmere) {
+				KernelPatcher::RouteRequest requestWestmere("__ZN22AppleIntelHDGraphicsFB8TrainFDIEiPNS_10CRTCParamsE", wrapTrainFDI, orgTrainFDI);
+				patcher.routeMultiple(index, &requestWestmere, 1, address, size);
+				
 				applyWestmerePatches(patcher);
+			}
 		}
 		return true;
 	}
@@ -1467,7 +1478,7 @@ void IGFX::loadIGScheduler4Patches(KernelPatcher &patcher, size_t index, mach_vm
 			patcher.clearError();
 		}
 	} else {
-		SYSLOG("igfx", "failed to resoolve __KmGen9GuCBinary %d", patcher.getError());
+		SYSLOG("igfx", "failed to resolve __KmGen9GuCBinary %d", patcher.getError());
 		patcher.clearError();
 	}
 }
@@ -2054,87 +2065,121 @@ void IGFX::applyHdmiAutopatch() {
 
 void IGFX::applyWestmerePatches(KernelPatcher &patcher) {
 	auto kernelVersion = getKernelVersion();
-	DBGLOG("igfx", "applyWestmerePatches kernel version %X", kernelVersion);
-	
+	DBGLOG("igfx", "applyWestmerePatches kernel version %u", kernelVersion);
+
 	//
 	// Reference: https://github.com/Goldfish64/ArrandaleGraphicsHackintosh/blob/master/Patches.md
 	//
-	
+
 	// Use 0x2000 for stride (fixes artifacts on resolutions > 1024x768). Located in AppleIntelHDGraphicsFB::hwSetCRTC.
-	const uint8_t findStride[] = { 0x0F, 0x45, 0xC8, 0x42, 0x89, 0x8C };
-	const uint8_t replaceStride[] = { 0x90, 0x90, 0x90, 0x42, 0x89, 0x8C };
-	KernelPatcher::LookupPatch stridePatch { currentFramebuffer, findStride, replaceStride, sizeof(findStride), 1 };
-	patcher.applyLookupPatch(&stridePatch);
-	DBGLOG("igfx", "applyWestmerePatches applied stride patch");
-	
+	if (kernelVersion == KernelVersion::SnowLeopard) {
+		static const uint8_t findStrideSnow64[] = { 0x0F, 0x85, 0x75, 0xFE, 0xFF, 0xFF, 0xE9, 0x6B, 0xFE, 0xFF, 0xFF };
+		static const uint8_t replaceStrideSnow64[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0xE9, 0x6B, 0xFE, 0xFF, 0xFF  };
+		KernelPatcher::LookupPatch stridePatchSnow64 { currentFramebuffer, findStrideSnow64, replaceStrideSnow64, sizeof(findStrideSnow64), 1 };
+		patcher.applyLookupPatch(&stridePatchSnow64);
+		DBGLOG("igfx", "applyWestmerePatches applied stride patch for Snow Leopard");
+
+	} else {
+		static const uint8_t findStrideLionPlus64[] = { 0x0F, 0x45, 0xC8, 0x42, 0x89, 0x8C };
+		static const uint8_t replaceStrideLionPlus64[] = { 0x90, 0x90, 0x90, 0x42, 0x89, 0x8C };
+		KernelPatcher::LookupPatch stridePatchLionPlus64 { currentFramebuffer, findStrideLionPlus64, replaceStrideLionPlus64, sizeof(findStrideLionPlus64), 1 };
+		patcher.applyLookupPatch(&stridePatchLionPlus64);
+		DBGLOG("igfx", "applyWestmerePatches applied stride patch for Lion+");
+	}
+
 	if (framebufferPatchFlags.bitsWestmere.SingleLink && framebufferWestmerePatches.SingleLink) {
 		// AAPL00,DualLink is set to <00000000> instead of patch 1.
-		
+
 		// Single link patch 2. Changes to divisor 14. Located in AppleIntelHDGraphicsFB::hwRegsNeedUpdate.
-		if (kernelVersion == KernelVersion::MountainLion) {
-			const uint8_t findSingleWidth2Ml[] = { 0xB9, 0x00, 0x00, 0x00, 0x09 };
-			const uint8_t replaceSingleWidth2Ml[] = { 0xB9, 0x00, 0x00, 0x00, 0x08 };
-			KernelPatcher::LookupPatch singleWidth2MlPatch { currentFramebuffer, findSingleWidth2Ml, replaceSingleWidth2Ml, sizeof(findSingleWidth2Ml), 1 };
-			patcher.applyLookupPatch(&singleWidth2MlPatch);
+		if (kernelVersion == KernelVersion::SnowLeopard) {
+			static const uint8_t findSingleWidth2Snow64[] = { 0xBE, 0x00, 0x00, 0x00, 0x09 };
+			static const uint8_t replaceSingleWidth2Snow64[] = { 0xBE, 0x00, 0x00, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2PatchSnow64 { currentFramebuffer, findSingleWidth2Snow64, replaceSingleWidth2Snow64, sizeof(findSingleWidth2Snow64), 1 };
+			patcher.applyLookupPatch(&singleWidth2PatchSnow64);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Snow Leopard");
+
+		} else if (kernelVersion == KernelVersion::Lion) {
+			static const uint8_t findSingleWidth2Lion64[] = { 0xB8, 0x00, 0x00, 0x00, 0x09 };
+			static const uint8_t replaceSingleWidth2Lion64[] = { 0xB8, 0x00, 0x00, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2PatchLion64 { currentFramebuffer, findSingleWidth2Lion64, replaceSingleWidth2Lion64, sizeof(findSingleWidth2Lion64), 1 };
+			patcher.applyLookupPatch(&singleWidth2PatchLion64);
+			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Lion");
+
+		} else if (kernelVersion == KernelVersion::MountainLion) {
+			static const uint8_t findSingleWidth2Ml[] = { 0xB9, 0x00, 0x00, 0x00, 0x09 };
+			static const uint8_t replaceSingleWidth2Ml[] = { 0xB9, 0x00, 0x00, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2PatchMl { currentFramebuffer, findSingleWidth2Ml, replaceSingleWidth2Ml, sizeof(findSingleWidth2Ml), 1 };
+			patcher.applyLookupPatch(&singleWidth2PatchMl);
 			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Mountain Lion");
-		}
-		else if (kernelVersion == KernelVersion::Mavericks) {
-			const uint8_t findSingleWidth2Mav[] = { 0x41, 0xB9, 0x00, 0x60, 0x00, 0x09 };
-			const uint8_t replaceSingleWidth2Mav[] = { 0x41, 0xB9, 0x00, 0x60, 0x00, 0x08 };
-			KernelPatcher::LookupPatch singleWidth2MavPatch { currentFramebuffer, findSingleWidth2Mav, replaceSingleWidth2Mav, sizeof(findSingleWidth2Mav), 1 };
-			patcher.applyLookupPatch(&singleWidth2MavPatch);
+
+		} else if (kernelVersion == KernelVersion::Mavericks) {
+			static const uint8_t findSingleWidth2Mav[] = { 0x41, 0xB9, 0x00, 0x60, 0x00, 0x09 };
+			static const uint8_t replaceSingleWidth2Mav[] = { 0x41, 0xB9, 0x00, 0x60, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2PatchMav { currentFramebuffer, findSingleWidth2Mav, replaceSingleWidth2Mav, sizeof(findSingleWidth2Mav), 1 };
+			patcher.applyLookupPatch(&singleWidth2PatchMav);
 			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Mavericks");
-		}
-		else if (kernelVersion >= KernelVersion::Yosemite && kernelVersion <= KernelVersion::Sierra) {
-			const uint8_t findSingleWidth2Yos[] = { 0xB8, 0x00, 0x60, 0x00, 0x09 };
-			const uint8_t replaceSingleWidth2Yos[] = { 0xB8, 0x00, 0x60, 0x00, 0x08 };
-			KernelPatcher::LookupPatch singleWidth2YosPatch { currentFramebuffer, findSingleWidth2Yos, replaceSingleWidth2Yos, sizeof(findSingleWidth2Yos), 1 };
-			patcher.applyLookupPatch(&singleWidth2YosPatch);
+
+		} else if (kernelVersion >= KernelVersion::Yosemite && kernelVersion <= KernelVersion::Sierra) {
+			static const uint8_t findSingleWidth2Yos[] = { 0xB8, 0x00, 0x60, 0x00, 0x09 };
+			static const uint8_t replaceSingleWidth2Yos[] = { 0xB8, 0x00, 0x60, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2PatchYos { currentFramebuffer, findSingleWidth2Yos, replaceSingleWidth2Yos, sizeof(findSingleWidth2Yos), 1 };
+			patcher.applyLookupPatch(&singleWidth2PatchYos);
 			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for Yosemite to Sierra");
+
 		} else if (kernelVersion >= KernelVersion::HighSierra) {
-			const uint8_t findSingleWidth2Hs[] = { 0xBA, 0x00, 0x60, 0x00, 0x09 };
-			const uint8_t replaceSingleWidth2Hs[] = { 0xBA, 0x00, 0x60, 0x00, 0x08 };
-			KernelPatcher::LookupPatch singleWidth2HsPatch { currentFramebuffer, findSingleWidth2Hs, replaceSingleWidth2Hs, sizeof(findSingleWidth2Hs), 1 };
-			patcher.applyLookupPatch(&singleWidth2HsPatch);
+			static const uint8_t findSingleWidth2Hs[] = { 0xBA, 0x00, 0x60, 0x00, 0x09 };
+			static const uint8_t replaceSingleWidth2Hs[] = { 0xBA, 0x00, 0x60, 0x00, 0x08 };
+			KernelPatcher::LookupPatch singleWidth2PatchHs { currentFramebuffer, findSingleWidth2Hs, replaceSingleWidth2Hs, sizeof(findSingleWidth2Hs), 1 };
+			patcher.applyLookupPatch(&singleWidth2PatchHs);
 			DBGLOG("igfx", "applyWestmerePatches applied single width patch 2 for High Sierra+");
 		}
-		
+
 		// Single link patch 3. Powers down CLKB (fixes pixelated image). Located in AppleIntelHDGraphicsFB::hwRegsNeedUpdate.
-		const uint8_t findSingleWidth3[] = { 0x3C, 0x03, 0x30, 0x80 };
-		const uint8_t replaceSingleWidth3[] = { 0x00, 0x03, 0x30, 0x80 };
+		static const uint8_t findSingleWidth3[] = { 0x3C, 0x03, 0x30, 0x80 };
+		static const uint8_t replaceSingleWidth3[] = { 0x00, 0x03, 0x30, 0x80 };
 		KernelPatcher::LookupPatch singleWidth3Patch { currentFramebuffer, findSingleWidth3, replaceSingleWidth3, sizeof(findSingleWidth3), 1 };
 		patcher.applyLookupPatch(&singleWidth3Patch);
 		DBGLOG("igfx", "applyWestmerePatches applied single width patch 3");
 	}
-	
+}
+
+void IGFX::wrapTrainFDI(IOService *that, int32_t value, void *params) {
 	// Cap link width.
-	if (framebufferWestmerePatches.LinkWidth == 0 || framebufferWestmerePatches.LinkWidth > 4) {
-		SYSLOG("igfx", "applyWestmerePatches link width of %u is invalid; using 1", framebufferWestmerePatches.LinkWidth);
-		framebufferWestmerePatches.LinkWidth = 1;
+	if (callbackIGFX->framebufferWestmerePatches.LinkWidth == 0 || callbackIGFX->framebufferWestmerePatches.LinkWidth > 4) {
+		SYSLOG("igfx", "link width of %u is invalid; using 1", callbackIGFX->framebufferWestmerePatches.LinkWidth);
+		callbackIGFX->framebufferWestmerePatches.LinkWidth = 1;
+	}
+	
+	auto pciDevice = OSDynamicCast(IOPCIDevice, that->getProvider());
+	if (pciDevice) {
+		auto baseMemoryMap = pciDevice->mapDeviceMemoryWithRegister(kIOPCIConfigBaseAddress0);
+		if (baseMemoryMap) {
+			auto baseAddr = (volatile void *) (baseMemoryMap->getVirtualAddress());
+
+			// Set initial link width
+			auto txaCtl = OSReadLittleInt32(baseAddr, WESTMERE_TXA_CTL) & WESTMERE_LINK_WIDTH_MASK;
+			auto rxaCtl = OSReadLittleInt32(baseAddr, WESTMERE_RXA_CTL) & WESTMERE_LINK_WIDTH_MASK;
+			auto linkWidth = (callbackIGFX->framebufferWestmerePatches.LinkWidth - 1) << WESTMERE_LINK_WIDTH_SHIFT;
+
+			OSWriteLittleInt32(baseAddr, WESTMERE_TXA_CTL, txaCtl | linkWidth);
+			OSWriteLittleInt32(baseAddr, WESTMERE_RXA_CTL, rxaCtl | linkWidth);
+			// AppleIntelHDGraphicsFB has a delay after setting registers
+			IODelay(100);
+
+			baseMemoryMap->release();
+		} else {
+			SYSLOG("igfx", "failed to map BAR0");
+		}
+	} else {
+		SYSLOG("igfx", "provider is not IOPCIDevice");
 	}
 
-	// Link width patch. Sets the link width. Located in AppleIntelHDGraphicsFB::TrainFDI.
-	// Formula =  ((link_width - 1) & 7) << 19.
-	uint32_t linkWidth = ((framebufferWestmerePatches.LinkWidth - 1) & 7) << 19;
-	uint8_t *linkWidthPtr = (uint8_t*)&linkWidth;
-	if (kernelVersion >= KernelVersion::MountainLion && kernelVersion <= KernelVersion::ElCapitan) {
-		const uint8_t findLinkWidthMl[] = { 0x49, 0x8B, 0x84, 0x24, 0x98, 0x06, 0x00, 0x00, 0x0F, 0xB6, 0x40, 0x18, 0xC1, 0xE0, 0x13, 0x41, 0x0B, 0x46, 0x6C, 0x41, 0x89, 0x46, 0x6C, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x81, 0x0C, 0x00, 0x0F, 0x00, 0x49, 0x8B, 0x84, 0x24, 0x98, 0x06, 0x00, 0x00, 0x0F, 0xB6, 0x40, 0x18, 0xC1, 0xE0, 0x13, 0x41, 0x0B, 0x46, 0x68 };
-		const uint8_t replaceLinkWidthMl[] = { 0x41, 0x8B, 0x46, 0x6C, 0x25, 0xFF, 0xFF, 0xC7, 0xFF, 0x0D, linkWidthPtr[3], linkWidthPtr[2], linkWidthPtr[1], linkWidthPtr[0], 0x90, 0x90, 0x90, 0x90, 0x90, 0x41, 0x89, 0x46, 0x6C, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x81, 0x0C, 0x00, 0x0F, 0x00, 0x41, 0x8B, 0x46, 0x68, 0x25, 0xFF, 0xFF, 0xC7, 0xFF, 0x0D, linkWidthPtr[3], linkWidthPtr[2], linkWidthPtr[1], linkWidthPtr[0], 0x90, 0x90, 0x90, 0x90, 0x90 };
-		KernelPatcher::LookupPatch linkWidthPatchMl { currentFramebuffer, findLinkWidthMl, replaceLinkWidthMl, sizeof(findLinkWidthMl), 1 };
-		patcher.applyLookupPatch(&linkWidthPatchMl);
-		DBGLOG("igfx", "applyWestmerePatches applied link width patch for Mountain Lion to El Capitan");
-	} else if (kernelVersion >= KernelVersion::Sierra) {
-		const uint8_t findLinkWidthSi[] = { 0x41, 0x89, 0x4E, 0x6C, 0x49, 0x8B, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x88, 0x0C, 0x00, 0x0F, 0x00, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x06, 0x00, 0x00, 0x0F, 0xB6, 0x51, 0x18, 0xC1, 0xE2, 0x13, 0x41, 0x8B, 0x76, 0x6C, 0x09, 0xD6, 0x41, 0x89, 0x76, 0x6C, 0x89, 0xB0, 0x0C, 0x00, 0x0F, 0x00, 0x41, 0x0B, 0x56, 0x68 };
-		const uint8_t replaceLinkWidthSi[] = { 0xBB, 0xFF, 0xFF, 0xC7, 0xFF, 0xBA, linkWidthPtr[3], linkWidthPtr[2], linkWidthPtr[1], linkWidthPtr[0], 0x21, 0xD9, 0x09, 0xD1, 0x41, 0x89, 0x4E, 0x6C, 0x49, 0x8B, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, 0x89, 0x88, 0x0C, 0x00, 0x0F, 0x00, 0x41, 0x8B, 0x4E, 0x68, 0x21, 0xD9, 0x09, 0xD1, 0x89, 0xCA, 0x90, 0x90, 0x90, 0x49, 0x8B, 0x8C, 0x24, 0x98, 0x06, 0x00, 0x00 };
-		KernelPatcher::LookupPatch linkWidthSiPatch { currentFramebuffer, findLinkWidthSi, replaceLinkWidthSi, sizeof(findLinkWidthSi), 1 };
-		patcher.applyLookupPatch(&linkWidthSiPatch);
-		DBGLOG("igfx", "applyWestmerePatches applied link width patch for Sierra+");
-	}
+	FunctionCast(wrapTrainFDI, callbackIGFX->orgTrainFDI)(that, value, params);
 }
 
 void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 	bool success = true;
-	
+
 	uint32_t patchFeatureControl = 0;
 	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlFBC;
 	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlGPUInterruptHandling;
@@ -2144,13 +2189,13 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlRSTimerTest;
 	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlRenderStandby;
 	patchFeatureControl |= callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlWatermarks;
-	
+
 	if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FBCControlCompression) {
 		// Entire dictionary will always be replaced as there is only a single property.
 		auto dictFBCControl = OSDictionary::withCapacity(1);
 		if (dictFBCControl) {
 			success &= setDictUInt32(dictFBCControl, "Compression", framebufferWestmerePatches.FBCControlCompression);
-			
+
 			// Replace FBCControl dictionary.
 			success &= framebuffer->setProperty("FBCControl", dictFBCControl);
 			dictFBCControl->release();
@@ -2158,7 +2203,7 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 			success = false;
 		}
 	}
-	
+
 	if (patchFeatureControl) {
 		// Try to get existing dictionary, replace if not found.
 		auto dictFeatureControlOld = OSDynamicCast(OSDictionary, framebuffer->getProperty("FeatureControl"));
@@ -2167,7 +2212,7 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 			dictFeatureControlNew = OSDictionary::withDictionary(dictFeatureControlOld);
 		else
 			dictFeatureControlNew = OSDictionary::withCapacity(8);
-		
+
 		// Replace any specified properties.
 		if (dictFeatureControlNew) {
 			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlFBC)
@@ -2186,7 +2231,7 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 				success &= setDictUInt32(dictFeatureControlNew, "RenderStandby", framebufferWestmerePatches.FeatureControlRenderStandby);
 			if (callbackIGFX->framebufferPatchFlags.bitsWestmere.FeatureControlWatermarks)
 				success &= setDictUInt32(dictFeatureControlNew, "Watermarks", framebufferWestmerePatches.FeatureControlWatermarks);
-			
+
 			// Replace FBCControl dictionary.
 			success &= framebuffer->setProperty("FeatureControl", dictFeatureControlNew);
 			dictFeatureControlNew->release();
@@ -2194,7 +2239,7 @@ void IGFX::applyWestmereFeaturePatches(IOService *framebuffer) {
 			success = false;
 		}
 	}
-	
+
 	if (success)
 		DBGLOG("igfx", "applyWestmereFeaturePatches successful %X", callbackIGFX->framebufferPatchFlags.value);
 	else

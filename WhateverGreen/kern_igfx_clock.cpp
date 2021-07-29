@@ -8,6 +8,7 @@
 
 #include "kern_igfx.hpp"
 #include <Headers/kern_util.hpp>
+#include <IOKit/graphics/IOGraphicsTypes.h>
 
 ///
 /// This file contains the following clock-related fixes
@@ -15,6 +16,7 @@
 /// 1. Maximum Link Rate fix for eDP panel on CFL+.
 /// 2. Core Display Clock fix for the graphics engine on ICL+.
 /// 3. HDMI Dividers Calculation fix on SKL, KBL, CFL.
+/// 4. Max pixel clock fix on SKL+.
 ///
 
 // MARK: - Maximum Link Rate Fix
@@ -881,4 +883,54 @@ void IGFX::HDMIDividersCalcFix::wrapComputeHdmiP0P1P2(AppleIntelFramebufferContr
 	params->cf15625 = cf15625;
 	DBGLOG("igfx", "HDC: ComputeHdmiP0P1P2() DInfo: CTRC parameters have been populated successfully.");
 	return;
+}
+
+// MARK: - Max Pixel Clock Override
+
+// MARK: Patch Submodule IMP
+
+void IGFX::MaxPixelClockOverride::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingGraphics = false;
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::MaxPixelClockOverride::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the max pixel clock override patch if the corresponding boot argument is found
+	enabled = checkKernelArgument("-igfxmpc");
+	// Or if `enable-max-pixel-clock-override` is set in IGPU property
+	if (!enabled)
+		enabled = info->videoBuiltin->getProperty("enable-max-pixel-clock-override") != nullptr;
+
+	// Read the custom max pixel clock frequency set by the user if present
+	if (enabled)
+		WIOKit::getOSDataValue<uint32_t>(info->videoBuiltin, "max-pixel-clock-frequency", maxPixelClockFrequency);
+}
+
+void IGFX::MaxPixelClockOverride::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest routeRequest = {
+		"__ZN21AppleIntelFramebuffer15connectionProbeEjj",
+		wrapConnectionProbe,
+		orgConnectionProbe
+	};
+
+	if (!patcher.routeMultiple(index, &routeRequest, 1, address, size))
+		SYSLOG("igfx", "MPC: Failed to route the function.");
+}
+
+IOReturn IGFX::MaxPixelClockOverride::wrapConnectionProbe(IOService *that, unsigned int unk1, unsigned int unk2) {
+	// Call the original function, which will set the IOFBTimingRange property
+	IOReturn retVal = callbackIGFX->modMaxPixelClockOverride.orgConnectionProbe(that, unk1, unk2);
+
+	// Update the max pixel clock in the IODisplayTimingRange structure
+	auto fbTimingRange = OSDynamicCast(OSData, that->getProperty(kIOFBTimingRangeKey));
+	if (fbTimingRange) {
+		auto displayTimingRange = const_cast<IODisplayTimingRangeV1 *>(reinterpret_cast<const IODisplayTimingRangeV1 *>(fbTimingRange->getBytesNoCopy()));
+		DBGLOG("igfx", "MPC: Changing max pixel clock from %llu Hz to %llu Hz", displayTimingRange->maxPixelClock, callbackIGFX->modMaxPixelClockOverride.maxPixelClockFrequency);
+		displayTimingRange->maxPixelClock = callbackIGFX->modMaxPixelClockOverride.maxPixelClockFrequency;
+	} else {
+		SYSLOG("igfx", "MPC: Failed to read IOFBTimingRange property");
+	}
+
+	return retVal;
 }

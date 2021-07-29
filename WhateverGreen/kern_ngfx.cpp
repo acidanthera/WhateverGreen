@@ -27,16 +27,28 @@ static const char *pathNVDAStartupWeb[] {
 	"/System/Library/Extensions/NVDAStartupWeb.kext/Contents/MacOS/NVDAStartupWeb"
 };
 
+static const char *pathNVDAResman[] {
+	"/System/Library/Extensions/NVDAResman.kext/Contents/MacOS/NVDAResman"
+};
+
+static const char *pathIONDRVSupport[] {
+	"/System/Library/Extensions/IONDRVSupport.kext/IONDRVSupport"
+};
+
 static KernelPatcher::KextInfo kextList[] {
 	{ "com.apple.GeForce", pathGeForce, arrsize(pathGeForce), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	{ "com.nvidia.web.GeForceWeb", pathGeForceWeb, arrsize(pathGeForceWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
-	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded }
+	{ "com.nvidia.NVDAStartupWeb", pathNVDAStartupWeb, arrsize(pathNVDAStartupWeb), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	{ "com.apple.nvidia.driver.NVDAResman", pathNVDAResman, arrsize(pathNVDAResman), {}, {}, KernelPatcher::KextInfo::Unloaded },
+	{ "com.apple.iokit.IONDRVSupport", pathIONDRVSupport, arrsize(pathIONDRVSupport), {}, {}, KernelPatcher::KextInfo::Unloaded }
 };
 
 enum KextIndex {
 	IndexGeForce,
 	IndexGeForceWeb,
-	IndexNVDAStartupWeb
+	IndexNVDAStartupWeb,
+	IndexNVDAResman,
+	IndexIONDRVSupport,
 };
 
 NGFX *NGFX::callbackNGFX;
@@ -45,6 +57,7 @@ void NGFX::init() {
 	callbackNGFX = this;
 
 	PE_parse_boot_argn("ngfxcompat", &forceDriverCompatibility, sizeof(forceDriverCompatibility));
+	enableDebugLogging = checkKernelArgument("-ngfxdbg");
 	disableTeamUnrestrict = checkKernelArgument("-ngfxlibvalfix");
 
 	lilu.onKextLoadForce(kextList, arrsize(kextList));
@@ -79,6 +92,12 @@ void NGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				}
 			}
 		}
+
+		if (getKernelVersion() <= KernelVersion::Catalina)
+			kextList[IndexIONDRVSupport].switchOff();
+
+		if (!enableDebugLogging)
+			kextList[IndexNVDAResman].switchOff();
 	} else {
 		for (size_t i = 0; i < arrsize(kextList); i++)
 			kextList[i].switchOff();
@@ -101,6 +120,18 @@ bool NGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 
 	if (kextList[IndexNVDAStartupWeb].loadIndex == index) {
 		KernelPatcher::RouteRequest request("__ZN14NVDAStartupWeb5probeEP9IOServicePi", wrapStartupWebProbe, orgStartupWebProbe);
+		patcher.routeMultiple(index, &request, 1, address, size);
+		return true;
+	}
+
+	if (kextList[IndexIONDRVSupport].loadIndex == index) {
+		KernelPatcher::RouteRequest request("__ZN17IONDRVFramebuffer10_doControlEPS_jPv", wrapNdrvDoControl, orgNdrvDoControl);
+		patcher.routeMultiple(index, &request, 1, address, size);
+		return true;
+	}
+
+	if (kextList[IndexNVDAResman].loadIndex == index) {
+		KernelPatcher::RouteRequest request("_nvErrorLog_va", resmanErrorLogVA);
 		patcher.routeMultiple(index, &request, 1, address, size);
 		return true;
 	}
@@ -328,4 +359,38 @@ IOService *NGFX::wrapStartupWebProbe(IOService *that, IOService *provider, SInt3
 	}
 
 	return FunctionCast(wrapStartupWebProbe, callbackNGFX->orgStartupWebProbe)(that, provider, score);
+}
+
+// This is a hack to let us access protected properties.
+struct NDRVFramebufferViewer : public IONDRVFramebuffer {
+	static UInt32 &getState(IONDRVFramebuffer *fb) {
+		return static_cast<NDRVFramebufferViewer *>(fb)->ndrvState;
+	}
+};
+
+IOReturn NGFX::wrapNdrvDoControl(IONDRVFramebuffer *fb, UInt32 code, void *params) {
+	// Suppress debug(?) noise from IONDRVFramebuffer::_doControl( IONDRVFramebuffer * fb, UInt32 code, void * params )
+	// when function was compiled with #define IONDRVCHECK 1.
+	// Ref: https://opensource.apple.com/source/IOGraphics/IOGraphics-585/IONDRVSupport/IONDRVFramebuffer.cpp.auto.html
+
+	if (code == cscSetHardwareCursor || code == cscDrawHardwareCursor) {
+		if (NDRVFramebufferViewer::getState(fb) == 0)
+			return kIOReturnNotOpen;
+
+		IONDRVControlParameters pb;
+		pb.code = code;
+		pb.params = params;
+		return fb->doDriverIO(/*ID*/ 1, &pb, kIONDRVControlCommand, kIONDRVImmediateIOCommandKind);
+	}
+
+	return FunctionCast(wrapNdrvDoControl, callbackNGFX->orgNdrvDoControl)(fb, code, params);
+}
+
+void NGFX::resmanErrorLogVA(void *context, uint32_t id, const char *format, ...) {
+	char buf[1024];
+	va_list va;
+	va_start(va, format);
+	vsnprintf(buf, sizeof(buf), format, va);
+	va_end(va);
+	SYSLOG("ngfx", "RM%u: %s", id, buf);
 }

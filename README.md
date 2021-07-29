@@ -42,8 +42,10 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 
 - `-wegdbg` to enable debug printing (available in DEBUG binaries).
 - `-wegoff` to disable WhateverGreen.
-- `-wegbeta` to enable WhateverGreen on unsupported OS versions (11 and below are enabled by default).
-- `-wegnoegpu` to disable external GPU (or add `disable-external-gpu` property to IGPU).
+- `-wegbeta` to enable WhateverGreen on unsupported OS versions (12 and below are enabled by default).
+- `-wegnoegpu` to disable all external GPUs (or add `disable-gpu` property to each GFX0).
+- `-wegnoigpu` to disable internal GPU (or add `disable-gpu` property to IGPU)
+- `-wegswitchgpu` to disable internal GPU when external GPU is installed (or add `switch-to-external-gpu` property to IGPU)
 - `-radvesa` to disable ATI/AMD video acceleration completely.
 - `-rad24` to enforce 24-bit display mode.
 - `-raddvi` to enable DVI transmitter correction (required for 290X, 370, etc.).
@@ -55,6 +57,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 - `ngfxgl=1` boot argument (and `disable-metal` property) to disable Metal support on NVIDIA
 - `ngfxcompat=1` boot argument (and `force-compat` property) to ignore compatibility check in NVDAStartupWeb
 - `ngfxsubmit=0` boot argument (and `disable-gfx-submit` property) to disable interface stuttering fix on 10.13
+- `-ngfxdbg` boot argument to enable NVIDIA driver error logging
 - `gfxrst=1` to prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying.
 - `gfxrst=4` to disable framebuffer init interaction during 2nd boot stage.
 - `igfxframe=frame` to inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes).
@@ -88,12 +91,14 @@ indices of connectors for which online status is enforced. Format is similar to 
 - `-igfxcdc` boot argument (`enable-cdclk-frequency-fix` property) to support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md)
 - `-igfxdvmt` boot argument (`enable-dvmt-calc-fix` property) to fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
 - `-igfxblr` boot argument (and `enable-backlight-registers-fix` property) to fix backlight registers on KBL, CFL and ICL platforms.
+- `-igfxmpc` boot argument (`enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties) to increase max pixel clock (as an alternative to patching CoreDisplay.framework).
 
 #### Credits
 
 - [Apple](https://www.apple.com) for macOS
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
+- [Andrey1970AppleLife](https://github.com/Andrey1970AppleLife) for [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/)
 - [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, and DVMT pre-allocated memory calculation fix for ICL platforms.
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch

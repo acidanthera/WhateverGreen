@@ -135,7 +135,7 @@ private:
 	 *  Patch value for fCursorMemorySize in Haswell framebuffer
 	 *  This member is not present in FramebufferCFL, hence its addition here.
 	 */
-	uint32_t fPatchCursorMemorySize;
+	uint32_t fPatchCursorMemorySize {};
 
 	/**
 	 *  Maximum find / replace patches
@@ -189,6 +189,14 @@ private:
 	 *  Framebuffer patches for first generation (Westmere).
 	 */
 	FramebufferWestmerePatches framebufferWestmerePatches;
+	
+	/**
+	 *	First generation registers (Westmere).
+	 */
+	static constexpr uint32_t WESTMERE_TXA_CTL 					= 0x60100;
+	static constexpr uint32_t WESTMERE_RXA_CTL 					= 0xF000C;
+	static constexpr uint32_t WESTMERE_LINK_WIDTH_MASK	= 0xFFC7FFFF;
+	static constexpr uint32_t WESTMERE_LINK_WIDTH_SHIFT = 19;
 
 	/**
 	 *  Framebuffer list, imported from the framebuffer kext
@@ -199,6 +207,11 @@ private:
 	 *  Framebuffer list is in Sandy Bridge format
 	 */
 	bool gPlatformListIsSNB {false};
+
+	/**
+	 *  IGPU support
+	 */
+	bool gPlatformGraphicsSupported {true};
 
 	/**
 	 *  Private self instance for callbacks
@@ -259,6 +272,11 @@ private:
 	 *  Original IGMappedBuffer::getGPUVirtualAddress function
 	 */
 	mach_vm_address_t orgIgBufferGetGpuVirtualAddress {};
+	
+	/**
+	 *  Original AppleIntelHDGraphicsFB::TrainFDI function
+	 */
+	mach_vm_address_t orgTrainFDI {};
 
 	/**
 	 *  Set to true to disable Metal support
@@ -1584,6 +1602,32 @@ private:
 	} modFramebufferDebugSupport;
 	
 	/**
+	 *  A submodule to override the max pixel clock limit in the framebuffer driver.
+	 */
+	class MaxPixelClockOverride: public PatchSubmodule {
+		/**
+		 * Override for max pixel clock frequency (Hz).
+		 */
+		uint64_t maxPixelClockFrequency = 675000000;
+
+		/**
+		 *  Original AppleIntelFramebuffer::connectionProbe function
+		 */
+		IOReturn (*orgConnectionProbe)(IOService *, unsigned int, unsigned int) {nullptr};
+
+		/**
+		 *  AppleIntelFramebuffer::connectionProbe wrapper to override max pixel clock
+		 */
+		static IOReturn wrapConnectionProbe(IOService *that, unsigned int unk1, unsigned int unk2);
+
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modMaxPixelClockOverride;
+
+	/**
 	 *  A collection of shared submodules
 	 */
 	PatchSubmodule *sharedSubmodules[3] = {
@@ -1595,7 +1639,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[17] = {
+	PatchSubmodule *submodules[18] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1612,7 +1656,8 @@ private:
 		&modPAVPDisabler,
 		&modReadDescriptorPatch,
 		&modBacklightRegistersFix,
-		&modFramebufferDebugSupport
+		&modFramebufferDebugSupport,
+		&modMaxPixelClockOverride
 	};
 	
 	/**
@@ -1723,6 +1768,11 @@ private:
 	 *  IGHardwareGuC::loadGuCBinary wrapper to feed updated (compatible GuC)
 	 */
 	static bool wrapLoadGuCBinary(void *that, bool flag);
+	
+	/**
+	 *	AppleIntelHDGraphicsFB::TrainFDI wrapper to set correct link width settings on device
+	 */
+	static void wrapTrainFDI(IOService *that, int32_t value, void *params);
 
 	/**
 	 *  Actual firmware loader

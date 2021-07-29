@@ -14,6 +14,8 @@
 		CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */; };
 		CE19710021C380DF00B02AB4 /* kern_nvhda.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */; };
 		CE1F61B92432DEE800201DF4 /* kern_igfx_debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */; };
+		CE3DADB025A425FC009991FB /* kern_unfair.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE3DADAE25A425FC009991FB /* kern_unfair.cpp */; };
+		CE3DADB125A425FC009991FB /* kern_unfair.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE3DADAF25A425FC009991FB /* kern_unfair.hpp */; };
 		CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE405ED81E4A080700AA0B3D /* plugin_start.cpp */; };
 		CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE766ED4210763B200A84567 /* kern_guc.cpp */; };
 		CE766ED7210763B200A84567 /* kern_guc.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE766ED5210763B200A84567 /* kern_guc.hpp */; };
@@ -84,11 +86,16 @@
 		1CF01C921C8CF997002DCEA3 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		1CF01C931C8DF02E002DCEA3 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_pm.cpp; sourceTree = "<group>"; };
+		5B9131F2258A8EFB0008530D /* FAQ.IntelHD.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.en.md; sourceTree = "<group>"; };
+		5B9131F3258A8F090008530D /* FAQ.IntelHD.cn.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.cn.md; sourceTree = "<group>"; };
+		5B9131F4258A8F1C0008530D /* FAQ.OldPlugins.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.OldPlugins.en.md; sourceTree = "<group>"; };
 		CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_nvhda.cpp; sourceTree = "<group>"; };
 		CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_nvhda.hpp; sourceTree = "<group>"; };
 		CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_debug.cpp; sourceTree = "<group>"; };
 		CE271B4C1F319BD000D2BC1C /* reference.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = reference.cpp; sourceTree = "<group>"; };
 		CE363A7D20FE4EEC00ED7DC0 /* IntelFramebuffer.bt */ = {isa = PBXFileReference; lastKnownFileType = text; name = IntelFramebuffer.bt; path = Manual/IntelFramebuffer.bt; sourceTree = "<group>"; };
+		CE3DADAE25A425FC009991FB /* kern_unfair.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_unfair.cpp; sourceTree = "<group>"; };
+		CE3DADAF25A425FC009991FB /* kern_unfair.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_unfair.hpp; sourceTree = "<group>"; };
 		CE405EBA1E49DD7100AA0B3D /* kern_compression.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE405EBB1E49DD7100AA0B3D /* kern_disasm.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
 		CE405EBC1E49DD7100AA0B3D /* kern_file.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_file.hpp; sourceTree = "<group>"; };
@@ -216,6 +223,8 @@
 				CEA03B5D20EE825A00BA842F /* kern_weg.hpp */,
 				CE7FC0B220F6809600138088 /* kern_shiki.cpp */,
 				CE7FC0B320F6809600138088 /* kern_shiki.hpp */,
+				CE3DADAE25A425FC009991FB /* kern_unfair.cpp */,
+				CE3DADAF25A425FC009991FB /* kern_unfair.hpp */,
 				CE8190A11F1E3ECE00DE95F4 /* kern_model.cpp */,
 				CE7FC0C920F682A200138088 /* kern_resources.cpp */,
 				CE7FC0C820F682A200138088 /* kern_resources.hpp */,
@@ -304,6 +313,9 @@
 			children = (
 				CEEF190A239CFDB1005B3BE8 /* FAQ.Chart.md */,
 				CE7FC0CD20F687F500138088 /* FAQ.GeForce.en.md */,
+				5B9131F2258A8EFB0008530D /* FAQ.IntelHD.en.md */,
+				5B9131F3258A8F090008530D /* FAQ.IntelHD.cn.md */,
+				5B9131F4258A8F1C0008530D /* FAQ.OldPlugins.en.md */,
 				CEAEA1171F26905A00918651 /* FAQ.Radeon.en.md */,
 				CEAEA1181F26905A00918651 /* FAQ.Radeon.ru.md */,
 				CE7FC0CE20F6882400138088 /* FAQ.Shiki.en.md */,
@@ -325,6 +337,7 @@
 				CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */,
 				E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */,
 				CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */,
+				CE3DADB125A425FC009991FB /* kern_unfair.hpp in Headers */,
 				CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */,
 				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
 				CEC0863624331E9B00F5B701 /* kern_agdc.hpp in Headers */,
@@ -385,7 +398,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1220;
+				LastUpgradeCheck = 1250;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -428,7 +441,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\nif [ -d \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" ]; then\n  rm -rf \"WhateverName.app\"\n  cp -a \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" \"WhateverName.app\"\n  dist+=(\"WhateverName.app\")\nfi\n\ncp -a \"$SOURCE_ROOT/Manual/SSDT-PNLF.dsl\" \"SSDT-PNLF.dsl\"\ndist+=(\"SSDT-PNLF.dsl\")\ncp -a \"$SOURCE_ROOT/Manual/SSDT-PNLFCFL.dsl\" \"SSDT-PNLFCFL.dsl\"\ndist+=(\"SSDT-PNLFCFL.dsl\")\n\narchive=\"${PRODUCT_NAME}-${MODULE_VERSION}-$(echo $CONFIGURATION | tr /a-z/ /A-Z/).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry -FS \"${archive}\" \"${dist[@]}\"\nrm -rf \"WhateverName.app\"\n";
+			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\nif [ -d \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" ]; then\n  rm -rf \"WhateverName.app\"\n  cp -a \"$SOURCE_ROOT/Prebuilt/WhateverName.app\" \"WhateverName.app\"\n  dist+=(\"WhateverName.app\")\nfi\n\narchive=\"${PRODUCT_NAME}-${MODULE_VERSION}-$(echo $CONFIGURATION | tr /a-z/ /A-Z/).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry -FS \"${archive}\" \"${dist[@]}\"\nrm -rf \"WhateverName.app\"\n";
 		};
 		CE7FC0C520F6825100138088 /* Generate Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -466,6 +479,7 @@
 				CEA03B5E20EE825A00BA842F /* kern_weg.cpp in Sources */,
 				CE8190A21F1E3ECE00DE95F4 /* kern_model.cpp in Sources */,
 				CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */,
+				CE3DADB025A425FC009991FB /* kern_unfair.cpp in Sources */,
 				D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
 				CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */,
@@ -595,6 +609,7 @@
 		1C748C321C21952C0024EED2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
@@ -614,11 +629,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.4.6;
+				MODULE_VERSION = 1.5.2;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -644,6 +659,7 @@
 		1C748C331C21952C0024EED2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
 				DEAD_CODE_STRIPPING = YES;
@@ -662,11 +678,11 @@
 					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
 				);
 				LLVM_LTO = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.4.6;
+				MODULE_VERSION = 1.5.2;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -780,6 +796,7 @@
 		CE9901CB21456F6C006E5CF5 /* Sanitize */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
@@ -799,11 +816,11 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MODULE_NAME = as.vit9696.WhateverGreen;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.4.6;
+				MODULE_VERSION = 1.5.2;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

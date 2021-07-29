@@ -137,48 +137,33 @@ void WEG::init() {
 	igfx.init();
 	ngfx.init();
 	rad.init();
-	shiki.init();
-	cdf.init();
+
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		unfair.init();
+	} else {
+		shiki.init();
+		cdf.init();
+	}
 }
 
 void WEG::deinit() {
 	igfx.deinit();
 	ngfx.deinit();
 	rad.deinit();
-	shiki.deinit();
-	cdf.deinit();
+
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		unfair.deinit();
+	} else {
+		shiki.deinit();
+		cdf.deinit();
+	}
 }
 
 void WEG::processKernel(KernelPatcher &patcher) {
 	// Correct GPU properties
 	auto devInfo = DeviceInfo::create();
 	if (devInfo) {
-		if (devInfo->requestedExternalSwitchOff) {
-			DBGLOG("weg", "disabling all external GPUs");
-			size_t extNum = devInfo->videoExternal.size();
-			for (size_t i = 0; i < extNum; i++) {
-				auto &v = devInfo->videoExternal[i];
-				WIOKit::awaitPublishing(v.video);
-
-				auto gpu = OSDynamicCast(IOService, v.video);
-				auto hda = OSDynamicCast(IOService, v.audio);
-				auto pci = OSDynamicCast(IOService, v.video->getParentEntry(gIOServicePlane));
-				if (gpu && pci) {
-					if (gpu->requestTerminate(pci, 0) && gpu->terminate())
-						gpu->stop(pci);
-					else
-						SYSLOG("weg", "failed to terminate external gpu %ld", i);
-					if (hda && hda->requestTerminate(pci, 0) && hda->terminate())
-						hda->stop(pci);
-					else if (hda)
-						SYSLOG("weg", "failed to terminate external hdau %ld", i);
-				} else {
-					SYSLOG("weg", "incompatible external gpu %ld discovered", i);
-				}
-			}
-
-			devInfo->videoExternal.deinit();
-		}
+		devInfo->processSwitchOff();
 
 		if (graphicsDisplayPolicyMod == AGDP_DETECT) { /* Default detect only */
 			auto getAgpdMod = [this](IORegistryEntry *device) {
@@ -307,8 +292,13 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		igfx.processKernel(patcher, devInfo);
 		ngfx.processKernel(patcher, devInfo);
 		rad.processKernel(patcher, devInfo);
-		shiki.processKernel(patcher, devInfo);
-		cdf.processKernel(patcher, devInfo);
+
+		if (getKernelVersion() >= KernelVersion::BigSur) {
+			unfair.processKernel(patcher, devInfo);
+		} else {
+			shiki.processKernel(patcher, devInfo);
+			cdf.processKernel(patcher, devInfo);
+		}
 
 		DeviceInfo::deleter(devInfo);
 	}
@@ -380,7 +370,7 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 	if (rad.processKext(patcher, index, address, size))
 		return;
 
-	if (cdf.processKext(patcher, index, address, size))
+	if (getKernelVersion() < KernelVersion::BigSur && cdf.processKext(patcher, index, address, size))
 		return;
 }
 
@@ -391,6 +381,8 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 	if (!name || strcmp(name, "IGPU") != 0)
 		WIOKit::renameDevice(device, "IGPU");
 
+	WIOKit::awaitPublishing(device);
+	
 	// Obtain the real device info, should we cast to IOPCIDevice here?
 	auto obj = OSDynamicCast(IOService, device);
 	if (obj) {
@@ -425,11 +417,10 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 					   bus, dev, fun, acpiDevice, fakeDevice);
 			}
 			if (fakeDevice != realDevice) {
-				if (KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16) &&
-					KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32))
-					DBGLOG("weg", "hooked configRead read methods!");
-				else
-					SYSLOG("weg", "failed to hook configRead read methods!");
+				hasIgpuSpoof = true;
+				KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
+				KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
+				DBGLOG("weg", "hooked configRead read methods!");
 			}
 		}
 	} else {
@@ -503,6 +494,23 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 				device->setProperty("model", const_cast<char *>(model), static_cast<unsigned>(strlen(model)+1));
 			}
 		}
+	}
+
+	if (vendor == WIOKit::VendorID::ATIAMD) {
+		WIOKit::awaitPublishing(device);
+		uint32_t realDevice = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigDeviceID);
+		uint32_t acpiDevice = 0;
+		if (WIOKit::getOSDataValue(device, "device-id", acpiDevice)) {
+			DBGLOG("weg", "found AMD GPU with device-id 0x%04X actual 0x%04X", acpiDevice, realDevice);
+			if (acpiDevice != realDevice) {
+				hasGfxSpoof = true;
+				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
+				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
+			}
+		} else {
+			DBGLOG("weg", "missing AMD GPU device-id");
+		}
+		DBGLOG("weg", "hooked configRead read methods!");
 	}
 
 	// Ensure built-in.
@@ -714,11 +722,14 @@ uint16_t WEG::wrapConfigRead16(IORegistryEntry *service, uint32_t space, uint8_t
 	auto result = callbackWEG->orgConfigRead16(service, space, offset);
 	if (offset == WIOKit::kIOPCIConfigDeviceID && service != nullptr) {
 		auto name = service->getName();
-		if (name && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U') {
-			DBGLOG("weg", "configRead16 IGPU 0x%08X at off 0x%02X, result = 0x%04x", space, offset, result);
+		if (!name) return result;
+		bool doSpoof = (callbackWEG->hasIgpuSpoof && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U')
+			|| (callbackWEG->hasGfxSpoof && name[0] == 'G' && name[1] == 'F' && name[2] == 'X');
+		if (doSpoof) {
+			DBGLOG("weg", "configRead16 %s 0x%08X at off 0x%02X, result = 0x%04x", name, space, offset, result);
 			uint32_t device;
 			if (WIOKit::getOSDataValue(service, "device-id", device) && device != result) {
-				DBGLOG("weg", "configRead16 IGPU reported 0x%04x instead of 0x%04x", device, result);
+				DBGLOG("weg", "configRead16 %s reported 0x%04x instead of 0x%04x", name, device, result);
 				return device;
 			}
 		}
@@ -732,12 +743,15 @@ uint32_t WEG::wrapConfigRead32(IORegistryEntry *service, uint32_t space, uint8_t
 	// According to lvs1974 unaligned reads may actually happen!
 	if ((offset == WIOKit::kIOPCIConfigDeviceID || offset == WIOKit::kIOPCIConfigVendorID) && service != nullptr) {
 		auto name = service->getName();
-		if (name && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U') {
-			DBGLOG("weg", "configRead32 IGPU 0x%08X at off 0x%02X, result = 0x%08X", space, offset, result);
+		if (!name) return result;
+		bool doSpoof = (callbackWEG->hasIgpuSpoof && name[0] == 'I' && name[1] == 'G' && name[2] == 'P' && name[3] == 'U')
+			|| (callbackWEG->hasGfxSpoof && name[0] == 'G' && name[1] == 'F' && name[2] == 'X');
+		if (doSpoof) {
+			DBGLOG("weg", "configRead32 %s 0x%08X at off 0x%02X, result = 0x%08X", name, space, offset, result);
 			uint32_t device;
 			if (WIOKit::getOSDataValue(service, "device-id", device) && device != (result & 0xFFFF)) {
 				device = (result & 0xFFFF) | (device << 16);
-				DBGLOG("weg", "configRead32 reported 0x%08x instead of 0x%08x", device, result);
+				DBGLOG("weg", "configRead32 %s reported 0x%08x instead of 0x%08x", name, device, result);
 				return device;
 			}
 		}
@@ -823,4 +837,31 @@ bool WEG::wrapApplePanelSetDisplay(IOService *that, IODisplay *display) {
 	DBGLOG("weg", "panel display set returned %d", result);
 
 	return result;
+}
+
+bool WEG::getVideoArgument(DeviceInfo *info, const char *name, void *bootarg, int size) {
+	if (PE_parse_boot_argn(name, bootarg, size))
+		return true;
+
+	for (size_t i = 0; i < info->videoExternal.size(); i++) {
+		auto prop = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty(name));
+		auto propSize = prop ? prop->getLength() : 0;
+		if (propSize > 0 && propSize <= size) {
+			lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
+			memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
+			return true;
+		}
+	}
+
+	if (info->videoBuiltin) {
+		auto prop = OSDynamicCast(OSData, info->videoBuiltin->getProperty(name));
+		auto propSize = prop ? prop->getLength() : 0;
+		if (propSize > 0 && propSize <= size) {
+			lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
+			memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
+			return true;
+		}
+	}
+
+	return false;
 }

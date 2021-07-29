@@ -1,3 +1,5 @@
+This translation needs updating, be checked with the English version!  
+
 # 英特尔® 核芯显卡 常见问答
 
 **英特尔® 核芯显卡（下文简称“核显”）** 是内置于 英特尔® 中央处理器中的显卡（译者注：即常说的“英特尔核显”）。并非所有的 英特尔® 中央处理器都配备核显。如需查询您的型号是否配备，查阅 [此处](https://en.wikipedia.org/wiki/List_of_Intel_graphics_processing_units)（译者注：该页面暂无中文版本。上次检查日期: 2019/03/25）或在 英特尔® 官方网站上获取更多信息。如：从上表中可以得知 [i7-4770K](https://ark.intel.com/content/www/cn/zh/ark/products/75123/intel-core-i7-4770k-processor-8m-cache-up-to-3-90-ghz.html) 使用了 英特尔® HD 4600 核显；而 [i7-4930K](https://ark.intel.com/content/www/cn/zh/ark/products/77780/intel-core-i7-4930k-processor-12m-cache-up-to-3-90-ghz.html) 则不配备核显。

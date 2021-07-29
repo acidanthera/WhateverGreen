@@ -1,8 +1,33 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.2
+- Added `device-id` spoofing support for AMD graphics
+
+#### v1.5.1
+- Added constants required for macOS 12 update
+- Added Intel Arrandale graphics support on 10.6 and 10.7 64-bit
+
+#### v1.5.0
+- Fixed AMD WX-4170 name for 67E0 device id
+- Added NVIDIA driver error logging with `-ngfxdbg`
+
+#### v1.4.9
+- Added per-GPU disabling API: inject `disable-gpu` to disable
+- Added per-GPU disabling kernel version specification: inject `disable-gpu-min` / `disable-gpu-max` to select kernel version to disable (inclusive range)
+- Added IGPU disabling API: inject `disable-gpu` to disable or use `-wegnoigpu` boot argument
+- Optimised Rocket Lake startup as IGPU is unsupported
+
+#### v1.4.8
+- Fixed debug messages from cursor manipulation with NVIDIA GPUs on macOS 11
+
+#### v1.4.7
+- Implemented `unfairgva` device property (use `<01 00 00 00>` value for MP5,1 to enable streaming DRM)
+
 #### v1.4.6
 - Backlight registers fix replaces the previous Coffee Lake backlight fix and is now available on Intel Ice Lake platforms.
 - Boot argument `igfxcflbklt=1` as well as device property `enable-cfl-backlight-fix` are deprecated and replaced by `-igfxblr` and `enable-backlight-registers-fix`.
+- Add max pixel clock override through `-igfxmpc` boot argument or `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` device properties
+- Moved PNLF samples to OpenCore
 
 #### v1.4.5
 - Enabled loading in safe mode (mainly for AGDP fixes)

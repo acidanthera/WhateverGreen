@@ -15,6 +15,7 @@
 #include <Headers/kern_iokit.hpp>
 #include <IOKit/IODeviceTreeSupport.h>
 
+#include "kern_weg.hpp"
 #include "kern_resources.hpp"
 
 void SHIKI::init() {
@@ -37,33 +38,6 @@ void SHIKI::init() {
 
 void SHIKI::deinit() {
 
-}
-
-bool SHIKI::getBootArgument(DeviceInfo *info, const char *name, void *bootarg, int size) {
-	if (PE_parse_boot_argn(name, bootarg, size))
-		return true;
-
-	for (size_t i = 0; i < info->videoExternal.size(); i++) {
-		auto prop = OSDynamicCast(OSData, info->videoExternal[i].video->getProperty(name));
-		auto propSize = prop ? prop->getLength() : 0;
-		if (propSize > 0 && propSize <= size) {
-			lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
-			memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
-			return true;
-		}
-	}
-
-	if (info->videoBuiltin) {
-		auto prop = OSDynamicCast(OSData, info->videoBuiltin->getProperty(name));
-		auto propSize = prop ? prop->getLength() : 0;
-		if (propSize > 0 && propSize <= size) {
-			lilu_os_memcpy(bootarg, prop->getBytesNoCopy(), propSize);
-			memset(static_cast<uint8_t *>(bootarg) + propSize, 0, size - propSize);
-			return true;
-		}
-	}
-
-	return false;
 }
 
 UserPatcher::BinaryModPatch *SHIKI::getPatchSection(uint32_t section) {
@@ -97,7 +71,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	lilu_os_strlcpy(reinterpret_cast<char *>(selfBoardId), bdi.boardIdentifier, sizeof(selfBoardId));
 
 	int bootarg {0};
-	if (getBootArgument(info, "shikigva", &bootarg, sizeof(bootarg))) {
+	if (WEG::getVideoArgument(info, "shikigva", &bootarg, sizeof(bootarg))) {
 		forceOnlineRenderer     = bootarg & ForceOnlineRenderer;
 		allowNonBGRA            = bootarg & AllowNonBGRA;
 		forceCompatibleRenderer = bootarg & ForceCompatibleRenderer;
@@ -187,7 +161,7 @@ void SHIKI::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 
 	// Custom board-id may be overridden by a boot-arg
 	if (replaceBoardID) {
-		if (getBootArgument(info, "shiki-id", customBoardID, sizeof(customBoardID)))
+		if (WEG::getVideoArgument(info, "shiki-id", customBoardID, sizeof(customBoardID)))
 			customBoardID[sizeof(customBoardID)-1] = '\0';
 		else
 			snprintf(customBoardID, sizeof(customBoardID), "Mac-27ADBB7B4CEE8E61"); // iMac14,2
