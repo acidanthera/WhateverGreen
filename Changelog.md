@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.3
+- Added `no-gfx-spoof` to avoid forcing `device-id` values from PCI I/O
+
 #### v1.5.2
 - Added `device-id` spoofing support for AMD graphics
 

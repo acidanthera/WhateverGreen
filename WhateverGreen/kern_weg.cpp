@@ -408,7 +408,7 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 		}
 
 		// Update vtable I/O functions to ensure that a correct fake device ID is read.
-		if (fakeDevice) {
+		if (fakeDevice && obj->getProperty("no-gfx-spoof") == nullptr) {
 			// Incorrect device-id means Intel drivers will most likely fail to do matching, error to log.
 			if (fakeDevice != acpiDevice) {
 				uint8_t bus = 0, dev = 0, fun = 0;
@@ -502,7 +502,7 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 		uint32_t acpiDevice = 0;
 		if (WIOKit::getOSDataValue(device, "device-id", acpiDevice)) {
 			DBGLOG("weg", "found AMD GPU with device-id 0x%04X actual 0x%04X", acpiDevice, realDevice);
-			if (acpiDevice != realDevice) {
+			if (acpiDevice != realDevice && device->getProperty("no-gfx-spoof") == nullptr) {
 				hasGfxSpoof = true;
 				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
 				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
