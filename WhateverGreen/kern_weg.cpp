@@ -496,13 +496,13 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 		}
 	}
 
-	if (vendor == WIOKit::VendorID::ATIAMD) {
+	if (vendor == WIOKit::VendorID::ATIAMD && device->getProperty("no-gfx-spoof") == nullptr) {
 		WIOKit::awaitPublishing(device);
 		uint32_t realDevice = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigDeviceID);
 		uint32_t acpiDevice = 0;
 		if (WIOKit::getOSDataValue(device, "device-id", acpiDevice)) {
 			DBGLOG("weg", "found AMD GPU with device-id 0x%04X actual 0x%04X", acpiDevice, realDevice);
-			if (acpiDevice != realDevice && device->getProperty("no-gfx-spoof") == nullptr) {
+			if (acpiDevice != realDevice) {
 				hasGfxSpoof = true;
 				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
 				KernelPatcher::routeVirtual(device, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
