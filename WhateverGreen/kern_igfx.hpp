@@ -10,6 +10,7 @@
 
 #include "kern_fb.hpp"
 #include "kern_igfx_lspcon.hpp"
+#include "kern_igfx_backlight.hpp"
 
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
@@ -1520,18 +1521,19 @@ private:
 		static constexpr uint32_t FallbackTargetBacklightFrequency = 120000;
 		
 		/**
-		 *  [Common] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
-		 *  Can be specified via max-backlight-freq property.
+		 *  [COMM] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
+		 *
+		 *  @note Its value can be specified via max-backlight-freq property.
 		 */
 		uint32_t targetBacklightFrequency {};
 		
 		/**
-		 *  [KBL] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
+		 *  [KBL*] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
 		 */
 		uint32_t targetPwmControl {};
 		
 		/**
-		 *  [CFL, ICL] Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
+		 *  [CFL+] Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 		 */
 		uint32_t driverBacklightFrequency {};
 		
@@ -1591,6 +1593,140 @@ private:
 	} modBacklightRegistersFix;
 	
 	/**
+	 *  Brightness request event source needs access to the original WriteRegister32 function
+	 */
+	friend class BrightnessRequestEventSource;
+
+	/**
+	 *  A submodule to make brightness transitions smoother
+	 *
+	 *  @note This submodule must be placed AFTER the backlight registers fix (BLR) module.
+	 *        If BLR is enabled, it rescales the value to be written to `BXT_BLC_PWM_DUTY1`
+	 *        and then passes the rescaled value to `smoothCFLWriteRegisterPWMDuty1`.
+	 */
+	class BacklightSmoother: public PatchSubmodule {
+		/**
+		 *  Backlight registers fix submodule needs access to the smoother version of `WriteRegister32()`
+		 */
+		friend class BacklightRegistersFix;
+
+		/**
+		 *  Brightness request event source needs access to the queue and config parameters
+		 */
+		friend class BrightnessRequestEventSource;
+
+		/**
+		 *  Backlight registers
+		 */
+		static constexpr uint32_t BLC_PWM_CPU_CTL = 0x48254;
+		static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
+		static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
+
+		/**
+		 *  Default number of steps to reach the target duty value
+		 */
+		static constexpr uint32_t kDefaultSteps = 35;
+
+		/**
+		 *  Default interval in milliseconds between each step
+		 */
+		static constexpr uint32_t kDefaultInterval = 7;
+
+		/**
+		 *  Default threshold value of skipping the smoother
+		 */
+		static constexpr uint32_t kDefaultThreshold = 300;
+
+		/**
+		 *  Default length of the brightness request queue
+		 */
+		static constexpr uint32_t kDefaultQueueSize = 64;
+		
+		/**
+		 *  The total number of steps to reach the target duty value
+		 */
+		uint32_t steps {kDefaultSteps};
+
+		/**
+		 *  Interval in milliseconds between each step
+		 */
+		uint32_t interval {kDefaultInterval};
+
+		/**
+		 *  Skip the smoother if the distance to the target duty value falls below the threshold
+		 */
+		uint32_t threshold {kDefaultThreshold};
+		
+		/**
+		 *  The size of the brightness request queue
+		 */
+		uint32_t queueSize {kDefaultQueueSize};
+		
+		/**
+		 *  Owner of the event source
+		 */
+		OSObject *owner {nullptr};
+
+		/**
+		 *  A list of pending brightness adjustment requests
+		 */
+		BrightnessRequestQueue *queue {nullptr};
+
+		/**
+		 *  A workloop that provides a kernel thread to adjust the brightness
+		 */
+		IOWorkLoop *workloop {nullptr};
+
+		/**
+		 *  A custom event source that adjusts the brightness smoothly
+		 */
+		BrightnessRequestEventSource *eventSource {nullptr};
+
+		/**
+		 *  [IVB*] Wrapper to write to BLC_PWM_CPU_CTL smoothly
+		 *
+		 *  @note When this function is called, `address` is guaranteed to be `BLC_PWM_CPU_CTL`.
+		 */
+		static void smoothIVBWriteRegisterPWMCCTRL(void *controller, uint32_t address, uint32_t value);
+
+		/**
+		 *  [HSW+] Wrapper to write to BXT_BLC_PWM_FREQ1 smoothly
+		 *
+		 *  @note When this function is called, `address` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
+		 */
+		static void smoothHSWWriteRegisterPWMFreq1(void *controller, uint32_t address, uint32_t value);
+
+		/**
+		 *  [CFL+] Wrapper to write to BXT_BLC_PWM_DUTY1 smoothly
+		 *
+		 *  @note When this function is called, `address` is guaranteed to be `BXT_BLC_PWM_DUTY1`.
+		 */
+		static void smoothCFLWriteRegisterPWMDuty1(void *controller, uint32_t address, uint32_t value);
+
+		/**
+		 *  [IVB*] A replacer descriptor that injects code when the register of interest is BLC_PWM_CPU_CTL
+		 */
+		MMIOWriteInjectionDescriptor dIVBPWMCCTRL {BLC_PWM_CPU_CTL,   smoothIVBWriteRegisterPWMCCTRL};
+
+		/**
+		 *  [HSW+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 */
+		MMIOWriteInjectionDescriptor dHSWPWMFreq1 {BXT_BLC_PWM_FREQ1, smoothHSWWriteRegisterPWMFreq1};
+
+		/**
+		 *  [CFL+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_DUTY1
+		 */
+		MMIOWriteInjectionDescriptor dCFLPWMDuty1 {BXT_BLC_PWM_DUTY1, smoothCFLWriteRegisterPWMDuty1};
+
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void deinit() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBacklightSmoother;
+	
+	/**
 	 *  A submodule to provide support for debugging the framebuffer driver
 	 */
 	class FramebufferDebugSupport: public PatchSubmodule {
@@ -1639,7 +1775,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[18] = {
+	PatchSubmodule *submodules[19] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1656,6 +1792,7 @@ private:
 		&modPAVPDisabler,
 		&modReadDescriptorPatch,
 		&modBacklightRegistersFix,
+		&modBacklightSmoother,
 		&modFramebufferDebugSupport,
 		&modMaxPixelClockOverride
 	};

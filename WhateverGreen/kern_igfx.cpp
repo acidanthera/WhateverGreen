@@ -1091,8 +1091,15 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
 	}
 	
-	// Finish by writing the new value
-	callbackIGFX->writeRegister32(controller, reg, value);
+	if (callbackIGFX->modBacklightSmoother.enabled) {
+		// Need to pass the scaled value to the smoother
+		DBGLOG("igfx", "BLS: [CFL+] Will pass the rescaled value 0x%08x to the smoother version.", value);
+		callbackIGFX->modBacklightSmoother.smoothCFLWriteRegisterPWMDuty1(controller, reg, value);
+	} else {
+		// Otherwise invoke the original function
+		DBGLOG("igfx", "BLR: [CFL+] Will pass the rescaled value 0x%08x to the original version.", value);
+		callbackIGFX->writeRegister32(controller, reg, value);
+	}
 }
 
 // MARK: - TODO
