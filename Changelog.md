@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.3
+- Added the backlight smoother submodule that makes brightness transitions smoother on Intel IVB+ platforms. (by @0xFireWolf)
+- MMIO Register Access submodules are now available on Intel IVB+ platforms. (by @0xFireWolf)
+
 #### v1.5.2
 - Added `device-id` spoofing support for AMD graphics
 
