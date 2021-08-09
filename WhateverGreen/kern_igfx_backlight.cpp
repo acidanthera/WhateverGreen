@@ -72,14 +72,17 @@ void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher,
 	// This patch will overwrite WriteRegister32 function to rescale all the register writes of backlight controller.
 	// Slightly different methods are used for CFL hardware running on KBL and CFL drivers.
 	// Guard: Register injections based on the current framebuffer in use
-	if (callbackIGFX->getRealFramebuffer(index) == &kextIntelKBLFb) {
+	auto framebuffer = Value::of(callbackIGFX->getRealFramebuffer(index));
+	if (framebuffer.isOneOf(&kextIntelKBLFb)) {
 		DBGLOG("igfx", "BLR: [KBL*] Will setup the fix for KBL platform.");
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMFreq1);
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMCtrl1);
-	} else {
+	} else if (framebuffer.isOneOf(&kextIntelCFLFb, &kextIntelICLLPFb)) {
 		DBGLOG("igfx", "BLR: [CFL+] Will setup the fix for CFL/ICL platform.");
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMFreq1);
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMDuty1);
+	} else {
+		SYSLOG("igfx", "BLS: [ERR!] Found an unsupported platform. Will not perform any injections.");
 	}
 }
 
