@@ -1621,7 +1621,7 @@ private:
 		/**
 		 *  Default threshold value of skipping the smoother
 		 */
-		static constexpr uint32_t kDefaultThreshold = 300;
+		static constexpr uint32_t kDefaultThreshold = 0;
 
 		/**
 		 *  Default length of the brightness request queue

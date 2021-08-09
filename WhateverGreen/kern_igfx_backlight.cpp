@@ -14,7 +14,7 @@
 /// This file contains the following backlight-related fixes and enhancements
 ///
 /// 1. Backlight registers fix that solves the 3-minute black screen on CFL+.
-/// 2. Backlight smoother that make brightness transitions smoother on IVB+.
+/// 2. Backlight smoother that makes brightness transitions smoother on IVB+.
 ///
 
 //
@@ -195,7 +195,7 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 	if (callbackIGFX->modBacklightSmoother.enabled) {
 		// Need to pass the scaled value to the smoother
 		DBGLOG("igfx", "BLS: [CFL+] Will pass the rescaled value 0x%08x to the smoother version.", value);
-		callbackIGFX->modBacklightSmoother.smoothCFLWriteRegisterPWMDuty1(controller, reg, value);
+		IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(controller, reg, value);
 	} else {
 		// Otherwise invoke the original function
 		DBGLOG("igfx", "BLR: [CFL+] Will pass the rescaled value 0x%08x to the original version.", value);
