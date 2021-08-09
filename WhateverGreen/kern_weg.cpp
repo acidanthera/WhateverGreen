@@ -408,7 +408,7 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 		}
 
 		// Update vtable I/O functions to ensure that a correct fake device ID is read.
-		if (fakeDevice) {
+		if (fakeDevice && obj->getProperty("no-gfx-spoof") == nullptr) {
 			// Incorrect device-id means Intel drivers will most likely fail to do matching, error to log.
 			if (fakeDevice != acpiDevice) {
 				uint8_t bus = 0, dev = 0, fun = 0;
@@ -496,7 +496,7 @@ void WEG::processExternalProperties(IORegistryEntry *device, DeviceInfo *info, u
 		}
 	}
 
-	if (vendor == WIOKit::VendorID::ATIAMD) {
+	if (vendor == WIOKit::VendorID::ATIAMD && device->getProperty("no-gfx-spoof") == nullptr) {
 		WIOKit::awaitPublishing(device);
 		uint32_t realDevice = WIOKit::readPCIConfigValue(device, WIOKit::kIOPCIConfigDeviceID);
 		uint32_t acpiDevice = 0;
