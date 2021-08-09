@@ -13,6 +13,14 @@
 #include "kern_igfx_util.hpp"
 
 /**
+ *  Backlight registers
+ */
+static constexpr uint32_t BLC_PWM_CPU_CTL = 0x48254;
+static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
+static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
+static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
+
+/**
  *  Represents a single brightness adjustment request
  */
 struct BrightnessRequest {
