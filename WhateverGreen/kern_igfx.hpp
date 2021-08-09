@@ -1507,14 +1507,7 @@ private:
 	 *
 	 *  @note Supported Platforms: KBL, CFL, ICL.
 	 */
-	class BacklightRegistersFix: public PatchSubmodule {
-		/**
-		 *  Backlight registers
-		 */
-		static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
-		static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
-		static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
-		
+	class BacklightRegistersFix: public PatchSubmodule {		
 		/**
 		 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
 		 */
@@ -1614,13 +1607,6 @@ private:
 		 *  Brightness request event source needs access to the queue and config parameters
 		 */
 		friend class BrightnessRequestEventSource;
-
-		/**
-		 *  Backlight registers
-		 */
-		static constexpr uint32_t BLC_PWM_CPU_CTL = 0x48254;
-		static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
-		static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 
 		/**
 		 *  Default number of steps to reach the target duty value
