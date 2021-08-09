@@ -491,12 +491,32 @@ void IGFX::MMIORegistersWriteSupport::processKernel(KernelPatcher &patcher, Devi
 }
 
 void IGFX::MMIORegistersWriteSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest request = {
-		"__ZN31AppleIntelFramebufferController15WriteRegister32Emj",
-		wrapWriteRegister32,
-		orgWriteRegister32
-	};
+	// Symbol Table:
+	// IVB*: "__ZN25AppleIntelCapriController15WriteRegister32Emj"
+	// HSW*: "__ZN24AppleIntelAzulController15WriteRegister32Emj"
+	// BDW*: "__ZN22AppleIntelFBController15WriteRegister32Emj"
+	// SKL+: "__ZN31AppleIntelFramebufferController15WriteRegister32Emj"
+	const char* symbol = nullptr;
 	
+	auto framebuffer = Value::of(callbackIGFX->getRealFramebuffer(index));
+	if (framebuffer.isOneOf(&kextIntelCapriFb)) {
+		symbol = "__ZN25AppleIntelCapriController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for IVB platform.");
+	} else if (framebuffer.isOneOf(&kextIntelAzulFb)) {
+		symbol = "__ZN24AppleIntelAzulController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for HSW platform.");
+	} else if (framebuffer.isOneOf(&kextIntelBDWFb)) {
+		symbol = "__ZN22AppleIntelFBController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for BDW platform.");
+	} else if (framebuffer.isOneOf(&kextIntelSKLFb, &kextIntelKBLFb, &kextIntelCFLFb, &kextIntelICLLPFb)) {
+		symbol = "__ZN31AppleIntelFramebufferController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for SKL/KBL/CFL/ICL platform.");
+	} else {
+		SYSLOG("igfx", "RWS: Found an unsupported platform. Will disable all submodules that depend on RWS.");
+		return disableDependentSubmodules();
+	}
+	
+	KernelPatcher::RouteRequest request(symbol, wrapWriteRegister32, orgWriteRegister32);
 	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
 		SYSLOG("igfx", "RWS: Failed to resolve the symbol of WriteRegister32. Will disable all submodules that rely on this one.");
 		disableDependentSubmodules();
@@ -513,26 +533,26 @@ void IGFX::MMIORegistersWriteSupport::wrapWriteRegister32(void *controller, uint
 	// Guard: Perform prologue injections
 	auto prologueInjector = callbackIGFX->modMMIORegistersWriteSupport.prologueList.getInjector(address);
 	if (prologueInjector) {
-		DBGLOG("igfx", "RRS: Found a prologue injector triggered by the register address 0x%x.", address);
+		DBGLOG("igfx", "RWS: Found a prologue injector triggered by the register address 0x%x.", address);
 		prologueInjector(controller, address, value);
 	}
 	
 	// Guard: Perform replacer injections
 	auto replacerInjector = callbackIGFX->modMMIORegistersWriteSupport.replacerList.getInjector(address);
 	if (replacerInjector) {
-		DBGLOG("igfx", "RRS: Found a replacer injector triggered by the register value 0x%x.", address);
+		DBGLOG("igfx", "RWS: Found a replacer injector triggered by the register value 0x%x.", address);
 		return replacerInjector(controller, address, value);
 	}
 	
 	// Invoke the original function
 	callbackIGFX->modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
 	if (callbackIGFX->modMMIORegistersWriteSupport.verbose)
-		DBGLOG("igfx", "RRS: Write MMIO Register = 0x%x; Value = 0x%x.", address, value);
+		DBGLOG("igfx", "RWS: Write MMIO Register = 0x%x; Value = 0x%x.", address, value);
 	
 	// Guard: Perform epilogue injections
 	auto epilogueInjector = callbackIGFX->modMMIORegistersWriteSupport.epilogueList.getInjector(address);
 	if (epilogueInjector) {
-		DBGLOG("igfx", "RRS: Found a epilogue injector triggered by the register value 0x%x.", address);
+		DBGLOG("igfx", "RWS: Found a epilogue injector triggered by the register value 0x%x.", address);
 		return epilogueInjector(controller, address, value);
 	}
 }
