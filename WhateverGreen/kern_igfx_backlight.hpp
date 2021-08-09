@@ -10,7 +10,7 @@
 #define kern_igfx_backlight_hpp
 
 #include <IOKit/IOEventSource.h>
-#include "kern_igfx_util.hpp"
+#include "kern_util.hpp"
 
 /**
  *  Backlight registers
