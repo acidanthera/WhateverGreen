@@ -33,6 +33,7 @@ WhateverGreen
 - Adds workaround for rare force wake timeout panics on Intel KBL and CFL.
 - Supports all valid Core Display Clock (CDCLK) freqencies on Intel ICL platforms.
 - Fixes the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
+- Makes brightness transitions smoother on Intel IVB+ platforms.
 
 #### Documentation
 
