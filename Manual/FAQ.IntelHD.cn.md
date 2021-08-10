@@ -1928,6 +1928,10 @@ igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
 此外，用户可通过 `backlight-smoother-threshold` 属性来指定一个最小的距离 `DM`，以让驱动检测到 `D` 小于 `DM` 时跳过丝滑器直接向寄存器写入目标值。
 默认情况下，`DM` 为 0.
 
+如果不希望笔记本内屏在亮度最低时黑屏，用户可通过 `backlight-smoother-lowerbound` 属性来自定义最低亮度档位对应的寄存器值。
+同理，`backlight-smoother-upperbound` 属性控制最高亮度档位对应的寄存器值。请参考下面的例子来找到适合你笔记本的值。
+若用户未注入这两个属性的话，BLS 使用默认的区间 [0, 2^32-1]。
+
 <details>
 <summary>样例: 为一台 Haswell 笔记本定制亮度丝滑器</summary>
 
@@ -1971,6 +1975,10 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000815; Target =
 igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000008af; Target = 0x000009f7; Distance = 0328; Steps = 25; Stride = 14.
 igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000009f7; Target = 0x00000ad9; Distance = 0226; Steps = 25; Stride = 10.
 ```
+
+从上面的内核日志可得知，内屏亮度最低时，对应的亮度寄存器的值为 `0x00`。
+当用户通过快捷键调高亮度时，寄存器值变为 `0x36`，因此你可以指定寄存器最低值为 `0x18` 或 [0x00, 0x36] 区间内的任意一个值来阻止显示器在最低档位时直接黑屏。
+你可能需要安装 DEBUG 版本的 WhateverGreen 并提取内核日志来找到一个适合你笔记本的值。
 
 </details>
 
