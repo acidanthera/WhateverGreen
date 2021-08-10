@@ -2575,7 +2575,7 @@ If these two properties are not present, BLS uses the default range [0, 2^32-1].
 <details>
 <summary>Example: Configure the smoother for a Haswell-based laptop with Intel HD Graphics 4600</summary>
 
-The following kernel logs are dumped from a Haswell laptop.  
+The following kernel logs are dumped from a Haswell laptop when a user changes the brightness from the lowest level to the highest one.  
 Since the distance to the next level is relatively short, we use `N = 25` and `T = 8` instead,  
 making the graphics driver transition to the next brightness level in approximately 200 milliseconds.
 
@@ -2626,7 +2626,7 @@ You may want to analyze the kernel log produced by the DEBUG version to find a l
 <details>
 <summary>Example: Configure the smoother for a Coffee Lake-based laptop with Intel UHD Graphics 630</summary>
 
-The following kernel logs are dumped from a Coffee Lake laptop.  
+The following kernel logs are dumped from a Coffee Lake laptop when a user changes the brightness from the lowest level to the highest one.  
 Since the distance to the next level is long, we use `N = 35` and `T = 7`,  
 making the graphics driver transition to the next brightness level in approximately 250 milliseconds.
 
