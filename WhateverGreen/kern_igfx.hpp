@@ -1649,6 +1649,11 @@ private:
 		uint32_t queueSize {kDefaultQueueSize};
 		
 		/**
+		 *  The range of the brightness level (represented as register values)
+		 */
+		ppair<uint32_t, uint32_t> brightnessRange {0, UINT32_MAX};
+		
+		/**
 		 *  Owner of the event source
 		 */
 		OSObject *owner {nullptr};
