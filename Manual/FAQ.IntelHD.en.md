@@ -2567,6 +2567,11 @@ It is recommended to keep `T` less than 10 milliseconds and the total amount of 
 Besides, you may use the property  `backlight-smoother-threshold` to ask BLS to skip the smoother process if the distance `D` falls below the threshold. 
 In other words, BLS will write `DST` to the register directly. The default threshold value is 0.
 
+If you want to prevent the built-in display from going black at the lowest brightness level, 
+you may use the property `backlight-smoother-lowerbound` to specify the minimum register value that corresponds to the new, lowest brightness level.
+Similarly, `backlight-smoother-upperbound` can be used to specify the maximum value instead. See the example below.
+If these two properties are not present, BLS uses the default range [0, 2^32-1].
+
 <details>
 <summary>Example: Configure the smoother for a Haswell-based laptop with Intel HD Graphics 4600</summary>
 
@@ -2610,6 +2615,11 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000815; Target =
 igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000008af; Target = 0x000009f7; Distance = 0328; Steps = 25; Stride = 14.
 igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000009f7; Target = 0x00000ad9; Distance = 0226; Steps = 25; Stride = 10.
 ```
+
+As you can observe from the above log, the register value is `0x00` when the display is at the lowest brightness level.
+When the user presses a key to increase the brightness, the register value becomes `0x36`, 
+so in this case you may use a lowerbound, for example `0x18`, to prevent the display turning black.
+You may want to analyze the kernel log produced by the DEBUG version to find a lowerbound that best works for your laptop.
 
 </details>
 
