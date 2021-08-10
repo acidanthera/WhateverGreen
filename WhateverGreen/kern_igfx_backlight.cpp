@@ -238,6 +238,8 @@ bool BrightnessRequestEventSource::checkForWork() {
 	uint32_t current = IGFX::callbackIGFX->readRegister32(request.controller, request.address);
 	uint32_t cbrightness = request.getCurrentBrightness(current);
 	uint32_t tbrightness = request.getTargetBrightness();
+	tbrightness = max(tbrightness, smoother->brightnessRange.first);  // Ensure that target >= lowerbound
+	tbrightness = min(tbrightness, smoother->brightnessRange.second); // Ensure that target <= upperbound
 	uint32_t distance = max(cbrightness, tbrightness) - min(cbrightness, tbrightness);
 	uint32_t stride = distance / smoother->steps + ((distance % smoother->steps) ? 1 : 0);
 	DBGLOG("igfx", "BLS: [COMM] Processing the request: Current = 0x%08x; Target = 0x%08x; Distance = %04u; Steps = %u; Stride = %u.",
@@ -263,7 +265,7 @@ bool BrightnessRequestEventSource::checkForWork() {
 	}
 	
 	// Finish by writting the target value
-	IGFX::callbackIGFX->writeRegister32(request.controller, request.address, request.target);
+	IGFX::callbackIGFX->writeRegister32(request.controller, request.address, request.getTargetRegisterValue(tbrightness));
 	[[maybe_unused]] uint64_t eabstime = mach_absolute_time();
 	DBGLOG("igfx", "BLS: [COMM] The request completed in %llu nanoseconds.", MachAbsoluteTime2Nanoseconds(eabstime - sabstime));
 	
@@ -331,6 +333,9 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 		DBGLOG("igfx", "BLS: User requested threshold = %u.", threshold);
 	if (WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-queue-size", queueSize))
 		DBGLOG("igfx", "BLS: User requested queue size = %u.", queueSize);
+	if (WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-lowerbound", brightnessRange.first) ||
+		WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-upperbound", brightnessRange.second))
+		DBGLOG("igfx", "BLS: User requested brightness range = [%u, %u].", brightnessRange.first, brightnessRange.second);
 	
 	// Wrap this submodule as an OSObject
 	owner = OSObjectWrapper::of(this);
