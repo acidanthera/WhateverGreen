@@ -348,6 +348,12 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 		queueSize = kMinimumQueueSize;
 	}
 	
+	if (brightnessRange.first > brightnessRange.second) {
+		SYSLOG("igfx", "BLS: Warning: User requested brightness range is invalid. Will use the default range.");
+		brightnessRange.first = 0;
+		brightnessRange.second = UINT32_MAX;
+	}
+	
 	// Wrap this submodule as an OSObject
 	owner = OSObjectWrapper::of(this);
 	if (owner == nullptr) {
