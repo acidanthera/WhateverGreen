@@ -1629,6 +1629,11 @@ private:
 		static constexpr uint32_t kDefaultQueueSize = 64;
 		
 		/**
+		 *  Minimum length of the brightness request queue
+		 */
+		static constexpr uint32_t kMinimumQueueSize = 32;
+		
+		/**
 		 *  The total number of steps to reach the target duty value
 		 */
 		uint32_t steps {kDefaultSteps};
