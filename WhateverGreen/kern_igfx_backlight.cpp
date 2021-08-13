@@ -337,6 +337,17 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 		WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-upperbound", brightnessRange.second))
 		DBGLOG("igfx", "BLS: User requested brightness range = [%u, %u].", brightnessRange.first, brightnessRange.second);
 	
+	// Sanitize user configurations
+	if (steps == 0) {
+		SYSLOG("igfx", "BLS: Warning: User requested steps value is invalid. Will use the default value %u.", kDefaultSteps);
+		steps = kDefaultSteps;
+	}
+	
+	if (queueSize < kMinimumQueueSize) {
+		SYSLOG("igfx", "BLS: Warning: User requested queue size is too small. Will use the minimum value %u.", kMinimumQueueSize);
+		queueSize = kMinimumQueueSize;
+	}
+	
 	// Wrap this submodule as an OSObject
 	owner = OSObjectWrapper::of(this);
 	if (owner == nullptr) {
