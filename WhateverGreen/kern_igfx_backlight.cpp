@@ -9,6 +9,7 @@
 #include "kern_igfx_backlight.hpp"
 #include "kern_igfx_kexts.hpp"
 #include "kern_igfx.hpp"
+#include <Headers/kern_time.hpp>
 
 ///
 /// This file contains the following backlight-related fixes and enhancements
@@ -228,13 +229,13 @@ bool BrightnessRequestEventSource::checkForWork() {
 	// Get a pending request
 	// No work if the queue is empty
 	BrightnessRequest request;
-	if (!smoother->queue->read(request)) {
+	if (!smoother->queue->pop(request)) {
 		DBGLOG("igfx", "BLS: [COMM] The request is empty. Will wait for the next invocation.");
 		return false;
 	}
 	
 	// Prepare the request
-	[[maybe_unused]] uint64_t sabstime = mach_absolute_time();
+	[[maybe_unused]] uint64_t snanosecs = getCurrentTimeNs();
 	uint32_t current = IGFX::callbackIGFX->readRegister32(request.controller, request.address);
 	uint32_t cbrightness = request.getCurrentBrightness(current);
 	uint32_t tbrightness = request.getTargetBrightness();
@@ -266,8 +267,8 @@ bool BrightnessRequestEventSource::checkForWork() {
 	
 	// Finish by writting the target value
 	IGFX::callbackIGFX->writeRegister32(request.controller, request.address, request.getTargetRegisterValue(tbrightness));
-	[[maybe_unused]] uint64_t eabstime = mach_absolute_time();
-	DBGLOG("igfx", "BLS: [COMM] The request completed in %llu nanoseconds.", MachAbsoluteTime2Nanoseconds(eabstime - sabstime));
+	[[maybe_unused]] uint64_t enanosecs = getCurrentTimeNs();
+	DBGLOG("igfx", "BLS: [COMM] The request completed in %llu nanoseconds.", enanosecs - snanosecs);
 	
 	// No need to invoke this function again if the queue is empty
 	return !smoother->queue->isEmpty();
@@ -312,7 +313,7 @@ void IGFX::BacklightSmoother::deinit() {
 		OSSafeReleaseNULL(eventSource);
 		OSSafeReleaseNULL(workloop);
 	}
-	BrightnessRequestQueue::safeDestory(queue);
+	BrightnessRequestQueue::safeDeleter(queue);
 	OSSafeReleaseNULL(owner);
 }
 
@@ -355,7 +356,7 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 	}
 	
 	// Wrap this submodule as an OSObject
-	owner = OSObjectWrapper::of(this);
+	owner = OSObjectWrapper::with(this);
 	if (owner == nullptr) {
 		SYSLOG("igfx", "BLS: Failed to create the owner of the event source.");
 		goto error0;
@@ -394,7 +395,7 @@ error3:
 	OSSafeReleaseNULL(workloop);
 	
 error2:
-	BrightnessRequestQueue::safeDestory(queue);
+	BrightnessRequestQueue::safeDeleter(queue);
 	
 error1:
 	OSSafeReleaseNULL(owner);
@@ -425,7 +426,7 @@ void IGFX::BacklightSmoother::smoothIVBWriteRegisterPWMCCTRL(void *controller, u
 	assertf(address == BLC_PWM_CPU_CTL, "Fatal Error: Register should be BLC_PWM_CPU_CTL.");
 	
 	// Submit the request and notify the event source
-	callbackIGFX->modBacklightSmoother.queue->write(BrightnessRequest(controller, address, value));
+	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value));
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
 	DBGLOG("igfx", "BLS: [IVB*] WriteRegister32<BLC_PWM_CPU_CTL>: The brightness request has been submitted.");
 }
@@ -435,7 +436,7 @@ void IGFX::BacklightSmoother::smoothHSWWriteRegisterPWMFreq1(void *controller, u
 	assertf(address == BXT_BLC_PWM_FREQ1, "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
 	
 	// Submit the request and notify the event source
-	callbackIGFX->modBacklightSmoother.queue->write(BrightnessRequest(controller, address, value, 0xFFFF));
+	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value, 0xFFFF));
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
 	DBGLOG("igfx", "BLS: [HSW+] WriteRegister32<BXT_BLC_PWM_FREQ1>: The brightness request has been submitted.");
 }
@@ -445,7 +446,7 @@ void IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(void *controller, u
 	assertf(address == BXT_BLC_PWM_DUTY1, "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
 	
 	// Submit the request and notify the event source
-	callbackIGFX->modBacklightSmoother.queue->write(BrightnessRequest(controller, address, value));
+	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value));
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
 	DBGLOG("igfx", "BLS: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: The brightness request has been submitted.");
 }
