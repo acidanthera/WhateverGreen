@@ -308,9 +308,11 @@ void IGFX::BacklightSmoother::init() {
 
 void IGFX::BacklightSmoother::deinit() {
 	// `BacklightSmoother::processKernel()` guarantees that all pointers are nullptr on failure
-	if (workloop != nullptr && eventSource != nullptr) {
-		workloop->removeEventSource(eventSource);
-		OSSafeReleaseNULL(eventSource);
+	if (workloop != nullptr) {
+		if (eventSource != nullptr) {
+			workloop->removeEventSource(eventSource);
+			OSSafeReleaseNULL(eventSource);
+		}
 		OSSafeReleaseNULL(workloop);
 	}
 	BrightnessRequestQueue::safeDeleter(queue);
@@ -359,50 +361,44 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 	owner = OSObjectWrapper::with(this);
 	if (owner == nullptr) {
 		SYSLOG("igfx", "BLS: Failed to create the owner of the event source.");
-		goto error0;
+		deinit();
+		enabled = false;
+		return;
 	}
 	
 	// Initialize the request queue
 	queue = BrightnessRequestQueue::withCapacity(queueSize);
 	if (queue == nullptr) {
 		SYSLOG("igfx", "BLS: Failed to initialize the request queue.");
-		goto error1;
+		deinit();
+		enabled = false;
+		return;
 	}
 	
 	// Initialize the workloop
 	workloop = IOWorkLoop::workLoop();
 	if (workloop == nullptr) {
 		SYSLOG("igfx", "BLS: Failed to create the workloop.");
-		goto error2;
+		deinit();
+		enabled = false;
+		return;
 	}
 	
 	// Initialize the request event source
 	eventSource = BrightnessRequestEventSource::create(owner);
 	if (eventSource == nullptr) {
 		SYSLOG("igfx", "BLS: Failed to create the request event source.");
-		goto error3;
+		deinit();
+		enabled = false;
+		return;
 	}
 
 	// Register the event source
 	if (workloop->addEventSource(eventSource) != kIOReturnSuccess) {
 		SYSLOG("igfx", "BLS: Failed to register the request event source.");
-		goto error3;
+		deinit();
+		enabled = false;
 	}
-	
-	return;
-	
-error3:
-	OSSafeReleaseNULL(workloop);
-	
-error2:
-	BrightnessRequestQueue::safeDeleter(queue);
-	
-error1:
-	OSSafeReleaseNULL(owner);
-	
-error0:
-	enabled = false;
-	SYSLOG("igfx", "BLS: Backlight smoother has been disabled due to initialization failures.");
 }
 
 void IGFX::BacklightSmoother::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
