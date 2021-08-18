@@ -22,7 +22,7 @@ struct DisplayPortDualModeAdapterInfo { // first 128 bytes
 	/// [0x00] HDMI ID
 	///
 	/// Fixed Value: "DP-HDMI ADAPTOR\x04"
-	uint8_t hdmiID[16];
+	uint8_t hdmiID[16] {};
 
 	/// [0x10] Adapter ID
 	///
@@ -31,38 +31,38 @@ struct DisplayPortDualModeAdapterInfo { // first 128 bytes
 	/// - hasDPCD = 0x08
 	///
 	/// Sample Values: 0xA8 = Type 2 Adapter with DPCD
-	uint8_t adapterID;
+	uint8_t adapterID {};
 
 	/// [0x11] IEEE OUI
 	///
 	/// Sample Value: 0x001CF8 [Parade]
 	/// Reference: http://standards-oui.ieee.org/oui.txt
-	uint8_t oui[3];
+	uint8_t oui[3] {};
 
 	/// [0x14] Device ID
 	///
 	/// Sample Value: 0x505331373530 = "PS1750"
-	uint8_t deviceID[6];
+	uint8_t deviceID[6] {};
 
 	/// [0x1A] Hardware Revision Number
 	///
 	/// Sample Value: 0xB2 (B2 version)
-	uint8_t revision;
+	uint8_t revision {};
 
 	/// [0x1B] Firmware Major Revision
-	uint8_t firmwareMajor;
+	uint8_t firmwareMajor {};
 
 	/// [0x1C] Firmware Minor Revision
-	uint8_t firmwareMinor;
+	uint8_t firmwareMinor {};
 
 	/// [0x1D] Maximum TMDS Clock
-	uint8_t maxTMDSClock;
+	uint8_t maxTMDSClock {};
 
 	/// [0x1E] I2C Speed Capability
-	uint8_t i2cSpeedCap;
+	uint8_t i2cSpeedCap {};
 
 	/// [0x1F] Unused/Reserved Field???
-	uint8_t reserved0;
+	uint8_t reserved0 {};
 
 	/// [0x20] TMDS Output Buffer State
 	///
@@ -71,19 +71,19 @@ struct DisplayPortDualModeAdapterInfo { // first 128 bytes
 	///
 	/// Sample Value:
 	/// 0x00 = Enabled
-	uint8_t tmdsOutputBufferState;
+	uint8_t tmdsOutputBufferState {};
 
 	/// [0x21] HDMI PIN CONTROL
-	uint8_t hdmiPinCtrl;
+	uint8_t hdmiPinCtrl {};
 
 	/// [0x22] I2C Speed Control
-	uint8_t i2cSpeedCtrl;
+	uint8_t i2cSpeedCtrl {};
 
 	/// [0x23 - 0x3F] Unused/Reserved Fields
-	uint8_t reserved1[29];
+	uint8_t reserved1[29] {};
 
 	/// [0x40] [W] Set the new LSPCON mode
-	uint8_t lspconChangeMode;
+	uint8_t lspconChangeMode {};
 
 	/// [0x41] [R] Get the current LSPCON mode
 	///
@@ -93,10 +93,10 @@ struct DisplayPortDualModeAdapterInfo { // first 128 bytes
 	/// Sample Value:
 	/// 0x00 = LS
 	/// 0x01 = PCON
-	uint8_t lspconCurrentMode;
+	uint8_t lspconCurrentMode {};
 
 	/// [0x42 - 0x7F] Rest Unused/Reserved Fields
-	uint8_t reserved2[62];
+	uint8_t reserved2[62] {};
 };
 
 /**
@@ -218,7 +218,7 @@ public:
 		/**
 		 *  The underlying mode value
 		 */
-		Value value;
+		Value value {Value::Invalid};
 	};
 	
 	/**
@@ -290,7 +290,7 @@ public:
 		/**
 		 *  The underlying vendor value
 		 */
-		Value value;
+		Value value {Value::Unknown};
 	};
 
 	/**
@@ -377,16 +377,16 @@ private:
 	static constexpr uint8_t DP_DUAL_MODE_TYPE_HAS_DPCD = 0x08;
 	
 	/// The opaque framebuffer controller instance
-	void *controller;
+	void *controller {nullptr};
 
 	/// The framebuffer that owns this LSPCON chip
-	IORegistryEntry *framebuffer;
+	IORegistryEntry *framebuffer {nullptr};
 
 	/// The corresponding opaque display path instance
-	void *displayPath;
+	void *displayPath {nullptr};
 
 	/// The framebuffer index (for debugging purposes)
-	uint32_t index;
+	uint32_t index {0};
 
 	/**
 	 *  Initialize the LSPCON chip for the given framebuffer
