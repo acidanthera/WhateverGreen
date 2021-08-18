@@ -27,22 +27,22 @@ struct BrightnessRequest {
 	/**
 	 *  The framebuffer controller
 	 */
-	void *controller;
+	void *controller {nullptr};
 	
 	/**
 	 *  The register address
 	 */
-	uint32_t address;
+	uint32_t address {0};
 	
 	/**
 	 *  The target register value
 	 */
-	uint32_t target;
+	uint32_t target {0};
 	
 	/**
 	 *  Specify the portion of bits in the register value that represent the brightness level
 	 */
-	uint32_t mask;
+	uint32_t mask {0};
 	
 	/**
 	 *  Create an empty request
