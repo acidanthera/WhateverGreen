@@ -350,19 +350,19 @@ private:
 		/**
 		 *  The trigger value to be monitored by the coordinator
 		 */
-		T trigger;
+		T trigger {};
 
 		/**
 		 *  A function to invoke when the trigger value is observed
 		 *
 		 *  @example One may monitor a specific register address and modify its value in the injector function.
 		 */
-		I injector;
+		I injector {};
 
 		/**
 		 *  A pointer to the next descriptor in a linked list
 		 */
-		InjectionDescriptor *next;
+		InjectionDescriptor *next {nullptr};
 
 		/**
 		 *  Create an injection descriptor conveniently
@@ -460,17 +460,17 @@ private:
 		/**
 		 *  A list of prologue injection descriptors
 		 */
-		InjectionDescriptorList<P> prologueList;
+		InjectionDescriptorList<P> prologueList {};
 		
 		/**
 		 *  A list of replacer injection descriptors
 		 */
-		InjectionDescriptorList<R> replacerList;
+		InjectionDescriptorList<R> replacerList {};
 		
 		/**
 		 *  A list of epilogue injection descriptors
 		 */
-		InjectionDescriptorList<E> epilogueList;
+		InjectionDescriptorList<E> epilogueList {};
 	};
 	
 	/**
@@ -971,25 +971,25 @@ private:
 		 */
 		struct ProbeContext {
 			/// The current minimum deviation
-			uint64_t minDeviation;
+			uint64_t minDeviation {0};
 
 			/// The current chosen central frequency
-			uint64_t central;
+			uint64_t central {0};
 
 			/// The current DCO frequency
-			uint64_t frequency;
+			uint64_t frequency {0};
 
 			/// The current selected divider
-			uint32_t divider;
+			uint32_t divider {0};
 
 			/// The corresponding pdiv value [P0]
-			uint32_t pdiv;
+			uint32_t pdiv {0};
 
 			/// The corresponding qdiv value [P1]
-			uint32_t qdiv;
+			uint32_t qdiv {0};
 
 			/// The corresponding kqiv value [P2]
-			uint32_t kdiv;
+			uint32_t kdiv {0};
 		};
 		
 		/**
@@ -1179,7 +1179,7 @@ private:
 		/**
 		 *  User-defined LSPCON chip info for all possible framebuffers
 		 */
-		FramebufferLSPCON lspcons[MaxFramebufferConnectorCount];
+		FramebufferLSPCON lspcons[MaxFramebufferConnectorCount] {};
 		
 		/// MARK: Manage user-defined LSPCON chip info for all framebuffers
 

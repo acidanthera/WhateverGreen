@@ -66,7 +66,7 @@ static constexpr size_t DP_MAX_NUM_SUPPORTED_RATES = 8;
 struct DPCDCap16 { // 16 bytes
 	// DPCD Revision (DP Config Version)
 	// Value: 0x10, 0x11, 0x12, 0x13, 0x14
-	uint8_t revision;
+	uint8_t revision {};
 
 	// Maximum Link Rate
 	// Value: 0x1E (HBR3) 8.1 Gbps
@@ -75,7 +75,7 @@ struct DPCDCap16 { // 16 bytes
 	//        0x0A (HBR)  2.7 Gbps
 	//        0x06 (RBR)  1.62 Gbps
 	// Reference: 0x0C is used by Apple internally.
-	uint8_t maxLinkRate;
+	uint8_t maxLinkRate {};
 
 	// Maximum Number of Lanes
 	// Value: 0x1 (HBR2)
@@ -84,14 +84,14 @@ struct DPCDCap16 { // 16 bytes
 	// Side Notes:
 	// (1) Bit 7 is used to indicate whether the link is capable of enhanced framing.
 	// (2) Bit 6 is used to indicate whether TPS3 is supported.
-	uint8_t maxLaneCount;
+	uint8_t maxLaneCount {};
 
 	// Maximum Downspread
-	uint8_t maxDownspread;
+	uint8_t maxDownspread {};
 
 	// Other fields omitted in this struct
 	// Detailed information can be found in the specification
-	uint8_t others[12];
+	uint8_t others[12] {};
 };
 
 // MARK: Patch Submodule IMP
@@ -643,25 +643,25 @@ static constexpr uint64_t SKL_DCO_MAX_NEG_DEVIATION = 600;
  */
 struct CRTCParams {
 	/// Uninvestigated fields
-	uint8_t uninvestigated[32];
+	uint8_t uninvestigated[32] {};
 
 	/// P0                          [`CRTCParams` field offset 0x20]
-	uint32_t pdiv;
+	uint32_t pdiv {};
 
 	/// P1                          [`CRTCParams` field offset 0x24]
-	uint32_t qdiv;
+	uint32_t qdiv {};
 
 	/// P2                          [`CRTCParams` field offset 0x28]
-	uint32_t kdiv;
+	uint32_t kdiv {};
 
 	/// Difference in Hz            [`CRTCParams` field offset 0x2C]
-	uint32_t fraction;
+	uint32_t fraction {};
 
 	/// Multiplier of 24 MHz        [`CRTCParams` field offset 0x30]
-	uint32_t multiplier;
+	uint32_t multiplier {};
 
 	/// Central Frequency / 15625   [`CRTCParams` field offset 0x34]
-	uint32_t cf15625;
+	uint32_t cf15625 {};
 
 	/// The rest fields are not of interest
 };
