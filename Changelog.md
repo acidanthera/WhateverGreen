@@ -1,10 +1,10 @@
 WhateverGreen Changelog
 =======================
 #### v1.5.3
-- **This release requires Lilu v1.5.6 or later.**
 - Added `no-gfx-spoof` to avoid forcing `device-id` values from PCI I/O.
 - Added the backlight smoother submodule that makes brightness transitions smoother on Intel IVB+ platforms. (by @0xFireWolf)
 - MMIO Register Access submodules are now available on Intel IVB+ platforms. (by @0xFireWolf)
+- *Note:* This release requires Lilu v1.5.6 or later.
 
 #### v1.5.2
 - Added `device-id` spoofing support for AMD graphics
