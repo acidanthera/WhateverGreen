@@ -1521,7 +1521,7 @@ private:
 		uint32_t targetBacklightFrequency {};
 		
 		/**
-		 *  [KBL*] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
+		 *  [KBL ] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
 		 */
 		uint32_t targetPwmControl {};
 		
@@ -1531,14 +1531,14 @@ private:
 		uint32_t driverBacklightFrequency {};
 		
 		/**
-		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *  [KBL ] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
 		 */
 		static void wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_CTL1
+		 *  [KBL ] Wrapper to fix the value of BXT_BLC_PWM_CTL1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_CTL1`.
 		 */
@@ -1559,12 +1559,12 @@ private:
 		static void wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 *  [KBL ] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
 		 */
 		MMIOWriteInjectionDescriptor dKBLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapKBLWriteRegisterPWMFreq1};
 		
 		/**
-		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
+		 *  [KBL ] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
 		 */
 		MMIOWriteInjectionDescriptor dKBLPWMCtrl1 {BXT_BLC_PWM_CTL1 , wrapKBLWriteRegisterPWMCtrl1};
 		
@@ -1679,7 +1679,7 @@ private:
 		BrightnessRequestEventSource *eventSource {nullptr};
 
 		/**
-		 *  [IVB*] Wrapper to write to BLC_PWM_CPU_CTL smoothly
+		 *  [IVB ] Wrapper to write to BLC_PWM_CPU_CTL smoothly
 		 *
 		 *  @note When this function is called, `address` is guaranteed to be `BLC_PWM_CPU_CTL`.
 		 */
@@ -1700,7 +1700,7 @@ private:
 		static void smoothCFLWriteRegisterPWMDuty1(void *controller, uint32_t address, uint32_t value);
 
 		/**
-		 *  [IVB*] A replacer descriptor that injects code when the register of interest is BLC_PWM_CPU_CTL
+		 *  [IVB ] A replacer descriptor that injects code when the register of interest is BLC_PWM_CPU_CTL
 		 */
 		MMIOWriteInjectionDescriptor dIVBPWMCCTRL {BLC_PWM_CPU_CTL,   smoothIVBWriteRegisterPWMCCTRL};
 
