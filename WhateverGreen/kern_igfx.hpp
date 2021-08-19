@@ -10,6 +10,7 @@
 
 #include "kern_fb.hpp"
 #include "kern_igfx_lspcon.hpp"
+#include "kern_igfx_backlight.hpp"
 
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
@@ -349,19 +350,19 @@ private:
 		/**
 		 *  The trigger value to be monitored by the coordinator
 		 */
-		T trigger;
+		T trigger {};
 
 		/**
 		 *  A function to invoke when the trigger value is observed
 		 *
 		 *  @example One may monitor a specific register address and modify its value in the injector function.
 		 */
-		I injector;
+		I injector {};
 
 		/**
 		 *  A pointer to the next descriptor in a linked list
 		 */
-		InjectionDescriptor *next;
+		InjectionDescriptor *next {nullptr};
 
 		/**
 		 *  Create an injection descriptor conveniently
@@ -459,17 +460,17 @@ private:
 		/**
 		 *  A list of prologue injection descriptors
 		 */
-		InjectionDescriptorList<P> prologueList;
+		InjectionDescriptorList<P> prologueList {};
 		
 		/**
 		 *  A list of replacer injection descriptors
 		 */
-		InjectionDescriptorList<R> replacerList;
+		InjectionDescriptorList<R> replacerList {};
 		
 		/**
 		 *  A list of epilogue injection descriptors
 		 */
-		InjectionDescriptorList<E> epilogueList;
+		InjectionDescriptorList<E> epilogueList {};
 	};
 	
 	/**
@@ -970,25 +971,25 @@ private:
 		 */
 		struct ProbeContext {
 			/// The current minimum deviation
-			uint64_t minDeviation;
+			uint64_t minDeviation {0};
 
 			/// The current chosen central frequency
-			uint64_t central;
+			uint64_t central {0};
 
 			/// The current DCO frequency
-			uint64_t frequency;
+			uint64_t frequency {0};
 
 			/// The current selected divider
-			uint32_t divider;
+			uint32_t divider {0};
 
 			/// The corresponding pdiv value [P0]
-			uint32_t pdiv;
+			uint32_t pdiv {0};
 
 			/// The corresponding qdiv value [P1]
-			uint32_t qdiv;
+			uint32_t qdiv {0};
 
 			/// The corresponding kqiv value [P2]
-			uint32_t kdiv;
+			uint32_t kdiv {0};
 		};
 		
 		/**
@@ -1178,7 +1179,7 @@ private:
 		/**
 		 *  User-defined LSPCON chip info for all possible framebuffers
 		 */
-		FramebufferLSPCON lspcons[MaxFramebufferConnectorCount];
+		FramebufferLSPCON lspcons[MaxFramebufferConnectorCount] {};
 		
 		/// MARK: Manage user-defined LSPCON chip info for all framebuffers
 
@@ -1506,44 +1507,38 @@ private:
 	 *
 	 *  @note Supported Platforms: KBL, CFL, ICL.
 	 */
-	class BacklightRegistersFix: public PatchSubmodule {
-		/**
-		 *  Backlight registers
-		 */
-		static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
-		static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
-		static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
-		
+	class BacklightRegistersFix: public PatchSubmodule {		
 		/**
 		 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
 		 */
 		static constexpr uint32_t FallbackTargetBacklightFrequency = 120000;
 		
 		/**
-		 *  [Common] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
-		 *  Can be specified via max-backlight-freq property.
+		 *  [COMM] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
+		 *
+		 *  @note Its value can be specified via max-backlight-freq property.
 		 */
 		uint32_t targetBacklightFrequency {};
 		
 		/**
-		 *  [KBL] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
+		 *  [KBL ] User-requested pwm control value obtained from BXT_BLC_PWM_CTL1.
 		 */
 		uint32_t targetPwmControl {};
 		
 		/**
-		 *  [CFL, ICL] Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
+		 *  [CFL+] Driver-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 write attempt at system start.
 		 */
 		uint32_t driverBacklightFrequency {};
 		
 		/**
-		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
+		 *  [KBL ] Wrapper to fix the value of BXT_BLC_PWM_FREQ1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
 		 */
 		static void wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [KBL*] Wrapper to fix the value of BXT_BLC_PWM_CTL1
+		 *  [KBL ] Wrapper to fix the value of BXT_BLC_PWM_CTL1
 		 *
 		 *  @note When this function is called, `reg` is guaranteed to be `BXT_BLC_PWM_CTL1`.
 		 */
@@ -1564,12 +1559,12 @@ private:
 		static void wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value);
 		
 		/**
-		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 *  [KBL ] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
 		 */
 		MMIOWriteInjectionDescriptor dKBLPWMFreq1 {BXT_BLC_PWM_FREQ1, wrapKBLWriteRegisterPWMFreq1};
 		
 		/**
-		 *  [KBL*] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
+		 *  [KBL ] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_CTL1
 		 */
 		MMIOWriteInjectionDescriptor dKBLPWMCtrl1 {BXT_BLC_PWM_CTL1 , wrapKBLWriteRegisterPWMCtrl1};
 		
@@ -1589,6 +1584,143 @@ private:
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modBacklightRegistersFix;
+	
+	/**
+	 *  Brightness request event source needs access to the original WriteRegister32 function
+	 */
+	friend class BrightnessRequestEventSource;
+
+	/**
+	 *  A submodule to make brightness transitions smoother
+	 *
+	 *  @note This submodule must be placed AFTER the backlight registers fix (BLR) module.
+	 *        If BLR is enabled, it rescales the value to be written to `BXT_BLC_PWM_DUTY1`
+	 *        and then passes the rescaled value to `smoothCFLWriteRegisterPWMDuty1`.
+	 */
+	class BacklightSmoother: public PatchSubmodule {
+		/**
+		 *  Backlight registers fix submodule needs access to the smoother version of `WriteRegister32()`
+		 */
+		friend class BacklightRegistersFix;
+
+		/**
+		 *  Brightness request event source needs access to the queue and config parameters
+		 */
+		friend class BrightnessRequestEventSource;
+
+		/**
+		 *  Default number of steps to reach the target duty value
+		 */
+		static constexpr uint32_t kDefaultSteps = 35;
+
+		/**
+		 *  Default interval in milliseconds between each step
+		 */
+		static constexpr uint32_t kDefaultInterval = 7;
+
+		/**
+		 *  Default threshold value of skipping the smoother
+		 */
+		static constexpr uint32_t kDefaultThreshold = 0;
+
+		/**
+		 *  Default length of the brightness request queue
+		 */
+		static constexpr uint32_t kDefaultQueueSize = 64;
+		
+		/**
+		 *  Minimum length of the brightness request queue
+		 */
+		static constexpr uint32_t kMinimumQueueSize = 32;
+		
+		/**
+		 *  The total number of steps to reach the target duty value
+		 */
+		uint32_t steps {kDefaultSteps};
+
+		/**
+		 *  Interval in milliseconds between each step
+		 */
+		uint32_t interval {kDefaultInterval};
+
+		/**
+		 *  Skip the smoother if the distance to the target duty value falls below the threshold
+		 */
+		uint32_t threshold {kDefaultThreshold};
+		
+		/**
+		 *  The size of the brightness request queue
+		 */
+		uint32_t queueSize {kDefaultQueueSize};
+		
+		/**
+		 *  The range of the brightness level (represented as register values)
+		 */
+		ppair<uint32_t, uint32_t> brightnessRange {0, UINT32_MAX};
+		
+		/**
+		 *  Owner of the event source
+		 */
+		OSObject *owner {nullptr};
+
+		/**
+		 *  A list of pending brightness adjustment requests
+		 */
+		BrightnessRequestQueue *queue {nullptr};
+
+		/**
+		 *  A workloop that provides a kernel thread to adjust the brightness
+		 */
+		IOWorkLoop *workloop {nullptr};
+
+		/**
+		 *  A custom event source that adjusts the brightness smoothly
+		 */
+		BrightnessRequestEventSource *eventSource {nullptr};
+
+		/**
+		 *  [IVB ] Wrapper to write to BLC_PWM_CPU_CTL smoothly
+		 *
+		 *  @note When this function is called, `address` is guaranteed to be `BLC_PWM_CPU_CTL`.
+		 */
+		static void smoothIVBWriteRegisterPWMCCTRL(void *controller, uint32_t address, uint32_t value);
+
+		/**
+		 *  [HSW+] Wrapper to write to BXT_BLC_PWM_FREQ1 smoothly
+		 *
+		 *  @note When this function is called, `address` is guaranteed to be `BXT_BLC_PWM_FREQ1`.
+		 */
+		static void smoothHSWWriteRegisterPWMFreq1(void *controller, uint32_t address, uint32_t value);
+
+		/**
+		 *  [CFL+] Wrapper to write to BXT_BLC_PWM_DUTY1 smoothly
+		 *
+		 *  @note When this function is called, `address` is guaranteed to be `BXT_BLC_PWM_DUTY1`.
+		 */
+		static void smoothCFLWriteRegisterPWMDuty1(void *controller, uint32_t address, uint32_t value);
+
+		/**
+		 *  [IVB ] A replacer descriptor that injects code when the register of interest is BLC_PWM_CPU_CTL
+		 */
+		MMIOWriteInjectionDescriptor dIVBPWMCCTRL {BLC_PWM_CPU_CTL,   smoothIVBWriteRegisterPWMCCTRL};
+
+		/**
+		 *  [HSW+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_FREQ1
+		 */
+		MMIOWriteInjectionDescriptor dHSWPWMFreq1 {BXT_BLC_PWM_FREQ1, smoothHSWWriteRegisterPWMFreq1};
+
+		/**
+		 *  [CFL+] A replacer descriptor that injects code when the register of interest is BXT_BLC_PWM_DUTY1
+		 */
+		MMIOWriteInjectionDescriptor dCFLPWMDuty1 {BXT_BLC_PWM_DUTY1, smoothCFLWriteRegisterPWMDuty1};
+
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void deinit() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBacklightSmoother;
 	
 	/**
 	 *  A submodule to provide support for debugging the framebuffer driver
@@ -1639,7 +1771,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[18] = {
+	PatchSubmodule *submodules[19] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1656,6 +1788,7 @@ private:
 		&modPAVPDisabler,
 		&modReadDescriptorPatch,
 		&modBacklightRegistersFix,
+		&modBacklightSmoother,
 		&modFramebufferDebugSupport,
 		&modMaxPixelClockOverride
 	};

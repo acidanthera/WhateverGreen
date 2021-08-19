@@ -9,6 +9,7 @@
 #include "kern_fb.hpp"
 #include "kern_guc.hpp"
 #include "kern_agdc.hpp"
+#include "kern_igfx_kexts.hpp"
 
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_cpu.hpp>
@@ -16,48 +17,6 @@
 #include <Headers/kern_iokit.hpp>
 
 #include <IOKit/pci/IOPCIDevice.h>
-
-static const char *pathIntelHD[]      { "/System/Library/Extensions/AppleIntelHDGraphics.kext/Contents/MacOS/AppleIntelHDGraphics" };
-static const char *pathIntelHDFb[]    { "/System/Library/Extensions/AppleIntelHDGraphicsFB.kext/Contents/MacOS/AppleIntelHDGraphicsFB" };
-static const char *pathIntelHD3000[]  { "/System/Library/Extensions/AppleIntelHD3000Graphics.kext/Contents/MacOS/AppleIntelHD3000Graphics" };
-static const char *pathIntelSNBFb[]   { "/System/Library/Extensions/AppleIntelSNBGraphicsFB.kext/Contents/MacOS/AppleIntelSNBGraphicsFB" };
-static const char *pathIntelHD4000[]  { "/System/Library/Extensions/AppleIntelHD4000Graphics.kext/Contents/MacOS/AppleIntelHD4000Graphics" };
-static const char *pathIntelCapriFb[] { "/System/Library/Extensions/AppleIntelFramebufferCapri.kext/Contents/MacOS/AppleIntelFramebufferCapri" };
-static const char *pathIntelHD5000[]  { "/System/Library/Extensions/AppleIntelHD5000Graphics.kext/Contents/MacOS/AppleIntelHD5000Graphics" };
-static const char *pathIntelAzulFb[]  { "/System/Library/Extensions/AppleIntelFramebufferAzul.kext/Contents/MacOS/AppleIntelFramebufferAzul" };
-static const char *pathIntelBDW[]     { "/System/Library/Extensions/AppleIntelBDWGraphics.kext/Contents/MacOS/AppleIntelBDWGraphics" };
-static const char *pathIntelBDWFb[]   { "/System/Library/Extensions/AppleIntelBDWGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelBDWGraphicsFramebuffer" };
-static const char *pathIntelSKL[]     { "/System/Library/Extensions/AppleIntelSKLGraphics.kext/Contents/MacOS/AppleIntelSKLGraphics" };
-static const char *pathIntelSKLFb[]   { "/System/Library/Extensions/AppleIntelSKLGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelSKLGraphicsFramebuffer" };
-static const char *pathIntelKBL[]     { "/System/Library/Extensions/AppleIntelKBLGraphics.kext/Contents/MacOS/AppleIntelKBLGraphics" };
-static const char *pathIntelKBLFb[]   { "/System/Library/Extensions/AppleIntelKBLGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelKBLGraphicsFramebuffer" };
-static const char *pathIntelCFLFb[]   { "/System/Library/Extensions/AppleIntelCFLGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelCFLGraphicsFramebuffer" };
-static const char *pathIntelCNL[]     { "/System/Library/Extensions/AppleIntelCNLGraphics.kext/Contents/MacOS/AppleIntelCNLGraphics" };
-static const char *pathIntelCNLFb[]   { "/System/Library/Extensions/AppleIntelCNLGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelCNLGraphicsFramebuffer" };
-static const char *pathIntelICL[]     { "/System/Library/Extensions/AppleIntelICLGraphics.kext/Contents/MacOS/AppleIntelICLGraphics" };
-static const char *pathIntelICLLPFb[] { "/System/Library/Extensions/AppleIntelICLLPGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelICLLPGraphicsFramebuffer" };
-static const char *pathIntelICLHPFb[] { "/System/Library/Extensions/AppleIntelICLHPGraphicsFramebuffer.kext/Contents/MacOS/AppleIntelICLHPGraphicsFramebuffer" };
-
-static KernelPatcher::KextInfo kextIntelHD      { "com.apple.driver.AppleIntelHDGraphics", pathIntelHD, arrsize(pathIntelHD), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelHDFb    { "com.apple.driver.AppleIntelHDGraphicsFB", pathIntelHDFb, arrsize(pathIntelHDFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelHD3000  { "com.apple.driver.AppleIntelHD3000Graphics", pathIntelHD3000, arrsize(pathIntelHD3000), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelSNBFb   { "com.apple.driver.AppleIntelSNBGraphicsFB", pathIntelSNBFb, arrsize(pathIntelSNBFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelHD4000  { "com.apple.driver.AppleIntelHD4000Graphics", pathIntelHD4000, arrsize(pathIntelHD4000), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelCapriFb { "com.apple.driver.AppleIntelFramebufferCapri", pathIntelCapriFb, arrsize(pathIntelCapriFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelHD5000  { "com.apple.driver.AppleIntelHD5000Graphics", pathIntelHD5000, arrsize(pathIntelHD5000), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelAzulFb  { "com.apple.driver.AppleIntelFramebufferAzul", pathIntelAzulFb, arrsize(pathIntelAzulFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelBDW     { "com.apple.driver.AppleIntelBDWGraphics", pathIntelBDW, arrsize(pathIntelBDW), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelBDWFb   { "com.apple.driver.AppleIntelBDWGraphicsFramebuffer", pathIntelBDWFb, arrsize(pathIntelBDWFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelSKL     { "com.apple.driver.AppleIntelSKLGraphics", pathIntelSKL, arrsize(pathIntelSKL), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelSKLFb   { "com.apple.driver.AppleIntelSKLGraphicsFramebuffer", pathIntelSKLFb, arrsize(pathIntelSKLFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelKBL     { "com.apple.driver.AppleIntelKBLGraphics", pathIntelKBL, arrsize(pathIntelKBL), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelKBLFb   { "com.apple.driver.AppleIntelKBLGraphicsFramebuffer", pathIntelKBLFb, arrsize(pathIntelKBLFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelCFLFb   { "com.apple.driver.AppleIntelCFLGraphicsFramebuffer", pathIntelCFLFb, arrsize(pathIntelCFLFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelCNL     { "com.apple.driver.AppleIntelCNLGraphics", pathIntelCNL, arrsize(pathIntelCNL), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelCNLFb   { "com.apple.driver.AppleIntelCNLGraphicsFramebuffer", pathIntelCNLFb, arrsize(pathIntelCNLFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelICL     { "com.apple.driver.AppleIntelICLGraphics", pathIntelICL, arrsize(pathIntelICL), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelICLLPFb { "com.apple.driver.AppleIntelICLLPGraphicsFramebuffer", pathIntelICLLPFb, arrsize(pathIntelICLLPFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextIntelICLHPFb { "com.apple.driver.AppleIntelICLHPGraphicsFramebuffer", pathIntelICLHPFb, arrsize(pathIntelICLHPFb), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 IGFX *IGFX::callbackIGFX;
 
@@ -442,12 +401,32 @@ void IGFX::MMIORegistersReadSupport::processKernel(KernelPatcher &patcher, Devic
 }
 
 void IGFX::MMIORegistersReadSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest request = {
-		"__ZN31AppleIntelFramebufferController14ReadRegister32Em",
-		wrapReadRegister32,
-		orgReadRegister32
-	};
+	// Symbol Table:
+	// IVB*: "__ZN25AppleIntelCapriController14ReadRegister32Em"
+	// HSW*: "__ZN24AppleIntelAzulController14ReadRegister32Em"
+	// BDW*: "__ZNK22AppleIntelFBController14ReadRegister32Em"
+	// SKL+: "__ZN31AppleIntelFramebufferController14ReadRegister32Em"
+	const char* symbol = nullptr;
 	
+	auto framebuffer = Value::of(callbackIGFX->getRealFramebuffer(index));
+	if (framebuffer.isOneOf(&kextIntelCapriFb)) {
+		symbol = "__ZN25AppleIntelCapriController14ReadRegister32Em";
+		DBGLOG("igfx", "RRS: Will setup the read register module for IVB platform.");
+	} else if (framebuffer.isOneOf(&kextIntelAzulFb)) {
+		symbol = "__ZN24AppleIntelAzulController14ReadRegister32Em";
+		DBGLOG("igfx", "RRS: Will setup the read register module for HSW platform.");
+	} else if (framebuffer.isOneOf(&kextIntelBDWFb)) {
+		symbol = "__ZNK22AppleIntelFBController14ReadRegister32Em";
+		DBGLOG("igfx", "RRS: Will setup the read register module for BDW platform.");
+	} else if (framebuffer.isOneOf(&kextIntelSKLFb, &kextIntelKBLFb, &kextIntelCFLFb, &kextIntelICLLPFb)) {
+		symbol = "__ZN31AppleIntelFramebufferController14ReadRegister32Em";
+		DBGLOG("igfx", "RRS: Will setup the read register module for SKL/KBL/CFL/ICL platform.");
+	} else {
+		SYSLOG("igfx", "RRS: Found an unsupported platform. Will disable all submodules that depend on RRS.");
+		return disableDependentSubmodules();
+	}
+	
+	KernelPatcher::RouteRequest request(symbol, wrapReadRegister32, orgReadRegister32);
 	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
 		SYSLOG("igfx", "RRS: Failed to resolve the symbol of ReadRegister32. Will disable all submodules that rely on this one.");
 		disableDependentSubmodules();
@@ -512,12 +491,32 @@ void IGFX::MMIORegistersWriteSupport::processKernel(KernelPatcher &patcher, Devi
 }
 
 void IGFX::MMIORegistersWriteSupport::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	KernelPatcher::RouteRequest request = {
-		"__ZN31AppleIntelFramebufferController15WriteRegister32Emj",
-		wrapWriteRegister32,
-		orgWriteRegister32
-	};
+	// Symbol Table:
+	// IVB*: "__ZN25AppleIntelCapriController15WriteRegister32Emj"
+	// HSW*: "__ZN24AppleIntelAzulController15WriteRegister32Emj"
+	// BDW*: "__ZN22AppleIntelFBController15WriteRegister32Emj"
+	// SKL+: "__ZN31AppleIntelFramebufferController15WriteRegister32Emj"
+	const char* symbol = nullptr;
 	
+	auto framebuffer = Value::of(callbackIGFX->getRealFramebuffer(index));
+	if (framebuffer.isOneOf(&kextIntelCapriFb)) {
+		symbol = "__ZN25AppleIntelCapriController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for IVB platform.");
+	} else if (framebuffer.isOneOf(&kextIntelAzulFb)) {
+		symbol = "__ZN24AppleIntelAzulController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for HSW platform.");
+	} else if (framebuffer.isOneOf(&kextIntelBDWFb)) {
+		symbol = "__ZN22AppleIntelFBController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for BDW platform.");
+	} else if (framebuffer.isOneOf(&kextIntelSKLFb, &kextIntelKBLFb, &kextIntelCFLFb, &kextIntelICLLPFb)) {
+		symbol = "__ZN31AppleIntelFramebufferController15WriteRegister32Emj";
+		DBGLOG("igfx", "RWS: Will setup the read register module for SKL/KBL/CFL/ICL platform.");
+	} else {
+		SYSLOG("igfx", "RWS: Found an unsupported platform. Will disable all submodules that depend on RWS.");
+		return disableDependentSubmodules();
+	}
+	
+	KernelPatcher::RouteRequest request(symbol, wrapWriteRegister32, orgWriteRegister32);
 	if (!patcher.routeMultiple(index, &request, 1, address, size)) {
 		SYSLOG("igfx", "RWS: Failed to resolve the symbol of WriteRegister32. Will disable all submodules that rely on this one.");
 		disableDependentSubmodules();
@@ -534,26 +533,26 @@ void IGFX::MMIORegistersWriteSupport::wrapWriteRegister32(void *controller, uint
 	// Guard: Perform prologue injections
 	auto prologueInjector = callbackIGFX->modMMIORegistersWriteSupport.prologueList.getInjector(address);
 	if (prologueInjector) {
-		DBGLOG("igfx", "RRS: Found a prologue injector triggered by the register address 0x%x.", address);
+		DBGLOG("igfx", "RWS: Found a prologue injector triggered by the register address 0x%x.", address);
 		prologueInjector(controller, address, value);
 	}
 	
 	// Guard: Perform replacer injections
 	auto replacerInjector = callbackIGFX->modMMIORegistersWriteSupport.replacerList.getInjector(address);
 	if (replacerInjector) {
-		DBGLOG("igfx", "RRS: Found a replacer injector triggered by the register value 0x%x.", address);
+		DBGLOG("igfx", "RWS: Found a replacer injector triggered by the register value 0x%x.", address);
 		return replacerInjector(controller, address, value);
 	}
 	
 	// Invoke the original function
 	callbackIGFX->modMMIORegistersWriteSupport.orgWriteRegister32(controller, address, value);
 	if (callbackIGFX->modMMIORegistersWriteSupport.verbose)
-		DBGLOG("igfx", "RRS: Write MMIO Register = 0x%x; Value = 0x%x.", address, value);
+		DBGLOG("igfx", "RWS: Write MMIO Register = 0x%x; Value = 0x%x.", address, value);
 	
 	// Guard: Perform epilogue injections
 	auto epilogueInjector = callbackIGFX->modMMIORegistersWriteSupport.epilogueList.getInjector(address);
 	if (epilogueInjector) {
-		DBGLOG("igfx", "RRS: Found a epilogue injector triggered by the register value 0x%x.", address);
+		DBGLOG("igfx", "RWS: Found a epilogue injector triggered by the register value 0x%x.", address);
 		return epilogueInjector(controller, address, value);
 	}
 }
@@ -957,183 +956,6 @@ bool IGFX::ReadDescriptorPatch::globalPageTableRead(void *hardwareGlobalPageTabl
 	// for the W (writeable) bit in addition to P (present). Presumably this works because some code misuses ::read method to iterate
 	// over page table instead of obtaining valid mapped physical address.
 	return (flags & 3U) != 0;
-}
-
-// MARK: - Backlight Registers Fix
-
-void IGFX::BacklightRegistersFix::init() {
-	// We only need to patch the framebuffer driver
-	requiresPatchingFramebuffer = true;
-	
-	// We need R/W access to MMIO registers
-	requiresMMIORegistersReadAccess = true;
-	requiresMMIORegistersWriteAccess = true;
-}
-
-void IGFX::BacklightRegistersFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
-	enabled = checkKernelArgument("-igfxblr");
-	if (!enabled)
-		enabled = info->videoBuiltin->getProperty("enable-backlight-registers-fix") != nullptr;
-	if (!enabled)
-		return;
-	
-	if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
-		DBGLOG("igfx", "BLR: Will use the custom backlight frequency %u.", targetBacklightFrequency);
-}
-
-void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	// Intel backlight is modeled via pulse-width modulation (PWM). See page 144 of:
-	// https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol12-display.pdf
-	// Singal-wise it looks as a cycle of signal levels on the timeline:
-	// 22111100221111002211110022111100 (4 cycles)
-	// 0 - no signal, 1 - no value (no pulse), 2 - pulse (light on)
-	// - Physical Cycle (0+1+2) defines maximum backlight frequency, limited by HW precision.
-	// - Base Cycle (1+2) defines [1/PWM Base Frequency], limited by physical cycle, see BXT_BLC_PWM_FREQ1.
-	// - Duty Cycle (2) defines [1/PWM Increment] - backlight level,
-	//   [PWM Frequency Divider] - backlight max, see BXT_BLC_PWM_DUTY1.
-	// - Duty Cycle position (first vs last) is [PWM Polarity]
-	//
-	// Duty cycle = PWM Base Frequeny * (1 / PWM Increment) / PWM Frequency Divider
-	//
-	// On macOS there are extra limitations:
-	// - All values and operations are u32 (32-bit unsigned)
-	// - [1/PWM Increment] has 0 to 0xFFFF range
-	// - [PWM Frequency Divider] is fixed to be 0xFFFF
-	// - [PWM Base Frequency] is capped by 0xFFFF (to avoid u32 wraparound), and is hardcoded
-	//   either in Framebuffer data (pre-CFL) or in the code (CFL: 7777 or 22222).
-	//
-	// On CFL the following patches have to be applied:
-	// - Hardcoded [PWM Base Frequency] should be patched or set after the hardcoded value is written by patching
-	//   hardcoded frequencies. 65535 is used by default.
-	// - If [PWM Base Frequency] is > 65535, to avoid a wraparound code calculating BXT_BLC_PWM_DUTY1
-	//   should be replaced to use 64-bit arithmetics.
-	// [PWM Base Frequency] can be specified via igfxbklt=1 boot-arg or backlight-base-frequency property.
-
-	// This patch will overwrite WriteRegister32 function to rescale all the register writes of backlight controller.
-	// Slightly different methods are used for CFL hardware running on KBL and CFL drivers.
-	// Guard: Register injections based on the current framebuffer in use
-	if (callbackIGFX->getRealFramebuffer(index) == &kextIntelKBLFb) {
-		DBGLOG("igfx", "BLR: [KBL*] Will setup the fix for KBL platform.");
-		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMFreq1);
-		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMCtrl1);
-	} else {
-		DBGLOG("igfx", "BLR: [CFL+] Will setup the fix for CFL/ICL platform.");
-		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMFreq1);
-		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMDuty1);
-	}
-}
-
-void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
-	assertf(reg == BXT_BLC_PWM_FREQ1, "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
-	
-	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-		// Populate the hardware PWM frequency as initially set up by the system firmware.
-		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
-		DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.",
-			   callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-		DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_CTL1 = 0x%x.",
-			   callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
-
-		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
-			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
-			SYSLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
-		}
-	}
-
-	// For the KBL driver, 0xc8254 (BLC_PWM_PCH_CTL2) controls the backlight intensity.
-	// High 16 of this write are the denominator (frequency), low 16 are the numerator (duty cycle).
-	// Translate this into a write to c8258 (BXT_BLC_PWM_DUTY1) for the CFL hardware, scaled by the system-provided value in c8254 (BXT_BLC_PWM_FREQ1).
-	uint16_t frequency = (value & 0xffff0000U) >> 16U;
-	uint16_t dutyCycle = value & 0xffffU;
-
-	uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(frequency));
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.",
-		   dutyCycle, frequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-
-	// Reset the hardware PWM frequency. Write the original system value if the driver-requested value is nonzero. If the driver requests
-	// zero, we allow that, since it's trying to turn off the backlight PWM for sleep.
-	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency ? callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency : 0);
-
-	// Finish by writing the duty cycle.
-	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
-}
-
-void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value) {
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_CTL1>: Called with register 0x%x and value 0x%x.", reg, value);
-	assertf(reg == BXT_BLC_PWM_CTL1, "Fatal Error: Register should be BXT_BLC_PWM_CTL1.");
-	
-	if (callbackIGFX->modBacklightRegistersFix.targetPwmControl == 0) {
-		// Save the original hardware PWM control value
-		callbackIGFX->modBacklightRegistersFix.targetPwmControl = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1);
-	}
-
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_CTL1>: Write BXT_BLC_PWM_CTL1 0x%x, previous was 0x%x.",
-		   value, callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
-
-	if (value) {
-		// Set the PWM frequency before turning it on to avoid the 3 minute blackout bug
-		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-
-		// Use the original hardware PWM control value.
-		value = callbackIGFX->modBacklightRegistersFix.targetPwmControl;
-	}
-	
-	// Finish by writing the new value
-	callbackIGFX->writeRegister32(controller, reg, value);
-}
-
-void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
-	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
-	assertf(reg == BXT_BLC_PWM_FREQ1, "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
-	
-	if (value && value != callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency) {
-		DBGLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: Driver requested BXT_BLC_PWM_FREQ1 = 0x%x.", value);
-		callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency = value;
-	}
-
-	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-		// Save the hardware PWM frequency as initially set up by the system firmware.
-		// We'll need this to restore later after system sleep.
-		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
-		DBGLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.", callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-
-		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
-			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
-			SYSLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
-		}
-	}
-
-	if (value) {
-		// Nonzero writes to this register need to use the original system value.
-		// Yet the driver can safely write zero to this register as part of system sleep.
-		value = callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency;
-	}
-	
-	// Finish by writing the new value
-	callbackIGFX->writeRegister32(controller, reg, value);
-}
-
-void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value) {
-	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Called with register 0x%x and value 0x%x.", reg, value);
-	assertf(reg == BXT_BLC_PWM_DUTY1, "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
-	
-	if (callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency && callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency) {
-		// Translate the PWM duty cycle between the driver scale value and the HW scale value
-		uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency));
-		DBGLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.", value,
-			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-		value = rescaledValue;
-	} else {
-		// This should never happen, but in case it does we should log it at the very least.
-		SYSLOG("igfx", "BRL: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 has zero frequency driver (%d) target (%d).",
-			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-	}
-	
-	// Finish by writing the new value
-	callbackIGFX->writeRegister32(controller, reg, value);
 }
 
 // MARK: - TODO

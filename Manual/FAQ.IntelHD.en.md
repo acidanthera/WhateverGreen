@@ -2551,6 +2551,115 @@ igfx: @ (DBG) DVMT: Calculation patch has been applied successfully.
 ```
 </details>
 
+## Customize the behavior of the backlight smoother to improve your experience
+
+Add the `enable-backlight-smoother` property to `IGPU` or use the `-igfxbls` boot argument instead to make brightness transitions smoother on Intel IVB+ platforms.  
+
+The graphics driver adjusts the panel brightness by writing values to related registers. 
+Brightness Smoother (BLS) intercepts these write operations and gradually changes the register value. 
+You may think of the graphics driver changing the brightness like climbing the stairs while BLS works like taking the escalator.
+
+BLS uses a simple algorithm: it reads the register value `SRC` that represents the current brightness level and calculates the distance `D` to the register value `DST` requested by the graphics driver. 
+It then moves toward the target value in `N` steps, each of which takes `T` milliseconds. 
+By default, `N` is 35 and `T` is 7, but you may change their values by adding the properties `backlight-smoother-steps` and `backlight-smoother-interval`. 
+It is recommended to keep `T` less than 10 milliseconds and the total amount of time `N * T` less than 350 milliseconds. 
+
+Besides, you may use the property  `backlight-smoother-threshold` to ask BLS to skip the smoother process if the distance `D` falls below the threshold. 
+In other words, BLS will write `DST` to the register directly. The default threshold value is 0.
+
+If you want to prevent the built-in display from going black at the lowest brightness level, 
+you may use the property `backlight-smoother-lowerbound` to specify the minimum register value that corresponds to the new, lowest brightness level.
+Similarly, `backlight-smoother-upperbound` can be used to specify the maximum value instead. See the example below.
+If these two properties are not present, BLS uses the default range [0, 2^32-1].
+
+<details>
+<summary>Example: Configure the smoother for a Haswell-based laptop with Intel HD Graphics 4600</summary>
+
+The following kernel logs are dumped from a Haswell laptop when a user changes the brightness from the lowest level to the highest one.  
+Since the distance to the next level is relatively short, we use `N = 25` and `T = 8` instead,  
+making the graphics driver transition to the next brightness level in approximately 200 milliseconds.
+
+|     Device Property Name     | Type |   Value  |            Notes           |
+|:----------------------------:|:----:|:--------:|:--------------------------:|
+|   enable-backlight-smoother  | Data | 01000000 |     Enable the smoother    |
+|   backlight-smoother-steps   | Data | 19000000 | 25 (0x19) in little endian |
+|  backlight-smoother-interval | Data | 08000000 | 08 (0x08) in little endian |
+| backlight-smoother-threshold | Data | 00000000 | 00 (0x00) in little endian |
+
+```
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000000; Target = 0x00000036; Distance = 0054; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000036; Target = 0x00000036; Distance = 0000; Steps = 25; Stride = 0.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000036; Target = 0x00000054; Distance = 0030; Steps = 25; Stride = 2.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000054; Target = 0x0000007d; Distance = 0041; Steps = 25; Stride = 2.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0000007d; Target = 0x000000b2; Distance = 0053; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000000b2; Target = 0x000000e7; Distance = 0053; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000000e7; Target = 0x000000f5; Distance = 0014; Steps = 25; Stride = 1.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000000f5; Target = 0x00000137; Distance = 0066; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000137; Target = 0x00000149; Distance = 0018; Steps = 25; Stride = 1.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000149; Target = 0x000001b1; Distance = 0104; Steps = 25; Stride = 5.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000001b1; Target = 0x0000022b; Distance = 0122; Steps = 25; Stride = 5.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0000022b; Target = 0x00000271; Distance = 0070; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000271; Target = 0x000002b8; Distance = 0071; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000002b8; Target = 0x00000359; Distance = 0161; Steps = 25; Stride = 7.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000359; Target = 0x000003a4; Distance = 0075; Steps = 25; Stride = 3.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000003a4; Target = 0x00000401; Distance = 0093; Steps = 25; Stride = 4.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000401; Target = 0x00000413; Distance = 0018; Steps = 25; Stride = 1.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000413; Target = 0x0000046b; Distance = 0088; Steps = 25; Stride = 4.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0000046b; Target = 0x000004ec; Distance = 0129; Steps = 25; Stride = 6.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000004ec; Target = 0x00000588; Distance = 0156; Steps = 25; Stride = 7.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000588; Target = 0x000005f3; Distance = 0107; Steps = 25; Stride = 5.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000005f3; Target = 0x000006b1; Distance = 0190; Steps = 25; Stride = 8.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000006b1; Target = 0x00000734; Distance = 0131; Steps = 25; Stride = 6.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000734; Target = 0x00000815; Distance = 0225; Steps = 25; Stride = 9.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000815; Target = 0x000008af; Distance = 0154; Steps = 25; Stride = 7.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000008af; Target = 0x000009f7; Distance = 0328; Steps = 25; Stride = 14.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000009f7; Target = 0x00000ad9; Distance = 0226; Steps = 25; Stride = 10.
+```
+
+As you can observe from the above log, the register value is `0x00` when the display is at the lowest brightness level.
+When the user presses a key to increase the brightness, the register value becomes `0x36`, 
+so in this case you may use a lowerbound, for example `0x18`, to prevent the display turning black.
+You may want to analyze the kernel log produced by the DEBUG version to find a lowerbound that best works for your laptop.
+
+</details>
+
+<details>
+<summary>Example: Configure the smoother for a Coffee Lake-based laptop with Intel UHD Graphics 630</summary>
+
+The following kernel logs are dumped from a Coffee Lake laptop when a user changes the brightness from the lowest level to the highest one.  
+Since the distance to the next level is long, we use `N = 35` and `T = 7`,  
+making the graphics driver transition to the next brightness level in approximately 250 milliseconds.
+
+|     Device Property Name     | Type |   Value  |              Notes             |
+|:----------------------------:|:----:|:--------:|:------------------------------:|
+|   enable-backlight-smoother  | Data | 01000000 |       Enable the smoother      |
+|   backlight-smoother-steps   | Data | 23000000 |   35 (0x23) in little endian   |
+|  backlight-smoother-interval | Data | 07000000 |   07 (0x07) in little endian   |
+| backlight-smoother-threshold | Data | 2C010000 | 300 (0x012C) in little endian  |
+
+```
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000000; Target = 0x000004ae; Distance = 1198; Steps = 35; Stride = 35.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000004ae; Target = 0x00000613; Distance = 0357; Steps = 35; Stride = 11.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000613; Target = 0x000007f3; Distance = 0480; Steps = 35; Stride = 14.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000007f3; Target = 0x00000a4b; Distance = 0600; Steps = 35; Stride = 18.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000a4b; Target = 0x00000e0c; Distance = 0961; Steps = 35; Stride = 28.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00000e0c; Target = 0x000012bb; Distance = 1199; Steps = 35; Stride = 35.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000012bb; Target = 0x000019c6; Distance = 1803; Steps = 35; Stride = 52.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000019c6; Target = 0x0000239b; Distance = 2517; Steps = 35; Stride = 72.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0000239b; Target = 0x00003043; Distance = 3240; Steps = 35; Stride = 93.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00003043; Target = 0x00004216; Distance = 4563; Steps = 35; Stride = 131.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00004216; Target = 0x000050d5; Distance = 3775; Steps = 35; Stride = 108.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x000050d5; Target = 0x00005aea; Distance = 2581; Steps = 35; Stride = 74.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00005aea; Target = 0x00007d21; Distance = 8759; Steps = 35; Stride = 251.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00007d21; Target = 0x0000acf3; Distance = 12242; Steps = 35; Stride = 350.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0000acf3; Target = 0x0000effc; Distance = 17161; Steps = 35; Stride = 491.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0000effc; Target = 0x0001328e; Distance = 17042; Steps = 35; Stride = 487.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x0001328e; Target = 0x00014ead; Distance = 7199; Steps = 35; Stride = 206.
+igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00014ead; Target = 0x0001d3cc; Distance = 34079; Steps = 35; Stride = 974.
+```
+
+</details>
+
 ## Known Issues
 
 **Compatibility**

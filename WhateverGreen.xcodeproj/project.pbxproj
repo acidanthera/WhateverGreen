@@ -41,6 +41,10 @@
 		D5224EF125172B2500D5CF16 /* kern_igfx_clock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5224EF025172B2500D5CF16 /* kern_igfx_clock.cpp */; };
 		D5224F492518928300D5CF16 /* kern_igfx_lspcon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5224F472518928300D5CF16 /* kern_igfx_lspcon.cpp */; };
 		D5224F4A2518928300D5CF16 /* kern_igfx_lspcon.hpp in Headers */ = {isa = PBXBuildFile; fileRef = D5224F482518928300D5CF16 /* kern_igfx_lspcon.hpp */; };
+		D531F20926BE4DAC00224998 /* kern_igfx_kexts.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D531F20726BE4DAC00224998 /* kern_igfx_kexts.cpp */; };
+		D531F20A26BE4DAC00224998 /* kern_igfx_kexts.hpp in Headers */ = {isa = PBXBuildFile; fileRef = D531F20826BE4DAC00224998 /* kern_igfx_kexts.hpp */; };
+		D531F20D26BF52CA00224998 /* kern_igfx_backlight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D531F20B26BF52CA00224998 /* kern_igfx_backlight.cpp */; };
+		D531F20E26BF52CA00224998 /* kern_igfx_backlight.hpp in Headers */ = {isa = PBXBuildFile; fileRef = D531F20C26BF52CA00224998 /* kern_igfx_backlight.hpp */; };
 		D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */; };
 		E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */ = {isa = PBXBuildFile; fileRef = E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */; };
 /* End PBXBuildFile section */
@@ -145,6 +149,10 @@
 		D5224EF025172B2500D5CF16 /* kern_igfx_clock.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_clock.cpp; sourceTree = "<group>"; };
 		D5224F472518928300D5CF16 /* kern_igfx_lspcon.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_lspcon.cpp; sourceTree = "<group>"; };
 		D5224F482518928300D5CF16 /* kern_igfx_lspcon.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_igfx_lspcon.hpp; sourceTree = "<group>"; };
+		D531F20726BE4DAC00224998 /* kern_igfx_kexts.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_kexts.cpp; sourceTree = "<group>"; };
+		D531F20826BE4DAC00224998 /* kern_igfx_kexts.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_igfx_kexts.hpp; sourceTree = "<group>"; };
+		D531F20B26BF52CA00224998 /* kern_igfx_backlight.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_backlight.cpp; sourceTree = "<group>"; };
+		D531F20C26BF52CA00224998 /* kern_igfx_backlight.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_igfx_backlight.hpp; sourceTree = "<group>"; };
 		D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_memory.cpp; sourceTree = "<group>"; };
 		E2BE6CE120FB209400ED2D55 /* kern_fb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_fb.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -205,12 +213,16 @@
 				CE766ED5210763B200A84567 /* kern_guc.hpp */,
 				CE7FC0AC20F5622700138088 /* kern_igfx.cpp */,
 				CE7FC0AD20F5622700138088 /* kern_igfx.hpp */,
+				D531F20B26BF52CA00224998 /* kern_igfx_backlight.cpp */,
+				D531F20C26BF52CA00224998 /* kern_igfx_backlight.hpp */,
 				CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */,
 				D5C32F5524FC45D30078A824 /* kern_igfx_memory.cpp */,
 				D5224EF025172B2500D5CF16 /* kern_igfx_clock.cpp */,
 				D5224F472518928300D5CF16 /* kern_igfx_lspcon.cpp */,
 				D5224F482518928300D5CF16 /* kern_igfx_lspcon.hpp */,
 				D515168125195D58003CF0E6 /* kern_igfx_i2c_aux.cpp */,
+				D531F20726BE4DAC00224998 /* kern_igfx_kexts.cpp */,
+				D531F20826BE4DAC00224998 /* kern_igfx_kexts.hpp */,
 				2F30012324A00F2800C590C3 /* kern_igfx_pm.cpp */,
 				CE7FC0A820F55E7400138088 /* kern_ngfx.cpp */,
 				CE7FC0A920F55E7400138088 /* kern_ngfx.hpp */,
@@ -336,7 +348,9 @@
 			files = (
 				CEA03B5F20EE825A00BA842F /* kern_weg.hpp in Headers */,
 				E2BE6CE220FB209400ED2D55 /* kern_fb.hpp in Headers */,
+				D531F20E26BF52CA00224998 /* kern_igfx_backlight.hpp in Headers */,
 				CE7FC0AB20F55E7400138088 /* kern_ngfx.hpp in Headers */,
+				D531F20A26BE4DAC00224998 /* kern_igfx_kexts.hpp in Headers */,
 				CE3DADB125A425FC009991FB /* kern_unfair.hpp in Headers */,
 				CE7FC0CA20F682A300138088 /* kern_resources.hpp in Headers */,
 				CE7FC0AF20F5622700138088 /* kern_igfx.hpp in Headers */,
@@ -472,6 +486,7 @@
 				CEC8E2F020F765E700D3CA3A /* kern_cdf.cpp in Sources */,
 				D5224EF125172B2500D5CF16 /* kern_igfx_clock.cpp in Sources */,
 				1C9CB7B01C789FF500231E41 /* kern_rad.cpp in Sources */,
+				D531F20D26BF52CA00224998 /* kern_igfx_backlight.cpp in Sources */,
 				CE766ED6210763B200A84567 /* kern_guc.cpp in Sources */,
 				CE7FC0B420F6809600138088 /* kern_shiki.cpp in Sources */,
 				2F30012424A00F2800C590C3 /* kern_igfx_pm.cpp in Sources */,
@@ -481,6 +496,7 @@
 				CE1970FF21C380DF00B02AB4 /* kern_nvhda.cpp in Sources */,
 				CE3DADB025A425FC009991FB /* kern_unfair.cpp in Sources */,
 				D5C32F5624FC45D30078A824 /* kern_igfx_memory.cpp in Sources */,
+				D531F20926BE4DAC00224998 /* kern_igfx_kexts.cpp in Sources */,
 				CE405ED91E4A080700AA0B3D /* plugin_start.cpp in Sources */,
 				CE7FC0CB20F682A300138088 /* kern_resources.cpp in Sources */,
 				D5224F492518928300D5CF16 /* kern_igfx_lspcon.cpp in Sources */,
@@ -609,6 +625,7 @@
 		1C748C321C21952C0024EED2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = NO;
@@ -659,6 +676,7 @@
 		1C748C331C21952C0024EED2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
@@ -796,6 +814,7 @@
 		CE9901CB21456F6C006E5CF5 /* Sanitize */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = NO;
