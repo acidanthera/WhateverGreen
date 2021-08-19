@@ -75,7 +75,7 @@ void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher,
 	// Guard: Register injections based on the current framebuffer in use
 	auto framebuffer = Value::of(callbackIGFX->getRealFramebuffer(index));
 	if (framebuffer.isOneOf(&kextIntelKBLFb)) {
-		DBGLOG("igfx", "BLR: [KBL*] Will setup the fix for KBL platform.");
+		DBGLOG("igfx", "BLR: [KBL ] Will setup the fix for KBL platform.");
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMFreq1);
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dKBLPWMCtrl1);
 	} else if (framebuffer.isOneOf(&kextIntelCFLFb, &kextIntelICLLPFb)) {
@@ -88,21 +88,21 @@ void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher,
 }
 
 void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
+	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_FREQ1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
 	
 	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
 		// Populate the hardware PWM frequency as initially set up by the system firmware.
 		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
-		DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.",
+		DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.",
 			   callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-		DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_CTL1 = 0x%x.",
+		DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_CTL1 = 0x%x.",
 			   callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
 
 		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
 			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
 			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
-			SYSLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
+			SYSLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
 		}
 	}
 
@@ -113,7 +113,7 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller,
 	uint16_t dutyCycle = value & 0xffffU;
 
 	uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(frequency));
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_FREQ1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.",
+	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.",
 		   dutyCycle, frequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
 
 	// Reset the hardware PWM frequency. Write the original system value if the driver-requested value is nonzero. If the driver requests
@@ -125,7 +125,7 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller,
 }
 
 void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value) {
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_CTL1>: Called with register 0x%x and value 0x%x.", reg, value);
+	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_CTL1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_CTL1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_CTL1.");
 	
 	if (callbackIGFX->modBacklightRegistersFix.targetPwmControl == 0) {
@@ -133,7 +133,7 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller,
 		callbackIGFX->modBacklightRegistersFix.targetPwmControl = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1);
 	}
 
-	DBGLOG("igfx", "BLR: [KBL*] WriteRegister32<BXT_BLC_PWM_CTL1>: Write BXT_BLC_PWM_CTL1 0x%x, previous was 0x%x.",
+	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_CTL1>: Write BXT_BLC_PWM_CTL1 0x%x, previous was 0x%x.",
 		   value, callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
 
 	if (value) {
@@ -404,7 +404,7 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 void IGFX::BacklightSmoother::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	auto framebuffer = Value::of(callbackIGFX->getRealFramebuffer(index));
 	if (framebuffer.isOneOf(&kextIntelCapriFb)) {
-		DBGLOG("igfx", "BLS: [IVB*] Will setup the smoother for IVB platform.");
+		DBGLOG("igfx", "BLS: [IVB ] Will setup the smoother for IVB platform.");
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dIVBPWMCCTRL);
 	} else if (framebuffer.isOneOf(&kextIntelAzulFb, &kextIntelBDWFb, &kextIntelSKLFb, &kextIntelKBLFb)) {
 		DBGLOG("igfx", "BLS: [HSW+] Will setup the smoother for HSW/BDW/SKL/KBL platform.");
@@ -418,13 +418,13 @@ void IGFX::BacklightSmoother::processFramebufferKext(KernelPatcher &patcher, siz
 }
 
 void IGFX::BacklightSmoother::smoothIVBWriteRegisterPWMCCTRL(void *controller, uint32_t address, uint32_t value) {
-	DBGLOG("igfx", "BLS: [IVB*] WriteRegister32<BLC_PWM_CPU_CTL>: Called with register 0x%x and value 0x%x.", address, value);
+	DBGLOG("igfx", "BLS: [IVB ] WriteRegister32<BLC_PWM_CPU_CTL>: Called with register 0x%x and value 0x%x.", address, value);
 	PANIC_COND(address != BLC_PWM_CPU_CTL, "igfx", "Fatal Error: Register should be BLC_PWM_CPU_CTL.");
 	
 	// Submit the request and notify the event source
 	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value));
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
-	DBGLOG("igfx", "BLS: [IVB*] WriteRegister32<BLC_PWM_CPU_CTL>: The brightness request has been submitted.");
+	DBGLOG("igfx", "BLS: [IVB ] WriteRegister32<BLC_PWM_CPU_CTL>: The brightness request has been submitted.");
 }
 
 void IGFX::BacklightSmoother::smoothHSWWriteRegisterPWMFreq1(void *controller, uint32_t address, uint32_t value) {
