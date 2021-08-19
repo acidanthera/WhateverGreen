@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Added `no-gfx-spoof` to avoid forcing `device-id` values from PCI I/O.
 - Added the backlight smoother submodule that makes brightness transitions smoother on Intel IVB+ platforms. (by @0xFireWolf)
 - MMIO Register Access submodules are now available on Intel IVB+ platforms. (by @0xFireWolf)
+- Improved ASUS-made AMD R9 380 GPU identification
 - *Note:* This release requires Lilu v1.5.6 or later.
 
 #### v1.5.2
