@@ -739,6 +739,8 @@ static constexpr Model dev6939[] {
 	{Model::DetectSub, 0x148c, 0x9380, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x174b, 0xe308, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x1043, 0x0498, 0x0000, "AMD Radeon R9 380"},
+	{Model::DetectSub, 0x1043, 0x04e3, 0x0000, "AMD Radeon R9 380"},
+	{Model::DetectSub, 0x1043, 0x049a, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x1462, 0x2015, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 285"}
 };
