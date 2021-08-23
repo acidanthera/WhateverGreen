@@ -5,6 +5,7 @@ WhateverGreen Changelog
 - Added the backlight smoother submodule that makes brightness transitions smoother on Intel IVB+ platforms. (by @0xFireWolf)
 - MMIO Register Access submodules are now available on Intel IVB+ platforms. (by @0xFireWolf)
 - Improved ASUS-made AMD R9 380 GPU identification
+- Fixed `applbkl` property with `<00 00 00 00>` value failing to disable backlight patches
 - *Note:* This release requires Lilu v1.5.6 or later.
 
 #### v1.5.2

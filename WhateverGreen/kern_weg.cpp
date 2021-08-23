@@ -242,7 +242,8 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			}
 
 			// Note, disabled Optimus will make videoExternal 0, so this case checks for active IGPU only.
-			if (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0)) {
+			DBGLOG("weg", "resulting applbkl value is %d", appleBacklightPatch);
+			if (appleBacklightPatch == APPLBKL_OFF || (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0))) {
 				// Either a builtin IGPU is not available, or some external GPU is available.
 				kextBacklight.switchOff();
 			}
