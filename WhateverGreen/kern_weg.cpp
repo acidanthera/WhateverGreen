@@ -5,6 +5,9 @@
 //  Copyright © 2018 vit9696. All rights reserved.
 //
 
+#include <libkern/c++/OSMetaClass.h>
+#include <IOKit/graphics/IODisplay.h>
+
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_iokit.hpp>
@@ -23,11 +26,13 @@ struct FramebufferViewer : public IOFramebuffer {
 static const char *pathIOGraphics[] { "/System/Library/Extensions/IOGraphicsFamily.kext/IOGraphicsFamily" };
 static const char *pathAGDPolicy[]  { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
 static const char *pathBacklight[]  { "/System/Library/Extensions/AppleBacklight.kext/Contents/MacOS/AppleBacklight" };
+static const char *pathMCCSControl[]  { "/System/Library/Extensions/./AppleMCCSControl.kext/Contents/MacOS/AppleMCCSControl" };
 
 static KernelPatcher::KextInfo kextIOGraphics { "com.apple.iokit.IOGraphicsFamily", pathIOGraphics, arrsize(pathIOGraphics), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextAGDPolicy  { "com.apple.driver.AppleGraphicsDevicePolicy", pathAGDPolicy, arrsize(pathAGDPolicy), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 // Note: initially marked as reloadable, but I doubt it needs to be.
 static KernelPatcher::KextInfo kextBacklight { "com.apple.driver.AppleBacklight", pathBacklight, arrsize(pathBacklight), {true}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextMCCSControl { "com.apple.driver.AppleMCCSControl", pathMCCSControl, arrsize(pathMCCSControl), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 
 WEG::ApplePanelData WEG::appleBacklightData[] {
 	{
@@ -90,6 +95,22 @@ WEG::ApplePanelData WEG::appleBacklightData[] {
 
 WEG *WEG::callbackWEG;
 
+extern long g_current_brightness_lvl;
+
+bool WEG::wrapAppleBacklightDisplay12doIntegerSet(void *that, OSDictionary * params, const OSSymbol * paramName, UInt32 value) {
+	//if (paramName) {
+	//	SYSLOG("igfx", "mygg calling wrapAppleBacklightDisplay12doIntegerSet, %s -> %d\n", paramName->getCStringNoCopy(), value);
+	//} else {
+	//	SYSLOG("igfx", "mygg calling wrapAppleBacklightDisplay12doIntegerSet, NULL -> %d\n", value);
+	//}
+	
+	//if (strncmp(paramName->getCStringNoCopy(), "brightness-probe", strlen("brightness-probe")) == 0) {
+	//	g_current_brightness_lvl = value;//((double)value / 0x400) * 0x56c;
+	//}
+
+	return FunctionCast(wrapAppleBacklightDisplay12doIntegerSet, callbackWEG->orgAppleBacklightDisplay12doIntegerSet)(that, params, paramName, value);
+}
+
 void WEG::init() {
 	callbackWEG = this;
 
@@ -115,6 +136,7 @@ void WEG::init() {
 	lilu.onPatcherLoadForce([](void *user, KernelPatcher &patcher) {
 		static_cast<WEG *>(user)->processKernel(patcher);
 	}, this);
+	lilu.onKextLoadForce(&kextMCCSControl);
 
 	lilu.onKextLoadForce(nullptr, 0,
 	[](void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -131,7 +153,7 @@ void WEG::init() {
 
 	// Disable backlight patches if asked specifically.
 	PE_parse_boot_argn("applbkl", &appleBacklightPatch, sizeof(appleBacklightPatch));
-	if (appleBacklightPatch != APPLBKL_OFF)
+	//if (appleBacklightPatch != APPLBKL_OFF)
 		lilu.onKextLoad(&kextBacklight);
 
 	igfx.init();
@@ -245,7 +267,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 			DBGLOG("weg", "resulting applbkl value is %d", appleBacklightPatch);
 			if (appleBacklightPatch == APPLBKL_OFF || (appleBacklightPatch == APPLBKL_DETECT && (devInfo->videoBuiltin == nullptr || extNum > 0))) {
 				// Either a builtin IGPU is not available, or some external GPU is available.
-				kextBacklight.switchOff();
+				//kextBacklight.switchOff();
 			}
 
 			if ((graphicsDisplayPolicyMod & AGDP_DETECT) && isGraphicsPolicyModRequired(devInfo))
@@ -256,7 +278,7 @@ void WEG::processKernel(KernelPatcher &patcher) {
 		} else {
 			if (appleBacklightPatch != APPLBKL_ON) {
 				// Do not patch AppleBacklight on Apple HW, unless forced.
-				kextBacklight.switchOff();
+				//kextBacklight.switchOff();
 			}
 
 			// Support legacy -wegtree argument.
@@ -332,6 +354,32 @@ void WEG::processKernel(KernelPatcher &patcher) {
 	}
 }
 
+//AppleMCCSControlGibraltar *__fastcall AppleMCCSControlGibraltar::probe(AppleMCCSControlGibraltar *this, IOService *a2, int *a3)
+//__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi
+//INJECT_MYFUN_START(void*, AppleMCCSControlGibraltar_probe, void *that, IOService *a2, int *a3)
+//INJECT_MYFUN_END(void*, AppleMCCSControlGibraltar_probe, "%p:%p,%p", "%p", that, a2, a3)
+static mach_vm_address_t Orig_AppleMCCSControlGibraltar_probe;
+static void* Wrap_AppleMCCSControlGibraltar_probe(void *that, IOService *a2, int *a3) {
+	return NULL;
+	//SYSLOG("igfx", "Wrap_""AppleMCCSControlGibraltar_probe"" start " "%p:%p,%p", that, a2, a3);
+	//void* ret = FunctionCast(Wrap_AppleMCCSControlGibraltar_probe, Orig_AppleMCCSControlGibraltar_probe)(that, a2, a3);
+	//SYSLOG("igfx", "Wrap_""AppleMCCSControlGibraltar_probe"" end - " "%p", ret);
+	//return ret;
+}
+
+//AppleMCCSControlCello *__fastcall AppleMCCSControlCello::probe(AppleMCCSControlCello *this, IOService *a2, int *a3)
+//__ZN21AppleMCCSControlCello5probeEP9IOServicePi
+//INJECT_MYFUN_START(void*, AppleMCCSControlCello_probe, void *that, IOService *a2, int *a3)
+//INJECT_MYFUN_END(void*, AppleMCCSControlCello_probe, "%p:%p,%p", "%p", that, a2, a3)
+static mach_vm_address_t Orig_AppleMCCSControlCello_probe;
+static void* Wrap_AppleMCCSControlCello_probe(void *that, IOService *a2, int *a3) {
+	return NULL;
+	//SYSLOG("igfx", "Wrap_""AppleMCCSControlCello_probe"" start " "%p:%p,%p", that, a2, a3);
+	//void* ret = FunctionCast(Wrap_AppleMCCSControlCello_probe, Orig_AppleMCCSControlCello_probe)(that, a2, a3);
+	//SYSLOG("igfx", "Wrap_""AppleMCCSControlCello_probe"" end - " "%p", ret);
+	//return ret;
+}
+
 void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	if (kextIOGraphics.loadIndex == index) {
 		gIOFBVerboseBootPtr = patcher.solveSymbol<uint8_t *>(index, "__ZL16gIOFBVerboseBoot", address, size);
@@ -343,6 +391,23 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 			patcher.clearError();
 		}
 
+		DBGLOG("igfx", "route my fun 1");
+		KernelPatcher::RouteRequest request[] = {
+			{"__ZN21AppleBacklightDisplay12doIntegerSetEP12OSDictionaryPK8OSSymbolj", wrapAppleBacklightDisplay12doIntegerSet, orgAppleBacklightDisplay12doIntegerSet},
+		};
+		patcher.routeMultiple(index, request, address, size);
+		return;
+	}
+
+#define INJECT_REQUEST_ENTRY(sym, name) \
+{sym, Wrap_##name, Orig_##name}
+	if (kextMCCSControl.loadIndex == index) {
+		DBGLOG("igfx", "route my fun 3");
+		KernelPatcher::RouteRequest request[] = {
+			INJECT_REQUEST_ENTRY("__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi", AppleMCCSControlGibraltar_probe),
+			INJECT_REQUEST_ENTRY("__ZN21AppleMCCSControlCello5probeEP9IOServicePi", AppleMCCSControlCello_probe),
+		};
+		patcher.routeMultiple(index, request, address, size);
 		return;
 	}
 

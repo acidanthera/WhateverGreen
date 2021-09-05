@@ -457,4 +457,6 @@ private:
 	static void updateGetHWInfo(IOService *accelVideoCtx, void *hwInfo);
 };
 
+int64_t my_set_backlight_lvl(unsigned int backlight_pwm_u16_16, int64_t ramp);
+
 #endif /* kern_rad_hpp */

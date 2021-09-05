@@ -13,9 +13,12 @@
 #include <Availability.h>
 #include <IOKit/IOPlatformExpert.h>
 
+#include <IOKit/graphics/IOFramebuffer.h>
+
 #include "kern_rad.hpp"
 
 static const char *pathFramebuffer[]		{ "/System/Library/Extensions/AMDFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
+static const char *path5700Framebuffer[]		{ "/System/Library/Extensions/AMDRadeonX6000Framebuffer.kext/Contents/MacOS/AMDRadeonX6000Framebuffer" };
 static const char *pathLegacyFramebuffer[]	{ "/System/Library/Extensions/AMDLegacyFramebuffer.kext/Contents/MacOS/AMDLegacyFramebuffer" };
 static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathLegacySupport[]		{ "/System/Library/Extensions/AMDLegacySupport.kext/Contents/MacOS/AMDLegacySupport" };
@@ -50,6 +53,8 @@ static KernelPatcher::KextInfo kextRadeonLegacySupport
 { "com.apple.kext.AMDLegacySupport", pathLegacySupport, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextPolarisController
 { "com.apple.kext.AMD9500Controller", patchPolarisController, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextRadeon5700Framebuffer
+{ "com.apple.kext.AMDRadeonX6000Framebuffer", path5700Framebuffer, arrsize(path5700Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -95,6 +100,8 @@ void RAD::init() {
 		if (getKernelVersion() < KernelVersion::Mojave)
 			lilu.onKextLoadForce(&kextRadeonLegacyFramebuffer);
 	}
+	
+	lilu.onKextLoadForce(&kextRadeon5700Framebuffer);
 
 	// Certain GPUs cannot output to DVI at full resolution.
 	dviSingleLink = checkKernelArgument("-raddvi");
@@ -183,7 +190,176 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	}
 }
 
+static mach_vm_address_t AMDfbdebugOrgGetAttribute;
+static mach_vm_address_t AMDfbdebugOrgSetAttribute;
+char g_buf[64] = {0};
+static const char *AMDgetAttributeName(IOSelect attr) {
+	struct {
+		uint32_t attr;
+		const char *name;
+	} mapping[] = {
+		{ 'flgs',  "kConnectionFlags" },
+		{ 'sync',  "kConnectionSyncEnable" },
+		{ 'sycf',  "kConnectionSyncFlags" },
+		{ 'asns',  "kConnectionSupportsAppleSense" },
+		{ 'lddc',  "kConnectionSupportsLLDDCSense" },
+		{ 'hddc',  "kConnectionSupportsHLDDCSense" },
+		{ 'enab',  "kConnectionEnable" },
+		{ 'cena',  "kConnectionCheckEnable" },
+		{ 'prob',  "kConnectionProbe" },
+		{ '\0igr', "kConnectionIgnore" },
+		{ 'chng',  "kConnectionChanged" },
+		{ 'powr',  "kConnectionPower" },
+		{ 'pwak',  "kConnectionPostWake" },
+		{ 'pcnt',  "kConnectionDisplayParameterCount" },
+		{ 'parm',  "kConnectionDisplayParameters" },
+		{ 'oscn',  "kConnectionOverscan" },
+		{ 'vbst',  "kConnectionVideoBest" },
+		{ 'rgsc',  "kConnectionRedGammaScale" },
+		{ 'ggsc',  "kConnectionGreenGammaScale" },
+		{ 'bgsc',  "kConnectionBlueGammaScale" },
+		{ 'gsc ',  "kConnectionGammaScale" },
+		{ 'flus',  "kConnectionFlushParameters" },
+		{ 'vblm',  "kConnectionVBLMultiplier" },
+		{ 'dpir',  "kConnectionHandleDisplayPortEvent" },
+		{ 'pnlt',  "kConnectionPanelTimingDisable" },
+		{ 'cyuv',  "kConnectionColorMode" },
+		{ 'colr',  "kConnectionColorModesSupported" },
+		{ ' bpc',  "kConnectionColorDepthsSupported" },
+		{ '\0grd', "kConnectionControllerDepthsSupported" },
+		{ '\0dpd', "kConnectionControllerColorDepth" },
+		{ '\0gdc', "kConnectionControllerDitherControl" },
+		{ 'dflg',  "kConnectionDisplayFlags" },
+		{ 'aud ',  "kConnectionEnableAudio" },
+		{ 'auds',  "kConnectionAudioStreaming" },
+		{ 'soft',  "kConnectionStartOfFrameTime" },
+		{ 'bklt',  "kConnectionRawBacklight" },
+	};
+
+	for (auto &map : mapping)
+		if (attr == map.attr)
+			return map.name;
+	sprintf(g_buf, "<unk:%u>", attr);
+	return (const char*)g_buf;
+}
+static mach_vm_address_t orig_dce110_set_backlight_level;
+long g_current_brightness_lvl = 0xff7b;
+static int64_t* pipe_ctx_ptr[32] = {NULL};
+static int pipe_ctx_cnt = 0;
+static char wrap_dce110_set_backlight_level(int64_t *that, unsigned int a2, int64_t a3) {
+	//SYSLOG("igfx", "wrap_dce110_set_backlight_level start %p:%d,%d", that, a2, a3);
+	char ret = FunctionCast(wrap_dce110_set_backlight_level, orig_dce110_set_backlight_level)(that, a2, a3);
+	//SYSLOG("igfx", "wrap_dce110_set_backlight_level end - %d", ret);
+	return ret;
+}
+int64_t my_set_backlight_lvl(unsigned int backlight_pwm_u16_16, int64_t ramp) {
+	for (int i = 0; i < pipe_ctx_cnt; i++) {
+		if (pipe_ctx_ptr[i]) {
+			char ret = wrap_dce110_set_backlight_level(pipe_ctx_ptr[i], backlight_pwm_u16_16, ramp);
+			//SYSLOG("igfx", "pipe %d set btl val %u, %u - ret: %d", i, backlight_pwm_u16_16, ramp, ret);
+		}
+	}
+	return 0;
+}
+static IOReturn AMDfbdebugWrapSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value) {
+	auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+	int idx = (idxnum != nullptr) ? (int) idxnum->unsigned32BitValue() : -1;
+	const char* attname = AMDgetAttributeName(attribute);
+	//SYSLOG("igfx", "amd setAttributeForConnection %d %d %s (%x) start -> %llx", idx, connectIndex, attname, attribute, value);
+	IOReturn ret = FunctionCast(AMDfbdebugWrapSetAttribute, AMDfbdebugOrgSetAttribute)(framebuffer, connectIndex, attribute, value);
+	//SYSLOG("igfx", "amd setAttributeForConnection %d %d %s (%x) end -> %llx - %x", idx, connectIndex, attname, attribute, value, ret);
+	if (strncmp(attname, "kConnectionRawBacklight", sizeof("kConnectionRawBacklight")) == 0) {
+		//SYSLOG("igfx", "amd force bklt to return success");
+		
+		g_current_brightness_lvl = value;
+		float btlper = (float)g_current_brightness_lvl / 0xff7b;
+		if (btlper < 0) {
+			btlper = 0;
+		}
+		if (btlper > 1.0) {
+			btlper = 1.0;
+		}
+		int pwmval = (int)(btlper * 0xFF) << 8;
+		if (pwmval >= 0xFF00) {
+			pwmval = 0x1FF00;
+		}
+		
+		//SYSLOG("igfx", "set btl val %d, %f", pwmval, btlper);
+		my_set_backlight_lvl(pwmval, 0);
+		
+		ret = 0;
+	}
+	//SYSLOG("igfx", "final ret: %d", ret);
+	return ret;
+}
+
+#define MYCHAR(c)    ((c) ? ((char) (c)) : '0')
+#define MYFEAT(f)    MYCHAR(f>>24), MYCHAR(f>>16), MYCHAR(f>>8), MYCHAR(f>>0)
+static IOReturn AMDfbdebugWrapGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value) {
+	//auto idxnum = OSDynamicCast(OSNumber, framebuffer->getProperty("IOFBDependentIndex"));
+	//int idx = (idxnum != nullptr) ? (int) idxnum->unsigned32BitValue() : -1;
+	const char* attname = AMDgetAttributeName(attribute);
+	//SYSLOG("igfx", "amd getAttributeForConnection %d %d %s (%x) start (non-null - %d)", idx, connectIndex, attname, attribute, value != nullptr);
+	IOReturn ret = FunctionCast(AMDfbdebugWrapGetAttribute, AMDfbdebugOrgGetAttribute)(framebuffer, connectIndex, attribute, value);
+	if (strncmp(attname, "kConnectionRawBacklight", sizeof("kConnectionRawBacklight")) == 0) {
+		//SYSLOG("igfx", "amd force bklt to return success");
+		*value = g_current_brightness_lvl;
+		ret = 0;
+	}
+	//SYSLOG("igfx", "amd getAttributeForConnection %d %d %s (%x) end - %x / %llx", idx, connectIndex, attname, attribute, ret, value ? *value : 0);
+	return ret;
+}
+
+typedef int64_t __int64;
+typedef int64_t _QWORD;
+typedef int32_t _DWORD;
+typedef int8_t __int8;
+
+//void dce110_set_pipe(struct pipe_ctx *pipe_ctx)
+//__int64 __fastcall dce110_set_pipe(__int64 a1)
+//INJECT_MYFUN_START(__int64, my_dce110_set_pipe, __int64 a1)
+//INJECT_MYFUN_END(__int64, my_dce110_set_pipe, "%lu", "%ld", a1)
+static mach_vm_address_t Orig_my_dce110_set_pipe;
+static __int64 Wrap_my_dce110_set_pipe(void* a1) {
+	//SYSLOG("igfx", "Wrap_""my_dce110_set_pipe"" start " "%lu", a1);
+	if (a1) {
+		bool found = false;
+		for (int i = 0; i < pipe_ctx_cnt; i++) {
+			if (pipe_ctx_ptr[i] == a1) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			//pipe_ctx_ptr[pipe_ctx_cnt] = (int64_t*)a1;
+			//pipe_ctx_cnt ++;
+			pipe_ctx_ptr[0] = (int64_t*)a1;
+			pipe_ctx_cnt = 1;
+			//SYSLOG("igfx", "add new pipe_ctx_ptr %p", a1);
+		}
+	}
+	__int64 ret = FunctionCast(Wrap_my_dce110_set_pipe, Orig_my_dce110_set_pipe)(a1);
+	//SYSLOG("igfx", "Wrap_""my_dce110_set_pipe"" end - " "%ld", ret);
+	return ret;
+}
+
 bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+#define INJECT_REQUEST_ENTRY(sym, name) \
+{sym, Wrap_##name, Orig_##name}
+	
+	if (kextRadeon5700Framebuffer.loadIndex == index) {
+		SYSLOG("igfx", "add amd debug patch");
+		KernelPatcher::RouteRequest requests[] = {
+			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25setAttributeForConnectionEijm", AMDfbdebugWrapSetAttribute, AMDfbdebugOrgSetAttribute},
+			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25getAttributeForConnectionEijPm", AMDfbdebugWrapGetAttribute, AMDfbdebugOrgGetAttribute},
+			{"_dce110_set_backlight_level", wrap_dce110_set_backlight_level, orig_dce110_set_backlight_level},
+			INJECT_REQUEST_ENTRY("_dce110_set_pipe", my_dce110_set_pipe),
+		};
+
+		if (!patcher.routeMultiple(index, requests, address, size, true, true))
+			SYSLOG("igfx", "DBG: Failed to route igfx tracing.");
+	}
+	
 	if (kextRadeonFramebuffer.loadIndex == index) {
 		if (force24BppMode)
 			process24BitOutput(patcher, kextRadeonFramebuffer, address, size);
