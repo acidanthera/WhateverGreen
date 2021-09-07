@@ -354,6 +354,29 @@ void WEG::processKernel(KernelPatcher &patcher) {
 	}
 }
 
+int64_t g_display_power_state = 0;
+//__ZN21AppleBacklightDisplay13setPowerStateEmP9IOService
+//__int64 __fastcall AppleBacklightDisplay::setPowerState(AppleBacklightDisplay *this, signed __int64 a2, IOService *a3)
+static mach_vm_address_t Orig_AppleBacklightDisplay_setPowerState;
+static int64_t Wrap_AppleBacklightDisplay_setPowerState(void *that, int64_t state, IOService *a3) {
+	//SYSLOG("igfx", "Wrap_AppleBacklightDisplay_setPowerState start, %p:%ld,%p", that, state, a3);
+	//IOService* ire = reinterpret_cast<IOService*>(that);
+	//if (ire) {
+	//	OSObject *p1 = ire->copyProperty(OSSymbol::withCStringNoCopy(kIODisplayParametersKey));
+	//	OSDictionary *displayParams = OSDynamicCast(OSDictionary, p1);
+	//	SYSLOG("igfx", "setPowerState displayParams: %p,%p", displayParams, p1);
+	//	SYSLOG("igfx", "ire->isInactive: %d", ire->isInactive());
+	//	if (displayParams) {
+	//		displayParams->release();
+	//	}
+	//} else {
+	//	SYSLOG("igfx", "NULL that reint");
+	//}
+	int64_t ret = FunctionCast(Wrap_AppleBacklightDisplay_setPowerState, Orig_AppleBacklightDisplay_setPowerState)(that, state, a3);
+	g_display_power_state = state; // 3 开，2，1，0 关
+	//SYSLOG("igfx", "Wrap_AppleBacklightDisplay_setPowerState end - %ld", ret);
+	return ret;
+}
 //AppleMCCSControlGibraltar *__fastcall AppleMCCSControlGibraltar::probe(AppleMCCSControlGibraltar *this, IOService *a2, int *a3)
 //__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi
 //INJECT_MYFUN_START(void*, AppleMCCSControlGibraltar_probe, void *that, IOService *a2, int *a3)
@@ -394,6 +417,7 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		DBGLOG("igfx", "route my fun 1");
 		KernelPatcher::RouteRequest request[] = {
 			{"__ZN21AppleBacklightDisplay12doIntegerSetEP12OSDictionaryPK8OSSymbolj", wrapAppleBacklightDisplay12doIntegerSet, orgAppleBacklightDisplay12doIntegerSet},
+			{"__ZN21AppleBacklightDisplay13setPowerStateEmP9IOService", Wrap_AppleBacklightDisplay_setPowerState, Orig_AppleBacklightDisplay_setPowerState},
 		};
 		patcher.routeMultiple(index, request, address, size);
 		return;
