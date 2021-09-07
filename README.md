@@ -4,4 +4,4 @@ This repo will fix the backlight adjust problem of this machine, see the code fo
 
 Still have one problem:
 
-The backlight control sometimes does not work, and have to boot into Windows first then reboot to Mac OS to make it work. Don't know the reason, may be need more initialize or reset code. Will study it in the future when I have time.
+The backlight control sometimes does not work, and have to boot into Windows to reset the brightness first then reboot to Mac OS to make it work. Don't know the reason, may be need more initialize or reset code. Will study it in the future when I have time.
