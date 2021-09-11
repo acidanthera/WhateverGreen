@@ -13,3 +13,7 @@ It seems cold boot into MacOS will cause this problem. And it will not going to 
 ![image](https://user-images.githubusercontent.com/46492291/132368573-15901d6a-8b5e-446b-b66d-0f7c0cf0eb18.png)
 
 No clue how to fix this. Please help if you have any ideas!
+
+# Related issue
+
+* https://bugzilla.kernel.org/show_bug.cgi?id=203905
