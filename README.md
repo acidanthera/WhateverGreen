@@ -12,46 +12,6 @@ Second, the backlight control doesn't work when cold boot directly into Mac OS, 
 
 No clue how to fix this. Please help if you have any ideas!
 
-Next trying:
-
-Try to compare the pipe context struct pipe_ctx in AMDRadeonX6000Framebuffer.kext while not working and working for more clue
-
-The definition resides in this path of linux kernel: drivers/gpu/drm/amd/display/dc/inc/core_types.h
-
-```
-struct pipe_ctx {
-	struct dc_plane_state *plane_state;
-	struct dc_stream_state *stream;
-
-	struct plane_resource plane_res;
-	struct stream_resource stream_res;
-
-	struct clock_source *clock_source;
-
-	struct pll_settings pll_settings;
-
-	uint8_t pipe_idx;
-
-	struct pipe_ctx *top_pipe;
-	struct pipe_ctx *bottom_pipe;
-	struct pipe_ctx *next_odm_pipe;
-	struct pipe_ctx *prev_odm_pipe;
-
-#ifdef CONFIG_DRM_AMD_DC_DCN
-	struct _vcs_dpi_display_dlg_regs_st dlg_regs;
-	struct _vcs_dpi_display_ttu_regs_st ttu_regs;
-	struct _vcs_dpi_display_rq_regs_st rq_regs;
-	struct _vcs_dpi_display_pipe_dest_params_st pipe_dlg_param;
-	int det_buffer_size_kb;
-	bool unbounded_req;
-#endif
-	union pipe_update_flags update_flags;
-	struct dwbc *dwbc;
-	struct mcif_wb *mcif_wb;
-	bool vtp_locked;
-};
-```
-
 # Related issue
 
 * https://bugzilla.kernel.org/show_bug.cgi?id=203905
