@@ -18,6 +18,9 @@
 #include "kern_shiki.hpp"
 #include "kern_unfair.hpp"
 
+class IOFramebuffer;
+class IODisplay;
+
 class WEG {
 public:
 	void init();
@@ -160,8 +163,6 @@ private:
 	 */
 	mach_vm_address_t orgFramebufferInit {};
 
-	mach_vm_address_t orgAppleBacklightDisplay12doIntegerSet {};
-	
 	/**
 	 *  Verbose boot global variable pointer
 	 */
@@ -343,8 +344,6 @@ private:
 	 */
 	const char *getRadeonModel(uint16_t dev, uint16_t rev, uint16_t subven, uint16_t sub);
 
-	static bool wrapAppleBacklightDisplay12doIntegerSet(void *that, OSDictionary * params, const OSSymbol * paramName, UInt32 value);
-	
 	/**
 	 *  IGPU PCI Config device-id faking wrappers
 	 */
