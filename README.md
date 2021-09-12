@@ -14,7 +14,7 @@ No clue how to fix this. Please help if you have any ideas!
 
 Next trying:
 
-Try to compare the struct pipe_ctx in AMDRadeonX6000Framebuffer.kext while not working and working for more clue
+Try to compare the pipe context struct pipe_ctx in AMDRadeonX6000Framebuffer.kext while not working and working for more clue
 
 ```
 struct pipe_ctx {
