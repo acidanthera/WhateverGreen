@@ -16,6 +16,8 @@ Next trying:
 
 Try to compare the pipe context struct pipe_ctx in AMDRadeonX6000Framebuffer.kext while not working and working for more clue
 
+The definition resides in this path of linux kernel: drivers/gpu/drm/amd/display/dc/inc/core_types.h
+
 ```
 struct pipe_ctx {
 	struct dc_plane_state *plane_state;
