@@ -376,10 +376,10 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		return;
 }
 
-uint32_t processUID(uint32_t real) {
+uint32_t processUID(uint32_t deviceid) {
 	uint32_t uid = 0;
 	// list from SSDT-PNLF, use CpuGeneration instead?
-	switch (real) {
+	switch (deviceid) {
 		// Sandy HD3000
 		case 0x010b: case 0x0102:
 		case 0x0106: case 0x1106: case 0x1601: case 0x0116: case 0x0126:
@@ -469,13 +469,12 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 
 		if (auto adev = OSDynamicCast(IOACPIPlatformDevice, obj->getProperty("acpi-device"))) {
 			auto child = adev->childFromPath("PNLF", gIOACPIPlane);
-			auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child);
-			if (pnlf) {
+			if (auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child)) {
 				DBGLOG("weg", "found PNLF at %s", safeString(pnlf->getName()));
 				IOReturn ret;
 				ret = pnlf->validateObject("SUID");
 				if (ret == kIOReturnSuccess) {
-					uint32_t target = processUID(realDevice);
+					uint32_t target = processUID(fakeDevice ?: realDevice);
 					OSObject *params[] = { OSNumber::withNumber(target, 32) };
 					ret = pnlf->evaluateObject("SUID", nullptr, params, 1);
 					if (ret == kIOReturnSuccess) {
