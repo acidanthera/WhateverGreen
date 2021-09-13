@@ -468,7 +468,8 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 		}
 
 		if (auto adev = OSDynamicCast(IOACPIPlatformDevice, obj->getProperty("acpi-device"))) {
-			auto pnlf = OSDynamicCast(IOACPIPlatformDevice, adev->childFromPath("PNLF", gIOACPIPlane));
+			auto child = adev->childFromPath("PNLF", gIOACPIPlane);
+			auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child);
 			if (pnlf) {
 				DBGLOG("weg", "found PNLF at %s", safeString(pnlf->getName()));
 				IOReturn ret;
@@ -492,6 +493,7 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 					pnlf->setProperty("_UID", result);
 				OSSafeReleaseNULL(result);
 			}
+			OSSafeReleaseNULL(child);
 		}
 	} else {
 		SYSLOG("weg", "invalid IGPU device type");
