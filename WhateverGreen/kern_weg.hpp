@@ -380,12 +380,6 @@ private:
 	 *
 	 */
 	static void* wrapAppleMCCSControlCelloProbe(void *that, IOService *a2, int *a3);
-	
-	/**
-	 *  IODisplay doIntegerSet wrapper used for get 
-	 *
-	 */
-	static char wrapIODisplayDoIntegerSet(IODisplay *that, OSDictionary *a2, const OSSymbol *a3, unsigned int a4);
 
 	/**
 	 *  AppleGraphicsDevicePolicy start wrapper used for black screen fixes in AGDP_CFGMAP mode
