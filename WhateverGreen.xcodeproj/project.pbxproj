@@ -93,7 +93,6 @@
 		5B9131F2258A8EFB0008530D /* FAQ.IntelHD.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.en.md; sourceTree = "<group>"; };
 		5B9131F3258A8F090008530D /* FAQ.IntelHD.cn.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.cn.md; sourceTree = "<group>"; };
 		5B9131F4258A8F1C0008530D /* FAQ.OldPlugins.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.OldPlugins.en.md; sourceTree = "<group>"; };
-		6FA3CCFC26EEAF2A00EE07F0 /* SSDT-PNLF.dsl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "SSDT-PNLF.dsl"; sourceTree = "<group>"; };
 		CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_nvhda.cpp; sourceTree = "<group>"; };
 		CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_nvhda.hpp; sourceTree = "<group>"; };
 		CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_debug.cpp; sourceTree = "<group>"; };
@@ -336,7 +335,6 @@
 				CE7FC0D020F6882400138088 /* FAQ.Shiki.zh_CN.md */,
 				CE271B4C1F319BD000D2BC1C /* reference.cpp */,
 				CEAEA1191F26905A00918651 /* Sample.dsl */,
-				6FA3CCFC26EEAF2A00EE07F0 /* SSDT-PNLF.dsl */,
 			);
 			path = Manual;
 			sourceTree = "<group>";

@@ -29,11 +29,11 @@ DefinitionBlock ("", "SSDT", 2, "ACDT", "PNLF", 0x00000000)
                 // 99: Other (requires custom profile using WhateverGreen.kext via DeviceProperties applbkl-name and applbkl-data)
                 Name (_UID, Zero)  // _UID: Unique ID
                 Name (_STA, 0x0B)  // _STA: Status
+            }
 
-                Method (SUID, 1, NotSerialized)
-                {
-                    _UID = ToInteger (Arg0)
-                }
+            Method (SUID, 1, NotSerialized)
+            {
+                ^PNLF._UID = ToInteger (Arg0)
             }
         }
     }

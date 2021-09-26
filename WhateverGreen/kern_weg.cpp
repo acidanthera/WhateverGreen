@@ -467,32 +467,30 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 			}
 		}
 
+		// Set PNLF _UID by device-id
 		if (auto adev = OSDynamicCast(IOACPIPlatformDevice, obj->getProperty("acpi-device"))) {
-			auto child = adev->childFromPath("PNLF", gIOACPIPlane);
-			if (auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child)) {
-				DBGLOG("weg", "found PNLF at %s", safeString(pnlf->getName()));
-				IOReturn ret;
-				ret = pnlf->validateObject("SUID");
-				if (ret == kIOReturnSuccess) {
-					uint32_t target = processUID(fakeDevice ?: realDevice);
-					OSObject *params[] = { OSNumber::withNumber(target, 32) };
-					ret = pnlf->evaluateObject("SUID", nullptr, params, 1);
-					if (ret == kIOReturnSuccess) {
-						DBGLOG("weg", "PNLF _UID set to 0x%x", target);
-					} else {
-						SYSLOG("weg", "failed to set PNLF _UID");
-					}
-					params[0]->release();
+			if (adev->validateObject("SUID") == kIOReturnSuccess) {
+				uint32_t target = processUID(fakeDevice ?: realDevice);
+				OSObject *params[] = { OSNumber::withNumber(target, 32) };
+				if (adev->evaluateObject("SUID", nullptr, params, 1) == kIOReturnSuccess) {
+					DBGLOG("weg", "set PNLF _UID to 0x%x", target);
 				} else {
-					DBGLOG("weg", "PNLF doesn't support _UID set");
+					SYSLOG("weg", "set PNLF _UID failed");
 				}
-				OSObject *result = nullptr;
-				ret = pnlf->evaluateObject("_UID", &result);
-				if (ret == kIOReturnSuccess)
-					pnlf->setProperty("_UID", result);
-				OSSafeReleaseNULL(result);
+				params[0]->release();
+
+				// Override _UID property in ioreg with new value
+				auto child = adev->childFromPath("PNLF", gIOACPIPlane);
+				if (auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child)) {
+					OSObject *result = nullptr;
+					if (pnlf->evaluateObject("_UID", &result) == kIOReturnSuccess)
+						pnlf->setProperty("_UID", result);
+					OSSafeReleaseNULL(result);
+				}
+				OSSafeReleaseNULL(child);
+			} else {
+				DBGLOG("weg", "PNLF does not support _UID set");
 			}
-			OSSafeReleaseNULL(child);
 		}
 	} else {
 		SYSLOG("weg", "invalid IGPU device type");
