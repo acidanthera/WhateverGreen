@@ -17,7 +17,7 @@
 
 class RAD {
 public:
-	void init();
+	void init(bool enableNavi10Bkl = false);
 	void deinit();
 
 	/**
@@ -129,6 +129,23 @@ private:
 	 *  Max framebuffer base functions per kext
 	 */
 	static constexpr size_t MaxGetFrameBufferProcs = 3;
+	
+	/**
+	 *  Variables and functions needed to enable Amd Navi10 pwm backlight control
+	 */
+	long curPwmBacklightLvl = 0;
+	// 0xff7b is the max brightness from intel CFL backlight panel data, this value will be override in getMaxBrightnessFromDisplay
+	long maxPwmBacklightLvl = 0xff7b;
+	void* dcLinkPtr = NULL;
+	uint32_t getMaxBrightnessFromDisplay();
+	mach_vm_address_t orgDcLinkSetBacklightLevel {};
+	mach_vm_address_t orgDce110EdpBacklightControl {};
+	mach_vm_address_t orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute {};
+	mach_vm_address_t orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute {};
+	static bool wrapDcLinkSetBacklightLevel(const void *dc_link, uint32_t backlight_pwm_u16_16, uint32_t frame_ramp);
+	static char wrapDce110EdpBacklightControl(void *that, int64_t on_or_off, int64_t a3, int64_t a4, int64_t a5, int64_t a6);
+	static IOReturn wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value);
+	static IOReturn wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value);
 
 	/**
 	 *  Framebuffer base function names

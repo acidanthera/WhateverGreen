@@ -18,7 +18,7 @@
 #include "kern_rad.hpp"
 
 static const char *pathFramebuffer[]		{ "/System/Library/Extensions/AMDFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
-static const char *path5700Framebuffer[]		{ "/System/Library/Extensions/AMDRadeonX6000Framebuffer.kext/Contents/MacOS/AMDRadeonX6000Framebuffer" };
+static const char *pathX6000Framebuffer[]	{ "/System/Library/Extensions/AMDRadeonX6000Framebuffer.kext/Contents/MacOS/AMDRadeonX6000Framebuffer" };
 static const char *pathLegacyFramebuffer[]	{ "/System/Library/Extensions/AMDLegacyFramebuffer.kext/Contents/MacOS/AMDLegacyFramebuffer" };
 static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathLegacySupport[]		{ "/System/Library/Extensions/AMDLegacySupport.kext/Contents/MacOS/AMDLegacySupport" };
@@ -53,8 +53,8 @@ static KernelPatcher::KextInfo kextRadeonLegacySupport
 { "com.apple.kext.AMDLegacySupport", pathLegacySupport, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextPolarisController
 { "com.apple.kext.AMD9500Controller", patchPolarisController, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
-static KernelPatcher::KextInfo kextRadeon5700Framebuffer
-{ "com.apple.kext.AMDRadeonX6000Framebuffer", path5700Framebuffer, arrsize(path5700Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
+{ "com.apple.kext.AMDRadeonX6000Framebuffer", pathX6000Framebuffer, arrsize(pathX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -84,7 +84,7 @@ static const char *powerGatingFlags[] {
 
 RAD *RAD::callbackRAD;
 
-void RAD::init() {
+void RAD::init(bool enableNavi10Bkl) {
 	callbackRAD = this;
 
 	currentPropProvider.init();
@@ -101,7 +101,9 @@ void RAD::init() {
 			lilu.onKextLoadForce(&kextRadeonLegacyFramebuffer);
 	}
 	
-	lilu.onKextLoadForce(&kextRadeon5700Framebuffer);
+	if (enableNavi10Bkl) {
+		lilu.onKextLoadForce(&kextRadeonX6000Framebuffer);
+	}
 
 	// Certain GPUs cannot output to DVI at full resolution.
 	dviSingleLink = checkKernelArgument("-raddvi");
@@ -190,94 +192,106 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	}
 }
 
-long g_current_brightness_lvl = 0xff7b;
-static void* g_dc_link_ptr = NULL;
-static mach_vm_address_t orig_dce110_set_backlight_level;
-static char wrap_dce110_set_backlight_level(int64_t pipe_ctx, unsigned int a2, int64_t a3) {
-	char ret = FunctionCast(wrap_dce110_set_backlight_level, orig_dce110_set_backlight_level)(pipe_ctx, a2, a3);
-	return ret;
-}
-int64_t amd_set_backlight_lvl_pwm(unsigned int backlight_pwm_u16_16, int64_t ramp) {
-	char ret = 0;
-	if (g_dc_link_ptr) {
-		int64_t v10 = 0;
-		int64_t v9 = *(int64_t *)(*(int64_t *)((int64_t)g_dc_link_ptr + 304) + 944LL);
-		while ( true ) {
-			int64_t stream = *(int64_t *)(v9 + v10 + 496);
-			if ( stream ) {
-				if (*(int64_t *)(stream + 8) == (int64_t)g_dc_link_ptr) {
-					int64_t pipe_ctx = (v9 + v10 + 488);
-					ret = wrap_dce110_set_backlight_level(pipe_ctx, backlight_pwm_u16_16, ramp);
-					break;
+uint32_t RAD::getMaxBrightnessFromDisplay() {
+	OSDictionary * matching = IOService::serviceMatching("AppleBacklightDisplay");
+	if (matching) {
+		OSIterator *iter = IOService::getMatchingServices(matching);
+		if (iter) {
+			IORegistryEntry* disp = OSDynamicCast(IORegistryEntry, iter->getNextObject());
+			if (disp) {
+				OSDictionary* iodispparm = OSDynamicCast(OSDictionary, disp->getProperty("IODisplayParameters"));
+				if (iodispparm) {
+					OSDictionary* linearbri = OSDynamicCast(OSDictionary, iodispparm->getObject("linear-brightness"));
+					if (linearbri) {
+						OSNumber* maxbri = OSDynamicCast(OSNumber, linearbri->getObject("max"));
+						callbackRAD->maxPwmBacklightLvl = maxbri->unsigned32BitValue();
+						SYSLOG("igfx", "getMaxBrightnessFromDisplay get max brightness: 0x%x", callbackRAD->maxPwmBacklightLvl);
+					} else {
+						SYSLOG("igfx", "getMaxBrightnessFromDisplay null linearbri");
+					}
 				} else {
-					SYSLOG("igfx", "amd_set_backlight_lvl_pwm steam link %lu != %p", *(int64_t *)(stream + 8), g_dc_link_ptr);
+					SYSLOG("igfx", "getMaxBrightnessFromDisplay null iodispparm");
 				}
+			} else {
+				SYSLOG("igfx", "getMaxBrightnessFromDisplay null disp");
 			}
-			v10 += 1280LL;
-			if ( v10 >= 7680 )
-				break;
-		}
-	} else {
-		SYSLOG("igfx", "amd_set_backlight_lvl_pwm null link");
-	}
-	return ret;
-}
-
-static mach_vm_address_t orig_dce110_edp_backlight_control;
-static char wrap_dce110_edp_backlight_control(void *that, int64_t on_or_off, int64_t a3, int64_t a4, int64_t a5, int64_t a6) {
-	SYSLOG("igfx", "wrap_dce110_edp_backlight_control start %p:%lu,%lu,%lu,%lu,%lu", that, on_or_off, a3, a4, a5, a6);
-	g_dc_link_ptr = that;
-	char ret = FunctionCast(wrap_dce110_edp_backlight_control, orig_dce110_edp_backlight_control)(that, on_or_off, a3, a4, a5, a6);
-	SYSLOG("igfx", "wrap_dce110_edp_backlight_control end - %d", ret);
-	return ret;
-}
-
-static mach_vm_address_t AMDfbdebugOrgSetAttribute;
-static IOReturn AMDfbdebugWrapSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value) {
-	IOReturn ret = FunctionCast(AMDfbdebugWrapSetAttribute, AMDfbdebugOrgSetAttribute)(framebuffer, connectIndex, attribute, value);
-	if (attribute == 'bklt') {
-		g_current_brightness_lvl = value;
-		float btlper = (float)g_current_brightness_lvl / 0xff7b;
-		if (btlper < 0) {
-			btlper = 0;
-		}
-		if (btlper > 1.0) {
-			btlper = 1.0;
-		}
-		int pwmval = (int)(btlper * 0xFF) << 8;
-		if (pwmval >= 0xFF00) {
-			pwmval = 0x1FF00;
+			
+			iter->release();
+		} else {
+			SYSLOG("igfx", "getMaxBrightnessFromDisplay null iter");
 		}
 		
-		amd_set_backlight_lvl_pwm(pwmval, 0);
+		matching->release();
+	} else {
+		SYSLOG("igfx", "getMaxBrightnessFromDisplay null matching");
+	}
+	
+	return 0;
+}
+
+bool RAD::wrapDcLinkSetBacklightLevel(const void *dc_link, uint32_t backlight_pwm_u16_16, uint32_t frame_ramp) {
+	return FunctionCast(wrapDcLinkSetBacklightLevel, callbackRAD->orgDcLinkSetBacklightLevel)(dc_link, backlight_pwm_u16_16, frame_ramp);
+}
+
+char RAD::wrapDce110EdpBacklightControl(void *that, int64_t on_or_off, int64_t a3, int64_t a4, int64_t a5, int64_t a6) {
+	callbackRAD->dcLinkPtr = that; // save the dc link ptr for later backlight control
+	callbackRAD->getMaxBrightnessFromDisplay(); // read max brightness value from IOReg
+	return FunctionCast(wrapDce110EdpBacklightControl, callbackRAD->orgDce110EdpBacklightControl)(that, on_or_off, a3, a4, a5, a6);
+}
+
+IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value) {
+	IOReturn ret = FunctionCast(wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute, callbackRAD->orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute)(framebuffer, connectIndex, attribute, value);
+	if (attribute == (UInt32)'bklt') {
+		if (callbackRAD->maxPwmBacklightLvl != 0) {
+			// set the backlight of AMD navi10 driver
+			callbackRAD->curPwmBacklightLvl = value;
+			double btlper = (double)callbackRAD->curPwmBacklightLvl / callbackRAD->maxPwmBacklightLvl;
+			if (btlper < 0) {
+				btlper = 0;
+			}
+			if (btlper > 1.0) {
+				btlper = 1.0;
+			}
+			int pwmval = (int)(btlper * 0xFF) << 8;
+			if (pwmval >= 0xFF00) {
+				pwmval = 0x1FF00;
+			}
+
+			if (callbackRAD->dcLinkPtr) {
+				callbackRAD->wrapDcLinkSetBacklightLevel(callbackRAD->dcLinkPtr, pwmval, 0);
+			} else {
+				SYSLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute null dc link");
+			}
+		} else {
+			SYSLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute zero maxPwmBacklightLvl");
+		}
 		
 		ret = 0;
 	}
 	return ret;
 }
 
-static mach_vm_address_t AMDfbdebugOrgGetAttribute;
-static IOReturn AMDfbdebugWrapGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value) {
-	IOReturn ret = FunctionCast(AMDfbdebugWrapGetAttribute, AMDfbdebugOrgGetAttribute)(framebuffer, connectIndex, attribute, value);
-	if (attribute == 'bklt') {
-		*value = g_current_brightness_lvl;
+IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value) {
+	IOReturn ret = FunctionCast(wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute, callbackRAD->orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute)(framebuffer, connectIndex, attribute, value);
+	if (attribute == (UInt32)'bklt') {
+		// enable the backlight feature of AMD navi10 driver
+		*value = callbackRAD->curPwmBacklightLvl;
 		ret = 0;
 	}
 	return ret;
 }
 
 bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
-	if (kextRadeon5700Framebuffer.loadIndex == index) {
-		SYSLOG("igfx", "add amd debug patch");
+	if (kextRadeonX6000Framebuffer.loadIndex == index) {
 		KernelPatcher::RouteRequest requests[] = {
-			{"_dce110_edp_backlight_control", wrap_dce110_edp_backlight_control, orig_dce110_edp_backlight_control},
-			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25setAttributeForConnectionEijm", AMDfbdebugWrapSetAttribute, AMDfbdebugOrgSetAttribute},
-			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25getAttributeForConnectionEijPm", AMDfbdebugWrapGetAttribute, AMDfbdebugOrgGetAttribute},
-			{"_dce110_set_backlight_level", wrap_dce110_set_backlight_level, orig_dce110_set_backlight_level},
+			{"_dce110_edp_backlight_control", wrapDce110EdpBacklightControl, orgDce110EdpBacklightControl},
+			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25setAttributeForConnectionEijm", wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute, orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute},
+			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25getAttributeForConnectionEijPm", wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute, orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute},
+			{"_dc_link_set_backlight_level", wrapDcLinkSetBacklightLevel, orgDcLinkSetBacklightLevel},
 		};
 
 		if (!patcher.routeMultiple(index, requests, address, size, true, true))
-			SYSLOG("igfx", "DBG: Failed to route igfx tracing.");
+			SYSLOG("igfx", "DBG: Failed to route amd gpu tracing.");
 	}
 	
 	if (kextRadeonFramebuffer.loadIndex == index) {

@@ -92,11 +92,13 @@ private:
 	 *  APPLBKL_OFF     disables AppleBacklight patches.
 	 *  APPLBKL_ON      enforces AppleBacklight patches.
 	 *  APPLBKL_DETECT  enables AppleBacklight patches for IGPU-only non-Apple setups.
+	 *  APPLBKL_NAVI10  enables AppleBacklight patches for AMD Navi10 PWM backlight control.
 	 */
 	enum BacklightPatchMode {
 		APPLBKL_OFF    = 0,
 		APPLBKL_ON     = 1,
-		APPLBKL_DETECT = 2
+		APPLBKL_DETECT = 2,
+		APPLBKL_NAVI10 = 3
 	};
 
 	/**
@@ -162,6 +164,16 @@ private:
 	 *  Original IOGraphics framebuffer init handler
 	 */
 	mach_vm_address_t orgFramebufferInit {};
+	
+	/**
+	 *  Original AppleMCCSControl AppleMCCSControlGibraltar probe handler
+	 */
+	mach_vm_address_t orgAppleMCCSControlGibraltarProbe {};
+	
+	/**
+	 *  Original AppleMCCSControl AppleMCCSControlCello probe handler
+	 */
+	mach_vm_address_t orgAppleMCCSControlCelloProbe {};
 
 	/**
 	 *  Verbose boot global variable pointer
@@ -356,6 +368,24 @@ private:
 	 *  @param fb  framebuffer instance
 	 */
 	static void wrapFramebufferInit(IOFramebuffer *fb);
+	
+	/**
+	 *  AppleMCCSControl AppleMCCSControlGibraltar probe wrapper used for disable AppleMCCSControl
+	 *
+	 */
+	static void* wrapAppleMCCSControlGibraltarProbe(void *that, IOService *a2, int *a3);
+
+	/**
+	 *  AppleMCCSControl AppleMCCSControlCello probe wrapper used for disable AppleMCCSControl
+	 *
+	 */
+	static void* wrapAppleMCCSControlCelloProbe(void *that, IOService *a2, int *a3);
+	
+	/**
+	 *  IODisplay doIntegerSet wrapper used for get 
+	 *
+	 */
+	static char wrapIODisplayDoIntegerSet(IODisplay *that, OSDictionary *a2, const OSSymbol *a3, unsigned int a4);
 
 	/**
 	 *  AppleGraphicsDevicePolicy start wrapper used for black screen fixes in AGDP_CFGMAP mode
