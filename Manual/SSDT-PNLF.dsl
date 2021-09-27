@@ -39,11 +39,12 @@ DefinitionBlock ("", "SSDT", 2, "ACDT", "PNLF", 0x00000000)
                 }
             }
         }
- 
+
         Method (SUID, 1, NotSerialized)
         {
             ^PNLF._UID = ToInteger (Arg0)
-            Return (^PNLF._UID)
+            // Return PNLF device name in case of conflict
+            Return ("PNLF")
         }
     }
 }

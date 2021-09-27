@@ -472,21 +472,23 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 			if (adev->validateObject("SUID") == kIOReturnSuccess) {
 				uint32_t target = processUID(fakeDevice ?: realDevice);
 				OSObject *params[] = { OSNumber::withNumber(target, 32) };
-				if (adev->evaluateObject("SUID", nullptr, params, 1) == kIOReturnSuccess) {
+				OSObject *result;
+				if (adev->evaluateObject("SUID", &result, params, 1) == kIOReturnSuccess) {
 					DBGLOG("weg", "set PNLF _UID to 0x%x", target);
 				} else {
 					SYSLOG("weg", "set PNLF _UID failed");
 				}
 				params[0]->release();
-
 				// Override _UID property in ioreg with new value
-				auto child = adev->childFromPath("PNLF", gIOACPIPlane);
+				OSString *path = OSDynamicCast(OSString, result);
+				auto child = adev->childFromPath(path ? path->getCStringNoCopy() : "PNLF", gIOACPIPlane);
 				if (auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child)) {
-					OSObject *result = nullptr;
-					if (pnlf->evaluateObject("_UID", &result) == kIOReturnSuccess)
-						pnlf->setProperty("_UID", result);
-					OSSafeReleaseNULL(result);
+					OSObject *uid = nullptr;
+					if (pnlf->evaluateObject("_UID", &uid) == kIOReturnSuccess)
+						pnlf->setProperty("_UID", uid);
+					OSSafeReleaseNULL(uid);
 				}
+				OSSafeReleaseNULL(result);
 				OSSafeReleaseNULL(child);
 			} else {
 				DBGLOG("weg", "PNLF does not support _UID set");
