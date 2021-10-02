@@ -2660,6 +2660,22 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00014ead; Target =
 
 </details>
 
+## Fix the issue that the builtin display remains garbled after the system boots on ICL platforms
+
+Add the `enable-dbuf-early-optimizer` property to `IGPU` or use the `-igfxdbeo` boot argument instead to fix the Display Data Buffer (DBUF) allocation issue on ICL platforms, 
+otherwise your builtin display remains garbled for 7 to 15 seconds after the system boots.
+You need this fix if you observe a bunch of errors mentioning "DBUF" and "pipe underrun" in the kernel log.
+
+<details>
+<summary>Sample kernel log that contains DBUF-related errors</summary>
+
+```
+[IGFB][ERROR][DISPLAY   ] Display Pipe Underrun occurred on pipe(s) A
+[IGFB][ERROR][DISPLAY   ] Internal cached DBuf values are not set. Failed to distribute DBufs
+```
+
+</details>
+
 ## Known Issues
 
 **Compatibility**

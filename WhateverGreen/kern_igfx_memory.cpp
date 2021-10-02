@@ -10,6 +10,15 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_disasm.hpp>
 
+///
+/// This file contains the following memory-related fixes
+///
+/// 1. DVMT calculation fix on ICL+.
+/// 2. Display data buffer early optimizer on ICL+.
+///
+
+// MARK: - DVMT Pre-allocated Memory Calculation Fix
+
 void IGFX::DVMTCalcFix::init() {
 	// We only need to patch the framebuffer driver
 	requiresPatchingGraphics = false;
@@ -206,3 +215,98 @@ void IGFX::DVMTCalcFix::processFramebufferKext(KernelPatcher &patcher, size_t in
 	SYSLOG("igfx", "DVMT: Failed to find instructions of interest. Aborted patching.");
 }
 
+// MARK: - Display Data Buffer Early Optimizer
+
+void IGFX::DisplayDataBufferEarlyOptimizer::wrapGetFeatureControl(IOService *controller) {
+	//
+	// Abstract
+	//
+	// Display Data Buffer (DBUF) is critical for display pipes and planes to function properly.
+	// The graphics driver allocates the buffer by writing a <start, end> pair to the plane buffer configuration register.
+	// Apple expects that the firmware has allocated an adequate amount of buffer for the Pipe A that drives the builtin display,
+	// so the driver can optimize the allocation later to provide better display residency in memory low power modes.
+	// However, the buffer allocated by the BIOS on Ice Lake-based laptops seems to be not enough for the plane running in the mode configured by the driver,
+	// resulting in a garbled display that lasts for about 7 to 15 seconds when the system finishes booting and presents the login window.
+	// This issue will disappear when the function that optimizes the buffer allocation is fired by a timer enabled at the end of mode setting.
+	// The default delay of executing the optimizer function is 15 seconds which is hard-coded in the framebuffer controller's startup routine.
+	// Fortunately, we can change the delay by injecting the property "DBUFOptimizeTime" to the feature control dictionary.
+	// By specifying a delay of 0 second, we can invoke the optimizer function as soon as the graphics driver completes the modeset for the builtin display,
+	// thus fixing the garbled builtin screen issue on Ice Lake platforms without having any negative impacts on external monitors.
+	//
+	// Future Work
+	//
+	// Ideally, we should be able to increase the buffer allocation at an early boot stage,
+	// just like how we fix the Core Display Clock issue on Ice Lake platforms.
+	// However, I am still trying to figure out where the best place is to inject the code properly.
+	//
+	// Acknowledgements
+	//
+	// I would like to acknowledge @m0d16l14n1's passion and insistence on this annoying issue since Sep, 2020,
+	// and @kingo123 for implementing the proof-of-concept code showing that @m0d16l14n1's direction is correct.
+	// Your findings motivate me to resume this research on the display data buffer issue and find the root cause.
+	//
+	// - FireWolf
+	// - 2021.10
+	//
+	auto module = &callbackIGFX->modDisplayDataBufferEarlyOptimizer;
+	
+	do {
+		// Guard: Fetch the current feature control dictionary
+		auto features = OSDynamicCast(OSDictionary, controller->getProperty(kFeatureControl));
+		if (features == nullptr) {
+			SYSLOG("igfx", "DBEO: Failed to fetch the feature control dictionary.");
+			break;
+		}
+		
+		auto clonedFeatures = features->copyCollection();
+		if (clonedFeatures == nullptr) {
+			SYSLOG("igfx", "DBEO: Failed to clone the feature control dictionary.");
+			break;
+		}
+		
+		auto newFeatures = OSDynamicCast(OSDictionary, clonedFeatures);
+		PANIC_COND(newFeatures == nullptr, "igfx", "DBEO: The cloned collection is not a dictionary.");
+		
+		// Allocate the new optimizer delay
+		auto delay = OSNumber::withNumber(module->optimizerTime, 32);
+		if (delay == nullptr) {
+			SYSLOG("igfx", "DBEO: Failed to allocate the new optimizer delay.");
+			newFeatures->release();
+			break;
+		}
+
+		// Set the new optimizer delay
+		newFeatures->setObject(kOptimizerTime, delay);
+		controller->setProperty(kFeatureControl, newFeatures);
+		delay->release();
+		newFeatures->release();
+		DBGLOG("igfx", "DBEO: The new optimizer value has been set to %u.", module->optimizerTime);
+	} while (false);
+	
+	module->orgGetFeatureControl(controller);
+}
+
+void IGFX::DisplayDataBufferEarlyOptimizer::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingGraphics = false;
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::DisplayDataBufferEarlyOptimizer::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	// Enable the fix if the corresponding boot argument is found
+	enabled = checkKernelArgument("-igfxdbeo");
+	// Of if "enable-dbuf-early-optimizer" is set in IGPU property
+	if (!enabled)
+		enabled = info->videoBuiltin->getProperty("enable-dbuf-early-optimizer") != nullptr;
+	if (!enabled)
+		return;
+	
+	// Fetch the user configuration
+	if (WIOKit::getOSDataValue(info->videoBuiltin, "dbuf-optimizer-delay", optimizerTime))
+		DBGLOG("igfx", "DBEO: User requested optimizer delay = %u.", optimizerTime);
+}
+
+void IGFX::DisplayDataBufferEarlyOptimizer::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	KernelPatcher::RouteRequest request("__ZN31AppleIntelFramebufferController17getFeatureControlEv", wrapGetFeatureControl, orgGetFeatureControl);
+	SYSLOG_COND(!patcher.routeMultiple(index, &request, 1, address, size), "igfx", "DBEO: Failed to route the function.");
+}

@@ -2021,6 +2021,21 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00014ead; Target =
 
 </details>
 
+## 修复 Ice Lake 平台上笔记本开机持续花屏7到15秒的问题
+
+为核显添加 `enable-dbuf-early-optimizer` 属性或者直接使用 `-igfxdbeo` 启动参数以修复 Ice Lake 笔记本开机后内屏短暂花屏的问题。
+若发现内核日志记录了如下 DBUF 以及 Pipe Underrun 相关的错误信息，请启用此补丁来修复这些错误。
+
+<details>
+<summary>包含 DBUF 以及 Pipe Underrun 错误信息的内核日志</summary>
+
+```
+[IGFB][ERROR][DISPLAY   ] Display Pipe Underrun occurred on pipe(s) A
+[IGFB][ERROR][DISPLAY   ] Internal cached DBuf values are not set. Failed to distribute DBufs
+```
+
+</details>
+
 ## 已知问题
 *兼容性*：
 - 受限制的显卡：HD2000 和 HD2500，它们只能用于 IQSV (因为在白苹果中它们只用来干这个)，无解。

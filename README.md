@@ -34,6 +34,7 @@ WhateverGreen
 - Supports all valid Core Display Clock (CDCLK) freqencies on Intel ICL platforms.
 - Fixes the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
 - Makes brightness transitions smoother on Intel IVB+ platforms.
+- Fixes the short period garbled screen issue after the system boots on Intel ICL platforms.
 
 #### Documentation
 
@@ -94,6 +95,7 @@ indices of connectors for which online status is enforced. Format is similar to 
 - `-igfxblr` boot argument (and `enable-backlight-registers-fix` property) to fix backlight registers on KBL, CFL and ICL platforms.
 - `-igfxmpc` boot argument (`enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties) to increase max pixel clock (as an alternative to patching CoreDisplay.framework).
 - `-igfxbls` boot argument (and `enable-backlight-smoother` property) to make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience)
+- `-igfxdbeo` boot argument (and `enable-dbuf-early-optimizer` property) to fix the Display Data Buffer (DBUF) issues on ICL+ platforms.
 
 #### Credits
 
@@ -101,7 +103,7 @@ indices of connectors for which online status is enforced. Format is similar to 
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
 - [Andrey1970AppleLife](https://github.com/Andrey1970AppleLife) for [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/)
-- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, DVMT pre-allocated memory calculation fix for ICL platforms, and Backlight Smoother for IVB+ platforms.
+- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, DVMT pre-allocated memory calculation fix for ICL platforms, Backlight Smoother for IVB+ platforms, and Display Data Buffer fix for ICL platforms.
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements

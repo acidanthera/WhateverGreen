@@ -1758,7 +1758,45 @@ private:
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modMaxPixelClockOverride;
-
+	
+	/**
+	 *  A submodule to optimize the display data buffer position earlier to solve the 10-second flicker issue on ICL+
+	 */
+	class DisplayDataBufferEarlyOptimizer: public PatchSubmodule {
+		/**
+		 *  The feature control key
+		 */
+		static constexpr const char* kFeatureControl = "FeatureControl";
+		
+		/**
+		 *  The display data buffer optimizer delay key
+		 */
+		static constexpr const char* kOptimizerTime = "DBUFOptimizeTime";
+		
+		/**
+		 *  Specify the amount of time in seconds to delay the execution of optimizing the display data buffer allocation
+		 */
+		uint32_t optimizerTime {0};
+		
+		/**
+		 *  Original AppleIntelFramebufferController::getFeatureControl function
+		 */
+		void (*orgGetFeatureControl)(IOService *controller) {nullptr};
+		
+		/**
+		 *  Fetch and load the featuer control information
+		 *
+		 *  @param controller The hidden implicit `this` pointer
+		 */
+		static void wrapGetFeatureControl(IOService *controller);
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modDisplayDataBufferEarlyOptimizer;
+	
 	/**
 	 *  A collection of shared submodules
 	 */
@@ -1771,7 +1809,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[19] = {
+	PatchSubmodule *submodules[20] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1790,7 +1828,8 @@ private:
 		&modBacklightRegistersFix,
 		&modBacklightSmoother,
 		&modFramebufferDebugSupport,
-		&modMaxPixelClockOverride
+		&modMaxPixelClockOverride,
+		&modDisplayDataBufferEarlyOptimizer,
 	};
 	
 	/**
