@@ -258,11 +258,14 @@ void IGFX::DisplayDataBufferEarlyOptimizer::wrapGetFeatureControl(IOService *con
 			break;
 		}
 		
-		auto newFeatures = OSDynamicCast(OSDictionary, features->copyCollection());
-		if (newFeatures == nullptr) {
+		auto clonedFeatures = features->copyCollection();
+		if (clonedFeatures == nullptr) {
 			SYSLOG("igfx", "DBEO: Failed to clone the feature control dictionary.");
 			break;
 		}
+		
+		auto newFeatures = OSDynamicCast(OSDictionary, clonedFeatures);
+		PANIC_COND(newFeatures == nullptr, "igfx", "DBEO: The cloned collection is not a dictionary.");
 		
 		// Allocate the new optimizer delay
 		auto delay = OSNumber::withNumber(module->optimizerTime, 32);
