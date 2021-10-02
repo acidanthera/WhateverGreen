@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.4
+- Added the fix for the short period garbled screen after the system boots on Ice Lake platforms. (by @0xFireWolf, also thanks @m0d16l14n1 and @kingo132)
+
 #### v1.5.3
 - Added `no-gfx-spoof` to avoid forcing `device-id` values from PCI I/O.
 - Added the backlight smoother submodule that makes brightness transitions smoother on Intel IVB+ platforms. (by @0xFireWolf)
