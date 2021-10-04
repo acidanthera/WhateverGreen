@@ -640,10 +640,7 @@
 					"APPLE_KEXT_ASSERTIONS=1",
 					"$(inherited)",
 				);
-				HEADER_SEARCH_PATHS = (
-					"${PROJECT_DIR}/Lilu.kext/Contents/Resources",
-					"${PROJECT_DIR}/MacKernelSDK",
-				);
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/Lilu.kext/Contents/Resources";
 				INFOPLIST_FILE = WhateverGreen/Info.plist;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -692,10 +689,7 @@
 					"MODULE_VERSION=$(MODULE_VERSION)",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
 				);
-				HEADER_SEARCH_PATHS = (
-					"${PROJECT_DIR}/Lilu.kext/Contents/Resources",
-					"${PROJECT_DIR}/MacKernelSDK",
-				);
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/Lilu.kext/Contents/Resources";
 				INFOPLIST_FILE = WhateverGreen/Info.plist;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -835,10 +829,7 @@
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
 					"$(inherited)",
 				);
-				HEADER_SEARCH_PATHS = (
-					"${PROJECT_DIR}/Lilu.kext/Contents/Resources",
-					"${PROJECT_DIR}/MacKernelSDK",
-				);
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/Lilu.kext/Contents/Resources";
 				INFOPLIST_FILE = WhateverGreen/Info.plist;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
