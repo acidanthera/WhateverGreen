@@ -164,11 +164,6 @@ private:
 	 *  Original IOGraphics framebuffer init handler
 	 */
 	mach_vm_address_t orgFramebufferInit {};
-	
-	/**
-	 *  Original handler to store no use value
-	 */
-	mach_vm_address_t orgFunNouse {};
 
 	/**
 	 *  Verbose boot global variable pointer
