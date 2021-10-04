@@ -338,20 +338,8 @@ void WEG::processKernel(KernelPatcher &patcher) {
 	}
 }
 
-void* WEG::wrapAppleMCCSControlGibraltarProbe(void *that, IOService *a2, int *a3) {
-	if (callbackWEG->appleBacklightPatch == APPLBKL_NAVI10) {
-		return NULL;
-	}
-	
-	return FunctionCast(wrapAppleMCCSControlGibraltarProbe, callbackWEG->orgAppleMCCSControlGibraltarProbe)(that, a2, a3);
-}
-
-void* WEG::wrapAppleMCCSControlCelloProbe(void *that, IOService *a2, int *a3) {
-	if (callbackWEG->appleBacklightPatch == APPLBKL_NAVI10) {
-		return NULL;
-	}
-
-	return FunctionCast(wrapAppleMCCSControlCelloProbe, callbackWEG->orgAppleMCCSControlCelloProbe)(that, a2, a3);
+size_t WEG::wrapFunctionReturnZero() {
+	return 0;
 }
 
 void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -369,8 +357,8 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 	if (kextMCCSControl.loadIndex == index) {
 		KernelPatcher::RouteRequest request[] = {
-			{"__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi", wrapAppleMCCSControlGibraltarProbe, orgAppleMCCSControlGibraltarProbe},
-			{"__ZN21AppleMCCSControlCello5probeEP9IOServicePi", wrapAppleMCCSControlCelloProbe, orgAppleMCCSControlCelloProbe},
+			{"__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi", wrapFunctionReturnZero, orgFunNouse},
+			{"__ZN21AppleMCCSControlCello5probeEP9IOServicePi", wrapFunctionReturnZero, orgFunNouse},
 		};
 		patcher.routeMultiple(index, request, address, size);
 		return;

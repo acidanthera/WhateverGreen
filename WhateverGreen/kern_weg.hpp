@@ -166,14 +166,9 @@ private:
 	mach_vm_address_t orgFramebufferInit {};
 	
 	/**
-	 *  Original AppleMCCSControl AppleMCCSControlGibraltar probe handler
+	 *  Original handler to store no use value
 	 */
-	mach_vm_address_t orgAppleMCCSControlGibraltarProbe {};
-	
-	/**
-	 *  Original AppleMCCSControl AppleMCCSControlCello probe handler
-	 */
-	mach_vm_address_t orgAppleMCCSControlCelloProbe {};
+	mach_vm_address_t orgFunNouse {};
 
 	/**
 	 *  Verbose boot global variable pointer
@@ -370,16 +365,10 @@ private:
 	static void wrapFramebufferInit(IOFramebuffer *fb);
 	
 	/**
-	 *  AppleMCCSControl AppleMCCSControlGibraltar probe wrapper used for disable AppleMCCSControl
+	 *  wrapper for function that only return zero
 	 *
 	 */
-	static void* wrapAppleMCCSControlGibraltarProbe(void *that, IOService *a2, int *a3);
-
-	/**
-	 *  AppleMCCSControl AppleMCCSControlCello probe wrapper used for disable AppleMCCSControl
-	 *
-	 */
-	static void* wrapAppleMCCSControlCelloProbe(void *that, IOService *a2, int *a3);
+	static size_t wrapFunctionReturnZero();
 
 	/**
 	 *  AppleGraphicsDevicePolicy start wrapper used for black screen fixes in AGDP_CFGMAP mode
