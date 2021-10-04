@@ -134,13 +134,13 @@ private:
 	/**
 	 *  Store the current backlight level of Amd Navi10 pwm backlight control
 	 */
-	int curPwmBacklightLvl = 0;
+	uint32_t curPwmBacklightLvl = 0;
 	
 	/**
 	 *  Store the maximum backlight level of Amd Navi10 pwm backlight control
 	 *  0xff7b is the max brightness from intel CFL backlight panel data, this value will be override in updatePwmMaxBrightnessFromInternalDisplay
 	 */
-	int maxPwmBacklightLvl = 0xff7b;
+	uint32_t maxPwmBacklightLvl = 0xff7b;
 	
 	/**
 	 *  Store the panel_cntl pointer of Amd Navi10 pwm backlight control, will use it when set backlight level

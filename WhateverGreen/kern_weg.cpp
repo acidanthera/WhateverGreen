@@ -357,8 +357,8 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 
 	if (kextMCCSControl.loadIndex == index) {
 		KernelPatcher::RouteRequest request[] = {
-			{"__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi", wrapFunctionReturnZero, orgFunNouse},
-			{"__ZN21AppleMCCSControlCello5probeEP9IOServicePi", wrapFunctionReturnZero, orgFunNouse},
+			{"__ZN25AppleMCCSControlGibraltar5probeEP9IOServicePi", wrapFunctionReturnZero},
+			{"__ZN21AppleMCCSControlCello5probeEP9IOServicePi", wrapFunctionReturnZero},
 		};
 		patcher.routeMultiple(index, request, address, size);
 		return;

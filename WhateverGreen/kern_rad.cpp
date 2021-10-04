@@ -213,7 +213,7 @@ void RAD::updatePwmMaxBrightnessFromInternalDisplay() {
 	}
 	
 	OSDictionary* iodispparm = OSDynamicCast(OSDictionary, display->getProperty("IODisplayParameters"));
-	if (iodispparm) {
+	if (iodispparm == nullptr) {
 		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null IODisplayParameters");
 		iter->release();
 		matching->release();
@@ -272,16 +272,10 @@ IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *fram
 	}
 	
 	// set the backlight of AMD navi10 driver
-	callbackRAD->curPwmBacklightLvl = (int)value;
-	int btlper = callbackRAD->curPwmBacklightLvl*100.0 / callbackRAD->maxPwmBacklightLvl;
-	if (btlper < 0) {
-		btlper = 0;
-	} else if (btlper > 100) {
-		btlper = 100;
-	}
-	
-	int pwmval = (int)((btlper / 100.0) * 0xFF) << 8;
-	if (pwmval >= 0xFF00) {
+	callbackRAD->curPwmBacklightLvl = (uint32_t)value;
+	uint32_t btlper = callbackRAD->curPwmBacklightLvl * 100 / callbackRAD->maxPwmBacklightLvl;
+	uint32_t pwmval = 0;
+	if (btlper >= 100) {
 		// This is from the dmcu_set_backlight_level function of Linux source
 		// ...
 		// if (backlight_pwm_u16_16 & 0x10000)
@@ -291,6 +285,8 @@ IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *fram
 		// ...
 		// The max brightness should have 0x10000 bit set
 		pwmval = 0x1FF00;
+	} else {
+		pwmval = ((btlper * 0xFF) / 100) << 8U;
 	}
 
 	callbackRAD->orgDceDriverSetBacklight(callbackRAD->panelCntlPtr, pwmval);
