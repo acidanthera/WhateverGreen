@@ -93,7 +93,6 @@
 		5B9131F2258A8EFB0008530D /* FAQ.IntelHD.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.en.md; sourceTree = "<group>"; };
 		5B9131F3258A8F090008530D /* FAQ.IntelHD.cn.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.IntelHD.cn.md; sourceTree = "<group>"; };
 		5B9131F4258A8F1C0008530D /* FAQ.OldPlugins.en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FAQ.OldPlugins.en.md; sourceTree = "<group>"; };
-		96F7A9F326E6555C00FE1168 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		CE1970FD21C380DF00B02AB4 /* kern_nvhda.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_nvhda.cpp; sourceTree = "<group>"; };
 		CE1970FE21C380DF00B02AB4 /* kern_nvhda.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_nvhda.hpp; sourceTree = "<group>"; };
 		CE1F61B82432DEE800201DF4 /* kern_igfx_debug.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = kern_igfx_debug.cpp; sourceTree = "<group>"; };
@@ -316,7 +315,6 @@
 		CE8DA0812517C41A008C44E8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				96F7A9F326E6555C00FE1168 /* IOKit.framework */,
 				CE8DA0822517C41A008C44E8 /* libkmod.a */,
 			);
 			name = Frameworks;

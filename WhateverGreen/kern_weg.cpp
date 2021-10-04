@@ -23,7 +23,7 @@ struct FramebufferViewer : public IOFramebuffer {
 static const char *pathIOGraphics[] { "/System/Library/Extensions/IOGraphicsFamily.kext/IOGraphicsFamily" };
 static const char *pathAGDPolicy[]  { "/System/Library/Extensions/AppleGraphicsControl.kext/Contents/PlugIns/AppleGraphicsDevicePolicy.kext/Contents/MacOS/AppleGraphicsDevicePolicy" };
 static const char *pathBacklight[]  { "/System/Library/Extensions/AppleBacklight.kext/Contents/MacOS/AppleBacklight" };
-static const char *pathMCCSControl[]  { "/System/Library/Extensions/./AppleMCCSControl.kext/Contents/MacOS/AppleMCCSControl" };
+static const char *pathMCCSControl[]  { "/System/Library/Extensions/AppleMCCSControl.kext/Contents/MacOS/AppleMCCSControl" };
 
 static KernelPatcher::KextInfo kextIOGraphics { "com.apple.iokit.IOGraphicsFamily", pathIOGraphics, arrsize(pathIOGraphics), {true}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextAGDPolicy  { "com.apple.driver.AppleGraphicsDevicePolicy", pathAGDPolicy, arrsize(pathAGDPolicy), {true}, {}, KernelPatcher::KextInfo::Unloaded };

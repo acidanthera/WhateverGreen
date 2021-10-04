@@ -13,8 +13,6 @@
 #include <Availability.h>
 #include <IOKit/IOPlatformExpert.h>
 
-#include <IOKit/graphics/IOFramebuffer.h>
-
 #include "kern_rad.hpp"
 
 static const char *pathFramebuffer[]		{ "/System/Library/Extensions/AMDFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
@@ -192,83 +190,111 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	}
 }
 
-uint32_t RAD::getMaxBrightnessFromDisplay() {
+void RAD::updatePwmMaxBrightnessFromInternalDisplay() {
 	OSDictionary * matching = IOService::serviceMatching("AppleBacklightDisplay");
-	if (matching) {
-		OSIterator *iter = IOService::getMatchingServices(matching);
-		if (iter) {
-			IORegistryEntry* disp = OSDynamicCast(IORegistryEntry, iter->getNextObject());
-			if (disp) {
-				OSDictionary* iodispparm = OSDynamicCast(OSDictionary, disp->getProperty("IODisplayParameters"));
-				if (iodispparm) {
-					OSDictionary* linearbri = OSDynamicCast(OSDictionary, iodispparm->getObject("linear-brightness"));
-					if (linearbri) {
-						OSNumber* maxbri = OSDynamicCast(OSNumber, linearbri->getObject("max"));
-						callbackRAD->maxPwmBacklightLvl = maxbri->unsigned32BitValue();
-						SYSLOG("igfx", "getMaxBrightnessFromDisplay get max brightness: 0x%x", callbackRAD->maxPwmBacklightLvl);
-					} else {
-						SYSLOG("igfx", "getMaxBrightnessFromDisplay null linearbri");
-					}
-				} else {
-					SYSLOG("igfx", "getMaxBrightnessFromDisplay null iodispparm");
-				}
-			} else {
-				SYSLOG("igfx", "getMaxBrightnessFromDisplay null disp");
-			}
-			
-			iter->release();
-		} else {
-			SYSLOG("igfx", "getMaxBrightnessFromDisplay null iter");
-		}
-		
-		matching->release();
-	} else {
-		SYSLOG("igfx", "getMaxBrightnessFromDisplay null matching");
+	if (matching == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null AppleBacklightDisplay");
+		return;
 	}
 	
-	return 0;
+	OSIterator *iter = IOService::getMatchingServices(matching);
+	if (iter == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null matching");
+		matching->release();
+		return;
+	}
+	
+	IORegistryEntry* display = OSDynamicCast(IORegistryEntry, iter->getNextObject());
+	if (display == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null display");
+		iter->release();
+		matching->release();
+		return;
+	}
+	
+	OSDictionary* iodispparm = OSDynamicCast(OSDictionary, display->getProperty("IODisplayParameters"));
+	if (iodispparm) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null IODisplayParameters");
+		iter->release();
+		matching->release();
+		return;
+	}
+	
+	OSDictionary* linearbri = OSDynamicCast(OSDictionary, iodispparm->getObject("linear-brightness"));
+	if (linearbri == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null linear-brightness");
+		iter->release();
+		matching->release();
+		return;
+	}
+	
+	OSNumber* maxbri = OSDynamicCast(OSNumber, linearbri->getObject("max"));
+	if (maxbri == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null max");
+		iter->release();
+		matching->release();
+		return;
+	}
+
+	callbackRAD->maxPwmBacklightLvl = maxbri->unsigned32BitValue();
+	DBGLOG("igfx", "updatePwmMaxBrightnessFromInternalDisplay get max brightness: 0x%x", callbackRAD->maxPwmBacklightLvl);
+
+	iter->release();
+	matching->release();
 }
 
-bool RAD::wrapDcLinkSetBacklightLevel(const void *dc_link, uint32_t backlight_pwm_u16_16, uint32_t frame_ramp) {
-	return FunctionCast(wrapDcLinkSetBacklightLevel, callbackRAD->orgDcLinkSetBacklightLevel)(dc_link, backlight_pwm_u16_16, frame_ramp);
-}
-
-char RAD::wrapDce110EdpBacklightControl(void *that, int64_t on_or_off, int64_t a3, int64_t a4, int64_t a5, int64_t a6) {
-	callbackRAD->dcLinkPtr = that; // save the dc link ptr for later backlight control
-	callbackRAD->getMaxBrightnessFromDisplay(); // read max brightness value from IOReg
-	return FunctionCast(wrapDce110EdpBacklightControl, callbackRAD->orgDce110EdpBacklightControl)(that, on_or_off, a3, a4, a5, a6);
+uint32_t RAD::wrapDcePanelCntlHwInit(void *panel_cntl) {
+	callbackRAD->panelCntlPtr = panel_cntl;
+	callbackRAD->updatePwmMaxBrightnessFromInternalDisplay(); // read max brightness value from IOReg
+	uint32_t ret = FunctionCast(wrapDcePanelCntlHwInit, callbackRAD->orgDcePanelCntlHwInit)(panel_cntl);
+	return ret;
 }
 
 IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value) {
 	IOReturn ret = FunctionCast(wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute, callbackRAD->orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute)(framebuffer, connectIndex, attribute, value);
-	if (attribute == (UInt32)'bklt') {
-		if (callbackRAD->maxPwmBacklightLvl != 0) {
-			// set the backlight of AMD navi10 driver
-			callbackRAD->curPwmBacklightLvl = value;
-			double btlper = (double)callbackRAD->curPwmBacklightLvl / callbackRAD->maxPwmBacklightLvl;
-			if (btlper < 0) {
-				btlper = 0;
-			}
-			if (btlper > 1.0) {
-				btlper = 1.0;
-			}
-			int pwmval = (int)(btlper * 0xFF) << 8;
-			if (pwmval >= 0xFF00) {
-				pwmval = 0x1FF00;
-			}
-
-			if (callbackRAD->dcLinkPtr) {
-				callbackRAD->wrapDcLinkSetBacklightLevel(callbackRAD->dcLinkPtr, pwmval, 0);
-			} else {
-				SYSLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute null dc link");
-			}
-		} else {
-			SYSLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute zero maxPwmBacklightLvl");
-		}
-		
-		ret = 0;
+	if (attribute != (UInt32)'bklt') {
+		return ret;
 	}
-	return ret;
+	
+	if (callbackRAD->maxPwmBacklightLvl == 0) {
+		DBGLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute zero maxPwmBacklightLvl");
+		return 0;
+	}
+	
+	if (callbackRAD->panelCntlPtr == nullptr) {
+		DBGLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute null panel cntl");
+		return 0;
+	}
+	
+	if (callbackRAD->orgDceDriverSetBacklight == nullptr) {
+		DBGLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute null orgDcLinkSetBacklightLevel");
+		return 0;
+	}
+	
+	// set the backlight of AMD navi10 driver
+	callbackRAD->curPwmBacklightLvl = (int)value;
+	int btlper = callbackRAD->curPwmBacklightLvl*100.0 / callbackRAD->maxPwmBacklightLvl;
+	if (btlper < 0) {
+		btlper = 0;
+	} else if (btlper > 100) {
+		btlper = 100;
+	}
+	
+	int pwmval = (int)((btlper / 100.0) * 0xFF) << 8;
+	if (pwmval >= 0xFF00) {
+		// This is from the dmcu_set_backlight_level function of Linux source
+		// ...
+		// if (backlight_pwm_u16_16 & 0x10000)
+		// 	   backlight_8_bit = 0xFF;
+		// else
+		// 	   backlight_8_bit = (backlight_pwm_u16_16 >> 8) & 0xFF;
+		// ...
+		// The max brightness should have 0x10000 bit set
+		pwmval = 0x1FF00;
+	}
+
+	callbackRAD->orgDceDriverSetBacklight(callbackRAD->panelCntlPtr, pwmval);
+	return 0;
 }
 
 IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value) {
@@ -284,14 +310,20 @@ IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute(IOService *fram
 bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	if (kextRadeonX6000Framebuffer.loadIndex == index) {
 		KernelPatcher::RouteRequest requests[] = {
-			{"_dce110_edp_backlight_control", wrapDce110EdpBacklightControl, orgDce110EdpBacklightControl},
+			{"_dce_panel_cntl_hw_init", wrapDcePanelCntlHwInit, orgDcePanelCntlHwInit},
 			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25setAttributeForConnectionEijm", wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute, orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute},
 			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25getAttributeForConnectionEijPm", wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute, orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute},
-			{"_dc_link_set_backlight_level", wrapDcLinkSetBacklightLevel, orgDcLinkSetBacklightLevel},
 		};
 
 		if (!patcher.routeMultiple(index, requests, address, size, true, true))
-			SYSLOG("igfx", "DBG: Failed to route amd gpu tracing.");
+			SYSLOG("igfx", "Failed to route redeon x6000 gpu tracing.");
+		
+		orgDceDriverSetBacklight = reinterpret_cast<t_DceDriverSetBacklight>(patcher.solveSymbol(index, "_dce_driver_set_backlight"));
+		if (patcher.getError() != KernelPatcher::Error::NoError) {
+			SYSLOG("igfx", "failed to resolve _dce_driver_set_backlight");
+			patcher.clearError();
+			return false;
+		}
 	}
 	
 	if (kextRadeonFramebuffer.loadIndex == index) {
