@@ -138,7 +138,7 @@ private:
 	
 	/**
 	 *  Store the maximum backlight level of Amd Navi10 pwm backlight control
-	 *  0xff7b is the max brightness from intel CFL backlight panel data, this value will be override in updateMaxBrightnessFromDisplay
+	 *  0xff7b is the max brightness from intel CFL backlight panel data, this value will be override in updatePwmMaxBrightnessFromInternalDisplay
 	 */
 	int maxPwmBacklightLvl = 0xff7b;
 	
@@ -153,7 +153,7 @@ private:
 	void updatePwmMaxBrightnessFromInternalDisplay();
 	
 	/**
-	 *  Prototype of orgDcLinkSetBacklightLevel
+	 *  Prototype of orgDceDriverSetBacklight
 	 */
 	using t_DceDriverSetBacklight = void (*)(void *panel_cntl, uint32_t backlight_pwm_u16_16);
 	
