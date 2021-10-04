@@ -318,7 +318,6 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		if (patcher.getError() != KernelPatcher::Error::NoError) {
 			SYSLOG("igfx", "failed to resolve _dce_driver_set_backlight");
 			patcher.clearError();
-			return false;
 		}
 	}
 	
