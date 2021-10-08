@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.5
+- Changed the default delay of optimizing display data buffer allocations from 0 to 1 second to fix the issue that both internal and external displays flicker on some Ice Lake-based laptops. (Thanks @m0d16l14n1)
+
 #### v1.5.4
 - Added the fix for the short period garbled screen after the system boots on Ice Lake platforms. (by @0xFireWolf, also thanks @m0d16l14n1 and @kingo132)
 
