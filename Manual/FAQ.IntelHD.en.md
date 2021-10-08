@@ -2666,6 +2666,14 @@ Add the `enable-dbuf-early-optimizer` property to `IGPU` or use the `-igfxdbeo` 
 otherwise your builtin display remains garbled for 7 to 15 seconds after the system boots.
 You need this fix if you observe a bunch of errors mentioning "DBUF" and "pipe underrun" in the kernel log.
 
+This fix works by calling the function that optimizes the display data buffer allocations early.
+You may specify the delay in seconds (value of type `Data`) via the `dbuf-optimizer-delay` property.
+If the property is not specified, the default value will be used (see below).
+
+The community reports that a delay of 1 to 3 seconds is adequate for avoiding the underrun issue on the builtin display without having negative impacts on external displays,
+and that the default delay of 0 second used in *WEG* v1.5.4 may lead to both internal and external displays flickering on some laptops.
+Starting from v1.5.5, the default delay is changed to 1 second, so in most cases users do not have to specify the delay manually.
+
 <details>
 <summary>Sample kernel log that contains DBUF-related errors</summary>
 
