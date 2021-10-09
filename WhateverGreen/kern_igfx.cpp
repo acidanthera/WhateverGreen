@@ -102,7 +102,6 @@ void IGFX::init() {
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
-			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modDVMTCalcFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
