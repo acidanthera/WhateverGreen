@@ -1428,7 +1428,7 @@ private:
 	} modTypeCCheckDisabler;
 	
 	/**
-	 *  A submodule to fix the black screen on external HDMI/DVI displays
+	 *  A submodule to fix the black screen on external HDMI/DVI displays on SKL/KBL/CFL platforms
 	 */
 	class BlackScreenFix: public PatchSubmodule {
 		/**
@@ -1459,6 +1459,11 @@ private:
 		static bool wrapComputeLaneCountNouveau(void *controller, void *detailedTiming, int availableLanes, int *laneCount);
 		
 	public:
+		/**
+		 *  True if the current platform is supported
+		 */
+		bool available {false};
+		
 		// MARK: Patch Submodule IMP
 		void init() override;
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
