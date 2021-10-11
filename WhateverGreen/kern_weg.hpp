@@ -92,11 +92,13 @@ private:
 	 *  APPLBKL_OFF     disables AppleBacklight patches.
 	 *  APPLBKL_ON      enforces AppleBacklight patches.
 	 *  APPLBKL_DETECT  enables AppleBacklight patches for IGPU-only non-Apple setups.
+	 *  APPLBKL_NAVI10  enables AppleBacklight patches for AMD Navi10 PWM backlight control.
 	 */
 	enum BacklightPatchMode {
 		APPLBKL_OFF    = 0,
 		APPLBKL_ON     = 1,
-		APPLBKL_DETECT = 2
+		APPLBKL_DETECT = 2,
+		APPLBKL_NAVI10 = 3
 	};
 
 	/**
@@ -356,6 +358,12 @@ private:
 	 *  @param fb  framebuffer instance
 	 */
 	static void wrapFramebufferInit(IOFramebuffer *fb);
+	
+	/**
+	 *  wrapper for function that only return zero
+	 *
+	 */
+	static size_t wrapFunctionReturnZero();
 
 	/**
 	 *  AppleGraphicsDevicePolicy start wrapper used for black screen fixes in AGDP_CFGMAP mode

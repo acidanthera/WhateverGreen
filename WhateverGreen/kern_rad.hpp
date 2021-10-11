@@ -11,13 +11,14 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <IOKit/IOService.h>
+#include <IOKit/graphics/IOFramebuffer.h>
 #include "kern_agdc.hpp"
 #include "kern_atom.hpp"
 #include "kern_con.hpp"
 
 class RAD {
 public:
-	void init();
+	void init(bool enableNavi10Bkl = false);
 	void deinit();
 
 	/**
@@ -129,6 +130,69 @@ private:
 	 *  Max framebuffer base functions per kext
 	 */
 	static constexpr size_t MaxGetFrameBufferProcs = 3;
+	
+	/**
+	 *  Store the current backlight level of Amd Navi10 pwm backlight control
+	 */
+	uint32_t curPwmBacklightLvl = 0;
+	
+	/**
+	 *  Store the maximum backlight level of Amd Navi10 pwm backlight control
+	 *  0xff7b is the max brightness from intel CFL backlight panel data, this value will be override in updatePwmMaxBrightnessFromInternalDisplay
+	 */
+	uint32_t maxPwmBacklightLvl = 0xff7b;
+	
+	/**
+	 *  Store the panel_cntl pointer of Amd Navi10 pwm backlight control, will use it when set backlight level
+	 */
+	void* panelCntlPtr = NULL;
+	
+	/**
+	 *  Read maximum brightness from the property of AppleBacklightDisplay
+	 */
+	void updatePwmMaxBrightnessFromInternalDisplay();
+	
+	/**
+	 *  Prototype of orgDceDriverSetBacklight
+	 */
+	using t_DceDriverSetBacklight = void (*)(void *panel_cntl, uint32_t backlight_pwm_u16_16);
+	
+	/**
+	 *  Original dce_driver_set_backlight functions
+	 *  Use it to set brightness level of Amd Navi10 pwm backlight
+	 */
+	t_DceDriverSetBacklight orgDceDriverSetBacklight {nullptr};
+	
+	/**
+	 *  Original dce_panel_cntl_hw_init functions
+	 *  Use it to get the panel_cntl pointer
+	 */
+	mach_vm_address_t orgDcePanelCntlHwInit {};
+	
+	/**
+	 *  Original AMDRadeonX6000_AmdRadeonFramebuffer::SetAttribute functions
+	 */
+	mach_vm_address_t orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute {};
+	
+	/**
+	 *  Original AMDRadeonX6000_AmdRadeonFramebuffer::GetAttribute functions
+	 */
+	mach_vm_address_t orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute {};
+	
+	/**
+	 *  Wrapped dce_panel_cntl_hw_init function to get the panel_cntl pointor
+	 */
+	static uint32_t wrapDcePanelCntlHwInit(void *panel_cntl) ;
+	
+	/**
+	 *  Wrapped AMDRadeonX6000_AmdRadeonFramebuffer::SetAttribute functions
+	 */
+	static IOReturn wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value);
+	
+	/**
+	 *  Wrapped AMDRadeonX6000_AmdRadeonFramebuffer::GetAttribute functions
+	 */
+	static IOReturn wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value);
 
 	/**
 	 *  Framebuffer base function names

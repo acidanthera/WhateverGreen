@@ -16,6 +16,7 @@
 #include "kern_rad.hpp"
 
 static const char *pathFramebuffer[]		{ "/System/Library/Extensions/AMDFramebuffer.kext/Contents/MacOS/AMDFramebuffer" };
+static const char *pathRedeonX6000Framebuffer[]	{ "/System/Library/Extensions/AMDRadeonX6000Framebuffer.kext/Contents/MacOS/AMDRadeonX6000Framebuffer" };
 static const char *pathLegacyFramebuffer[]	{ "/System/Library/Extensions/AMDLegacyFramebuffer.kext/Contents/MacOS/AMDLegacyFramebuffer" };
 static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathLegacySupport[]		{ "/System/Library/Extensions/AMDLegacySupport.kext/Contents/MacOS/AMDLegacySupport" };
@@ -50,6 +51,8 @@ static KernelPatcher::KextInfo kextRadeonLegacySupport
 { "com.apple.kext.AMDLegacySupport", pathLegacySupport, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextPolarisController
 { "com.apple.kext.AMD9500Controller", patchPolarisController, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
+{ "com.apple.kext.AMDRadeonX6000Framebuffer", pathRedeonX6000Framebuffer, arrsize(pathRedeonX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -79,7 +82,7 @@ static const char *powerGatingFlags[] {
 
 RAD *RAD::callbackRAD;
 
-void RAD::init() {
+void RAD::init(bool enableNavi10Bkl) {
 	callbackRAD = this;
 
 	currentPropProvider.init();
@@ -94,6 +97,10 @@ void RAD::init() {
 		// Mojave dropped legacy GPU support (5xxx and 6xxx).
 		if (getKernelVersion() < KernelVersion::Mojave)
 			lilu.onKextLoadForce(&kextRadeonLegacyFramebuffer);
+	}
+	
+	if (enableNavi10Bkl) {
+		lilu.onKextLoadForce(&kextRadeonX6000Framebuffer);
 	}
 
 	// Certain GPUs cannot output to DVI at full resolution.
@@ -183,7 +190,137 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	}
 }
 
+void RAD::updatePwmMaxBrightnessFromInternalDisplay() {
+	OSDictionary * matching = IOService::serviceMatching("AppleBacklightDisplay");
+	if (matching == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null AppleBacklightDisplay");
+		return;
+	}
+	
+	OSIterator *iter = IOService::getMatchingServices(matching);
+	if (iter == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null matching");
+		matching->release();
+		return;
+	}
+	
+	IORegistryEntry* display = OSDynamicCast(IORegistryEntry, iter->getNextObject());
+	if (display == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null display");
+		iter->release();
+		matching->release();
+		return;
+	}
+	
+	OSDictionary* iodispparm = OSDynamicCast(OSDictionary, display->getProperty("IODisplayParameters"));
+	if (iodispparm == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null IODisplayParameters");
+		iter->release();
+		matching->release();
+		return;
+	}
+	
+	OSDictionary* linearbri = OSDynamicCast(OSDictionary, iodispparm->getObject("linear-brightness"));
+	if (linearbri == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null linear-brightness");
+		iter->release();
+		matching->release();
+		return;
+	}
+	
+	OSNumber* maxbri = OSDynamicCast(OSNumber, linearbri->getObject("max"));
+	if (maxbri == nullptr) {
+		DBGLOG("igfx", "isRadeonX6000WiredToInternalDisplay null max");
+		iter->release();
+		matching->release();
+		return;
+	}
+
+	callbackRAD->maxPwmBacklightLvl = maxbri->unsigned32BitValue();
+	DBGLOG("igfx", "updatePwmMaxBrightnessFromInternalDisplay get max brightness: 0x%x", callbackRAD->maxPwmBacklightLvl);
+
+	iter->release();
+	matching->release();
+}
+
+uint32_t RAD::wrapDcePanelCntlHwInit(void *panel_cntl) {
+	callbackRAD->panelCntlPtr = panel_cntl;
+	callbackRAD->updatePwmMaxBrightnessFromInternalDisplay(); // read max brightness value from IOReg
+	uint32_t ret = FunctionCast(wrapDcePanelCntlHwInit, callbackRAD->orgDcePanelCntlHwInit)(panel_cntl);
+	return ret;
+}
+
+IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t value) {
+	IOReturn ret = FunctionCast(wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute, callbackRAD->orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute)(framebuffer, connectIndex, attribute, value);
+	if (attribute != (UInt32)'bklt') {
+		return ret;
+	}
+	
+	if (callbackRAD->maxPwmBacklightLvl == 0) {
+		DBGLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute zero maxPwmBacklightLvl");
+		return 0;
+	}
+	
+	if (callbackRAD->panelCntlPtr == nullptr) {
+		DBGLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute null panel cntl");
+		return 0;
+	}
+	
+	if (callbackRAD->orgDceDriverSetBacklight == nullptr) {
+		DBGLOG("igfx", "wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute null orgDcLinkSetBacklightLevel");
+		return 0;
+	}
+	
+	// set the backlight of AMD navi10 driver
+	callbackRAD->curPwmBacklightLvl = (uint32_t)value;
+	uint32_t btlper = callbackRAD->curPwmBacklightLvl * 100 / callbackRAD->maxPwmBacklightLvl;
+	uint32_t pwmval = 0;
+	if (btlper >= 100) {
+		// This is from the dmcu_set_backlight_level function of Linux source
+		// ...
+		// if (backlight_pwm_u16_16 & 0x10000)
+		// 	   backlight_8_bit = 0xFF;
+		// else
+		// 	   backlight_8_bit = (backlight_pwm_u16_16 >> 8) & 0xFF;
+		// ...
+		// The max brightness should have 0x10000 bit set
+		pwmval = 0x1FF00;
+	} else {
+		pwmval = ((btlper * 0xFF) / 100) << 8U;
+	}
+
+	callbackRAD->orgDceDriverSetBacklight(callbackRAD->panelCntlPtr, pwmval);
+	return 0;
+}
+
+IOReturn RAD::wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute(IOService *framebuffer, IOIndex connectIndex, IOSelect attribute, uintptr_t * value) {
+	IOReturn ret = FunctionCast(wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute, callbackRAD->orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute)(framebuffer, connectIndex, attribute, value);
+	if (attribute == (UInt32)'bklt') {
+		// enable the backlight feature of AMD navi10 driver
+		*value = callbackRAD->curPwmBacklightLvl;
+		ret = 0;
+	}
+	return ret;
+}
+
 bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	if (kextRadeonX6000Framebuffer.loadIndex == index) {
+		KernelPatcher::RouteRequest requests[] = {
+			{"_dce_panel_cntl_hw_init", wrapDcePanelCntlHwInit, orgDcePanelCntlHwInit},
+			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25setAttributeForConnectionEijm", wrapAMDRadeonX6000AmdRadeonFramebufferSetAttribute, orgAMDRadeonX6000AmdRadeonFramebufferSetAttribute},
+			{"__ZN35AMDRadeonX6000_AmdRadeonFramebuffer25getAttributeForConnectionEijPm", wrapAMDRadeonX6000AmdRadeonFramebufferGetAttribute, orgAMDRadeonX6000AmdRadeonFramebufferGetAttribute},
+		};
+
+		if (!patcher.routeMultiple(index, requests, address, size, true, true))
+			SYSLOG("igfx", "Failed to route redeon x6000 gpu tracing.");
+		
+		orgDceDriverSetBacklight = reinterpret_cast<t_DceDriverSetBacklight>(patcher.solveSymbol(index, "_dce_driver_set_backlight"));
+		if (patcher.getError() != KernelPatcher::Error::NoError) {
+			SYSLOG("igfx", "failed to resolve _dce_driver_set_backlight");
+			patcher.clearError();
+		}
+	}
+	
 	if (kextRadeonFramebuffer.loadIndex == index) {
 		if (force24BppMode)
 			process24BitOutput(patcher, kextRadeonFramebuffer, address, size);
