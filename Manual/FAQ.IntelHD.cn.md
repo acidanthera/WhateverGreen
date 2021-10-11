@@ -2026,6 +2026,13 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00014ead; Target =
 为核显添加 `enable-dbuf-early-optimizer` 属性或者直接使用 `-igfxdbeo` 启动参数以修复 Ice Lake 笔记本开机后内屏短暂花屏的问题。
 若发现内核日志记录了如下 DBUF 以及 Pipe Underrun 相关的错误信息，请启用此补丁来修复这些错误。
 
+此补丁通过提前调用优化显示缓冲区分配的函数来修复 DBUF 相关错误。
+用户可通过 `dbuf-optimizer-delay` 设备属性来指定具体的延迟时间（单位为秒，值类型为`Data`）。
+若用户未指定此属性，*WEG* 将使用如下所述的默认值。
+
+社区用户反馈 1 到 3 秒的延迟可在不影响外接显示器的情况下修复 DBUF 相关错误，而 *WEG* v1.5.4 所用的默认 0 秒延迟可能会导致部分笔记本外接显示器时内屏外屏同时花屏的问题。
+从 v1.5.5 开始，默认的延迟时间改为 1 秒，这样用户在通常情况下无需手动添加设备属性来修改延迟时间。
+
 <details>
 <summary>包含 DBUF 以及 Pipe Underrun 错误信息的内核日志</summary>
 

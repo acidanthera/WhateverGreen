@@ -66,6 +66,7 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelSKLFb;
 			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
 			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
+			modBlackScreenFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
@@ -75,6 +76,7 @@ void IGFX::init() {
 			modRPSControlPatch.available = true;
 			modForceWakeWorkaround.enabled = true;
 			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
+			modBlackScreenFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CoffeeLake:
 			supportsGuCFirmware = true;
@@ -89,6 +91,7 @@ void IGFX::init() {
 			modRPSControlPatch.available = true;
 			modForceWakeWorkaround.enabled = true;
 			modTypeCCheckDisabler.enabled = true;
+			modBlackScreenFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CannonLake:
 			supportsGuCFirmware = true;
@@ -102,7 +105,6 @@ void IGFX::init() {
 			currentGraphics = &kextIntelICL;
 			currentFramebuffer = &kextIntelICLLPFb;
 			currentFramebufferOpt = &kextIntelICLHPFb;
-			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modDVMTCalcFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::CometLake:
@@ -117,6 +119,7 @@ void IGFX::init() {
 			modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
 			modRPSControlPatch.available = true;
 			modTypeCCheckDisabler.enabled = true;
+			modBlackScreenFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::RocketLake:
 			gPlatformGraphicsSupported = false;
@@ -760,8 +763,7 @@ void IGFX::BlackScreenFix::init() {
 void IGFX::BlackScreenFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	// Black screen (ComputeLaneCount) happened from 10.12.4
 	// It only affects SKL, KBL, and CFL drivers with a frame with connectors.
-	if (!info->reportedFramebufferIsConnectorLess &&
-		BaseDeviceInfo::get().cpuGeneration >= CPUInfo::CpuGeneration::Skylake &&
+	if (!info->reportedFramebufferIsConnectorLess && available &&
 		((getKernelVersion() == KernelVersion::Sierra && getKernelMinorVersion() >= 5) ||
 		 getKernelVersion() >= KernelVersion::HighSierra)) {
 		enabled = info->firmwareVendor != DeviceInfo::FirmwareVendor::Apple;

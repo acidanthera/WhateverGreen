@@ -1428,7 +1428,7 @@ private:
 	} modTypeCCheckDisabler;
 	
 	/**
-	 *  A submodule to fix the black screen on external HDMI/DVI displays
+	 *  A submodule to fix the black screen on external HDMI/DVI displays on SKL/KBL/CFL platforms
 	 */
 	class BlackScreenFix: public PatchSubmodule {
 		/**
@@ -1459,6 +1459,11 @@ private:
 		static bool wrapComputeLaneCountNouveau(void *controller, void *detailedTiming, int availableLanes, int *laneCount);
 		
 	public:
+		/**
+		 *  True if the current platform is supported
+		 */
+		bool available {false};
+		
 		// MARK: Patch Submodule IMP
 		void init() override;
 		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
@@ -1774,9 +1779,20 @@ private:
 		static constexpr const char* kOptimizerTime = "DBUFOptimizeTime";
 		
 		/**
+		 *  The default optimizer delay is 1 second
+		 *
+		 *  @note The community reports that the previous default delay (0 second) used v1.5.4
+		 *        may result in both internal and external displays flickering on some laptops.
+		 *        Their experiment suggests that a delay of 1 to 3 seconds seems to be safe and solves
+		 *        the underrun issue on the builtin display without having impacts on the external ones.
+		 *  @note Thanks @m0d16l14n1 for the suggestion and collecting results from other testers.
+		 */
+		static constexpr uint32_t kDefaultOptimizerTime = 1;
+		
+		/**
 		 *  Specify the amount of time in seconds to delay the execution of optimizing the display data buffer allocation
 		 */
-		uint32_t optimizerTime {0};
+		uint32_t optimizerTime {kDefaultOptimizerTime};
 		
 		/**
 		 *  Original AppleIntelFramebufferController::getFeatureControl function

@@ -95,7 +95,7 @@ indices of connectors for which online status is enforced. Format is similar to 
 - `-igfxblr` boot argument (and `enable-backlight-registers-fix` property) to fix backlight registers on KBL, CFL and ICL platforms.
 - `-igfxmpc` boot argument (`enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties) to increase max pixel clock (as an alternative to patching CoreDisplay.framework).
 - `-igfxbls` boot argument (and `enable-backlight-smoother` property) to make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience)
-- `-igfxdbeo` boot argument (and `enable-dbuf-early-optimizer` property) to fix the Display Data Buffer (DBUF) issues on ICL+ platforms.
+- `-igfxdbeo` boot argument (and `enable-dbuf-early-optimizer` property) to fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms)
 
 #### Credits
 
