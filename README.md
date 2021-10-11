@@ -35,7 +35,7 @@ WhateverGreen
 - Fixes the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
 - Makes brightness transitions smoother on Intel IVB+ platforms.
 - Fixes the short period garbled screen issue after the system boots on Intel ICL platforms.
-- Fixes the PWM backlight control of the display that is directly wired to AMD Radeon RX 5000 series graphic cards
+- Fixes the PWM backlight control of the built-in display that is directly wired to AMD Radeon RX 5000 series graphic cards
 
 #### Documentation
 
