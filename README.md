@@ -35,6 +35,7 @@ WhateverGreen
 - Fixes the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms.
 - Makes brightness transitions smoother on Intel IVB+ platforms.
 - Fixes the short period garbled screen issue after the system boots on Intel ICL platforms.
+- Fixes the PWM backlight control of the built-in display that is directly wired to AMD Radeon RX 5000 series graphic cards
 
 #### Documentation
 
@@ -96,6 +97,7 @@ indices of connectors for which online status is enforced. Format is similar to 
 - `-igfxmpc` boot argument (`enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties) to increase max pixel clock (as an alternative to patching CoreDisplay.framework).
 - `-igfxbls` boot argument (and `enable-backlight-smoother` property) to make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience)
 - `-igfxdbeo` boot argument (and `enable-dbuf-early-optimizer` property) to fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms)
+- `applbkl=3` boot argument (and `applbkl` property) to enable PWM backlight control of AMD Radeon RX 5000 series graphic cards [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md)
 
 #### Credits
 

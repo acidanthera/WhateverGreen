@@ -87,3 +87,6 @@ Workload policy is a performance optimisation profile used by your GPU. Dependin
 
 - _How can I force-enable SMU firmware?_  
 SMU is an IP unit present in some newer GPUs (X5000 series and newer). This unit is responsible for handling select power management tasks and requires a firmware to be loaded by the driver. The firmware is loaded when `ATY,EFIVersion` property is specified with any value (i.e. it is a GPU with Apple-made firmware) or when `Force_Load_FalconSMUFW` property is specified with `kOSBooleanTrue` value (with WEG one can also specify a single byte: `01`).
+
+- _How to enable the PWM backlight control of the built-in display that is directly wired to AMD Radeon RX 5000 series graphic cards?_  
+First, you need to add a suitable SSDT-PNLF to enable AppleBacklightDisplay to attach the built-in display. Usually, you need SSDT-PNLF.aml, or SSDT-PNLF-CFL.aml if you are using Coffee Lake and newer. Second, add boot argument `applbkl=3` to enable the PWM backlight control ability of the AMD driver. Then you should be able to adjust the backlight level. Note that this patch is only for the display that is built-in and supports PWM backlight control, and this display is directly wired to the AMD Radeon RX 5000 series graphic cards.
