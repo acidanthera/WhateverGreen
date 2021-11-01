@@ -4,6 +4,7 @@ WhateverGreen Changelog
 - Changed the default delay of optimizing display data buffer allocations from 0 to 1 second to fix the issue that both internal and external displays flicker on some Ice Lake-based laptops. (Thanks @m0d16l14n1)
 - Disabled the black screen fix on Ice Lake platforms as it is only applicable to SKL/KBL/CFL/CML platforms.
 - Disabled the force complete modeset submodule on Ice Lake platforms as HDMI/DVI connections are not supported by the driver.
+- Added AMD Radeon RX 5000 series PWM backlight control support. (Thanks to @kingo132)
 
 #### v1.5.4
 - Added the fix for the short period garbled screen after the system boots on Ice Lake platforms. (by @0xFireWolf, also thanks @m0d16l14n1 and @kingo132)
