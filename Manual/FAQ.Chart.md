@@ -24,16 +24,16 @@
 - IMP/MP - iMacPro/MacPro models without IGPU.
 - Other configurations are used at your own risk, use `-shikioff` to disable modifications
 
-# DRM Compatibility on macOS 11
+# DRM Compatibility on macOS 11+
 
 Things to keep in mind:
 
 - All kinds of software DRM decoders were removed from macOS 11
 - All kinds of legacy hardware DRM decoders (e.g. NVIDIA VP3) were removed from macOS 11
 - WhateverGreen Shiki functionality is not planned for inclusion for macOS 11
-- AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming). This preference may not always be compatible with the rest of the operating system and may cause problems with other ways of hardware media decoding and encoding. For this reason such an override is not recommended for daily use and shall only be enabled on demand.
 - Only IGPU-free Mac models allow for full DRM content access given a compatible AMD GPU video decoder
 - For old CPUs (e.g. Xeons or Quad 2 Quad) and supported AMD GPUs injecting `unfairgva` with `<01 00 00 00>` value is required for streaming DRM
+- AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming). This preference may not always be compatible with the rest of the operating system and may cause problems with other ways of hardware media decoding and encoding. For this reason such an override is not recommended for daily use and shall only be enabled on demand.
 
 List of overrides:
 
