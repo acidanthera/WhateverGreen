@@ -2684,6 +2684,12 @@ Starting from v1.5.5, the default delay is changed to 1 second, so in most cases
 
 </details>
 
+## Fix backlight registers on KBL, CFL and ICL platforms
+
+Certain mobile Kaby Lake, Coffee Lake and Ice Lake devices need fixing of the backlight registers. 
+Without the fix certain devices will end in a black screen when booting macOS, like seen on the Dell inspiron 3593. 
+The WateverGreen backlight registers fix can be enabled using 'enable-backlight-registers-fix' properly to 'IGPU' or using the '-igfxblr' boot argument.
+
 ## Known Issues
 
 **Compatibility**
