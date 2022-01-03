@@ -28,9 +28,6 @@ void UNFAIR::init() {
 
 	if (disableUnfair)
 		return;
-
-	sharedCachePath = UserPatcher::getSharedCachePath();
-	DBGLOG("unfair", "chosen shared cache path is %s", sharedCachePath);
 }
 
 void UNFAIR::deinit() {
@@ -45,7 +42,7 @@ void UNFAIR::csValidatePage(vnode *vp, memory_object_t pager, memory_object_offs
 	if (vn_getpath(vp, path, &pathlen) == 0) {
 		//DBGLOG("unfair", "csValidatePage %s", path);
 
-		if ((callbackUNFAIR->unfairGva & UnfairDyldSharedCache) != 0 && UNLIKELY(strcmp(path, callbackUNFAIR->sharedCachePath) == 0)) {
+		if ((callbackUNFAIR->unfairGva & UnfairDyldSharedCache) != 0 && UserPatcher::matchSharedCachePath(path)) {
 			if ((callbackUNFAIR->unfairGva & UnfairRelaxHdcpRequirements) != 0) {
 				static const uint8_t find[29] = {
 					0x4D, 0x61, 0x63, 0x50, 0x72, 0x6F, 0x35, 0x2C, 0x31, 0x00, 0x4D, 0x61, 0x63, 0x50, 0x72, 0x6F,

@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.6
+- Fixed deprecated code in unfairgva
+
 #### v1.5.5
 - Changed the default delay of optimizing display data buffer allocations from 0 to 1 second to fix the issue that both internal and external displays flicker on some Ice Lake-based laptops. (Thanks @m0d16l14n1)
 - Disabled the black screen fix on Ice Lake platforms as it is only applicable to SKL/KBL/CFL/CML platforms.

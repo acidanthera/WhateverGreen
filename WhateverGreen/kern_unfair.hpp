@@ -61,11 +61,6 @@ private:
 	 * Original codesign page validation pointer.
 	 */
 	mach_vm_address_t orgCsValidatePage {0};
-
-	/**
-	 *  Cyrrent shared cache.
-	 */
-	const char *sharedCachePath {nullptr};
 };
 
 #endif /* kern_unfair_hpp */
