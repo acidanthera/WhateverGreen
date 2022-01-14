@@ -186,7 +186,7 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_DUTY1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
 	
-	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0 && callbackIGFX->modBacklightRegistersFix.requiresCFLAdditionalFix) {
+	if (callbackIGFX->modBacklightRegistersFix.requiresCFLAdditionalFix && value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0) {
 		// CFL+ backlight additional fix.
 		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Ice Lake backlight fix was entered.");
 		uint32_t registerValue = callbackIGFX->readRegister32(controller, SFUSE_STRAP);
