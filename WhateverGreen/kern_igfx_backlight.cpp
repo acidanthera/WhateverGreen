@@ -185,15 +185,13 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 	PANIC_COND(reg != BXT_BLC_PWM_DUTY1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
 	
 	// [Experimental] Ice Lake backlight fix.
-	// TODO: Excluding CFL (Is it really necessary?)
 
 	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0) {
-		uint32_t registerValue = callbackIGFX->readRegister32(controller, 0xC2014);
-
-		uint32_t freq = 17777;
-  		if (registerValue & (1 << 8)) freq = 22222;
-
-		wrapCFLWriteRegisterPWMFreq1(controller, BXT_BLC_PWM_FREQ1, freq);
+		SYSLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Ice Lake backlight fix was entered.");
+		uint32_t registerValue = callbackIGFX->readRegister32(controller, SFUSE_STRAP);
+		uint32_t selectedFreq = ICL_FREQ_NORMAL;
+  		if (registerValue & SFUSE_STRAP_RAW_FREQUENCY) selectedFreq = ICL_FREQ_RAW;
+		wrapCFLWriteRegisterPWMFreq1(controller, BXT_BLC_PWM_FREQ1, selectedFreq);
 	}
 
 	if (callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency && callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency) {
