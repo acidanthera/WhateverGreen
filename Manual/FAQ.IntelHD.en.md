@@ -2272,6 +2272,11 @@ Note, that without AAPL,ig-platform-id the following SIMULATOR ID is assumed: FF
 
 Use this ACPI table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl)  
 Table SSDT-PNLFCFL is deprecated, use updated table [SSDT-PNLF](https://github.com/acidanthera/OpenCorePkg/blob/master/Docs/AcpiSamples/Source/SSDT-PNLF.dsl) from OpenCore 0.7.3+ for any Intel HD Graphics.  
+  
+Certain mobile Kaby Lake, Coffee Lake and Ice Lake devices need fixing of the backlight registers. 
+Without the fix certain devices will end in a black screen when booting macOS, like seen on the Dell inspiron 3593. 
+The WateverGreen backlight registers fix can be enabled using 'enable-backlight-registers-fix' properly to 'IGPU' or using the '-igfxblr' boot argument.  
+  
 For laptop brightness keys use [BrightnessKeys.kext](https://github.com/acidanthera/BrightnessKeys).  
   
 ## Digital Audio (HDMI / DVI / DP)
@@ -2683,12 +2688,6 @@ Starting from v1.5.5, the default delay is changed to 1 second, so in most cases
 ```
 
 </details>
-
-## Fix backlight registers on KBL, CFL and ICL platforms
-
-Certain mobile Kaby Lake, Coffee Lake and Ice Lake devices need fixing of the backlight registers. 
-Without the fix certain devices will end in a black screen when booting macOS, like seen on the Dell inspiron 3593. 
-The WateverGreen backlight registers fix can be enabled using 'enable-backlight-registers-fix' properly to 'IGPU' or using the '-igfxblr' boot argument.
 
 ## Known Issues
 
