@@ -489,6 +489,11 @@ private:
 		bool enabled {false};
 		
 		/**
+		 *  Set to `true` if this submodule requires additional fixes for CFL+
+		 */
+		bool requiresCFLAdditionalFix {false};
+
+		/**
 		 *  Set to `true` if this submodule requires patching the framebuffer driver
 		 */
 		bool requiresPatchingFramebuffer {false};

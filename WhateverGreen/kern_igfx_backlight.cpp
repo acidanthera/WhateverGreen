@@ -40,6 +40,8 @@ void IGFX::BacklightRegistersFix::processKernel(KernelPatcher &patcher, DeviceIn
 	
 	if (WIOKit::getOSDataValue(info->videoBuiltin, "max-backlight-freq", targetBacklightFrequency))
 		DBGLOG("igfx", "BLR: Will use the custom backlight frequency %u.", targetBacklightFrequency);
+	
+	requiresCFLAdditionalFix = checkKernelArgument("-igfxblrexpr");
 }
 
 void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
@@ -184,13 +186,11 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_DUTY1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
 	
-	// [Experimental] Ice Lake backlight fix.
-
-	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0) {
-		SYSLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Ice Lake backlight fix was entered.");
+	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0 && callbackIGFX->modBacklightRegistersFix.requiresCFLAdditionalFix) {
+		// CFL+ backlight additional fix.
+		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Ice Lake backlight fix was entered.");
 		uint32_t registerValue = callbackIGFX->readRegister32(controller, SFUSE_STRAP);
-		uint32_t selectedFreq = ICL_FREQ_NORMAL;
-  		if (registerValue & SFUSE_STRAP_RAW_FREQUENCY) selectedFreq = ICL_FREQ_RAW;
+		uint32_t selectedFreq = (registerValue & SFUSE_STRAP_RAW_FREQUENCY) ? ICL_FREQ_RAW : ICL_FREQ_NORMAL;
 		wrapCFLWriteRegisterPWMFreq1(controller, BXT_BLC_PWM_FREQ1, selectedFreq);
 	}
 
