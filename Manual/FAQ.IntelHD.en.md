@@ -2275,7 +2275,7 @@ Table SSDT-PNLFCFL is deprecated, use updated table [SSDT-PNLF](https://github.c
   
 Certain mobile Kaby Lake, Coffee Lake and Ice Lake devices need fixing of the backlight registers. 
 Without the fix certain devices will end in a black screen when booting macOS, like seen on the Dell inspiron 3593. 
-The WateverGreen backlight registers fix can be enabled using 'enable-backlight-registers-fix' property to 'IGPU' or using the '-igfxblr' boot argument.  
+The WateverGreen backlight registers fix can be enabled using `enable-backlight-registers-fix` property to `IGPU` or using the `-igfxblr` boot argument.  
   
 For laptop brightness keys use [BrightnessKeys.kext](https://github.com/acidanthera/BrightnessKeys).  
   
