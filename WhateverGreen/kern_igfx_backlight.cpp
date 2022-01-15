@@ -184,6 +184,14 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_DUTY1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
 	
+	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0) {
+		// CFL+ backlight additional fix.
+		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Backlight additional fix was entered.");
+		uint32_t registerValue = callbackIGFX->readRegister32(controller, SFUSE_STRAP);
+		uint32_t selectedFreq = (registerValue & SFUSE_STRAP_RAW_FREQUENCY) ? ICL_FREQ_RAW : ICL_FREQ_NORMAL;
+		wrapCFLWriteRegisterPWMFreq1(controller, BXT_BLC_PWM_FREQ1, selectedFreq);
+	}
+
 	if (callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency && callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency) {
 		// Translate the PWM duty cycle between the driver scale value and the HW scale value
 		uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency));

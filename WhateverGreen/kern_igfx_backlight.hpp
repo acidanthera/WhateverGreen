@@ -20,6 +20,16 @@ static constexpr uint32_t BXT_BLC_PWM_CTL1 = 0xC8250;
 static constexpr uint32_t BXT_BLC_PWM_FREQ1 = 0xC8254;
 static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 
+static constexpr uint32_t SFUSE_STRAP = 0xC2014;
+static constexpr uint32_t SFUSE_STRAP_RAW_FREQUENCY = 1 << 8;
+
+/**
+ * Ice Lake freq
+ * Copied from `AppleIntelFramebufferController::start()` function
+ */
+static constexpr uint32_t ICL_FREQ_NORMAL = 17777;
+static constexpr uint32_t ICL_FREQ_RAW = 22222;
+
 /**
  *  Represents a single brightness adjustment request
  */
