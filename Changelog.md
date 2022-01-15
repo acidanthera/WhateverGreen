@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.7
+- Fixed maximum backlight level on Ice Lake IGPUs
+
 #### v1.5.6
 - Fixed deprecated code in unfairgva
 
