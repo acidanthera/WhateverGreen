@@ -186,7 +186,7 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 	
 	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0) {
 		// CFL+ backlight additional fix.
-		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Ice Lake backlight fix was entered.");
+		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Backlight additional fix was entered.");
 		uint32_t registerValue = callbackIGFX->readRegister32(controller, SFUSE_STRAP);
 		uint32_t selectedFreq = (registerValue & SFUSE_STRAP_RAW_FREQUENCY) ? ICL_FREQ_RAW : ICL_FREQ_NORMAL;
 		wrapCFLWriteRegisterPWMFreq1(controller, BXT_BLC_PWM_FREQ1, selectedFreq);
