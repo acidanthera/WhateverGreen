@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.5.8
+- Inverted logic for GVA support, which is now disabled by default and can be enabled by `enable-gva-support`.
+
 #### v1.5.7
 - Fixed maximum backlight level on Ice Lake IGPUs
 
