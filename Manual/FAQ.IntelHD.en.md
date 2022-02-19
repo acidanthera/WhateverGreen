@@ -13,7 +13,7 @@ The general concept of enabling Intel graphics cards:
 3. Specify the correct framebuffer (`AAPL,ig-platform-id` or `AAPL,snb-platform-id`) describing available outputs and other properties of the video card.  
 4. Add some other additional properties to devices related to Intel® HD Graphics аnd for digital audio.  
   
-At this point, paragraphs 1 and 4 are automated by [WhateverGreen](https://github.com/acidanthera/WhateverGreen) and [AppleALC](https://github.com/acidanthera/AppleALC). It works in OS X 10.8 and later, and greatly simplifies graphics enabling in macOS.  
+At this point, paragraphs 1 and 4 are automated by [WhateverGreen](https://github.com/acidanthera/WhateverGreen) and [AppleALC](https://github.com/acidanthera/AppleALC). It works in OS X 10.6 and later, and greatly simplifies graphics enabling in macOS.  
   
 ## General recommendations  
 
@@ -119,7 +119,7 @@ framebuffer-featurecontrol-watermarks*
   
 ## Intel HD Graphics 2000/3000 ([Sandy Bridge](https://en.wikipedia.org/wiki/Sandy_Bridge) processors)  
 
-> Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.8.x - macOS 10.13.6. On older operating systems follow the "ancient ways". On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
+> Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.7.x - macOS 10.13.6 (Not tested 10.7). On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
   
 ***SNB Framebuffer List:***
 
