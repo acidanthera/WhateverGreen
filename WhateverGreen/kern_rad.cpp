@@ -150,12 +150,11 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
 			if (!hasAMD) {
-				enableGvaSupport = getKernelVersion() >= KernelVersion::Mojave;
 				hasAMD = true;
 			}
 
-			if (info->videoExternal[i].video->getProperty("disable-gva-support"))
-				enableGvaSupport = false;
+			if (info->videoExternal[i].video->getProperty("enable-gva-support"))
+				enableGvaSupport = true;
 
 			// When injecting values into device properties one cannot specify boolean types.
 			// Provide special support for Force_Load_FalconSMUFW.
