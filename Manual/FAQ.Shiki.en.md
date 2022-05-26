@@ -1,5 +1,7 @@
-# Shiki FAQs
-
+# Shiki FAQs  
+  
+_Warning: Shiki functionality is not planned to development for macOS 11+_  
+  
 - _Where is Shiki?_  
 Shiki is now part of [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 

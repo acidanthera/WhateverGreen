@@ -1,4 +1,7 @@
-#### Общий FAQ:
+#### Общий FAQ:  
+  
+_Внимание: Функционал Shiki не планируется к разработке для macOS 11+_  
+  
 - _Где вообще Shiki?_  
 Shiki сейчас часть [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 
