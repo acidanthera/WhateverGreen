@@ -44,15 +44,14 @@ Things to keep in mind:
 - All kinds of software DRM decoders were removed from macOS 11
 - All kinds of legacy hardware DRM decoders (e.g. NVIDIA VP3) were removed from macOS 11
 - Only IGPU-free Mac models allow for full DRM content access given a compatible AMD GPU video decoder
-- Forcing the use of the AMD Video DRM decoder on a iGPU+dGPU setup can be done in 3 ways:
+- Forcing the use of the AMD Video DRM decoder on a iGPU+dGPU (iMac or MacBookPro SMBIOS) setup can be done in 3 ways:
   1. SMBIOS iMacPro1,1 or MacPro7,1
   2. use "unfairgva = 4" (5, 6 or 7)
   3. Use the first override in the list below in MacOS terminal
   
-  The latter option is preferred as it permit switching back and forth between iGPU and dGPU video processor without rebooting the computer.
+  The latter option is preferred as it permit switching back and forth (by replacing "yes" with "no" in the command) between iGPU and dGPU video processor without rebooting the computer.
   Usability of the Sidecar is compromised when forcing AMD DRM as Sidecar relies on HEVC encoding and AMD video processor is not as efficient as intel's.
   Some AMD GPUs also are reported to show a drop of 35-40% in metal and openGL performance when AMD video processing is forced. Other side effects can be expercted
-
 - AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming).  
 
 List of overrides:
@@ -64,3 +63,5 @@ List of overrides:
 - `defaults write com.apple.AppleGVA disableGVAEncryption -string YES` forces AMD HEVC accelerated decoder
 - `defaults write com.apple.coremedia hardwareVideoDecoder -string force` forces hardware accelerated video decoder (for any resolution)
 - `defaults write com.apple.coremedia hardwareVideoDecoder -string disable` disables hardware accelerated video decoder (in QuickTime / Apple TV)
+
+  No reboot required. Overrides should be effective immediatly after the command is executed.
