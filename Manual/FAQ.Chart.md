@@ -24,16 +24,36 @@
 - IMP/MP - iMacPro/MacPro models without IGPU.
 - Other configurations are used at your own risk, use `-shikioff` to disable modifications
 
-# DRM Compatibility on macOS 11+
+# DRM Compatibility on macOS 11+ (Big Sur and later)
+
+Shiki is deprecated so the shikigva device property/boot-arg is no longer functional.
+Instead a partial solution unfairgva is provided with the following boot-arg options in a bitmask fashion:
+
+unfairgva = 1 -> enables DRM on old CPUID
+unfairgva = 2 -> Relax HDCP requirements
+unfairgva = 1+2 = 3 -> enables the options 1 and 2 above
+unfairgva = 4 -> Inject the iMacPro1,1 board ID and therefore forces AMD video decoder/encoder.
+unfairgva = 4+1 = 5 -> enables the options 4 and 1
+unfairgva = 4+2 = 6 -> enables the options 4 and 2
+unfairgva = 4+2+1 = 7 -> enables all
+
+These options can also be injected through the unfairgva device property
 
 Things to keep in mind:
 
 - All kinds of software DRM decoders were removed from macOS 11
 - All kinds of legacy hardware DRM decoders (e.g. NVIDIA VP3) were removed from macOS 11
-- WhateverGreen Shiki functionality is not planned for inclusion for macOS 11
 - Only IGPU-free Mac models allow for full DRM content access given a compatible AMD GPU video decoder
-- For old CPUs (e.g. Xeons or Core 2 Quad) and supported AMD GPUs injecting `unfairgva` with `<01 00 00 00>` value is required for streaming DRM
-- AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming). This preference may not always be compatible with the rest of the operating system and may cause problems with other ways of hardware media decoding and encoding. For this reason such an override is not recommended for daily use and shall only be enabled on demand.
+- Forcing the use of the AMD Video DRM decoder on a iGPU+dGPU setup can be done in 3 ways:
+  1. SMBIOS iMacPro1,1 or MacPro7,1
+  2. use "unfairgva = 4" (5, 6 or 7)
+  3. Use the first override in the list below in MacOS terminal
+  
+  The latter option is preferred as it permit switching back and forth between iGPU and dGPU video processor without rebooting the computer.
+  Usability of the Sidecar is compromised when forcing AMD DRM as Sidecar relies on HEVC encoding and AMD video processor is not as efficient as intel's.
+  Some AMD GPUs also are reported to show a drop of 35-40% in metal and openGL performance when AMD video processing is forced. Other side effects can be expercted
+
+- AMD GPU video decoder preference can be chosen through preferences overrides for some types of DRM content (like Apple TV and iTunes movie streaming).  
 
 List of overrides:
 
