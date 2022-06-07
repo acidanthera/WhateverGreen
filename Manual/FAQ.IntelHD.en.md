@@ -439,7 +439,7 @@ HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and 
 
 ## Intel HD Graphics 4200-5200 ([Haswell](https://en.wikipedia.org/wiki/Haswell_(microarchitecture)) processors)  
 
-> Supported since OS X 10.9.x  
+> Supported since OS X 10.9.x to macOS 12.x. On newer operating systems these are not supported.  
   
 ***Azul framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
@@ -745,7 +745,7 @@ For desktop HD4400 and mobile HD4200/HD4400/HD4600 need fake the `device-id` `12
 
 ## Intel HD Graphics 5300-6300 ([Broadwell](https://en.wikipedia.org/wiki/Broadwell_(microarchitecture)) processors)  
 
-> Supported since OS X 10.10.2  
+> Supported since OS X 10.10.2 to macOS 12.x. On newer operating systems these are not supported.  
   
 ***BDW framebuffer list:***
 
@@ -1044,7 +1044,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
   
 ## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)))  
 
-> Supported since OS X 10.11.4  
+> Supported since OS X 10.11.4 to macOS 12.x. On newer operating systems these are not supported.  
   
 ***SKL framebuffer list:***
 
