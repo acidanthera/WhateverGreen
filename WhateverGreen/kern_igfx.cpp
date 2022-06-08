@@ -62,8 +62,14 @@ void IGFX::init() {
 			break;
 		case CPUInfo::CpuGeneration::Skylake:
 			supportsGuCFirmware = true;
-			currentGraphics = &kextIntelSKL;
-			currentFramebuffer = &kextIntelSKLFb;
+			// Fake SKL as KBL on 13.0+ due to the removal of SKL kexts
+			if (getKernelVersion() >= KernelVersion::Ventura) {
+				currentGraphics = &kextIntelKBL;
+				currentFramebuffer = &kextIntelKBLFb;
+			} else {
+				currentGraphics = &kextIntelSKL;
+				currentFramebuffer = &kextIntelSKLFb;
+			}
 			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
 			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
 			modBlackScreenFix.available = true;
