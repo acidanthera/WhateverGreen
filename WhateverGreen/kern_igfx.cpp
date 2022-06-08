@@ -64,8 +64,6 @@ void IGFX::init() {
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelSKL;
 			currentFramebuffer = &kextIntelSKLFb;
-			// Allow faking as KBL on 13.0+
-			currentFramebufferOpt = &kextIntelKBLFb;
 			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
 			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
 			modBlackScreenFix.available = true;
