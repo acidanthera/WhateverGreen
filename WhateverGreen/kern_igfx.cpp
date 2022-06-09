@@ -64,15 +64,22 @@ void IGFX::init() {
 			supportsGuCFirmware = true;
 			// Fake SKL as KBL on 13.0+ due to the removal of SKL kexts
 			if (getKernelVersion() >= KernelVersion::Ventura) {
+				supportsGuCFirmware = true;
 				currentGraphics = &kextIntelKBL;
 				currentFramebuffer = &kextIntelKBLFb;
+				modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
+				modRPSControlPatch.available = true;
+				modForceWakeWorkaround.enabled = true;
+				modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
+				modBlackScreenFix.available = true;
 			} else {
+				supportsGuCFirmware = true;
 				currentGraphics = &kextIntelSKL;
 				currentFramebuffer = &kextIntelSKLFb;
+				modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
+				modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
+				modBlackScreenFix.available = true;
 			}
-			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
-			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
-			modBlackScreenFix.available = true;
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
