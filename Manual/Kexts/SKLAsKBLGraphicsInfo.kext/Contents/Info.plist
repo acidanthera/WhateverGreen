@@ -200,8 +200,6 @@
 			<integer>17301536</integer>
 			<key>MetalPluginName</key>
 			<string>AppleIntelKBLGraphicsMTLDriver</string>
-			<key>ItWorked</key>
-			<true/>
 		</dict>
 	</dict>
 </dict>
