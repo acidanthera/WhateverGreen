@@ -1671,7 +1671,7 @@ private:
 		/**
 		 *  A list of pending brightness adjustment requests
 		 */
-		BrightnessRequestQueue *queue {nullptr};
+		BrightnessRequest request;
 
 		/**
 		 *  A workloop that provides a kernel thread to adjust the brightness

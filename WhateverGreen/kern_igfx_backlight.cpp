@@ -236,8 +236,8 @@ bool BrightnessRequestEventSource::checkForWork() {
 	
 	// Get a pending request
 	// No work if the queue is empty
-	BrightnessRequest request;
-	if (!smoother->queue->pop(request)) {
+	BrightnessRequest request = smoother->request; // TODO: read it atomically, or compare the whole requests instead of ID
+	if (!request.controller) {
 		DBGLOG("igfx", "BLS: [COMM] The request is empty. Will wait for the next invocation.");
 		return false;
 	}
@@ -247,26 +247,39 @@ bool BrightnessRequestEventSource::checkForWork() {
 	uint32_t current = IGFX::callbackIGFX->readRegister32(request.controller, request.address);
 	uint32_t cbrightness = request.getCurrentBrightness(current);
 	uint32_t tbrightness = request.getTargetBrightness();
+
+	if (cbrightness == tbrightness) {
+		DBGLOG("igfx", "BLS: [COMM] The request is already completed. Will wait for the next invocation.");
+		return false;		
+	}
+	
 	tbrightness = max(tbrightness, smoother->brightnessRange.first);  // Ensure that target >= lowerbound
 	tbrightness = min(tbrightness, smoother->brightnessRange.second); // Ensure that target <= upperbound
 	uint32_t distance = max(cbrightness, tbrightness) - min(cbrightness, tbrightness);
-	uint32_t stride = distance / smoother->steps + ((distance % smoother->steps) ? 1 : 0);
-	DBGLOG("igfx", "BLS: [COMM] Processing the request: Current = 0x%08x; Target = 0x%08x; Distance = %04u; Steps = %u; Stride = %u.",
-		   cbrightness, tbrightness, distance, smoother->steps, stride);
+	DBGLOG("igfx", "BLS: [COMM] Processing the request: Current = 0x%08x; Target = 0x%08x; Distance = %04u; Steps = %u.",
+		   cbrightness, tbrightness, distance, smoother->steps);
 	
 	// Process the request
 	if (distance > smoother->threshold) {
 		if (cbrightness < tbrightness) {
 			// Increase the brightness
-			for (uint32_t value = cbrightness + stride; value <= tbrightness - stride; value += stride) {
+			for (uint32_t i = 1; i < smoother->steps; i++) {
+				uint32_t value = cbrightness + i * distance / smoother->steps;
 				IGFX::callbackIGFX->writeRegister32(request.controller, request.address, request.getTargetRegisterValue(value));
 				IOSleep(smoother->interval);
+				if (smoother->request.id != request.id) {
+					return true; // Start again, because there is a new request
+				}
 			}
 		} else if (cbrightness > tbrightness) {
 			// Decrease the brightness
-			for (uint32_t value = cbrightness - stride; value >= tbrightness + stride; value -= stride) {
+			for (uint32_t i = 1; i < smoother->steps; i++) {
+				uint32_t value = cbrightness - i * distance / smoother->steps;
 				IGFX::callbackIGFX->writeRegister32(request.controller, request.address, request.getTargetRegisterValue(value));
 				IOSleep(smoother->interval);
+				if (smoother->request.id != request.id) {
+					return true; // Start again, because there is a new request
+				}
 			}
 		}
 	} else {
@@ -278,8 +291,8 @@ bool BrightnessRequestEventSource::checkForWork() {
 	[[maybe_unused]] uint64_t enanosecs = getCurrentTimeNs();
 	DBGLOG("igfx", "BLS: [COMM] The request completed in %llu nanoseconds.", enanosecs - snanosecs);
 	
-	// No need to invoke this function again if the queue is empty
-	return !smoother->queue->isEmpty();
+	// No need to invoke this function again if the request is the same
+	return smoother->request.id != request.id;
 }
 
 /**
@@ -323,7 +336,6 @@ void IGFX::BacklightSmoother::deinit() {
 		}
 		OSSafeReleaseNULL(workloop);
 	}
-	BrightnessRequestQueue::safeDeleter(queue);
 	OSSafeReleaseNULL(owner);
 }
 
@@ -375,13 +387,7 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 	}
 	
 	// Initialize the request queue
-	queue = BrightnessRequestQueue::withCapacity(queueSize);
-	if (queue == nullptr) {
-		SYSLOG("igfx", "BLS: Failed to initialize the request queue.");
-		deinit();
-		enabled = false;
-		return;
-	}
+	request = BrightnessRequest();
 	
 	// Initialize the workloop
 	workloop = IOWorkLoop::workLoop();
@@ -430,7 +436,7 @@ void IGFX::BacklightSmoother::smoothIVBWriteRegisterPWMCCTRL(void *controller, u
 	PANIC_COND(address != BLC_PWM_CPU_CTL, "igfx", "Fatal Error: Register should be BLC_PWM_CPU_CTL.");
 	
 	// Submit the request and notify the event source
-	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value));
+	callbackIGFX->modBacklightSmoother.request = BrightnessRequest(callbackIGFX->modBacklightSmoother.request.id + 1, controller, address, value);
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
 	DBGLOG("igfx", "BLS: [IVB ] WriteRegister32<BLC_PWM_CPU_CTL>: The brightness request has been submitted.");
 }
@@ -440,7 +446,7 @@ void IGFX::BacklightSmoother::smoothHSWWriteRegisterPWMFreq1(void *controller, u
 	PANIC_COND(address != BXT_BLC_PWM_FREQ1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
 	
 	// Submit the request and notify the event source
-	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value, 0xFFFF));
+	callbackIGFX->modBacklightSmoother.request = BrightnessRequest(callbackIGFX->modBacklightSmoother.request.id + 1, controller, address, value, 0xFFFF);
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
 	DBGLOG("igfx", "BLS: [HSW+] WriteRegister32<BXT_BLC_PWM_FREQ1>: The brightness request has been submitted.");
 }
@@ -450,7 +456,7 @@ void IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(void *controller, u
 	PANIC_COND(address != BXT_BLC_PWM_DUTY1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
 	
 	// Submit the request and notify the event source
-	callbackIGFX->modBacklightSmoother.queue->push(BrightnessRequest(controller, address, value));
+	callbackIGFX->modBacklightSmoother.request = BrightnessRequest(callbackIGFX->modBacklightSmoother.request.id + 1, controller, address, value);
 	callbackIGFX->modBacklightSmoother.eventSource->enable();
 	DBGLOG("igfx", "BLS: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: The brightness request has been submitted.");
 }
