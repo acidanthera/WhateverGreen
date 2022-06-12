@@ -65,6 +65,7 @@ void IGFX::init() {
 			// Fake SKL as KBL on 13.0+ due to the removal of SKL kexts
 			// NOTE: SKLAsKBLGraphicsInfo.kext must be used for proper functioning
 			if (getKernelVersion() >= KernelVersion::Ventura) {
+				DBGLOG("igfx", "enforcing KBL kexts and patches on Skylake for 13.0+");
 				supportsGuCFirmware = true;
 				currentGraphics = &kextIntelKBL;
 				currentFramebuffer = &kextIntelKBLFb;
