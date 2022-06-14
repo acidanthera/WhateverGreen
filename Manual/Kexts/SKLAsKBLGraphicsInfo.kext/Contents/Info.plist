@@ -128,9 +128,9 @@
 			<key>IOGLBundleName</key>
 			<string>AppleIntelKBLGraphicsGLDriver</string>
 			<key>IOGVABGRAEnc</key>
-			<string>Gen9</string>
+			<string>Gen95</string>
 			<key>IOGVACodec</key>
-			<string>Gen9</string>
+			<string>Gen95</string>
 			<key>IOGVAH264EncodeCapabilities</key>
 			<dict>
 				<key>VTQualityRating</key>
@@ -139,12 +139,17 @@
 				<integer>400</integer>
 			</dict>
 			<key>IOGVAHEVCDecode</key>
-			<string>1</string>
+			<string>2</string>
 			<key>IOGVAHEVCDecodeCapabilities</key>
 			<dict>
 				<key>VTPerProfileDetails</key>
 				<dict>
 					<key>1</key>
+					<dict>
+						<key>VTMaxDecodeLevel</key>
+						<integer>186</integer>
+					</dict>
+					<key>2</key>
 					<dict>
 						<key>VTMaxDecodeLevel</key>
 						<integer>186</integer>
@@ -158,11 +163,12 @@
 				<key>VTSupportedProfileArray</key>
 				<array>
 					<integer>1</integer>
+					<integer>2</integer>
 					<integer>3</integer>
 				</array>
 			</dict>
 			<key>IOGVAHEVCEncode</key>
-			<string>1</string>
+			<string>2</string>
 			<key>IOGVAHEVCEncodeCapabilities</key>
 			<dict>
 				<key>VTPerProfileDetails</key>
@@ -172,18 +178,24 @@
 						<key>VTMaxEncodeLevel</key>
 						<integer>156</integer>
 					</dict>
+					<key>2</key>
+					<dict>
+						<key>VTMaxEncodeLevel</key>
+						<integer>156</integer>
+					</dict>
 				</dict>
 				<key>VTQualityRating</key>
 				<integer>80</integer>
 				<key>VTRating</key>
-				<integer>90</integer>
+				<integer>100</integer>
 				<key>VTSupportedProfileArray</key>
 				<array>
 					<integer>1</integer>
+					<integer>2</integer>
 				</array>
 			</dict>
 			<key>IOGVAScaler</key>
-			<string>Gen9</string>
+			<string>Gen95</string>
 			<key>IOMatchCategory</key>
 			<string>IOAccelerator</string>
 			<key>IOPCIClassMatch</key>
