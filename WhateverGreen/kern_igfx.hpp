@@ -295,6 +295,11 @@ private:
 	bool moderniseAccelerator {false};
 
 	/**
+	 *  Set to true to force Kaby Lake graphics kext to be used on Skylake
+	 */
+	bool forceSKLAsKBL {false};
+
+	/**
 	 *  GuC firmware loading scheme
 	 */
 	enum FirmwareLoad {
