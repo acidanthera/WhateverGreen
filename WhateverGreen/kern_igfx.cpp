@@ -1070,7 +1070,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->moderniseAccelerator)
 		that->setName("IntelAccelerator");
 	
-	if (cpuGeneration == CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Ventura) {
+	if (BaseDeviceInfo::get().cpuGeneration == CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Ventura) {
 		DBGLOG("igfx", "disabling VP9 hw decode support");
 		that->removeProperty("IOGVAXDecode");
 	}
