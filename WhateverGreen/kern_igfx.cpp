@@ -277,7 +277,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	if (currentGraphics && currentGraphics->loadIndex == index) {
-		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
+		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel || (cpuGeneration == CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Ventura)) {
 			KernelPatcher::RouteRequest request("__ZN16IntelAccelerator5startEP9IOService", wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
 
@@ -1068,6 +1068,11 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 
 	if (callbackIGFX->moderniseAccelerator)
 		that->setName("IntelAccelerator");
+	
+	if (cpuGeneration == CPUInfo::CpuGeneration::Skylake && getKernelVersion() >= KernelVersion::Ventura) {
+		DBGLOG("igfx", "disabling VP9 hw decode support");
+		that->removeProperty("IOGVAXDecode");
+	}
 
 	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
 
