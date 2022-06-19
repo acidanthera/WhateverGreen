@@ -1048,7 +1048,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 #### Spoof Skylake as Kaby Lake on macOS Ventura (13) and above
 
-First, make sure that WhateverGreen v1.6.0 and above is used. Then, use [SKLAsKBLGraphicsInfo.kext](https://github.com/acidanthera/WhateverGreen/tree/master/Manual/Kexts/SKLAsKBLGraphicsInfo.kext) by loading it with the bootloader. Eventually, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630).
+Make sure that WhateverGreen v1.6.0 and above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
 
 ***SKL framebuffer list:***
 
