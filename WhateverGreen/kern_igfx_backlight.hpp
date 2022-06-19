@@ -55,6 +55,11 @@ struct BrightnessRequest {
 	uint32_t mask {0};
 	
 	/**
+	 * The request ID to check if the request was changed
+	 */
+	uint32_t id {0};
+	
+	/**
 	 *  Create an empty request
 	 */
 	BrightnessRequest() = default;
@@ -62,8 +67,8 @@ struct BrightnessRequest {
 	/**
 	 *  Create a brightness request
 	 */
-	BrightnessRequest(void *controller, uint32_t address, uint32_t target, uint32_t mask = 0xFFFFFFFF) :
-		controller(controller), address(address), target(target), mask(mask) {}
+	BrightnessRequest(uint32_t id, void *controller, uint32_t address, uint32_t target, uint32_t mask = 0xFFFFFFFF) :
+		id(id), controller(controller), address(address), target(target), mask(mask) {}
 	
 	/**
 	 *  Get the current brightness level
@@ -94,11 +99,6 @@ struct BrightnessRequest {
 		return brightness | (target & ~mask);
 	}
 };
-
-/**
- *  Type of the adjustment request queue
- */
-using BrightnessRequestQueue = CircularBuffer<BrightnessRequest>;
 
 /**
  *  An event source that adjusts the brightness smoothly
