@@ -62,8 +62,8 @@ void IGFX::init() {
 			break;
 		case CPUInfo::CpuGeneration::Skylake:
 			// Fake SKL as KBL on 13.0+ due to the removal of SKL kexts
-			// Or KBL kext can be used on SKL with older versions as well
-			forceSKLAsKBL = checkKernelArgument("-igfxsklaskbl") || getKernelVersion() >= KernelVersion::Ventura;
+			// Or KBL kext can be used on SKL with older versions as well with KBL `device-id' and `ig-platform-id' injected.
+			forceSKLAsKBL = getKernelVersion() >= KernelVersion::Ventura || checkKernelArgument("-igfxsklaskbl");
 			if (forceSKLAsKBL) {
 				DBGLOG("igfx", "enforcing KBL kexts and patches on Skylake");
 				supportsGuCFirmware = true;
@@ -1072,7 +1072,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		that->setName("IntelAccelerator");
 	
 	if (callbackIGFX->forceSKLAsKBL) {
-		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake");
+		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake when using KBL kexts");
 		that->removeProperty("IOGVAXDecode");
 	}
 
