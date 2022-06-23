@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.6.0
 - Added constants required for macOS 13 update
+- Added Skylake graphics spoofing support on macOS 13+ by @dhinakg
 - Modified brightness change requests to replace previous requests instead of queuing
 
 #### v1.5.9

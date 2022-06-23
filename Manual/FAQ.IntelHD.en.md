@@ -1044,8 +1044,12 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
   
 ## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)))  
 
-> Supported since OS X 10.11.4 to macOS 12.x. On newer operating systems these are not supported.  
-  
+> Officially supported since OS X 10.11.4 to macOS 12.x. On newer operating systems, spoofing as Kaby Lake is required.
+
+#### Spoof Skylake as Kaby Lake on macOS Ventura (13) and above
+
+Make sure that WhateverGreen v1.6.0 or above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
+
 ***SKL framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |

@@ -61,12 +61,27 @@ void IGFX::init() {
 			currentFramebuffer = &kextIntelBDWFb;
 			break;
 		case CPUInfo::CpuGeneration::Skylake:
-			supportsGuCFirmware = true;
-			currentGraphics = &kextIntelSKL;
-			currentFramebuffer = &kextIntelSKLFb;
-			modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
-			modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
-			modBlackScreenFix.available = true;
+			// Fake SKL as KBL on 13.0+ due to the removal of SKL kexts
+			// Or KBL kext can be used on SKL with older versions as well with KBL `device-id' and `ig-platform-id' injected.
+			forceSKLAsKBL = getKernelVersion() >= KernelVersion::Ventura || checkKernelArgument("-igfxsklaskbl");
+			if (forceSKLAsKBL) {
+				DBGLOG("igfx", "enforcing KBL kexts and patches on Skylake");
+				supportsGuCFirmware = true;
+				currentGraphics = &kextIntelKBL;
+				currentFramebuffer = &kextIntelKBLFb;
+				modForceCompleteModeset.supported = modForceCompleteModeset.enabled = true;
+				modRPSControlPatch.available = true;
+				modForceWakeWorkaround.enabled = true;
+				modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
+				modBlackScreenFix.available = true;
+			} else {
+				supportsGuCFirmware = true;
+				currentGraphics = &kextIntelSKL;
+				currentFramebuffer = &kextIntelSKLFb;
+				modForceCompleteModeset.supported = modForceCompleteModeset.legacy = true; // not enabled, as on legacy operating systems it casues crashes.
+				modTypeCCheckDisabler.enabled = getKernelVersion() >= KernelVersion::BigSur;
+				modBlackScreenFix.available = true;
+			}
 			break;
 		case CPUInfo::CpuGeneration::KabyLake:
 			supportsGuCFirmware = true;
@@ -264,7 +279,7 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	if (currentGraphics && currentGraphics->loadIndex == index) {
-		if (forceOpenGL || forceMetal || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
+		if (forceOpenGL || forceMetal || forceSKLAsKBL || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
 			KernelPatcher::RouteRequest request("__ZN16IntelAccelerator5startEP9IOService", wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);
 
@@ -1055,6 +1070,11 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 
 	if (callbackIGFX->moderniseAccelerator)
 		that->setName("IntelAccelerator");
+	
+	if (callbackIGFX->forceSKLAsKBL) {
+		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake when using KBL kexts");
+		that->removeProperty("IOGVAXDecode");
+	}
 
 	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
 
