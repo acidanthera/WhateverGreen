@@ -97,7 +97,7 @@ indices of connectors for which online status is enforced. Format is similar to 
 - `-igfxmpc` boot argument (`enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties) to increase max pixel clock (as an alternative to patching CoreDisplay.framework).
 - `-igfxbls` boot argument (and `enable-backlight-smoother` property) to make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience)
 - `-igfxdbeo` boot argument (and `enable-dbuf-early-optimizer` property) to fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms)
-- `-igfxsklaskbl` to enforce Kaby Lake (KBL) graphics kext being loaded and used on Skylake models (KBL `device-id` and `ig-platform-id` are required)
+- `-igfxsklaskbl` to enforce Kaby Lake (KBL) graphics kext being loaded and used on Skylake models (KBL `device-id` and `ig-platform-id` are required), not required on macOS 13 and above
 - `applbkl=3` boot argument (and `applbkl` property) to enable PWM backlight control of AMD Radeon RX 5000 series graphic cards [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md)
 
 #### Credits
