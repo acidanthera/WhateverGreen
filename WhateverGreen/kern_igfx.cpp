@@ -1000,7 +1000,7 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->disableAccel)
 		return false;
 	
-	OSDictionary* developmentDictCpy {};
+	OSDictionary *developmentDictCpy {};
 
 	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->modForceWakeWorkaround.enabled) {
 		auto developmentDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
@@ -1072,8 +1072,37 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		that->setName("IntelAccelerator");
 	
 	if (callbackIGFX->forceSKLAsKBL) {
-		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake when using KBL kexts");
+		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
 		that->removeProperty("IOGVAXDecode");
+
+		OSDictionary *hevcDecodeCapDictCpy {};
+		if (auto hevcDecodeCap = OSDynamicCast(OSDictionary, that->getProperty("IOGVAHEVCDecodeCapabilities"))) {
+			auto c = hevcDecodeCap->copyCollection();
+
+			if (c)
+				hevcDecodeCapDictCpy = OSDynamicCast(OSDictionary, c);
+			if (c && !hevcDecodeCapDictCpy)
+				c->release();
+		}
+
+		if (hevcDecodeCapDictCpy) {
+			auto vtSuppProf = OSDynamicCast(OSArray, hevcDecodeCapDictCpy->getObject("VTSupportedProfileArray"));
+			if (vtSuppProf) {
+				auto count = vtSuppProf->getCount();
+				for (auto i = 0; i < count; i++) {
+					auto num = OSDynamicCast(OSNumber, vtSuppProf->getObject(i));
+
+					if (num->unsigned8BitValue() == 2) {
+						DBGLOG("igfx", "removing profile 2 from VTSupportedProfileArray/IOGVAHEVCDecodeCapabilities index %u on Skylake with KBL kexts", i);
+						vtSuppProf->removeObject(i);
+						break;
+					}
+				}
+			}
+
+			that->setProperty("IOGVAHEVCDecodeCapabilities", hevcDecodeCapDictCpy);
+			hevcDecodeCapDictCpy->release();
+		}
 	}
 
 	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
