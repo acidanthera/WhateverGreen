@@ -45,7 +45,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 
 - `-wegdbg` to enable debug printing (available in DEBUG binaries).
 - `-wegoff` to disable WhateverGreen.
-- `-wegbeta` to enable WhateverGreen on unsupported OS versions (12 and below are enabled by default).
+- `-wegbeta` to enable WhateverGreen on unsupported OS versions (13 and below are enabled by default).
 - `-wegnoegpu` to disable all external GPUs (or add `disable-gpu` property to each GFX0).
 - `-wegnoigpu` to disable internal GPU (or add `disable-gpu` property to IGPU)
 - `-wegswitchgpu` to disable internal GPU when external GPU is installed (or add `switch-to-external-gpu` property to IGPU)
