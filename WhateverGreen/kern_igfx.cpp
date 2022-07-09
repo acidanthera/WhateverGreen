@@ -996,6 +996,53 @@ OSObject *IGFX::wrapCopyExistingServices(OSDictionary *matching, IOOptionBits in
 	return FunctionCast(wrapCopyExistingServices, callbackIGFX->orgCopyExistingServices)(matching, inState, options);
 }
 
+bool IGFX::applySklAsKblPatches(IOService *that) {
+	DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
+	that->removeProperty("IOGVAXDecode");
+
+	auto hevcDecodeCap = OSDynamicCast(OSDictionary, that->getProperty("IOGVAHEVCDecodeCapabilities"));
+	if (!hevcDecodeCap)
+		return false;
+
+	auto newHevcDecodeCap = OSDictionary::withDictionary(hevcDecodeCap);
+	if (!newHevcDecodeCap)
+		return false;
+
+	auto vtSuppProf = OSDynamicCast(OSArray, newHevcDecodeCap->getObject("VTSupportedProfileArray"));
+	if (!vtSuppProf) {
+		newHevcDecodeCap->release();
+		return false;
+	}
+
+	auto newVtSuppProf = OSArray::withArray(vtSuppProf);
+	if (!newVtSuppProf) {
+		newHevcDecodeCap->release();
+		return false;
+	}
+
+	unsigned int count = newVtSuppProf->getCount();
+	bool found = false;
+	for (unsigned int i = 0; i < count; i++) {
+		auto num = OSDynamicCast(OSNumber, newVtSuppProf->getObject(i));
+		if (!num) break;
+
+		if (num->unsigned8BitValue() == 2) {
+			DBGLOG("igfx", "removing profile 2 from VTSupportedProfileArray/IOGVAHEVCDecodeCapabilities index %u on Skylake with KBL kexts", i);
+			newVtSuppProf->removeObject(i);
+			found = true;
+			break;
+		}
+	}
+
+	newHevcDecodeCap->setObject("VTSupportedProfileArray", newVtSuppProf);
+	newVtSuppProf->release();
+
+	that->setProperty("IOGVAHEVCDecodeCapabilities", newHevcDecodeCap);
+	newHevcDecodeCap->release();
+
+	return found;
+}
+
 bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->disableAccel)
 		return false;
@@ -1071,33 +1118,8 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->moderniseAccelerator)
 		that->setName("IntelAccelerator");
 	
-	if (callbackIGFX->forceSKLAsKBL) {
-		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
-		that->removeProperty("IOGVAXDecode");
-
-		if (auto hevcDecodeCap = OSDynamicCast(OSDictionary, that->getProperty("IOGVAHEVCDecodeCapabilities"))) {
-			if (auto hevcDecodeCapCpy = OSDictionary::withDictionary(hevcDecodeCap)) {
-				if (auto vtSuppProf = OSDynamicCast(OSArray, hevcDecodeCapCpy->getObject("VTSupportedProfileArray"))) {
-					if (auto vtSuppProfCpy = OSArray::withArray(vtSuppProf)) {
-						auto count = vtSuppProfCpy->getCount();
-						for (auto i = 0; i < count; i++) {
-							auto num = OSDynamicCast(OSNumber, vtSuppProfCpy->getObject(i));
-							if (num->unsigned8BitValue() == 2) {
-								DBGLOG("igfx", "removing profile 2 from VTSupportedProfileArray/IOGVAHEVCDecodeCapabilities index %u on Skylake with KBL kexts", i);
-								vtSuppProfCpy->removeObject(i);
-								break;
-							}
-						}
-
-						hevcDecodeCapCpy->setObject("VTSupportedProfileArray", vtSuppProfCpy);
-						vtSuppProfCpy->release();
-					}
-				}
-
-				that->setProperty("IOGVAHEVCDecodeCapabilities", hevcDecodeCapCpy);
-				hevcDecodeCapCpy->release();
-			}
-		}
+	if (callbackIGFX->forceSKLAsKBL && !applySklAsKblPatches(that)) {
+		SYSLOG("igfx", "failed to remove profile 2 from VTSupportedProfileArray/IOGVAHEVCDecodeCapabilities");
 	}
 
 	bool ret = FunctionCast(wrapAcceleratorStart, callbackIGFX->orgAcceleratorStart)(that, provider);
