@@ -1075,33 +1075,28 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 		DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
 		that->removeProperty("IOGVAXDecode");
 
-		OSDictionary *hevcDecodeCapDictCpy {};
 		if (auto hevcDecodeCap = OSDynamicCast(OSDictionary, that->getProperty("IOGVAHEVCDecodeCapabilities"))) {
-			auto c = hevcDecodeCap->copyCollection();
+			if (auto hevcDecodeCapCpy = OSDictionary::withDictionary(hevcDecodeCap)) {
+				if (auto vtSuppProf = OSDynamicCast(OSArray, hevcDecodeCapCpy->getObject("VTSupportedProfileArray"))) {
+					if (auto vtSuppProfCpy = OSArray::withArray(vtSuppProf)) {
+						auto count = vtSuppProfCpy->getCount();
+						for (auto i = 0; i < count; i++) {
+							auto num = OSDynamicCast(OSNumber, vtSuppProfCpy->getObject(i));
+							if (num->unsigned8BitValue() == 2) {
+								DBGLOG("igfx", "removing profile 2 from VTSupportedProfileArray/IOGVAHEVCDecodeCapabilities index %u on Skylake with KBL kexts", i);
+								vtSuppProfCpy->removeObject(i);
+								break;
+							}
+						}
 
-			if (c)
-				hevcDecodeCapDictCpy = OSDynamicCast(OSDictionary, c);
-			if (c && !hevcDecodeCapDictCpy)
-				c->release();
-		}
-
-		if (hevcDecodeCapDictCpy) {
-			auto vtSuppProf = OSDynamicCast(OSArray, hevcDecodeCapDictCpy->getObject("VTSupportedProfileArray"));
-			if (vtSuppProf) {
-				auto count = vtSuppProf->getCount();
-				for (auto i = 0; i < count; i++) {
-					auto num = OSDynamicCast(OSNumber, vtSuppProf->getObject(i));
-
-					if (num->unsigned8BitValue() == 2) {
-						DBGLOG("igfx", "removing profile 2 from VTSupportedProfileArray/IOGVAHEVCDecodeCapabilities index %u on Skylake with KBL kexts", i);
-						vtSuppProf->removeObject(i);
-						break;
+						hevcDecodeCapCpy->setObject("VTSupportedProfileArray", vtSuppProfCpy);
+						vtSuppProfCpy->release();
 					}
 				}
-			}
 
-			that->setProperty("IOGVAHEVCDecodeCapabilities", hevcDecodeCapDictCpy);
-			hevcDecodeCapDictCpy->release();
+				that->setProperty("IOGVAHEVCDecodeCapabilities", hevcDecodeCapCpy);
+				hevcDecodeCapCpy->release();
+			}
 		}
 	}
 
