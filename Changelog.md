@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.6.1 
+- Improved Skylake graphics spoofing support by removing profile 2 from VTSupportedProfileArray on macOS 13+, thanks @abenraj and @dhinakg
+
 #### v1.6.0
 - Added constants required for macOS 13 update
 - Added Skylake graphics spoofing support on macOS 13+ by @dhinakg
