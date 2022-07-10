@@ -1948,6 +1948,11 @@ private:
 	static OSObject *wrapCopyExistingServices(OSDictionary *matching, IOOptionBits inState, IOOptionBits options);
 
 	/**
+	 * Apply patches under dict Development
+	 */
+	static bool applyDevelopmentPatches(IOService *that);
+
+	/**
 	 *  Apply patches for Skylake when spoofing Kaby Lake
 	 */
 	static bool applySklAsKblPatches(IOService *that);

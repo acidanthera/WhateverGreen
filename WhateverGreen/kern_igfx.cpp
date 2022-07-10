@@ -996,6 +996,64 @@ OSObject *IGFX::wrapCopyExistingServices(OSDictionary *matching, IOOptionBits in
 	return FunctionCast(wrapCopyExistingServices, callbackIGFX->orgCopyExistingServices)(matching, inState, options);
 }
 
+bool IGFX::applyDevelopmentPatches(IOService *that) {
+	// skip if not requested
+	if (callbackIGFX->fwLoadMode == FW_APPLE && !callbackIGFX->modForceWakeWorkaround.enabled) {
+		return true;
+	}
+
+	auto devDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
+	if (!devDict)
+		return false;
+
+	auto newDevDict = OSDictionary::withDictionary(devDict);
+	if (!newDevDict)
+		return false;
+
+	// By default Apple drivers load Apple-specific firmware, which is incompatible.
+	// On KBL they do it unconditionally, which causes infinite loop.
+	// On 10.13 there is an option to ignore/load a generic firmware, which we set here.
+	// On 10.12 it is not necessary.
+	// On 10.15 an option is differently named but still there.
+	// There are some laptops that support Apple firmware, for them we want it to be loaded explicitly.
+	// REF: https://github.com/acidanthera/bugtracker/issues/748
+	if (callbackIGFX->fwLoadMode != FW_APPLE) {
+		// 1 - Automatic scheduler (Apple -> fallback to disabled)
+		// 2 - Force disable via plist (removed as of 10.15)
+		// 3 - Apple Scheduler
+		// 4 - Reference Scheduler
+		// 5 - Host Preemptive (as of 10.15)
+		uint32_t scheduler;
+		if (callbackIGFX->fwLoadMode == FW_GENERIC)
+			scheduler = 4;
+		else if (getKernelVersion() >= KernelVersion::Catalina)
+			scheduler = 5;
+		else
+			scheduler = 2;
+		auto num = OSNumber::withNumber(scheduler, 32);
+		if (num) {
+			newDevDict->setObject("GraphicsSchedulerSelect", num);
+			num->release();
+		}
+	}
+
+	// 0: Framebuffer's SafeForceWake
+	// 1: IntelAccelerator::SafeForceWakeMultithreaded (or ForceWakeWorkaround when enabled)
+	// The default is 1. Forcing 0 will result in hangs (due to misbalanced number of calls?)
+	if (callbackIGFX->modForceWakeWorkaround.enabled) {
+		auto num = OSNumber::withNumber(1ull, 32);
+		if (num) {
+			newDevDict->setObject("MultiForceWakeSelect", num);
+			num->release();
+		}
+	}
+
+	that->setProperty("Development", newDevDict);
+	newDevDict->release();
+
+	return true;
+}
+
 bool IGFX::applySklAsKblPatches(IOService *that) {
 	DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
 	that->removeProperty("IOGVAXDecode");
@@ -1047,61 +1105,8 @@ bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
 	if (callbackIGFX->disableAccel)
 		return false;
 	
-	OSDictionary *developmentDictCpy {};
-
-	if (callbackIGFX->fwLoadMode != FW_APPLE || callbackIGFX->modForceWakeWorkaround.enabled) {
-		auto developmentDict = OSDynamicCast(OSDictionary, that->getProperty("Development"));
-		if (developmentDict) {
-			auto c = developmentDict->copyCollection();
-			if (c)
-				developmentDictCpy = OSDynamicCast(OSDictionary, c);
-			if (c && !developmentDictCpy)
-				c->release();
-		}
-	}
-
-	// By default Apple drivers load Apple-specific firmware, which is incompatible.
-	// On KBL they do it unconditionally, which causes infinite loop.
-	// On 10.13 there is an option to ignore/load a generic firmware, which we set here.
-	// On 10.12 it is not necessary.
-	// On 10.15 an option is differently named but still there.
-	// There are some laptops that support Apple firmware, for them we want it to be loaded explicitly.
-	// REF: https://github.com/acidanthera/bugtracker/issues/748
-	if (callbackIGFX->fwLoadMode != FW_APPLE && developmentDictCpy) {
-		// 1 - Automatic scheduler (Apple -> fallback to disabled)
-		// 2 - Force disable via plist (removed as of 10.15)
-		// 3 - Apple Scheduler
-		// 4 - Reference Scheduler
-		// 5 - Host Preemptive (as of 10.15)
-		uint32_t scheduler;
-		if (callbackIGFX->fwLoadMode == FW_GENERIC)
-			scheduler = 4;
-		else if (getKernelVersion() >= KernelVersion::Catalina)
-			scheduler = 5;
-		else
-			scheduler = 2;
-		auto num = OSNumber::withNumber(scheduler, 32);
-		if (num) {
-			developmentDictCpy->setObject("GraphicsSchedulerSelect", num);
-			num->release();
-		}
-	}
-	
-	// 0: Framebuffer's SafeForceWake
-	// 1: IntelAccelerator::SafeForceWakeMultithreaded (or ForceWakeWorkaround when enabled)
-	// The default is 1. Forcing 0 will result in hangs (due to misbalanced number of calls?)
-	if (callbackIGFX->modForceWakeWorkaround.enabled && developmentDictCpy) {
-		auto num = OSNumber::withNumber(1ull, 32);
-		if (num) {
-			developmentDictCpy->setObject("MultiForceWakeSelect", num);
-			num->release();
-		}
-	}
-	
-	if (developmentDictCpy) {
-		that->setProperty("Development", developmentDictCpy);
-		developmentDictCpy->release();
-	}
+	if (!applyDevelopmentPatches(that))
+		SYSLOG("igfx", "failed to apply dict Development patches");
 
 	OSObject *metalPluginName = that->getProperty("MetalPluginName");
 	if (metalPluginName) {
