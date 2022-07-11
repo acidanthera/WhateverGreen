@@ -1064,8 +1064,6 @@ bool IGFX::applySklAsKblPatches(IOService *that) {
 	const char *hevcCapProps[] = { "IOGVAHEVCDecodeCapabilities", "IOGVAHEVCEncodeCapabilities" };
 	bool found = false;
 	for (auto prop : hevcCapProps) {
-		found = false;
-
 		auto hevcCap = OSDynamicCast(OSDictionary, that->getProperty(prop));
 		if (!hevcCap)
 			continue;
