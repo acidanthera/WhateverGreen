@@ -1062,39 +1062,40 @@ bool IGFX::applySklAsKblPatches(IOService *that) {
 	// The removal of profile 2 under VTSupportedProfileArray allows fallback to software encoding/decoding.
 	// Thanks dhinakg and aben for finding this.
 	const char *hevcCapProps[] = { "IOGVAHEVCDecodeCapabilities", "IOGVAHEVCEncodeCapabilities" };
+	bool found = false;
 	for (auto prop : hevcCapProps) {
+		found = false;
+
 		auto hevcCap = OSDynamicCast(OSDictionary, that->getProperty(prop));
 		if (!hevcCap)
-			return false;
+			continue;
 
 		auto newHevcCap = OSDictionary::withDictionary(hevcCap);
 		if (!newHevcCap)
-			return false;
+			continue;
 
 		auto vtSuppProf = OSDynamicCast(OSArray, newHevcCap->getObject("VTSupportedProfileArray"));
 		if (!vtSuppProf) {
 			newHevcCap->release();
-			return false;
+			continue;
 		}
 
 		auto newVtSuppProf = OSArray::withArray(vtSuppProf);
 		if (!newVtSuppProf) {
 			newHevcCap->release();
-			return false;
+			continue;
 		}
 
 		unsigned int count = newVtSuppProf->getCount();
 		for (unsigned int i = 0; i < count; i++) {
 			auto num = OSDynamicCast(OSNumber, newVtSuppProf->getObject(i));
-			if (!num) {
-				newVtSuppProf->release();
-				newHevcCap->release();
-				return false;
-			}
+			if (!num)
+				continue;
 
 			if (num->unsigned8BitValue() == 2) {
 				DBGLOG("igfx", "removing profile 2 from VTSupportedProfileArray/%s index %u on Skylake with KBL kexts", prop, i);
 				newVtSuppProf->removeObject(i);
+				found = true;
 				break;
 			}
 		}
@@ -1106,7 +1107,7 @@ bool IGFX::applySklAsKblPatches(IOService *that) {
 		newHevcCap->release();
 	}
 
-	return true;
+	return found;
 }
 
 bool IGFX::wrapAcceleratorStart(IOService *that, IOService *provider) {
