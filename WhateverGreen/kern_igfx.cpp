@@ -1048,6 +1048,13 @@ bool IGFX::applyDevelopmentPatches(IOService *that) {
 		}
 	}
 
+	// Patch 0 - remove DisablePageFaultHandling and DisplaySurfaceInEDRAM which are not in SKL kext
+	if (callbackIGFX->forceSKLAsKBL) {
+		DBGLOG("igfx", "removing DisablePageFaultHandling and DisplaySurfaceInEDRAM from Development dict on Skylake with KBL kexts");
+		newDevDict->removeObject("DisablePageFaultHandling");
+		newDevDict->removeObject("DisplaySurfaceInEDRAM");
+	}
+
 	that->setProperty("Development", newDevDict);
 	newDevDict->release();
 
@@ -1055,35 +1062,69 @@ bool IGFX::applyDevelopmentPatches(IOService *that) {
 }
 
 bool IGFX::applySklAsKblPatches(IOService *that) {
-	DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
-	that->removeProperty("IOGVAXDecode");
+	bool found = false;
 
+	// Patch 1 - restore IOGVAHEVCDecode/Encode to 1 as used by SKL
+	const char *ioGvaHevcKeys[] = { "IOGVAHEVCDecode", "IOGVAHEVCEncode" };
+	for (auto ioGvaHevcKey : ioGvaHevcKeys) {
+		DBGLOG("igfx", "overriding %s to 1 on Skylake with KBL kexts", ioGvaHevcKey);
+		if (!that->setProperty(ioGvaHevcKey, "1"))
+			SYSLOG("igfx", "failed to override %s value on Skylake with KBL kexts", ioGvaHevcKey);
+	}
+
+	// Patch 2:
 	// SKL does not support 10-bit hardware encoding/decoding, and this causes freezing when attempting to do so.
 	// The removal of profile 2 under VTSupportedProfileArray allows fallback to software encoding/decoding.
 	// Thanks dhinakg and aben for finding this.
 	const char *hevcCapProps[] = { "IOGVAHEVCDecodeCapabilities", "IOGVAHEVCEncodeCapabilities" };
-	bool found = false;
 	for (auto prop : hevcCapProps) {
 		auto hevcCap = OSDynamicCast(OSDictionary, that->getProperty(prop));
 		if (!hevcCap)
 			continue;
-
 		auto newHevcCap = OSDictionary::withDictionary(hevcCap);
 		if (!newHevcCap)
 			continue;
 
+		// Patch 3 - set VTRating to 90 in IOGVAHEVCEncodeCapabilities
+		if (strcmp(prop, "IOGVAHEVCEncodeCapabilities") == 0) {
+			auto newVTRating = OSNumber::withNumber(90ull, 32);
+			if (!newVTRating) {
+				newHevcCap->release();
+				continue;
+			}
+
+			DBGLOG("igfx", "overriding VTRating under %s to 90 on Skylake with KBL kexts", prop);
+			newHevcCap->setObject("VTRating", newVTRating);
+			newVTRating->release();
+		}
+
+		// Patch 4 - remove profile 2 from VTPerProfileDetails
+		auto vtPerProfDet = OSDynamicCast(OSDictionary, newHevcCap->getObject("VTPerProfileDetails"));
+		if (!vtPerProfDet) {
+			newHevcCap->release();
+			continue;
+		}
+		auto newVtPerProfDet = OSDictionary::withDictionary(vtPerProfDet);
+		if (!newVtPerProfDet) {
+			newHevcCap->release();
+			continue;
+		}
+		DBGLOG("igfx", "removing profile 2 from VTPerProfileDetails/%s on Skylake with KBL kexts", prop);
+		newVtPerProfDet->removeObject("2");
+		newHevcCap->setObject("VTPerProfileDetails", newVtPerProfDet);
+		newVtPerProfDet->release();
+
+		// Patch 5 - remove profile 2 from VTSupportedProfileArray
 		auto vtSuppProf = OSDynamicCast(OSArray, newHevcCap->getObject("VTSupportedProfileArray"));
 		if (!vtSuppProf) {
 			newHevcCap->release();
 			continue;
 		}
-
 		auto newVtSuppProf = OSArray::withArray(vtSuppProf);
 		if (!newVtSuppProf) {
 			newHevcCap->release();
 			continue;
 		}
-
 		unsigned int count = newVtSuppProf->getCount();
 		for (unsigned int i = 0; i < count; i++) {
 			auto num = OSDynamicCast(OSNumber, newVtSuppProf->getObject(i));
@@ -1097,13 +1138,20 @@ bool IGFX::applySklAsKblPatches(IOService *that) {
 				break;
 			}
 		}
-
 		newHevcCap->setObject("VTSupportedProfileArray", newVtSuppProf);
 		newVtSuppProf->release();
 
 		that->setProperty(prop, newHevcCap);
 		newHevcCap->release();
 	}
+
+	// Patch 6 - drop IOGVAXDecode
+	DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
+	that->removeProperty("IOGVAXDecode");
+
+	// Patch 7 - set IOVARendererID to SKL value
+	DBGLOG("igfx", "overriding IOVARendererID to 17301520 on Skylake with KBL kexts");
+	that->setProperty("IOVARendererID", 17301520ull, 32);
 
 	return found;
 }
