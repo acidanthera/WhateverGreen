@@ -1055,6 +1055,11 @@ bool IGFX::applyDevelopmentPatches(IOService *that) {
 }
 
 bool IGFX::applySklAsKblPatches(IOService *that) {
+	DBGLOG("igfx", "disabling HEVC (test)");
+	that->setProperty("IOGVABGRAEnc", "Gen9");
+	that->setProperty("IOGVACodec", "Gen9");
+	that->setProperty("IOGVAScaler", "Gen9");
+
 	DBGLOG("igfx", "disabling VP9 hw decode support on Skylake with KBL kexts");
 	that->removeProperty("IOGVAXDecode");
 
