@@ -727,6 +727,7 @@ static constexpr Model dev6920[] {
 };
 
 static constexpr Model dev6921[] {
+	{Model::DetectSub, 0x1028, 0x16DA, 0x0000, "AMD FirePro W7170M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M295X"}
 };
 
@@ -736,6 +737,7 @@ static constexpr Model dev6938[] {
 };
 
 static constexpr Model dev6939[] {
+	{Model::DetectSub, 0x1002, 0x0b00, 0x0000, "AMD FirePro S7100X"},
 	{Model::DetectSub, 0x148c, 0x9380, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x174b, 0xe308, 0x0000, "AMD Radeon R9 380"},
 	{Model::DetectSub, 0x1043, 0x0498, 0x0000, "AMD Radeon R9 380"},
