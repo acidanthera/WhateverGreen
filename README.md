@@ -60,7 +60,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | `-wegnoigpu` 		| `disable-gpu` property to IGPU 	| Disable internal GPU 	|
 | `-wegswitchgpu` | `switch-to-external-gpu` property to IGPU 	| Disable internal GPU when external GPU is installed 	|
 
-##### ATI
+##### AMD Radeon
 
 | Boot argument 	| DeviceProperties 	| Description 	|
 |---	|---	|---	|
@@ -87,7 +87,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | `ngfxgl=1` 		    | `disable-metal` 	| Disable Metal support on NVIDIA 	|
 | `ngfxsubmit=0` 	  | `disable-gfx-submit` 	| Disable interface stuttering fix on 10.13 	|
 
-##### iGPU
+##### Intel HD Graphics
 
 | Boot argument 	  | DeviceProperties 	| Description 	|
 |---	|---	|---	  |
