@@ -84,7 +84,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | `-igfxi2cdbg` 	| N/A 	| Enable verbose output in I2C-over-AUX transactions (only for debugging purposes) 	|
 | `igfxagdc=0` 	| `disable-agdc` property on IGPU 	| Disable AGDC 	|
 | `igfxfcms=1` 	| `complete-modeset` property on IGPU 	| Force complete modeset on Skylake or Apple firmwares 	|
-| `igfxfcmsfbs=` 	| `complete-modeset-framebuffers` property on IGPU 	| Specify indices of connectors for which complete modeset must be enforced. Each index is a byte in 	|
+| `igfxfcmsfbs=` 	| `complete-modeset-framebuffers` property on IGPU 	| Specify indices of connectors for which complete modeset must be enforced. Each index is a byte in a 64-bit word; for example, value `0x010203` specifies connectors 1, 2, 3. If a connector is not in the list, the driver's logic is used to determine whether complete modeset is needed. Pass `-1` to disable. 	|
 | `igfxonln=1` 	| `force-online` property on IGPU 	| Force online status on all displays 	|
 | `igfxonlnfbs=MASK` 	| `force-online-framebuffers` property on IGPU 	| Specify indices of connectors for which online status is enforced. Format is similar to `igfxfcmsfbs` 	|
 | `wegtree=1` 	| `rebuild-device-tree` property 	| Force device renaming on Apple FW 	|
