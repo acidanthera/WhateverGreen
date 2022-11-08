@@ -43,60 +43,107 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 
 #### Boot arguments
 
+##### Global
+
 | Boot argument 	| DeviceProperties 	| Description 	|
 |---	|---	|---	|
-| `-wegdbg` 	| N/A 	| Enable debug printing (available in DEBUG binaries) 	|
-| `-wegoff` 	| N/A 	| Disable WhateverGreen 	|
-| `-wegbeta` 	| N/A 	| Enable WhateverGreen on unsupported OS versions (13 and below are enabled by default) 	|
-| `-wegnoegpu` 	| `disable-gpu` property to each GFX0 	| Disable all external GPUs 	|
-| `-wegnoigpu` 	| `disable-gpu` property to IGPU 	| Disable internal GPU 	|
-| `-wegswitchgpu` 	| `switch-to-external-gpu` property to IGPU 	| Disable internal GPU when external GPU is installed 	|
-| `-radvesa` 	| N/A 	| Disable ATI/AMD video acceleration completely 	|
-| `-rad24` 	| N/A 	| Enforce 24-bit display mode 	|
-| `-raddvi` 	| N/A 	| Enable DVI transmitter correction (required for 290X, 370, etc.) 	|
-| `-radcodec` 	| N/A 	| Force the spoofed PID to be used in AMDRadeonVADriver 	|
-| `radpg=15` 	| N/A 	| Disable several power-gating modes (see [FAQ Radeon](https://github.com/dreamwhite/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md), required for Cape Verde GPUs) 	|
-| `agdpmod=vit9696` 	| `agdpmod` property to external GPU 	| Disable check for `board-id` 	|
-| `agdpmod=pikera` 	| `agdpmod` property to external GPU 	| Replaces `board-id` with `board-ix` 	|
+| `-cdfon` 			  | `enable-hdmi20` property on IGPU | Enable HDMI 2.0 patches on iGPU and dGPU	|
+| `-wegbeta` 		  | N/A 	| Enable WhateverGreen on unsupported OS versions (13 and below are enabled by default) 	|
+| `-wegdbg` 		  | N/A 	| Enable debug printing (available in DEBUG binaries) 	|
+| `-wegoff` 		  | N/A 	| Disable WhateverGreen 	|
+
+##### Switch GPU
+
+| Boot argument 	| DeviceProperties 	| Description 	|
+|---	|---	|---	|
+| `-wegnoegpu` 		| `disable-gpu` property to each GFX0 	| Disable all external GPUs 	|
+| `-wegnoigpu` 		| `disable-gpu` property to IGPU 	| Disable internal GPU 	|
+| `-wegswitchgpu` | `switch-to-external-gpu` property to IGPU 	| Disable internal GPU when external GPU is installed 	|
+
+##### ATI
+
+| Boot argument 	| DeviceProperties 	| Description 	|
+|---	|---	|---	|
+| `-rad24` 			  | N/A 	| Enforce 24-bit display mode 	|
+| `-radcodec` 		| N/A 	| Force the spoofed PID to be used in AMDRadeonVADriver 	|
+| `-raddvi` 		  | N/A 	| Enable DVI transmitter correction (required for 290X, 370, etc.) 	|
+| `-radvesa` 		  | N/A 	| Disable ATI/AMD video acceleration completely 	|
+| `radpg=15` 		  | N/A 	| Disable several power-gating modes (see [FAQ Radeon](https://github.com/dreamwhite/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md), required for Cape Verde GPUs: Radeon HD 7730/7750/7770/R7 250/R7 250X) 	|
+
+##### Board-id
+
+| Boot argument 	  | DeviceProperties 	| Description 	|
+|---	|---	|---	  |
 | `agdpmod=ignore` 	| `agdpmod` property to external GPU 	| Disables AGDP patches (`vit9696,pikera` value is implicit default for external GPUs) 	|
-| `ngfxgl=1` 	| `disable-metal` 	| Disable Metal support on NVIDIA 	|
-| `ngfxcompat=1` 	| `force-compat` 	| Ignore compatibility check in NVDAStartupWeb 	|
-| `ngfxsubmit=0` 	| `disable-gfx-submit` 	| Disable interface stuttering fix on 10.13 	|
-| `-ngfxdbg` 	| N/A 	| Enable NVIDIA driver error logging 	|
-| `gfxrst=1` 	| N/A 	| Prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying 	|
-| `gfxrst=4` 	| N/A 	| Disable framebuffer init interaction during 2nd boot stage 	|
-| `igfxframe=frame` 	| `AAPL,ig-platform-id` or `AAPL,snb-platform-id` property on IGPU 	| Inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes) 	|
-| `igfxsnb=0` 	| N/A 	| Disable IntelAccelerator name fix for Sandy Bridge CPUs 	|
-| `igfxgl=1` 	| `disable-metal` 	| Disable Metal support on Intel 	|
-| `igfxmetal=1` 	| `enable-metal` 	| Force enable Metal support on Intel for offline rendering 	|
-| `igfxpavp=1` 	| `igfxpavp` property on IGPU 	| Force enable PAVP output 	|
-| `igfxfw=2` 	| `igfxfw` property on IGPU 	| Force loading of Apple GuC firmware 	|
-| `-igfxvesa` 	| N/A 	| Disable Intel Graphics acceleration 	|
-| `-igfxnohdmi` 	| `disable-hdmi-patches` 	| Disable DP to HDMI conversion patches for digital sound 	|
-| `-igfxtypec` 	| N/A 	| Force DP connectivity for Type-C platforms 	|
-| `-cdfon` 	| `enable-hdmi20` property on IGPU 	| Enable HDMI 2.0 patches 	|
-| `-igfxdump` 	| N/A 	| Dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries) 	|
-| `-igfxfbdump` 	| N/A 	| Dump native and patched framebuffer table to ioreg at `IOService:/IOResources/WhateverGreen` 	|
-| `applbkl=0` 	| `applbkl` property on IGPU 	| Disable AppleBacklight.kext patches for IGPU. <br>In case of custom AppleBacklight profile [read here](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md) 	|
-| `-igfxmlr` 	| `enable-dpcd-max-link-rate-fix` property on IGPU 	| Apply the maximum link rate fix 	|
+| `agdpmod=pikera` 	| `agdpmod` property to external GPU 	| Replaces `board-id` with `board-ix` 	|
+| `agdpmod=vit9696` | `agdpmod` property to external GPU 	| Disable check for `board-id` 	|
+
+##### Nvidia
+
+| Boot argument 	  | DeviceProperties 	| Description 	|
+|---	|---	|---	  |
+| `-ngfxdbg` 		    | N/A 	| Enable NVIDIA driver error logging 	|
+| `ngfxcompat=1` 	  | `force-compat` 	| Ignore compatibility check in NVDAStartupWeb 	|
+| `ngfxgl=1` 		    | `disable-metal` 	| Disable Metal support on NVIDIA 	|
+| `ngfxsubmit=0` 	  | `disable-gfx-submit` 	| Disable interface stuttering fix on 10.13 	|
+
+##### iGPU
+
+| Boot argument 	  | DeviceProperties 	| Description 	|
+|---	|---	|---	  |
+| `-igfxblr` 		    | `enable-backlight-registers-fix` property on IGPU 	| Fix backlight registers on KBL, CFL and ICL platforms 	|
+| `-igfxbls` 		    | `enable-backlight-smoother` property on IGPU 	| Make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience) 	|
+| `-igfxcdc` 		    | `enable-cdclk-frequency-fix` property on IGPU 	| Support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#support-all-possible-core-display-clock-cdclk-frequencies-on-icl-platforms) 	 |
+| `-igfxdbeo` 		  | `enable-dbuf-early-optimizer` property on IGPU 	| Fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms) 	|
+| `-igfxdump` 		  | N/A 	| Dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries) 	|
+| `-igfxdvmt` 		  | `enable-dvmt-calc-fix` property on IGPU 	| Fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms 	|
+| `-igfxfbdump` 		| N/A 	| Dump native and patched framebuffer table to ioreg at `IOService:/IOResources/WhateverGreen` 	|
 | `-igfxhdmidivs` 	| `enable-hdmi-dividers-fix` property on IGPU 	| Fix the infinite loop on establishing Intel HDMI connections with a higher pixel clock rate on SKL, KBL and CFL platforms 	|
-| `-igfxlspcon` 	| `enable-lspcon-support` property on IGPU 	| Enable the driver support for onboard LSPCON chips.<br> [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#lspcon-driver-support-to-enable-displayport-to-hdmi-20-output-on-igpu) 	|
-| `-igfxi2cdbg` 	| N/A 	| Enable verbose output in I2C-over-AUX transactions (only for debugging purposes) 	|
-| `igfxagdc=0` 	| `disable-agdc` property on IGPU 	| Disable AGDC 	|
-| `igfxfcms=1` 	| `complete-modeset` property on IGPU 	| Force complete modeset on Skylake or Apple firmwares 	|
-| `igfxfcmsfbs=` 	| `complete-modeset-framebuffers` property on IGPU 	| Specify indices of connectors for which complete modeset must be enforced. Each index is a byte in a 64-bit word; for example, value `0x010203` specifies connectors 1, 2, 3. If a connector is not in the list, the driver's logic is used to determine whether complete modeset is needed. Pass `-1` to disable. 	|
-| `igfxonln=1` 	| `force-online` property on IGPU 	| Force online status on all displays 	|
-| `igfxonlnfbs=MASK` 	| `force-online-framebuffers` property on IGPU 	| Specify indices of connectors for which online status is enforced. Format is similar to `igfxfcmsfbs` 	|
-| `wegtree=1` 	| `rebuild-device-tree` property 	| Force device renaming on Apple FW 	|
-| `igfxrpsc=1` 	| `rps-control` property on IGPU 	| Enable RPS control patch (improves IGPU performance) 	|
-| `-igfxcdc` 	| `enable-cdclk-frequency-fix` property on IGPU 	| Support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#support-all-possible-core-display-clock-cdclk-frequencies-on-icl-platforms) 	|
-| `-igfxdvmt` 	| `enable-dvmt-calc-fix` property on IGPU 	| Fix the kernel panic caused by an incorrectly calculated amount of DVMT pre-allocated memory on Intel ICL platforms 	|
-| `-igfxblr` 	| `enable-backlight-registers-fix` property on IGPU 	| Fix backlight registers on KBL, CFL and ICL platforms 	|
-| `-igfxmpc` 	| `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties on IGPU 	| Increase max pixel clock (as an alternative to patching `CoreDisplay.framework` 	|
-| `-igfxbls` 	| `enable-backlight-smoother` property on IGPU 	| Make brightness transitions smoother on IVB+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience) 	|
-| `-igfxdbeo` 	| `enable-dbuf-early-optimizer` property on IGPU 	| Fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms) 	|
+| `-igfxi2cdbg` 	  | N/A 	| Enable verbose output in I2C-over-AUX transactions (only for debugging purposes) 	|
+| `-igfxi2cdbg` 	  | N/A 	| Enable verbose output in I2C-over-AUX transactions (only for debugging purposes) 	|
+| `-igfxlspcon` 	  | `enable-lspcon-support` property on IGPU 	| Enable the driver support for onboard LSPCON chips.<br> [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#lspcon-driver-support-to-enable-displayport-to-hdmi-20-output-on-igpu) 	|
+| `-igfxlspcon` 	  | `enable-lspcon-support` property on IGPU 	| Enable the driver support for onboard LSPCON chips.<br> [Read the manual](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.IntelHD.en.md#lspcon-driver-support-to-enable-displayport-to-hdmi-20-output-on-igpu) 	|
+| `-igfxmlr` 		    | `enable-dpcd-max-link-rate-fix` property on IGPU 	| Apply the maximum link rate fix 	|
+| `-igfxmlr` 		    | `enable-dpcd-max-link-rate-fix` property on IGPU 	| Apply the maximum link rate fix 	|
+| `-igfxmpc` 		    | `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties on IGPU 	| Increase max pixel clock (as an alternative to patching `CoreDisplay.framework` 	|
+| `-igfxmpc` 		    | `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties on IGPU 	| Increase max pixel clock (as an alternative to patching `CoreDisplay.framework` 	|
+| `-igfxnohdmi` 	  | `disable-hdmi-patches` 	| Disable DP to HDMI conversion patches for digital sound 	|
+| `-igfxnohdmi` 	  | `disable-hdmi-patches` 	| Disable DP to HDMI conversion patches for digital sound 	|
 | `-igfxsklaskbl` 	| N/A 	| Enforce Kaby Lake (KBL) graphics kext being loaded and used on Skylake models (KBL `device-id` and `ig-platform-id` are required. Not required on macOS 13 and above) 	|
-| `applbkl=3` 	| `applbkl` property 	| Enable PWM backlight control of AMD Radeon RX 5000 series graphic cards [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md) 	|
+| `-igfxtypec` 		 	| N/A 	| Force DP connectivity for Type-C platforms 	|
+| `-igfxvesa` 		  | N/A 	| Disable Intel Graphics acceleration 	|
+| `igfxagdc=0` 		  | `disable-agdc` property on IGPU 	| Disable AGDC 	|
+| `igfxfcms=1` 		  | `complete-modeset` property on IGPU 	| Force complete modeset on Skylake or Apple firmwares 	|
+| `igfxfcmsfbs=` 	  | `complete-modeset-framebuffers` property on IGPU 	| Specify indices of connectors for which complete modeset must be enforced. Each index is a byte in a 64-bit word; for example, value `0x010203` specifies connectors 1, 2, 3. If a connector is not in the list, the driver's logic is used to determine whether complete modeset is needed. Pass `-1` to disable.  	|
+| `igfxframe=frame` | `AAPL,ig-platform-id` or `AAPL,snb-platform-id` property on IGPU 	| Inject a dedicated framebuffer identifier into IGPU (only for TESTING purposes) 	|
+| `igfxfw=2` 		    | `igfxfw` property on IGPU 	| Force loading of Apple GuC firmware 	|
+| `igfxgl=1` 		    | `disable-metal` 	| Disable Metal support on Intel 	|
+| `igfxmetal=1` 	  | `enable-metal` 	| Force enable Metal support on Intel for offline rendering 	|
+| `igfxonln=1` 		  | `force-online` property on IGPU 	| Force online status on all displays 	|
+| `igfxonlnfbs=MASK`| `force-online-framebuffers` property on IGPU 	| Specify indices of connectors for which online status is enforced. Format is similar to `igfxfcmsfbs` 	|
+| `igfxpavp=1` 		  | `igfxpavp` property on IGPU 	| Force enable PAVP output 	|
+| `igfxrpsc=1` 		 	| `rps-control` property on IGPU 	| Enable RPS control patch (improves IGPU performance) 	|
+| `igfxsnb=0` 		  | N/A 	| Disable IntelAccelerator name fix for Sandy Bridge CPUs 	|
+
+##### Backlight
+
+| Boot argument 	| DeviceProperties 	| Description 	|
+|---	|---	|---	|
+| `applbkl=3` 		| `applbkl` property 	| Enable PWM backlight control of AMD Radeon RX 5000 series graphic cards [read here.](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.Radeon.en.md) 	|
+| `applbkl=0` 		| `applbkl` property on IGPU 	| Disable AppleBacklight.kext patches for IGPU. <br>In case of custom AppleBacklight profile [read here](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/FAQ.OldPlugins.en.md) 	|
+
+##### 2nd Boot stage
+
+| Boot argument 	| DeviceProperties 	| Description 	|
+|---	|---	|---	|
+| `gfxrst=1` 		  | N/A 	| Prefer drawing Apple logo at 2nd boot stage instead of framebuffer copying 	|
+| `gfxrst=4` 		  | N/A 	| Disable framebuffer init interaction during 2nd boot stage 	|
+
+##### Misc
+
+| Boot argument 	| DeviceProperties 	| Description 	|
+|---	|---	|---	|
+| `wegtree=1` 		| `rebuild-device-tree` property 	| Force device renaming on Apple FW 	|
 
 #### Credits
 
