@@ -47,7 +47,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 
 | Boot argument 	| DeviceProperties 	| Description 	|
 |---	|---	|---	|
-| `-cdfon` 			  | `enable-hdmi20` | Enable HDMI 2.0 patches on iGPU and dGPU	|
+| `-cdfon` 			  | `enable-hdmi20`  | Enable HDMI 2.0 patches on iGPU and dGPU (Not implemented for macOS 11+)  |
 | `-wegbeta` 		  | N/A 	| Enable WhateverGreen on unsupported OS versions (13 and below are enabled by default) 	|
 | `-wegdbg` 		  | N/A 	| Enable debug printing (available in DEBUG binaries) 	|
 | `-wegoff` 		  | N/A 	| Disable WhateverGreen 	|
