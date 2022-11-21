@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+### v1.6.2
+- Added W7170M/S7100X ID.
+
 #### v1.6.1 
 - Improved Skylake graphics spoofing support by removing profile 2 from VTSupportedProfileArray on macOS 13+, thanks @abenraj and @dhinakg
 
