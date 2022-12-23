@@ -783,6 +783,17 @@ static constexpr Model dev7340[] {
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon RX 5500 XT"}
 };
 
+static constexpr Model dev944a[] {
+	{Model::DetectSub, 0x106b, 0x00b5, 0x0000, "ATI Radeon HD 4850M"},	
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 4850M"}
+};
+
+static constexpr Model dev9488[] {
+	{Model::DetectSub, 0x106b, 0x00b6, 0x0000, "ATI Radeon HD 4670M"},	
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 4670M"}
+};
+
+
 static constexpr DevicePair devices[] {
 	{0x6640, dev6640, arrsize(dev6640)},
 	{0x6641, dev6641, arrsize(dev6641)},
@@ -866,8 +877,10 @@ static constexpr DevicePair devices[] {
 	{0x6921, dev6921, arrsize(dev6921)},
 	{0x6938, dev6938, arrsize(dev6938)},
 	{0x6939, dev6939, arrsize(dev6939)},
-	{0x7300, dev7300, arrsize(dev7300)}
-	{0x7340, dev7340, arrsize(dev7340)}
+	{0x7300, dev7300, arrsize(dev7300)},
+	{0x7340, dev7340, arrsize(dev7340)},
+	{0x944a, dev944a, arrsize(dev944a)},
+	{0x9488, dev9488, arrsize(dev9488)}
 };
 
 static BuiltinModel devIntel[] {
