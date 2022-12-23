@@ -1046,7 +1046,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 > Officially supported since OS X 10.11.4 to macOS 12.x. On newer operating systems, spoofing as Kaby Lake is required.
 
-#### Spoof Skylake as Kaby Lake on macOS Ventura (13) and above
+***Spoof Skylake as Kaby Lake on macOS 13***
 
 Make sure that WhateverGreen v1.6.0 or above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
 
@@ -2385,7 +2385,7 @@ To use this patch, add the `enable-hdmi20` property to `IGPU` or use the `-cdfon
 
 ![hdmi20](./Img/hdmi20.png)
 
-`-igfxmpc` is the preferred approach to bypass the 450 MHz pixel clock limit, as `-cdfon` depends on the userspace patcher.
+`-igfxmpc` is the preferred approach to bypass the 450 MHz pixel clock limit, as `-cdfon` depends on the userspace patcher (not implemented for macOS 11+).
 
 ## Disabling a discrete graphics card
 
