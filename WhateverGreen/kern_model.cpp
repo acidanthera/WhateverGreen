@@ -56,6 +56,9 @@ struct DevicePair {
 };
 
 static constexpr Model dev6640[] {
+	{Model::DetectSub, 0x1028, 0x04a4, 0x0000, "AMD FirePro M6100"},
+    	{Model::DetectSub, 0x1028, 0x15cd, 0x0000, "AMD FirePro M6100"},
+    	{Model::DetectSub, 0x106b, 0x014b, 0x0000, "AMD Radeon R9 M380"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD FirePro M6100"}
 };
 
@@ -64,10 +67,12 @@ static constexpr Model dev6641[] {
 };
 
 static constexpr Model dev6646[] {
+	{Model::DetectSub, 0x103c, 0x2256, 0x0000, "AMD FirePro W6170M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M280X"}
 };
 
 static constexpr Model dev6647[] {
+	{Model::DetectSub, 0x103c, 0x2256, 0x0000, "AMD FirePro M6100"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M270X"}
 };
 
@@ -142,6 +147,7 @@ static constexpr Model dev6740[] {
 	{Model::DetectSub, 0x103c, 0x3388, 0x0000, "AMD Radeon HD 6770M"},
 	{Model::DetectSub, 0x103c, 0x3389, 0x0000, "AMD Radeon HD 6770M"},
 	{Model::DetectSub, 0x103c, 0x3582, 0x0000, "AMD Radeon HD 6770M"},
+	{Model::DetectSub, 0x106b, 0x6740, 0x0000, "AMD Radeon HD 6770M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon HD 6730M"}
 };
 
@@ -167,6 +173,7 @@ static constexpr Model dev6741[] {
 	{Model::DetectSub, 0x104d, 0x907b, 0x0000, "AMD Radeon HD 6630M"},
 	{Model::DetectSub, 0x104d, 0x9080, 0x0000, "AMD Radeon HD 6630M"},
 	{Model::DetectSub, 0x104d, 0x9081, 0x0000, "AMD Radeon HD 6630M"},
+	{Model::DetectSub, 0x106b, 0x6741, 0x0000, "AMD Radeon HD 6750M"},
 	{Model::DetectSub, 0x1179, 0xfd63, 0x0000, "AMD Radeon HD 6630M"},
 	{Model::DetectSub, 0x1179, 0xfd65, 0x0000, "AMD Radeon HD 6630M"},
 	{Model::DetectSub, 0x144d, 0xc0b3, 0x0000, "AMD Radeon HD 6750M"},
@@ -399,6 +406,9 @@ static constexpr Model dev67c7[] {
 };
 
 static constexpr Model dev67df[] {
+	{Model::DetectAll, 0x106b, 0x0162, 0x00c4, "AMD Radeon Pro 575"},	
+	{Model::DetectAll, 0x106b, 0x0163, 0x00c5, "AMD Radeon Pro 570"},
+	{Model::DetectAll, 0x106b, 0x0161, 0x00c0, "AMD Radeon Pro 580"},
 	{Model::DetectAll, 0x1462, 0x341E, 0x00cf, "AMD Radeon RX 570"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00e1, "AMD Radeon RX 590"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "AMD Radeon RX 580"},
@@ -426,6 +436,9 @@ static constexpr Model dev67e3[] {
 };
 
 static constexpr Model dev67ef[] {
+	{Model::DetectAll, 0x106b, 0x016b, 0x00c7, "AMD Radeon Pro 555"},
+	{Model::DetectAll, 0x106b, 0x016a, 0x00c0, "AMD Radeon Pro 560"},
+	{Model::DetectAll, 0x106b, 0x016c, 0x0000, "AMD BAFFIN GPU"},
 	{Model::DetectAll, 0x1787, 0x3000, 0x00cf, "AMD Radeon RX 560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c0, "AMD Radeon Pro 460/560"},
 	{Model::DetectRev, 0x0000, 0x0000, 0x00c1, "AMD Radeon RX 460"},
@@ -466,6 +479,7 @@ static constexpr Model dev6808[] {
 };
 
 static constexpr Model dev6810[] {
+	{Model::DetectSub, 0x106b, 0x0138, 0x0000, "AMD Radeon R9 M290X"},
 	{Model::DetectSub, 0x1458, 0x2272, 0x0000, "AMD Radeon R9 270X"},
 	{Model::DetectSub, 0x1462, 0x3033, 0x0000, "AMD Radeon R9 270X"},
 	{Model::DetectSub, 0x174b, 0xe271, 0x0000, "AMD Radeon R9 270X"},
@@ -480,6 +494,8 @@ static constexpr Model dev6818[] {
 };
 
 static constexpr Model dev6819[] {
+	{Model::DetectSub, 0x106b, 0x014e, 0x0000, "AMD Radeon R9 M390"},
+	{Model::DetectSub, 0x106b, 0x0139, 0x0000, "AMD Radeon R9 M290"},
 	{Model::DetectSub, 0x174b, 0xe218, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x174b, 0xe221, 0x0000, "AMD Radeon HD 7850"},
 	{Model::DetectSub, 0x1458, 0x255a, 0x0000, "AMD Radeon HD 7850"},
@@ -488,10 +504,12 @@ static constexpr Model dev6819[] {
 };
 
 static constexpr Model dev6820[] {
+	{Model::DetectSub, 0x1028, 0x16d9, 0x0000, "AMD FirePro W5170M"},
+    	{Model::DetectSub, 0x1028, 0x06da, 0x0000, "AMD FirePro W5170M"},
 	{Model::DetectSub, 0x103c, 0x1851, 0x0000, "AMD Radeon HD 7750M"},
+	{Model::DetectSub, 0x103c, 0x810a, 0x0000, "AMD FirePro W5170M"},
 	{Model::DetectSub, 0x17aa, 0x3643, 0x0000, "AMD Radeon R9 A375"},
 	{Model::DetectSub, 0x17aa, 0x3801, 0x0000, "AMD Radeon R9 M275"},
-	{Model::DetectSub, 0x1028, 0x06da, 0x0000, "AMD FirePro W5170M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M375"}
 };
 
@@ -499,6 +517,7 @@ static constexpr Model dev6821[] {
 	{Model::DetectSub, 0x1002, 0x031e, 0x0000, "AMD FirePro SX4000"},
 	{Model::DetectSub, 0x1028, 0x05cc, 0x0000, "AMD FirePro M5100"},
 	{Model::DetectSub, 0x1028, 0x15cc, 0x0000, "AMD FirePro M5100"},
+	{Model::DetectSub, 0x103c, 0x2254, 0x0000, "AMD FirePro M5100"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M370X"}
 };
 
@@ -524,6 +543,8 @@ static constexpr Model dev682b[] {
 };
 
 static constexpr Model dev682d[] {
+	{Model::DetectSub, 0x103c, 0x176b, 0x0000, "AMD FirePro M4000"},
+	{Model::DetectSub, 0x103c, 0x176c, 0x0000, "AMD FirePro M4000"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD FirePro M4000"}
 };
 
@@ -627,6 +648,7 @@ static constexpr Model dev68a0[] {
 };
 
 static constexpr Model dev68a1[] {
+	{Model::DetectSub, 0x106b, 0x00cc, 0x0000, "ATI Radeon HD 5750M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Mobility Radeon HD 5850"}
 };
 
@@ -644,6 +666,7 @@ static constexpr Model dev68b8[] {
 
 static constexpr Model dev68c0[] {
 	{Model::DetectSub, 0x103c, 0x1521, 0x0000, "ATI FirePro M5800"},
+	{Model::DetectSub, 0x106b, 0x00d2, 0x0000, "ATI Radeon HD 5670M"},
 	{Model::DetectSub, 0x17aa, 0x3978, 0x0000, "AMD Radeon HD 6570M"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Mobility Radeon HD 5730"}
 };
@@ -723,6 +746,7 @@ static constexpr Model dev68e1[] {
 };
 
 static constexpr Model dev6920[] {
+	{Model::DetectSub, 0x106b, 0x014c, 0x0000, "AMD Radeon R9 M395"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon R9 M395"}
 };
 
@@ -753,6 +777,22 @@ static constexpr Model dev7300[] {
 	{Model::DetectSub, 0x1002, 0x0b36, 0x0000, "AMD Radeon FURY X"},
 	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon FURY"}
 };
+
+static constexpr Model dev7340[] {
+	{Model::DetectAll, 0x2401, 0x148c, 0x00c5, "Radeon RX 5500 XT"},
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon RX 5500 XT"}
+};
+
+static constexpr Model dev944a[] {
+	{Model::DetectSub, 0x106b, 0x00b5, 0x0000, "ATI Radeon HD 4850M"},	
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 4850M"}
+};
+
+static constexpr Model dev9488[] {
+	{Model::DetectSub, 0x106b, 0x00b6, 0x0000, "ATI Radeon HD 4670M"},	
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "ATI Radeon HD 4670M"}
+};
+
 
 static constexpr DevicePair devices[] {
 	{0x6640, dev6640, arrsize(dev6640)},
@@ -837,7 +877,10 @@ static constexpr DevicePair devices[] {
 	{0x6921, dev6921, arrsize(dev6921)},
 	{0x6938, dev6938, arrsize(dev6938)},
 	{0x6939, dev6939, arrsize(dev6939)},
-	{0x7300, dev7300, arrsize(dev7300)}
+	{0x7300, dev7300, arrsize(dev7300)},
+	{0x7340, dev7340, arrsize(dev7340)},
+	{0x944a, dev944a, arrsize(dev944a)},
+	{0x9488, dev9488, arrsize(dev9488)}
 };
 
 static BuiltinModel devIntel[] {
