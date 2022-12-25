@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.6.3
+- Added various GPU identifiers from different Macs
+
 #### v1.6.2
 - Added W7170M/S7100X ID
 
