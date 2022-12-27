@@ -290,6 +290,11 @@ private:
 	bool forceMetal {false};
 
 	/**
+	 *  Set to true to disable telemetry loading for IGTelemetryManager.
+	 */
+	bool disableIGTelemetry {false};
+
+	/**
 	 *  Set to true if Sandy Bridge Gen6Accelerator should be renamed
 	 */
 	bool moderniseAccelerator {false};

@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.6.3
 - Added various GPU identifiers from different Macs
+- Added `disable-telemetry-load` to disable iGPU telemetry loading that may cause a freeze during startup on certain laptops such as Chromebooks.
 
 #### v1.6.2
 - Added W7170M/S7100X ID

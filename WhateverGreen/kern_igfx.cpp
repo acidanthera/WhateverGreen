@@ -190,6 +190,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		
 		disableAccel = checkKernelArgument("-igfxvesa");
 
+		disableIGTelemetry = info->videoBuiltin->getProperty("disable-telemetry-load") != nullptr || checkKernelArgument("-igfxnotelemetryload");
+
 		bool connectorLessFrame = info->reportedFramebufferIsConnectorLess;
 
 		int gl = info->videoBuiltin->getProperty("disable-metal") != nullptr;
@@ -249,6 +251,8 @@ void IGFX::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 				return true;
 			if (disableAccel)
 				return true;
+			if (disableIGTelemetry)
+				return true;
 			return false;
 		};
 
@@ -279,6 +283,23 @@ bool IGFX::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t a
 	auto cpuGeneration = BaseDeviceInfo::get().cpuGeneration;
 
 	if (currentGraphics && currentGraphics->loadIndex == index) {
+		if (disableIGTelemetry) {
+			auto symTelemetry = patcher.solveSymbol(index, "__ZN18IGTelemetryManager16prepareTelemetryEj");
+			if (symTelemetry) {
+				uint8_t ret[] {0xC3};
+				patcher.routeBlock(symTelemetry, ret, sizeof(ret));
+				if (patcher.getError() == KernelPatcher::Error::NoError) {
+					DBGLOG("igfx", "disabled __ZN18IGTelemetryManager16prepareTelemetryEj");
+				} else {
+					SYSLOG("igfx", "failed to disable __ZN18IGTelemetryManager16prepareTelemetryEj with code %d", patcher.getError());
+					patcher.clearError();
+				}
+			} else {
+				SYSLOG("igfx", "failed to resolve __ZN18IGTelemetryManager16prepareTelemetryE code %d", patcher.getError());
+				patcher.clearError();
+			}
+		}
+
 		if (forceOpenGL || forceMetal || forceSKLAsKBL || moderniseAccelerator || fwLoadMode != FW_APPLE || disableAccel) {
 			KernelPatcher::RouteRequest request("__ZN16IntelAccelerator5startEP9IOService", wrapAcceleratorStart, orgAcceleratorStart);
 			patcher.routeMultiple(index, &request, 1, address, size);

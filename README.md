@@ -104,6 +104,7 @@ Read [FAQs](https://github.com/acidanthera/WhateverGreen/blob/master/Manual/) an
 | `-igfxmlr` 		    | `enable-dpcd-max-link-rate-fix` property on IGPU 	| Apply the maximum link rate fix 	|
 | `-igfxmpc` 		    | `enable-max-pixel-clock-override` and `max-pixel-clock-frequency` properties on IGPU 	| Increase max pixel clock (as an alternative to patching `CoreDisplay.framework` 	|
 | `-igfxnohdmi` 	  | `disable-hdmi-patches` 	| Disable DP to HDMI conversion patches for digital sound 	|
+| `-igfxnotelemetryload` | `disable-telemetry-load` property on IGPU  | Disables iGPU telemetry loading that may cause a freeze during startup on certain laptops such as Chromebooks
 | `-igfxsklaskbl` 	| N/A 	| Enforce Kaby Lake (KBL) graphics kext being loaded and used on Skylake models (KBL `device-id` and `ig-platform-id` are required. Not required on macOS 13 and above) 	|
 | `-igfxtypec` 		 	| N/A 	| Force DP connectivity for Type-C platforms 	|
 | `-igfxvesa` 		  | N/A 	| Disable Intel Graphics acceleration 	|
