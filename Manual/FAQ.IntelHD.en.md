@@ -1050,6 +1050,8 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 Make sure that WhateverGreen v1.6.0 or above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
 
+In addition to using the latest version of WhateverGreen, `AAPL,GfxYTile` with value `01 00 00 00` may be injected together with `ig-platform-id` to avoid glitches. For more details, please refer to [acidanthera/bugtracker#483](https://github.com/acidanthera/bugtracker/issues/2088#issuecomment-1381357651).
+
 ***SKL framebuffer list:***
 
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |

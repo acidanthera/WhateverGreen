@@ -1126,6 +1126,10 @@ bool IGFX::applySklAsKblPatches(IOService *that) {
 		newHevcCap->release();
 	}
 
+	// NOTE: The patches/overriding above may not be sufficient.
+	//       `AAPL,GfxYTile` with value `01` may be injected for the glitch fix.
+	// Ref: https://github.com/acidanthera/bugtracker/issues/2088#issuecomment-1381357651
+
 	return found;
 }
 
