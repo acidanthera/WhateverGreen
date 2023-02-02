@@ -119,7 +119,7 @@ framebuffer-featurecontrol-watermarks*
   
 ## Intel HD Graphics 2000/3000 ([Sandy Bridge](https://en.wikipedia.org/wiki/Sandy_Bridge) processors)  
 
-> Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.7.x - macOS 10.13.6 (Not tested 10.7). On newer operating systems these are not supported. [But if you really want to - read this.](https://applelife.ru/posts/744431) Metal support is absent.  
+> Supported from Mac OS X 10.7.x to macOS 10.13.6. The instructions are for OS X 10.7.x - macOS 10.13.6 (Not tested 10.7). On newer operating systems these are not supported. [But if you really want to - use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/) Metal support is absent.  
   
 ***SNB Framebuffer List:***
 
@@ -270,7 +270,7 @@ For an "empty framebuffer" a different device-id is required, more in this [thre
 
 ## Intel HD Graphics 2500/4000 ([Ivy Bridge](https://en.wikipedia.org/wiki/Ivy_Bridge_(microarchitecture)) processors)  
 
-> Supported from OS X 10.8.x to macOS 11.x. On newer operating systems these are not supported. [But if you really want to - read this.](https://github.com/dortania/OpenCore-Legacy-Patcher)  
+> Supported from OS X 10.8.x to macOS 11.x. On newer operating systems these are not supported. [But if you really want to - use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/)  
   
 ***Capri framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
@@ -439,7 +439,7 @@ HD2500 doesn't work as a full-featured graphics card in macOS, but you can (and 
 
 ## Intel HD Graphics 4200-5200 ([Haswell](https://en.wikipedia.org/wiki/Haswell_(microarchitecture)) processors)  
 
-> Supported since OS X 10.9.x to macOS 12.x. On newer operating systems these are not supported.  
+> Supported since OS X 10.9.x to macOS 12.x. On newer operating systems these are not supported. [But if you really want to - use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/)  
   
 ***Azul framebuffer list:***
 | Framebuffer | Type    | Connectors | TOTAL STOLEN Memory |
@@ -745,7 +745,7 @@ For desktop HD4400 and mobile HD4200/HD4400/HD4600 need fake the `device-id` `12
 
 ## Intel HD Graphics 5300-6300 ([Broadwell](https://en.wikipedia.org/wiki/Broadwell_(microarchitecture)) processors)  
 
-> Supported since OS X 10.10.2 to macOS 12.x. On newer operating systems these are not supported.  
+> Supported since OS X 10.10.2 to macOS 12.x. On newer operating systems these are not supported. [But if you really want to - use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/)  
   
 ***BDW framebuffer list:***
 
