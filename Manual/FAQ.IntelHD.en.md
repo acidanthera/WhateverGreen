@@ -1042,9 +1042,9 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 - Laptop:
   - `0x16260006` (default)
   
-## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)))  
+## Intel HD Graphics 510-580 ([Skylake](https://en.wikipedia.org/wiki/Skylake_(microarchitecture)) processors)  
 
-> Officially supported since OS X 10.11.4 to macOS 12.x. On newer operating systems, spoofing as Kaby Lake is required.
+> Officially supported since OS X 10.11.4 to macOS 12.x. On newer operating systems, spoofing as Kaby Lake is required [or use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/)  
 
 ***Spoof Skylake as Kaby Lake on macOS 13***
 
