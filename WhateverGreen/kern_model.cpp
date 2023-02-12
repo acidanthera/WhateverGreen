@@ -779,8 +779,8 @@ static constexpr Model dev7300[] {
 };
 
 static constexpr Model dev7340[] {
-	{Model::DetectAll, 0x2401, 0x148c, 0x00c5, "Radeon RX 5500 XT"},
-	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "Radeon RX 5500 XT"}
+	{Model::DetectAll, 0x2401, 0x148c, 0x00c5, "AMD Radeon RX 5500 XT"},
+	{Model::DetectDef, 0x0000, 0x0000, 0x0000, "AMD Radeon RX 5500 XT"}
 };
 
 static constexpr Model dev944a[] {

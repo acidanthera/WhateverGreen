@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.6.4
+- Fixed Radeon RX 5500 XT identification regression
+
 #### v1.6.3
 - Added various GPU identifiers from different Macs
 - Added `disable-telemetry-load` to disable iGPU telemetry loading that may cause a freeze during startup on certain laptops such as Chromebooks.
