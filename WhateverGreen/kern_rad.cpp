@@ -20,6 +20,7 @@ static const char *pathRedeonX6000Framebuffer[]	{ "/System/Library/Extensions/AM
 static const char *pathLegacyFramebuffer[]	{ "/System/Library/Extensions/AMDLegacyFramebuffer.kext/Contents/MacOS/AMDLegacyFramebuffer" };
 static const char *pathSupport[]			{ "/System/Library/Extensions/AMDSupport.kext/Contents/MacOS/AMDSupport" };
 static const char *pathLegacySupport[]		{ "/System/Library/Extensions/AMDLegacySupport.kext/Contents/MacOS/AMDLegacySupport" };
+static const char *pathRadeonAccel[]		{ "/System/Library/Extensions/AMDRadeonAccelerator.kext/Contents/MacOS/AMDRadeonAccelerator" };
 static const char *pathRadeonX3000[]        { "/System/Library/Extensions/AMDRadeonX3000.kext/Contents/MacOS/AMDRadeonX3000" };
 static const char *pathRadeonX4000[]        { "/System/Library/Extensions/AMDRadeonX4000.kext/Contents/MacOS/AMDRadeonX4000" };
 static const char *pathRadeonX4100[]        { "/System/Library/Extensions/AMDRadeonX4100.kext/Contents/MacOS/AMDRadeonX4100" };
@@ -30,6 +31,7 @@ static const char *pathRadeonX5000[]        { "/System/Library/Extensions/AMDRad
 static const char *pathRadeonX6000[]        { "/System/Library/Extensions/AMDRadeonX6000.kext/Contents/MacOS/AMDRadeonX6000" };
 static const char *patchPolarisController[] { "/System/Library/Extensions/AMD9500Controller.kext/Contents/MacOS/AMD9500Controller" };
 
+static const char *idRadeonAccel	{"com.apple.AMDRadeonAccelerator"};
 static const char *idRadeonX3000New {"com.apple.kext.AMDRadeonX3000"};
 static const char *idRadeonX4000New {"com.apple.kext.AMDRadeonX4000"};
 static const char *idRadeonX4100New {"com.apple.kext.AMDRadeonX4100"};
@@ -55,6 +57,7 @@ static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
 { "com.apple.kext.AMDRadeonX6000Framebuffer", pathRedeonX6000Framebuffer, arrsize(pathRedeonX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
+	[RAD::IndexRadeonAccelerator]   = { idRadeonAccel   , pathRadeonAccel, arrsize(pathRadeonAccel), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4100] = { idRadeonX4100New, pathRadeonX4100, arrsize(pathRadeonX4100), {}, {}, KernelPatcher::KextInfo::Unloaded },
 	[RAD::IndexRadeonHardwareX4150] = { idRadeonX4150New, pathRadeonX4150, arrsize(pathRadeonX4150), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -399,6 +402,10 @@ void RAD::initHardwareKextMods() {
 		}
 	}
 
+	if (getKernelVersion() > KernelVersion::MountainLion) {
+		kextRadeonHardware[IndexRadeonAccelerator].switchOff();
+	}
+	
 	if (getKernelVersion() < KernelVersion::Catalina) {
 		kextRadeonHardware[IndexRadeonHardwareX6000].switchOff();
 	}
@@ -541,9 +548,21 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 
 	// Fix reported Accelerator name to support WhateverName.app
 	// Also fix GVA properties for X4000.
-	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000) {
+	if (fixConfigName || hwIndex == IndexRadeonHardwareX4000 || hwIndex == IndexRadeonAccelerator) {
 		KernelPatcher::RouteRequest request(populateAccelConfigProcNames[hwIndex], wrapPopulateAccelConfig[hwIndex], orgPopulateAccelConfig[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
+	}
+	
+	if (hwIndex == IndexRadeonAccelerator) {
+		orgReadMmRegisterULong = (t_writeMmRegisterULong) patcher.solveSymbol(hardware.loadIndex, "_vWriteMmRegisterUlong");
+		KernelPatcher::RouteRequest request("_Atomcail_ulNoBiosMemoryConfigAndSize", wrapNoBiosMemory, orgNoBiosMemory);
+		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
+		if (patcher.getError() == KernelPatcher::Error::NoError) {
+			DBGLOG("rad", "routed Cail_Sumo_ulNoBiosMemoryConfigAndSize");
+		} else {
+			SYSLOG("rad", "Failed to patch Cail_Sumo_ulNoBiosMemoryConfigAndSize code %d", patcher.getError());
+			patcher.clearError();
+		}
 	}
 
 	// Enforce OpenGL support if requested
@@ -570,6 +589,16 @@ void RAD::processHardwareKext(KernelPatcher &patcher, size_t hwIndex, mach_vm_ad
 		KernelPatcher::RouteRequest request(getHWInfoProcNames[hwIndex], wrapGetHWInfo[hwIndex], orgGetHWInfo[hwIndex]);
 		patcher.routeMultiple(hardware.loadIndex, &request, 1, address, size);
 	}
+}
+
+void *RAD::wrapNoBiosMemory(void *unknownPtr) {
+	DBGLOG("rad", "No Bios Init called!");
+	t_writeMmRegisterULong writeFunc = callbackRAD->orgReadMmRegisterULong;
+	if (writeFunc != nullptr) {
+		writeFunc(unknownPtr, 0x1A07, 0x00);
+		writeFunc(unknownPtr, 0x1A04, 0x00);
+	}
+	return callbackRAD->orgNoBiosMemory(unknownPtr);
 }
 
 void RAD::mergeProperty(OSDictionary *props, const char *name, OSObject *value) {
@@ -1032,7 +1061,7 @@ void RAD::updateAccelConfig(size_t hwIndex, IOService *accelService, const char 
 			}
 		}
 
-		if (enableGvaSupport && hwIndex == IndexRadeonHardwareX4000) {
+		if (enableGvaSupport && (hwIndex == IndexRadeonHardwareX4000 || hwIndex == IndexRadeonAccelerator)) {
 			setGvaProperties(accelService);
 		}
 	}

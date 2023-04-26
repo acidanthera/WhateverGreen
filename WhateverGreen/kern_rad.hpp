@@ -33,6 +33,7 @@ public:
 		IndexRadeonHardwareX4150,
 		IndexRadeonHardwareX4200,
 		IndexRadeonHardwareX4250,
+		IndexRadeonAccelerator,
 		MaxRadeonHardware,
 		MaxRadeonHardwareCatalina = IndexRadeonHardwareX6000 + 1,
 		MaxRadeonHardwareMojave = IndexRadeonHardwareX5000 + 1,
@@ -198,6 +199,9 @@ private:
 	 *  Framebuffer base function names
 	 */
 	const char *getFrameBufferProcNames[MaxRadeonHardware][MaxGetFrameBufferProcs] {
+		[IndexRadeonAccelerator]   = {
+//			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
+		},
 		[IndexRadeonHardwareX3000] = {
 			"__ZN15AMDR8xxHardware25getFrameBufferBaseAddressEv"
 		},
@@ -220,6 +224,15 @@ private:
 		},
 	};
 	
+	/**
+	 *  Cail_Sumo_ulNoBiosMemoryConfigAndSize
+	 */
+	using t_noBiosConfig = void * (*)(void *gpu);
+	using t_writeMmRegisterULong = void * (*)(void *gpu, unsigned int reg, int val);
+	t_noBiosConfig orgNoBiosMemory {nullptr};
+	t_writeMmRegisterULong orgReadMmRegisterULong {nullptr};
+	static void *wrapNoBiosMemory(void *unknownPtr);
+	
 	using t_getConnProps = IOReturn (*)(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con);
 	static IOReturn wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con);
 	t_getConnProps orgGetConnProps {nullptr};
@@ -233,6 +246,7 @@ private:
 	 *  Wrapped populateAccelConfig functions
 	 */
 	t_populateAccelConfig wrapPopulateAccelConfig[MaxRadeonHardware] {
+		[RAD::IndexRadeonAccelerator]   = populdateAccelConfig<RAD::IndexRadeonAccelerator>,
 		[RAD::IndexRadeonHardwareX3000] = populdateAccelConfig<RAD::IndexRadeonHardwareX3000>,
 		[RAD::IndexRadeonHardwareX4000] = populdateAccelConfig<RAD::IndexRadeonHardwareX4000>,
 		[RAD::IndexRadeonHardwareX4100] = populdateAccelConfig<RAD::IndexRadeonHardwareX4100>,
@@ -246,6 +260,7 @@ private:
 	 *  Register read function names
 	 */
 	const char *populateAccelConfigProcNames[MaxRadeonHardware] {
+		[RAD::IndexRadeonAccelerator]   = "__ZN22AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
 		[RAD::IndexRadeonHardwareX3000] = "__ZN37AMDRadeonX3000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
 		[RAD::IndexRadeonHardwareX4000] = "__ZN37AMDRadeonX4000_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
 		[RAD::IndexRadeonHardwareX4100] = "__ZN37AMDRadeonX4100_AMDGraphicsAccelerator19populateAccelConfigEP13IOAccelConfig",
@@ -279,6 +294,7 @@ private:
 	 *  Wrapped getHWInfo functions
 	 */
 	t_getHWInfo wrapGetHWInfo[MaxRadeonHardware] {
+		[RAD::IndexRadeonAccelerator]   = populateGetHWInfo<RAD::IndexRadeonAccelerator>,
 		[RAD::IndexRadeonHardwareX4000] = populateGetHWInfo<RAD::IndexRadeonHardwareX4000>,
 		[RAD::IndexRadeonHardwareX5000] = populateGetHWInfo<RAD::IndexRadeonHardwareX5000>,
 		[RAD::IndexRadeonHardwareX6000] = populateGetHWInfo<RAD::IndexRadeonHardwareX6000>
@@ -289,6 +305,7 @@ private:
 	 *  Register read function names
 	 */
 	const char *getHWInfoProcNames[MaxRadeonHardware] {
+		[RAD::IndexRadeonAccelerator]   = "__ZN35AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
 		[RAD::IndexRadeonHardwareX4000] = "__ZN35AMDRadeonX4000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
 		[RAD::IndexRadeonHardwareX5000] = "__ZN35AMDRadeonX5000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo",
 		[RAD::IndexRadeonHardwareX6000] = "__ZN35AMDRadeonX6000_AMDAccelVideoContext9getHWInfoEP13sHardwareInfo"
