@@ -219,6 +219,10 @@ private:
 			"__ZN28AMDRadeonX4250_AMDVIHardware25getFrameBufferBaseAddressEv"
 		},
 	};
+	
+	using t_getConnProps = IOReturn (*)(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con);
+	static IOReturn wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con);
+	t_getConnProps orgGetConnProps {nullptr};
 
 	/**
 	 *  populateAccelConfig function type

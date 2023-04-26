@@ -345,6 +345,11 @@ bool RAD::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 			KernelPatcher::RouteRequest request("__ZN16AtiDeviceControl16notifyLinkChangeE31kAGDCRegisterLinkControlEvent_tmj", wrapNotifyLinkChange, orgNotifyLinkChange);
 			patcher.routeMultiple(index, &request, 1, address, size);
 		}
+		
+		if (getKernelVersion() == KernelVersion::MountainLion) {
+			KernelPatcher::RouteRequest request("__ZN16AtiAtomBiosDce6031getPropertiesForConnectorObjectEtR13ConnectorInfo", wrapGetConnProps, orgGetConnProps);
+			patcher.routeMultiple(index, &request, 1, address, size);
+		}
 
 		return true;
 	}
@@ -762,6 +767,20 @@ void RAD::autocorrectConnectors(uint8_t *baseAddr, AtomDisplayObjectPath *displa
 
 		autocorrectConnector(getConnectorID(displayPaths[i].usConnObjectId), sense, txmit, enc, connectors, sz);
 	}
+}
+
+IOReturn RAD::wrapGetConnProps(void *atomBiosDce60, uint8_t object_id, RADConnectors::LegacyConnector *con) {
+	
+	if (object_id == CONNECTOR_OBJECT_ID_LVDS_eDP) {
+		SYSLOG("rad", "Correcting LVDS-eDP Connector - Original Flags 0x%x Features 0x%x Hotplug 0x%x", con->flags, con->features, con->hotplug);
+		con->flags |= 0x040;
+		con->features |= 0x109;
+		con->type = 0x2; // LVDS
+		con->hotplug = 0;
+		return kIOReturnSuccess;
+	}
+	
+	return callbackRAD->orgGetConnProps(atomBiosDce60, object_id, con);
 }
 
 void RAD::autocorrectConnector(uint8_t connector, uint8_t sense, uint8_t txmit, uint8_t enc, RADConnectors::Connector *connectors, uint8_t sz) {
