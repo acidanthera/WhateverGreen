@@ -94,6 +94,7 @@ Read [FAQs](./Manual/) and avoid asking any questions. No support is provided fo
 |---	|---	|---	  |
 | `-igfxblr` 		    | `enable-backlight-registers-fix` property on IGPU 	| Fix backlight registers on KBL, CFL and ICL platforms 	|
 | `-igfxbls` 		    | `enable-backlight-smoother` property on IGPU 	| Make brightness transitions smoother on IVB+ platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience) 	|
+| `-igfxbrs` | `enable-backlight-registers-supplemental-fix` property on IGPU  | Make the backlight registers fix and backlight smoother work again on CFL platform running macOS 13.4. |
 | `-igfxcdc` 		    | `enable-cdclk-frequency-fix` property on IGPU 	| Support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#support-all-possible-core-display-clock-cdclk-frequencies-on-icl-platforms) 	 |
 | `-igfxdbeo` 		  | `enable-dbuf-early-optimizer` property on IGPU 	| Fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms) 	|
 | `-igfxdump` 		  | N/A 	| Dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries) 	|
