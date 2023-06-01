@@ -19,6 +19,209 @@
 ///
 
 //
+// MARK: - Backlight Registers Fix (Supplemental)
+//
+
+static constexpr const char* kHwSetBacklightSymbol = "__ZN31AppleIntelFramebufferController14hwSetBacklightEj";
+static constexpr const char* kLightUpEDPSymbol = "__ZN31AppleIntelFramebufferController10LightUpEDPEP21AppleIntelFramebufferP21AppleIntelDisplayPathPK29IODetailedTimingInformationV2";
+static constexpr const char* kHwSetPanelPowerSymbol = "__ZN31AppleIntelFramebufferController15hwSetPanelPowerEj";
+
+//
+// Supplemental Patch 1: Use WriteRegister32() to modify the register `BXT_BLC_PWM_FREQ1` instead of modifying mapped memory directly
+//
+// Function: AppleIntelFramebufferController::hwSetBacklight()
+//   Offset: 53
+//  Version: macOS 13.4
+// Platform: CFL
+//
+//     Find: movl 0x2e84(%rbx), %eax  // Fetch the register value (this->field_0x2e84)
+//			 movq 0x1a08(%rbx), %rcx  // Fetch the base address of the MMIO region
+//			 movl %eax, 0xc8254(%rcx) // Write the register value to the register at 0xc8254
+//
+//  Replace: movl 0x2e84(%rbx), %edx  // The register value is the 3rd argument
+//		     movl $0xc8254, %esi      // The register address is the 2nd argument
+//			 movq %rbx, %rdi          // The implicit controller instance is the 1st argument
+//			 call 0x146d98f6		  // Call AppleIntelFramebufferController::WriteRegister(address, value)
+//			 nop					  // Spare byte
+//
+//
+static constexpr uint8_t kHwSetBacklightPatch1_CFL_134[] = {
+	0x8B, 0x93, 0x84, 0x2E, 0x00, 0x00, 0xBE, 0x54, 0x82, 0x0C, 0x00, 0x48, 0x89, 0xDF, 0xE8, 0x00, 0xB4, 0xFE, 0xFF
+};
+static constexpr size_t kHwSetBacklightOffset1_CFL_134 = 53;
+
+//
+// Supplemental Patch 2: Use WriteRegister32() to modify the register `BXT_BLC_PWM_DUTY1` instead of modifying mapped memory directly
+//
+// Function: AppleIntelFramebufferController::hwSetBacklight()
+//   Offset: 108
+//  Version: macOS 13.4
+// Platform: CFL
+//
+//	   Find: movq 0x1a08(%rbx), %rcx  // Fetch the base address of the MMIO region
+//			 movl %eax, 0xc8258(%rcx) // Write the register value to the register at 0xc8258
+//
+//  Replace: movl %eax, %edx       	  // The register value is the 3rd argument
+//			 movl $0xc8258, %esi      // The register address is the 2nd argument
+//			 call 0x146d98f6		  // Call AppleIntelFramebufferController::WriteRegister(address, value)
+//			 nop					  // Spare byte
+//
+// Note that this patch does not need to set the controller instance, because %rdi is set by the first patch.
+//
+static constexpr uint8_t kHwSetBacklightPatch2_CFL_134[] = {
+	0x89, 0xC2, 0xBE, 0x58, 0x82, 0x0C, 0x00, 0xE8, 0xD0, 0xB3, 0xFE, 0xFF, 0x90
+};
+static constexpr size_t kHwSetBacklightOffset2_CFL_134 = 108;
+
+//
+// Supplemental Patch 3: Revert inlined hwSetBacklight() invocation
+//
+// Function: AppleIntelFramebufferController::LightUpEDP()
+//   Offset: 488
+//  Version: macOS 13.4
+// Platform: CFL
+//
+//	   Find: movq  0x2e60(%r15), %rdi // Beginning of the inlined function call
+//			 testq %rdi, %rdi	      // %r15 stores the implicit controller instance
+//			 je    loc_146f78b6
+//			 movl  0x2e78(%r15), %esi
+//
+//  Replace: movl 0x2e78(%r15), %esi  // Fetch the target backlight level which is the 2nd argument
+//			 movq %r15, %rdi		  // The implicit controller instance is the 1st argument
+//			 call 0x146ee4ae		  // Call AppleIntelFramebufferController::hwSetBacklight(level)
+//			 jmp 0x146f7920			  // Jump to the end of inlined function call
+//
+static constexpr uint8_t kLightUpEDPPatch_CFL_134[] = {
+	0x41, 0x8B, 0xB7, 0x78, 0x2E, 0x00, 0x00, 0x4C, 0x89, 0xFF, 0xE8, 0x01, 0x6C, 0xFF, 0xFF, 0xEB, 0x71
+};
+static constexpr size_t kLightUpEDPOffset_CFL_134 = 488;
+
+//
+// Supplemental Patch 4: Revert inlined hwSetBacklight() invocation
+//
+// Function: AppleIntelFramebufferController::hwSetPanelPower()
+//   Offset: 1505
+//  Version: macOS 13.4
+// Platform: CFL
+//
+//     Find: leal 0xfff37da7(%rax), %edx // Beginning of the inlined function call
+// 			 cmpl $0xfff37daa, %edx		 // %r12 stores the implicit controller instance
+// 			 ja   loc_146ea9e5
+// 			 movl 0x2e84(%r12), %eax
+//
+//  Replace: movl 0x2e78(%r12), %esi	 // Fetch the target backlight level which is the 2nd argument
+//			 movq %r12, %rdi			 // The implicit controller instance is the 1st argument
+//			 call 0x146ee4ae			 // Call AppleIntelFramebufferController::hwSetBacklight(level)
+//			 jmp 0x146eaa1c				 // Jump to the end of inlined function call
+//
+static constexpr uint8_t kHwSetPanelPowerPatch_CFL_134[] = {
+	0x41, 0x8B, 0xB4, 0x24, 0x78, 0x2E, 0x00, 0x00, 0x4C, 0x89, 0xE7, 0xE8, 0xDD, 0x3A, 0x00, 0x00, 0xEB, 0x49
+};
+static constexpr size_t kHwSetPanelPowerOffset_CFL_134 = 1505;
+
+//
+// Supplemental patches for the Coffee Lake framebuffer driver on macOS 13.4
+//
+static AssemblyPatch kBacklightSupplementalPatches_CFL_134[] = {
+	{kHwSetBacklightSymbol,  kHwSetBacklightOffset1_CFL_134, kHwSetBacklightPatch1_CFL_134},
+	{kHwSetBacklightSymbol,  kHwSetBacklightOffset2_CFL_134, kHwSetBacklightPatch2_CFL_134},
+	{kLightUpEDPSymbol, 	 kLightUpEDPOffset_CFL_134, 	 kLightUpEDPPatch_CFL_134},
+	{kHwSetPanelPowerSymbol, kHwSetPanelPowerOffset_CFL_134, kHwSetPanelPowerPatch_CFL_134},
+	{nullptr, 0, nullptr, 0},
+};
+
+const AssemblyPatch *IGFX::BacklightRegistersSupplementalFix::getPatches(size_t index) const {
+	// Fetch the current framebuffer driver
+	// Guard: Only CFL is supported at this moment (ICL driver does not have this issue, KBL driver is hard to fix)
+	if (auto framebuffer = callbackIGFX->getRealFramebuffer(index); framebuffer != &kextIntelCFLFb) {
+		SYSLOG("igfx", "BRS: Only CFL is supported at this moment.");
+		return nullptr;
+	}
+	
+	// Guard: Verify the kernel major version
+	if (getKernelVersion() != KernelVersion::Ventura) {
+		SYSLOG("igfx", "BRS: Only macOS Ventura 13.4.x is supported at this moment.");
+		return nullptr;
+	}
+	
+	// Guard: Verify the kernel minor version
+	switch (getKernelMinorVersion()) {
+		case 5: // macOS 13.4.x
+			return kBacklightSupplementalPatches_CFL_134;
+			
+		default:
+			SYSLOG("igfx", "BRS: Only macOS Ventura 13.4 is supported at this moment.");
+			return nullptr;
+	}
+}
+
+bool IGFX::BacklightRegistersSupplementalFix::applyPatches(KernelPatcher &patcher, size_t index, const AssemblyPatch *patches) const {
+	// Apply each assembly patch
+	for (const AssemblyPatch *patch = patches; patch->symbol != nullptr; patch += 1) {
+		// Guard: Resolve the symbol of the function to be patched
+		auto address = patcher.solveSymbol(index, patch->symbol);
+		if (address == 0) {
+			SYSLOG("igfx", "BRS: Failed to resolve the symbol %s. The supplement fix will not work properly.", patch->symbol);
+			patcher.clearError();
+			return false;
+		}
+		
+		// Guard: Apply the assembly patch
+		if (patcher.routeBlock(address + patch->offset, patch->patch, patch->patchSize) != 0) {
+			SYSLOG("igfx", "BRS: Failed to apply the assembly patch to the function %s. The supplement fix will not work properly.", patch->symbol);
+			patcher.clearError();
+			return false;
+		}
+		
+		DBGLOG("igfx", "BRS: Applied the assembly patch to the function %s successfully.", patch->symbol);
+	}
+	
+	return true;
+}
+
+void IGFX::BacklightRegistersSupplementalFix::init() {
+	// We only need to patch the framebuffer driver
+	requiresPatchingFramebuffer = true;
+}
+
+void IGFX::BacklightRegistersSupplementalFix::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
+	enabled = checkKernelArgument("-igfxbrs");
+	if (!enabled)
+		enabled = info->videoBuiltin->getProperty("enable-backlight-registers-supplemental-fix") != nullptr;
+	if (!enabled)
+		return;
+}
+
+void IGFX::BacklightRegistersSupplementalFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	//
+	// Apple has "accidentally" simplified the implementaion of the functions, Read/WriteRegister, in Coffee Lake's framebuffer driver shipped by macOS 13.4,
+	// so the compiler chose to inline invocations of those functions as many as possible. As a result, `hwSetBacklight()` no longer invokes
+	//  `WriteRegister` to update backlight registers; instead it modifies the register value via mapped memory directly, making itself an inline helper.
+	// `LightUpEDP()` and `hwSetPanelPower()` that invoke `hwSetBacklight()` now have the definition of `hwSetBacklight()` embedded in themselves.
+	// As such, the `WriteRegister` hooks registered by the Backlight Registers Fix (BLR) and Backlight Smoother (BLS) submodules no longer work.
+	// This patch submdoule (BRS) reverts the optimizations done by the compiler in aforementioned three functions, thus making BLR and BLS work properly on macOS 13.4.
+	//
+	// - FireWolf
+	// - 2023.06
+	//
+	auto self = &callbackIGFX->modBacklightRegistersSupplementalFix;
+	
+	// Guard: Fetch the assembly patches for the current framebuffer driver
+	auto patches = self->getPatches(index);
+	if (patches == nullptr) {
+		SYSLOG("igfx", "BRS: Your current kernel version and/or platform is not supported.");
+		return;
+	}
+	
+	// Guard: Apply the assemble patches to the current framebuffer driver
+	if (self->applyPatches(patcher, index, patches)) {
+		DBGLOG("igfx", "BRS: All assembly patches have been applied to the current framebuffer driver.");
+	} else {
+		SYSLOG("igfx", "BRS: Failed to apply some of the assembly patches to the current framebuffer driver.");
+	}
+}
+
+//
 // MARK: - Backlight Registers Fix
 //
 
@@ -83,7 +286,7 @@ void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher,
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMFreq1);
 		callbackIGFX->modMMIORegistersWriteSupport.replacerList.add(&dCFLPWMDuty1);
 	} else {
-		SYSLOG("igfx", "BLS: [ERR!] Found an unsupported platform. Will not perform any injections.");
+		SYSLOG("igfx", "BLR: [ERR!] Found an unsupported platform. Will not perform any injections.");
 	}
 }
 

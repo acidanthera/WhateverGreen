@@ -1601,6 +1601,36 @@ private:
 	} modBacklightRegistersFix;
 	
 	/**
+	 *  A submodule to revert inlined invocations of backlight-related functions, making the submodules, BLR and BLS, work properly on macOS 13.4.
+	 *
+	 *  @note Supported Platforms: CFL.
+	 */
+	class BacklightRegistersSupplementalFix: public PatchSubmodule {
+		/**
+		 *  Get assembly patches for the current framebuffer driver
+		 *
+		 *  @param index The bundle index of the current framebuffer driver
+		 *  @return An array of assembly patches on success, `nullptr` if the given framebuffer driver is not supported.
+		 */
+		const AssemblyPatch *getPatches(size_t index) const;
+		
+		/**
+		 *  Apply the given assembly patches to the current framebuffer driver
+		 *
+		 *  @param patcher The kernel patcher
+		 *  @param index The bundle index of the current framebuffer driver
+		 *  @param patches An array of assembly patches, terminated by a NULL patch
+		 */
+		bool applyPatches(KernelPatcher &patcher, size_t index, const AssemblyPatch *patches NONNULL) const;
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBacklightRegistersSupplementalFix;
+	
+	/**
 	 *  Brightness request event source needs access to the original WriteRegister32 function
 	 */
 	friend class BrightnessRequestEventSource;
@@ -1835,7 +1865,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[20] = {
+	PatchSubmodule *submodules[21] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1852,6 +1882,7 @@ private:
 		&modPAVPDisabler,
 		&modReadDescriptorPatch,
 		&modBacklightRegistersFix,
+		&modBacklightRegistersSupplementalFix,
 		&modBacklightSmoother,
 		&modFramebufferDebugSupport,
 		&modMaxPixelClockOverride,
