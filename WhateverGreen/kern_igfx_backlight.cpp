@@ -106,16 +106,18 @@ static constexpr size_t kLightUpEDPOffset_CFL_134 = 488;
 //
 //     Find: leal 0xfff37da7(%rax), %edx // Beginning of the inlined function call
 //           cmpl $0xfff37daa, %edx      // %r12 stores the implicit controller instance
-//           ja   loc_146ea9e5
+//           ja   loc_146ea9e5           // %rcx stores the base address of the MMIO region
 //           movl 0x2e84(%r12), %eax
 //
-//  Replace: movl 0x2e78(%r12), %esi     // Fetch the target backlight level which is the 2nd argument
+//  Replace: pushq %rcx                  // Preserve the base address of the MMIO region
+//           movl 0x2e78(%r12), %esi     // Fetch the target backlight level which is the 2nd argument
 //           movq %r12, %rdi             // The implicit controller instance is the 1st argument
 //           call 0x146ee4ae             // Call AppleIntelFramebufferController::hwSetBacklight(level)
+//           popq %rcx                   // Restore the base address of the MMIO region
 //           jmp 0x146eaa1c              // Jump to the end of inlined function call
 //
 static constexpr uint8_t kHwSetPanelPowerPatch_CFL_134[] = {
-	0x41, 0x8B, 0xB4, 0x24, 0x78, 0x2E, 0x00, 0x00, 0x4C, 0x89, 0xE7, 0xE8, 0xDD, 0x3A, 0x00, 0x00, 0xEB, 0x49
+	0x51, 0x41, 0x8B, 0xB4, 0x24, 0x78, 0x2E, 0x00, 0x00, 0x4C, 0x89, 0xE7, 0xE8, 0xDC, 0x3A, 0x00, 0x00, 0x59, 0xEB, 0x47
 };
 static constexpr size_t kHwSetPanelPowerOffset_CFL_134 = 1505;
 
