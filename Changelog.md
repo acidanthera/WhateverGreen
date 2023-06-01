@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.6.5
+- Revert the optimizations done by the compiler in backlight related functions to make Backlight Registers Fix (BLR) and Backlight Smoother (BLR) work on macOS 13.4. (by @0xFireWolf) 
+
 #### v1.6.4
 - Fixed Radeon RX 5500 XT identification regression
 
