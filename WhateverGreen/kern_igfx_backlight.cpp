@@ -194,12 +194,12 @@ void IGFX::BacklightRegistersSupplementalFix::processKernel(KernelPatcher &patch
 
 void IGFX::BacklightRegistersSupplementalFix::processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
 	//
-	// Apple has "accidentally" simplified the implementaion of the functions, Read/WriteRegister, in Coffee Lake's framebuffer driver shipped by macOS 13.4,
+	// Apple has "accidentally" simplified the implementation of the functions, `ReadRegister32` and `WriteRegister32`, in Coffee Lake's framebuffer driver shipped by macOS 13.4,
 	// so the compiler chose to inline invocations of those functions as many as possible. As a result, `hwSetBacklight()` no longer invokes
-	//  `WriteRegister` to update backlight registers; instead it modifies the register value via mapped memory directly, making itself an inline helper.
+	//  `WriteRegister32` to update backlight registers; instead it modifies the register value via mapped memory directly, making itself an inline helper.
 	// `LightUpEDP()` and `hwSetPanelPower()` that invoke `hwSetBacklight()` now have the definition of `hwSetBacklight()` embedded in themselves.
-	// As such, the `WriteRegister` hooks registered by the Backlight Registers Fix (BLR) and Backlight Smoother (BLS) submodules no longer work.
-	// This patch submdoule (BRS) reverts the optimizations done by the compiler in aforementioned three functions, thus making BLR and BLS work properly on macOS 13.4.
+	// As such, the `WriteRegister32` hooks registered by the Backlight Registers Fix (BLR) and the Backlight Smoother (BLS) submodules no longer work.
+	// This patch submodule (BRS) reverts the optimizations done by the compiler in aforementioned three functions, thus making both BLR and BLS work properly on macOS 13.4.
 	//
 	// - FireWolf
 	// - 2023.06
