@@ -35,14 +35,14 @@ static constexpr const char* kHwSetPanelPowerSymbol = "__ZN31AppleIntelFramebuff
 // Platform: CFL
 //
 //     Find: movl 0x2e84(%rbx), %eax  // Fetch the register value (this->field_0x2e84)
-//			 movq 0x1a08(%rbx), %rcx  // Fetch the base address of the MMIO region
-//			 movl %eax, 0xc8254(%rcx) // Write the register value to the register at 0xc8254
+//           movq 0x1a08(%rbx), %rcx  // Fetch the base address of the MMIO region
+//           movl %eax, 0xc8254(%rcx) // Write the register value to the register at 0xc8254
 //
 //  Replace: movl 0x2e84(%rbx), %edx  // The register value is the 3rd argument
-//		     movl $0xc8254, %esi      // The register address is the 2nd argument
-//			 movq %rbx, %rdi          // The implicit controller instance is the 1st argument
-//			 call 0x146d98f6		  // Call AppleIntelFramebufferController::WriteRegister(address, value)
-//			 nop					  // Spare byte
+//           movl $0xc8254, %esi      // The register address is the 2nd argument
+//           movq %rbx, %rdi          // The implicit controller instance is the 1st argument
+//           call 0x146d98f6          // Call AppleIntelFramebufferController::WriteRegister(address, value)
+//           nop                      // Spare byte
 //
 //
 static constexpr uint8_t kHwSetBacklightPatch1_CFL_134[] = {
@@ -58,13 +58,13 @@ static constexpr size_t kHwSetBacklightOffset1_CFL_134 = 53;
 //  Version: macOS 13.4
 // Platform: CFL
 //
-//	   Find: movq 0x1a08(%rbx), %rcx  // Fetch the base address of the MMIO region
-//			 movl %eax, 0xc8258(%rcx) // Write the register value to the register at 0xc8258
+//     Find: movq 0x1a08(%rbx), %rcx  // Fetch the base address of the MMIO region
+//           movl %eax, 0xc8258(%rcx) // Write the register value to the register at 0xc8258
 //
-//  Replace: movl %eax, %edx       	  // The register value is the 3rd argument
-//			 movl $0xc8258, %esi      // The register address is the 2nd argument
-//			 call 0x146d98f6		  // Call AppleIntelFramebufferController::WriteRegister(address, value)
-//			 nop					  // Spare byte
+//  Replace: movl %eax, %edx          // The register value is the 3rd argument
+//           movl $0xc8258, %esi      // The register address is the 2nd argument
+//           call 0x146d98f6          // Call AppleIntelFramebufferController::WriteRegister(address, value)
+//           nop                      // Spare byte
 //
 // Note that this patch does not need to set the controller instance, because %rdi is set by the first patch.
 //
@@ -81,15 +81,15 @@ static constexpr size_t kHwSetBacklightOffset2_CFL_134 = 108;
 //  Version: macOS 13.4
 // Platform: CFL
 //
-//	   Find: movq  0x2e60(%r15), %rdi // Beginning of the inlined function call
-//			 testq %rdi, %rdi	      // %r15 stores the implicit controller instance
-//			 je    loc_146f78b6
-//			 movl  0x2e78(%r15), %esi
+//     Find: movq  0x2e60(%r15), %rdi // Beginning of the inlined function call
+//           testq %rdi, %rdi         // %r15 stores the implicit controller instance
+//           je    loc_146f78b6
+//           movl  0x2e78(%r15), %esi
 //
 //  Replace: movl 0x2e78(%r15), %esi  // Fetch the target backlight level which is the 2nd argument
-//			 movq %r15, %rdi		  // The implicit controller instance is the 1st argument
-//			 call 0x146ee4ae		  // Call AppleIntelFramebufferController::hwSetBacklight(level)
-//			 jmp 0x146f7920			  // Jump to the end of inlined function call
+//           movq %r15, %rdi          // The implicit controller instance is the 1st argument
+//           call 0x146ee4ae          // Call AppleIntelFramebufferController::hwSetBacklight(level)
+//           jmp 0x146f7920           // Jump to the end of inlined function call
 //
 static constexpr uint8_t kLightUpEDPPatch_CFL_134[] = {
 	0x41, 0x8B, 0xB7, 0x78, 0x2E, 0x00, 0x00, 0x4C, 0x89, 0xFF, 0xE8, 0x01, 0x6C, 0xFF, 0xFF, 0xEB, 0x71
@@ -105,14 +105,14 @@ static constexpr size_t kLightUpEDPOffset_CFL_134 = 488;
 // Platform: CFL
 //
 //     Find: leal 0xfff37da7(%rax), %edx // Beginning of the inlined function call
-// 			 cmpl $0xfff37daa, %edx		 // %r12 stores the implicit controller instance
-// 			 ja   loc_146ea9e5
-// 			 movl 0x2e84(%r12), %eax
+//           cmpl $0xfff37daa, %edx      // %r12 stores the implicit controller instance
+//           ja   loc_146ea9e5
+//           movl 0x2e84(%r12), %eax
 //
-//  Replace: movl 0x2e78(%r12), %esi	 // Fetch the target backlight level which is the 2nd argument
-//			 movq %r12, %rdi			 // The implicit controller instance is the 1st argument
-//			 call 0x146ee4ae			 // Call AppleIntelFramebufferController::hwSetBacklight(level)
-//			 jmp 0x146eaa1c				 // Jump to the end of inlined function call
+//  Replace: movl 0x2e78(%r12), %esi     // Fetch the target backlight level which is the 2nd argument
+//           movq %r12, %rdi             // The implicit controller instance is the 1st argument
+//           call 0x146ee4ae             // Call AppleIntelFramebufferController::hwSetBacklight(level)
+//           jmp 0x146eaa1c              // Jump to the end of inlined function call
 //
 static constexpr uint8_t kHwSetPanelPowerPatch_CFL_134[] = {
 	0x41, 0x8B, 0xB4, 0x24, 0x78, 0x2E, 0x00, 0x00, 0x4C, 0x89, 0xE7, 0xE8, 0xDD, 0x3A, 0x00, 0x00, 0xEB, 0x49
