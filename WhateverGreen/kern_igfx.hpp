@@ -1526,7 +1526,7 @@ private:
 		/**
 		 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
 		 */
-		static constexpr uint32_t FallbackTargetBacklightFrequency = 120000;
+		static constexpr uint32_t kFallbackTargetBacklightFrequency = 120000;
 		
 		/**
 		 *  [COMM] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.

@@ -295,19 +295,20 @@ void IGFX::BacklightRegistersFix::processFramebufferKext(KernelPatcher &patcher,
 void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
 	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_FREQ1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
+	auto self = &callbackIGFX->modBacklightRegistersFix;
 	
-	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-		// Populate the hardware PWM frequency as initially set up by the system firmware.
-		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
-		DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.",
-			   callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-		DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_CTL1 = 0x%x.",
-			   callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
-
-		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
-			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
-			SYSLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
+	// Preserve the hardware PWM frequency set by the system firmware on boot
+	// We'll need this to restore later after system sleep.
+	if (self->targetBacklightFrequency == 0) {
+		// Guard: The system should be initialized with a non-zero PWM frequency
+		if (auto bootValue = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1); bootValue != 0) {
+			DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.", bootValue);
+			DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_CTL1 = 0x%x.",
+				   callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1));
+			self->targetBacklightFrequency = bootValue;
+		} else {
+			SYSLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO. Will use the fallback frequency.");
+			self->targetBacklightFrequency = kFallbackTargetBacklightFrequency;
 		}
 	}
 
@@ -317,13 +318,13 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller,
 	uint16_t frequency = (value & 0xffff0000U) >> 16U;
 	uint16_t dutyCycle = value & 0xffffU;
 
-	uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(frequency));
+	uint32_t rescaledValue = frequency == 0 ? 0 : static_cast<uint32_t>((dutyCycle * static_cast<uint64_t>(self->targetBacklightFrequency)) / static_cast<uint64_t>(frequency));
 	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_FREQ1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.",
-		   dutyCycle, frequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+		   dutyCycle, frequency, rescaledValue, self->targetBacklightFrequency);
 
 	// Reset the hardware PWM frequency. Write the original system value if the driver-requested value is nonzero. If the driver requests
 	// zero, we allow that, since it's trying to turn off the backlight PWM for sleep.
-	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency ? callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency : 0);
+	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency ? self->targetBacklightFrequency : 0);
 
 	// Finish by writing the duty cycle.
 	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
@@ -332,10 +333,11 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller,
 void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value) {
 	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_CTL1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_CTL1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_CTL1.");
+	auto self = &callbackIGFX->modBacklightRegistersFix;
 	
-	if (callbackIGFX->modBacklightRegistersFix.targetPwmControl == 0) {
+	if (self->targetPwmControl == 0) {
 		// Save the original hardware PWM control value
-		callbackIGFX->modBacklightRegistersFix.targetPwmControl = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1);
+		self->targetPwmControl = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1);
 	}
 
 	DBGLOG("igfx", "BLR: [KBL ] WriteRegister32<BXT_BLC_PWM_CTL1>: Write BXT_BLC_PWM_CTL1 0x%x, previous was 0x%x.",
@@ -343,10 +345,10 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller,
 
 	if (value) {
 		// Set the PWM frequency before turning it on to avoid the 3 minute blackout bug
-		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, self->targetBacklightFrequency);
 
 		// Use the original hardware PWM control value.
-		value = callbackIGFX->modBacklightRegistersFix.targetPwmControl;
+		value = self->targetPwmControl;
 	}
 	
 	// Finish by writing the new value
@@ -356,29 +358,30 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller,
 void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMFreq1(void *controller, uint32_t reg, uint32_t value) {
 	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_FREQ1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_FREQ1.");
+	auto self = &callbackIGFX->modBacklightRegistersFix;
 	
-	if (value && value != callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency) {
+	if (value && value != self->driverBacklightFrequency) {
 		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: Driver requested BXT_BLC_PWM_FREQ1 = 0x%x.", value);
-		callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency = value;
+		self->driverBacklightFrequency = value;
 	}
 
-	if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-		// Save the hardware PWM frequency as initially set up by the system firmware.
-		// We'll need this to restore later after system sleep.
-		callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
-		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.", callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
-
-		if (callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency == 0) {
-			// This should not happen with correctly written bootloader code, but in case it does, let's use a failsafe default value.
-			callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency = FallbackTargetBacklightFrequency;
-			SYSLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO.");
+	// Preserve the hardware PWM frequency set by the system firmware on boot
+	// We'll need this to restore later after system sleep.
+	if (self->targetBacklightFrequency == 0) {
+		// Guard: The system should be initialized with a non-zero PWM frequency
+		if (auto bootValue = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1); bootValue != 0) {
+			DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = 0x%x.", bootValue);
+			self->targetBacklightFrequency = bootValue;
+		} else {
+			SYSLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_FREQ1>: System initialized with BXT_BLC_PWM_FREQ1 = ZERO. Will use the fallback frequency.");
+			self->targetBacklightFrequency = kFallbackTargetBacklightFrequency;
 		}
 	}
 
 	if (value) {
 		// Nonzero writes to this register need to use the original system value.
 		// Yet the driver can safely write zero to this register as part of system sleep.
-		value = callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency;
+		value = self->targetBacklightFrequency;
 	}
 	
 	// Finish by writing the new value
@@ -388,8 +391,9 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMFreq1(void *controller,
 void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller, uint32_t reg, uint32_t value) {
 	DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Called with register 0x%x and value 0x%x.", reg, value);
 	PANIC_COND(reg != BXT_BLC_PWM_DUTY1, "igfx", "Fatal Error: Register should be BXT_BLC_PWM_DUTY1.");
+	auto self = &callbackIGFX->modBacklightRegistersFix;
 	
-	if (value && callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency == 0) {
+	if (value && self->driverBacklightFrequency == 0) {
 		// CFL+ backlight additional fix.
 		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Backlight additional fix was entered.");
 		uint32_t registerValue = callbackIGFX->readRegister32(controller, SFUSE_STRAP);
@@ -397,16 +401,16 @@ void IGFX::BacklightRegistersFix::wrapCFLWriteRegisterPWMDuty1(void *controller,
 		wrapCFLWriteRegisterPWMFreq1(controller, BXT_BLC_PWM_FREQ1, selectedFreq);
 	}
 
-	if (callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency && callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency) {
+	if (self->driverBacklightFrequency && self->targetBacklightFrequency) {
 		// Translate the PWM duty cycle between the driver scale value and the HW scale value
-		uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency)) / static_cast<uint64_t>(callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency));
-		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.", value,
-			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, rescaledValue, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+		uint32_t rescaledValue = static_cast<uint32_t>((value * static_cast<uint64_t>(self->targetBacklightFrequency)) / static_cast<uint64_t>(self->driverBacklightFrequency));
+		DBGLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 0x%x/0x%x, rescaled to 0x%x/0x%x.",
+			   value, self->driverBacklightFrequency, rescaledValue, self->targetBacklightFrequency);
 		value = rescaledValue;
 	} else {
 		// This should never happen, but in case it does we should log it at the very least.
 		SYSLOG("igfx", "BLR: [CFL+] WriteRegister32<BXT_BLC_PWM_DUTY1>: Write PWM_DUTY1 has zero frequency driver (%d) target (%d).",
-			   callbackIGFX->modBacklightRegistersFix.driverBacklightFrequency, callbackIGFX->modBacklightRegistersFix.targetBacklightFrequency);
+			   self->driverBacklightFrequency, self->targetBacklightFrequency);
 	}
 	
 	if (callbackIGFX->modBacklightSmoother.enabled) {
