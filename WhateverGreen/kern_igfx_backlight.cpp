@@ -887,9 +887,20 @@ IOReturn IGFX::BacklightRegistersAltFix::wrapHwSetBacklight(void *controller, ui
 	auto self = &callbackIGFX->modBacklightRegistersAltFix;
 	DBGLOG("igfx", "BLT: [CFL+] Called with the controller at 0x%016llx and the brightness level 0x%x.", reinterpret_cast<uint64_t>(controller), brightness);
 	
-	// Step 1: Fetch the PWM frequency set by the system firmware
-	//         Note that no other functions modify the register `BXT_BLC_PWM_FREQ1`
-	uint64_t frequency = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1);
+	// Step 1: Fetch and preserve the PWM frequency set by the system firmware
+	//         Note that we need to restore the frequency after the system wakes up
+	if (self->firmwareBacklightFrequency == 0) {
+		// Guard: The system should be initialized with a non-zero PWM frequency
+		if (auto bootValue = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1); bootValue != 0) {
+			DBGLOG("igfx", "BLT: [CFL+] System initialized with a PWM frequency of 0x%x.", bootValue);
+			self->firmwareBacklightFrequency = bootValue;
+		} else {
+			SYSLOG("igfx", "BLT: [CFL+] System initialized with a PWM frequency of 0. Will use the fallback frequency.");
+			self->firmwareBacklightFrequency = kFallbackBacklightFrequency;
+		}
+	}
+	
+	uint64_t frequency = self->firmwareBacklightFrequency;
 	
 	// Step 2: Fetch the value of Apple's frequency divider
 	uint64_t divider = getMember<uint32_t>(controller, self->offsetFrequencyDivider);
@@ -899,7 +910,10 @@ IOReturn IGFX::BacklightRegistersAltFix::wrapHwSetBacklight(void *controller, ui
 	
 	DBGLOG("igfx", "BLT: [CFL+] Frequency = 0x%llx, Divider = 0x%llx, Duty = 0x%x.", frequency, divider, duty);
 	
-	// Step 4: Write the new value to BXT_BLC_PWM_DUTY1
+	// Step 4: Write the frequency to BXT_BLC_PWM_FREQ1
+	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(frequency));
+	
+	// Step 5: Write the new value to BXT_BLC_PWM_DUTY1
 	if (callbackIGFX->modBacklightSmoother.enabled) {
 		// Need to pass the scaled value to the smoother
 		DBGLOG("igfx", "BLS: [CFL+] Will pass the rescaled value 0x%08x to the smoother version.", duty);
@@ -910,7 +924,7 @@ IOReturn IGFX::BacklightRegistersAltFix::wrapHwSetBacklight(void *controller, ui
 		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, duty);
 	}
 	
-	// Step 5: Store the new brightness level to the controller
+	// Step 6: Store the new brightness level to the controller
 	getMember<uint32_t>(controller, self->offsetBrightnessLevel) = brightness;
 	
 	// All done

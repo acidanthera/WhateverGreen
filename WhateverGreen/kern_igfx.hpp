@@ -1607,6 +1607,11 @@ private:
 	 */
 	class BacklightRegistersAltFix: public PatchSubmodule {
 		/**
+		 *  Fallback PWM frequency if the system was initialized with a frequency of 0
+		 */
+		static constexpr uint32_t kFallbackBacklightFrequency = 120000;
+		
+		/**
 		 *  Record the location of the inlined invocation of `hwSetBacklight()` and the register that stores the controller instance
 		 *  so that this patch submodule can revert the inlined invocation in the function of interest
 		 */
@@ -1642,6 +1647,11 @@ private:
 				return this->end - this->start;
 			}
 		};
+		
+		/**
+		 *  Record the PWM frequency initialized by the system firmware
+		 */
+		uint32_t firmwareBacklightFrequency {0};
 		
 		/**
 		 *  Record the offset of the member field in the framebuffer controller that stores the PWM frequency divider
