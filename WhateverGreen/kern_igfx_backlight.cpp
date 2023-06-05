@@ -20,7 +20,7 @@
 ///
 
 //
-// MARK: - Backlight Registers Fix (Supplemental)
+// MARK: - Backlight Registers Fix (Supplemental) // TODO: DEPRECATED, REMOVE THIS
 //
 
 static constexpr const char* kHwSetBacklightSymbol = "__ZN31AppleIntelFramebufferController14hwSetBacklightEj";

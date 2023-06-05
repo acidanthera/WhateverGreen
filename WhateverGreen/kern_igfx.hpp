@@ -1718,6 +1718,7 @@ private:
 		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
 	} modBacklightRegistersAltFix;
 	
+	// TODO: DEPRECATED, REMOVE THIS, REPLACED BY BLT
 	/**
 	 *  A submodule to revert inlined invocations of backlight-related functions, making the submodules, BLR and BLS, work properly on macOS 13.4.
 	 *

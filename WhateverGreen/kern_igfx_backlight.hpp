@@ -23,6 +23,7 @@ static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 static constexpr uint32_t SFUSE_STRAP = 0xC2014;
 static constexpr uint32_t SFUSE_STRAP_RAW_FREQUENCY = 1 << 8;
 
+// TODO: DEPRECATED, REMOVE THIS
 /**
  *	Represents an assembly patch
  */
