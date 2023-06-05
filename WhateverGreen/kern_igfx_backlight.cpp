@@ -911,7 +911,7 @@ IOReturn IGFX::BacklightRegistersAltFix::wrapHwSetBacklight(void *controller, ui
 	}
 	
 	// Step 5: Store the new brightness level to the controller
-	setMember(controller, self->offsetBrightnessLevel, brightness);
+	getMember<uint32_t>(controller, self->offsetBrightnessLevel) = brightness;
 	
 	// All done
 	return kIOReturnSuccess;
