@@ -16,7 +16,9 @@
 /// This file contains the following backlight-related fixes and enhancements
 ///
 /// 1. Backlight registers fix that solves the 3-minute black screen on CFL+.
-/// 2. Backlight smoother that makes brightness transitions smoother on IVB+.
+/// 2. Backlight registers alternative fix that revertes the inlined invocation of `hwSetBacklight()` in `LightUpEDP()` and `hwSetPanelPower()`,
+///    providing an alternative solution to the 3-minute black screen on CFL.
+/// 3. Backlight smoother that makes brightness transitions smoother on IVB+.
 ///
 
 //
