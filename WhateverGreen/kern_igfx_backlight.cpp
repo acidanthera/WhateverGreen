@@ -248,7 +248,8 @@ void IGFX::BacklightRegistersAltFix::processFramebufferKext(KernelPatcher &patch
 	//  `WriteRegister32` to update backlight registers; instead it modifies the register value via mapped memory directly, making itself an inline helper.
 	// `LightUpEDP()` and `hwSetPanelPower()` that invoke `hwSetBacklight()` now have the definition of `hwSetBacklight()` embedded in themselves.
 	// As such, the `WriteRegister32` hooks registered by the Backlight Registers Fix (BLR) and the Backlight Smoother (BLS) submodules no longer work.
-	// This patch submodule (BLT) reverts the optimizations done by the compiler in aforementioned three functions, thus making both BLR and BLS work properly on macOS 13.4.
+	// This patch submodule (BLT) reverts the optimizations done by the compiler in aforementioned three functions and overwrites Apple's implementation of `hwSetBacklight()`,
+	// thus providing an alternative to BLR and making BLS work properly on macOS 13.4 or later.
 	//
 	// - FireWolf
 	// - 2023.06
