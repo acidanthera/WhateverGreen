@@ -1,7 +1,7 @@
 WhateverGreen Changelog
 =======================
 #### v1.6.5
-- Added a new boot argument `-igfxbrs` to revert the optimizations done by the compiler in backlight related functions, making Backlight Registers Fix (BLR) and Backlight Smoother (BLS) work on macOS 13.4. (by @0xFireWolf)
+- Added a new boot argument `-igfxblt` to revert the optimizations done by the compiler in backlight related functions, fixing the 3-minute dark screen issue and making Backlight Smoother (BLS) work on mobile Coffee Lake platforms running macOS 13.4 or later. (by @0xFireWolf)
 
 #### v1.6.4
 - Fixed Radeon RX 5500 XT identification regression
