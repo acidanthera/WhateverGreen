@@ -519,7 +519,7 @@ void IGFX::BacklightRegistersAltFix::processFramebufferKext(KernelPatcher &patch
 	SYSLOG_COND(!patcher.routeMultiple(index, &request, 1, address, size), "igfx", "BLT: Error: Failed to route hwSetBacklight().");
 }
 
-ppair<size_t, size_t> IGFX::BacklightRegistersAltFix::probeMemberOffsets(mach_vm_size_t address, size_t instructions) const {
+ppair<size_t, size_t> IGFX::BacklightRegistersAltFix::probeMemberOffsets(mach_vm_address_t address, size_t instructions) const {
 	DBGLOG("igfx", "BLT: Analyzing the function at 0x%016llx to probe the offset of each required member field.", address);
 	hde64s handle;
 	

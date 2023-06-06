@@ -1671,7 +1671,7 @@ private:
 		 *  @return The offset of the member field that stores the PWM frequency divider and
 		 *          the offset of the member field that stores the current brightness level.
 		 */
-		ppair<size_t, size_t> probeMemberOffsets(mach_vm_size_t address, size_t instructions) const;
+		ppair<size_t, size_t> probeMemberOffsets(mach_vm_address_t address, size_t instructions) const;
 		
 		/**
 		 *  Find the location of the inlined invocation of `hwSetBacklight()` in the function that starts at the given address
