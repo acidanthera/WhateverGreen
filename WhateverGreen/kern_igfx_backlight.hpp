@@ -23,45 +23,6 @@ static constexpr uint32_t BXT_BLC_PWM_DUTY1 = 0xC8258;
 static constexpr uint32_t SFUSE_STRAP = 0xC2014;
 static constexpr uint32_t SFUSE_STRAP_RAW_FREQUENCY = 1 << 8;
 
-// TODO: DEPRECATED, REMOVE THIS
-/**
- *	Represents an assembly patch
- */
-struct AssemblyPatch {
-	/**
-	 *	The symbol of the function to be patched
-	 */
-	const char *symbol {nullptr};
-	
-	/**
-	 *	The offset, relative to the address of the function, from which to patch the assembly code
-	 */
-	size_t offset {0};
-	
-	/**
-	 *  The assembly patch
-	 */
-	const uint8_t *patch {nullptr};
-	
-	/**
-	 *  The number of bytes in the assembly patch
-	 */
-	size_t patchSize {0};
-	
-	/**
-	 *  Create an assembly patch
-	 */
-	template <size_t N>
-	constexpr AssemblyPatch(const char *symbol, size_t offset, const uint8_t (&patch)[N])
-		: symbol(symbol), offset(offset), patch(patch), patchSize(N) {}
-	
-	/**
-	 *  Create an assembly patch
-	 */
-	constexpr AssemblyPatch(const char *symbol, size_t offset, const uint8_t *patch, size_t patchSize)
-		: symbol(symbol), offset(offset), patch(patch), patchSize(patchSize) {}
-};
-
 /**
  * Ice Lake freq
  * Copied from `AppleIntelFramebufferController::start()` function
