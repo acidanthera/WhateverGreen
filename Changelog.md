@@ -1,5 +1,8 @@
 WhateverGreen Changelog
 =======================
+#### v1.6.5
+- Added constants for macOS 14 support
+
 #### v1.6.4
 - Fixed Radeon RX 5500 XT identification regression
 
