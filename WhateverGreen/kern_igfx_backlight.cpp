@@ -463,15 +463,15 @@ void IGFX::BacklightRegistersAltFix::processFramebufferKext(KernelPatcher &patch
 	}
 	
 	// Guard: Verify the kernel major version
-	if (getKernelVersion() != KernelVersion::Ventura) {
-		SYSLOG("igfx", "BLT: Aborted: Only macOS Ventura 13.4.x is supported at this moment.");
+	if (getKernelVersion() < KernelVersion::Ventura) {
+		SYSLOG("igfx", "BLT: Aborted: This patch submodule is only available as of macOS 13.4.");
 		return;
-	}
-	
-	// Guard: Verify the kernel minor version
-	if (getKernelMinorVersion() != 5) {
-		SYSLOG("igfx", "BLT: Aborted: Only macOS Ventura 13.4.x is supported at this moment.");
+	} else if (getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() < 5) {
+		SYSLOG("igfx", "BLT: Aborted: This patch submodule is only available as of macOS 13.4.");
 		return;
+	} else {
+		DBGLOG("igfx", "BLT: Running on Darwin %d.%d. Assuming that BLT is compatible with the current macOS release.",
+			   getKernelVersion(), getKernelMinorVersion());
 	}
 	
 	// Guard: Find the address of each function to be analyzed
