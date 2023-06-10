@@ -1526,7 +1526,7 @@ private:
 		/**
 		 *  Fallback user-requested backlight frequency in case 0 was initially written to the register.
 		 */
-		static constexpr uint32_t FallbackTargetBacklightFrequency = 120000;
+		static constexpr uint32_t kFallbackTargetBacklightFrequency = 120000;
 		
 		/**
 		 *  [COMM] User-requested backlight frequency obtained from BXT_BLC_PWM_FREQ1 at system start.
@@ -1601,6 +1601,134 @@ private:
 	} modBacklightRegistersFix;
 	
 	/**
+	 *  A submodule to revert invocations of backlight-related functions and patch backlight register values on macOS 13.4.
+	 *
+	 *  @note Supported Platforms: CFL.
+	 */
+	class BacklightRegistersAltFix: public PatchSubmodule {
+		/**
+		 *  Fallback PWM frequency if the system was initialized with a frequency of 0
+		 */
+		static constexpr uint32_t kFallbackBacklightFrequency = 120000;
+		
+		/**
+		 *  Record the location of the inlined invocation of `hwSetBacklight()` and the register that stores the controller instance
+		 *  so that this patch submodule can revert the inlined invocation in the function of interest
+		 */
+		struct InvocationContext {
+			/**
+			 *  The start address, relative to the address of the function, of the inlined invocation of `hwSetBacklight()`
+			 */
+			size_t start {0};
+			
+			/**
+			 *  The end address, relative to the address of the function, of the inlined invocation of `hwSetBacklight()`
+			 *
+			 *  @note This is the address of the first instruction after `call hwSetBacklight` returns.
+			 */
+			size_t end {0};
+			
+			/**
+			 *  Record which register stores the implicit framebuffer controller instance
+			 */
+			uint32_t registerController {0};
+			
+			/**
+			 *  Validate this invocation context
+			 */
+			bool isValid() const {
+				return this->start != 0 && this->end != 0 && this->registerController != 0;
+			}
+			
+			/**
+			 *  Calculate the number of bytes that can be safely replaced
+			 */
+			size_t freeSpace() const {
+				return this->end - this->start;
+			}
+		};
+		
+		/**
+		 *  Record the PWM frequency initialized by the system firmware
+		 */
+		uint32_t firmwareBacklightFrequency {0};
+		
+		/**
+		 *  Record the offset of the member field in the framebuffer controller that stores the PWM frequency divider
+		 */
+		size_t offsetFrequencyDivider {0};
+		
+		/**
+		 *  Record the offset of the member field in the framebuffer controller that stores the current brightness level
+		 */
+		size_t offsetBrightnessLevel {0};
+		
+		/**
+		 *  Find the offset of the member fields that store the PWM frequency divider and the current brightness level
+		 *
+		 *  @param address The address of `hwSetBacklight()` to be analyzed
+		 *  @param instructions The maximum number of instructions to be analyzed
+		 *  @return The offset of the member field that stores the PWM frequency divider and
+		 *          the offset of the member field that stores the current brightness level.
+		 */
+		ppair<size_t, size_t> probeMemberOffsets(mach_vm_address_t address, size_t instructions) const;
+		
+		/**
+		 *  Find the location of the inlined invocation of `hwSetBacklight()` in the function that starts at the given address
+		 *
+		 *  @param address The address of the function to be analyzed
+		 *  @param instructions The maximum number of instructions to be analyzed
+		 *  @return A pair of `<Start, End>` offsets, relative to the given address, indicating the location of inlined invocation of `hwSetBacklight()`,
+		 *          and the register that stores the implicit framebuffer controller instance.
+		 */
+		InvocationContext probeInlinedInvocation(mach_vm_address_t address, size_t instructions) const;
+		
+		/**
+		 *  Revert the inlined invocation of `hwSetBacklight()` in the function that starts at the given address
+		 *
+		 *  @param patcher The kernel patcher
+		 *  @param address The address of the function to be patched
+		 *  @param orgHwSetBacklight The address of the original `hwSetBacklight()`
+		 *  @param context The invocation context indicating where to patch the function and which register stores the controller instance
+		 *  @return `true` if the function at the given address has been patched to invoke `hwSetBacklight()` explicitly, `false` otherwise.
+		 */
+		bool revertInlinedInvocation(KernelPatcher &patcher, mach_vm_address_t address, mach_vm_address_t orgHwSetBacklight, const InvocationContext &context) const;
+		
+		/**
+		 *  Wrapper to set the backlight compatible with the current machine
+		 *
+		 *  @param controller The implicit framebuffer controller
+		 *  @param brightness The new brightness level
+		 *  @return `kIOReturnSuccess`.
+		 *  @note When this function returns, the given brightness level should be stored into the given framebuffer controller.
+		 *  @note Unlike the original fix implemented in BLR, BLR-ALT computes the value of the frequency register and the duty register
+		 *        compatible with the current machine and commit those values using the original version of `WriteRegister32()`.
+		 *        Apple's implementation will not be used by this submodule.
+		 */
+		static IOReturn wrapHwSetBacklight(void *controller, uint32_t brightness);
+		
+		/**
+		 *  Get the name of the register at the given index
+		 *
+		 *  @param index The register index
+		 *  @return The register name, `INVALID` if the given index is invalid.
+		 */
+		static inline const char* registerName(size_t index) {
+			static constexpr const char* kNames[] = {
+				"%rax", "%rcx", "%rdx", "%rbx", "%rsp", "%rbp", "%rsi", "%rdi",
+				"%r8" , "%r9" , "%r10", "%r11", "%r12", "%r13", "%r14", "%r15",
+			};
+			return index < arrsize(kNames) ? kNames[index] : "INVALID";
+		}
+		
+	public:
+		// MARK: Patch Submodule IMP
+		void init() override;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+	} modBacklightRegistersAltFix;
+	
+	/**
 	 *  Brightness request event source needs access to the original WriteRegister32 function
 	 */
 	friend class BrightnessRequestEventSource;
@@ -1617,6 +1745,11 @@ private:
 		 *  Backlight registers fix submodule needs access to the smoother version of `WriteRegister32()`
 		 */
 		friend class BacklightRegistersFix;
+		
+		/**
+		 *  Backlight registers alternative fix submodule needs access to the smoother version of `WriteRegister32()`
+		 */
+		friend class BacklightRegistersAltFix;
 
 		/**
 		 *  Brightness request event source needs access to the queue and config parameters
@@ -1835,7 +1968,7 @@ private:
 	/**
 	 *  A collection of submodules
 	 */
-	PatchSubmodule *submodules[20] = {
+	PatchSubmodule *submodules[21] = {
 		&modDVMTCalcFix,
 		&modDPCDMaxLinkRateFix,
 		&modCoreDisplayClockFix,
@@ -1852,6 +1985,7 @@ private:
 		&modPAVPDisabler,
 		&modReadDescriptorPatch,
 		&modBacklightRegistersFix,
+		&modBacklightRegistersAltFix,
 		&modBacklightSmoother,
 		&modFramebufferDebugSupport,
 		&modMaxPixelClockOverride,

@@ -94,6 +94,7 @@ Read [FAQs](./Manual/) and avoid asking any questions. No support is provided fo
 |---	|---	|---	  |
 | `-igfxblr` 		    | `enable-backlight-registers-fix` property on IGPU 	| Fix backlight registers on KBL, CFL and ICL platforms 	|
 | `-igfxbls` 		    | `enable-backlight-smoother` property on IGPU 	| Make brightness transitions smoother on IVB+ platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#customize-the-behavior-of-the-backlight-smoother-to-improve-your-experience) 	|
+| `-igfxblt` | `enable-backlight-registers-alternative-fix` property on IGPU  | An alternative to the Backlight Registers Fix and make Backlight Smoother work on CFL platform running macOS 13.4 or later. [Read the manual](./Manual/FAQ.IntelHD.en.md#fix-the-3-minute-black-screen-issue-on-cfl-platforms-running-macos-134-or-later) |
 | `-igfxcdc` 		    | `enable-cdclk-frequency-fix` property on IGPU 	| Support all valid Core Display Clock (CDCLK) frequencies on ICL platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#support-all-possible-core-display-clock-cdclk-frequencies-on-icl-platforms) 	 |
 | `-igfxdbeo` 		  | `enable-dbuf-early-optimizer` property on IGPU 	| Fix the Display Data Buffer (DBUF) issues on ICL+ platforms. [Read the manual](./Manual/FAQ.IntelHD.en.md#fix-the-issue-that-the-builtin-display-remains-garbled-after-the-system-boots-on-icl-platforms) 	|
 | `-igfxdump` 		  | N/A 	| Dump IGPU framebuffer kext to `/var/log/AppleIntelFramebuffer_X_Y` (available in DEBUG binaries) 	|
@@ -148,7 +149,7 @@ Read [FAQs](./Manual/) and avoid asking any questions. No support is provided fo
 - [AMD](https://www.amd.com) for ATOM VBIOS parsing code
 - [The PCI ID Repository](http://pci-ids.ucw.cz) for multiple GPU model names
 - [Andrey1970AppleLife](https://github.com/Andrey1970AppleLife) for [FAQs](./Manual/)
-- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, DVMT pre-allocated memory calculation fix for ICL platforms, Backlight Smoother for IVB+ platforms, and Display Data Buffer fix for ICL platforms.
+- [FireWolf](https://github.com/0xFireWolf/) for the DPCD maximum link rate fix, infinite loop fix for Intel HDMI connections, LSPCON driver support, Core Display Clock frequency fix for ICL platforms, DVMT pre-allocated memory calculation fix for ICL platforms, Backlight Smoother for IVB+ platforms, Display Data Buffer fix for ICL platforms, and Backlight Registers Alternative Fix.
 - [Floris497](https://github.com/Floris497) for the CoreDisplay [patches](https://github.com/Floris497/mac-pixel-clock-patch-v2)
 - [Fraxul](https://github.com/Fraxul) for original CFL backlight patch
 - [headkaze](https://github.com/headkaze) for Intel framebuffer patching code and CFL backlight patch improvements
