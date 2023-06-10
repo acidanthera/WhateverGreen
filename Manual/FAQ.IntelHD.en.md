@@ -1046,7 +1046,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 > Officially supported since OS X 10.11.4 to macOS 12.x. On newer operating systems, spoofing as Kaby Lake is required [or use OCLP.](https://github.com/dortania/OpenCore-Legacy-Patcher/)  
 
-***Spoof Skylake as Kaby Lake on macOS 13***
+***Spoof Skylake as Kaby Lake on macOS 13+***
 
 Make sure that WhateverGreen v1.6.0 or above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
 
