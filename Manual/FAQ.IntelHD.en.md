@@ -2671,13 +2671,13 @@ igfx: @ (DBG) BLS: [COMM] Processing the request: Current = 0x00014ead; Target =
 
 </details>
 
-## Fix the 3-minute black screen issue on CFL platforms running macOS 13.4 or later
+## Fix the 3-minute black screen issue on KBL/CFL platforms running macOS 13.4 or later
 
-If you have a CFL-based laptop and rely on the Backlight Registers Fix (BLR) to fix the 3-minute black screen issue, you may notice that BLR (`-igfxblr`) no longer work on macOS 13.4 or later. This is because Apple has simplified the implementation of the functions, `ReadRegister32` and `WriteRegister32`, in Coffee Lake's framebuffer driver shipped by macOS 13.4, so the compiler chose to inline invocations of those functions as many as possible. As a result, the `WriteRegister32` hooks registered by the Backlight Registers Fix (BLR) and the Backlight Smoother (BLS) submodules no longer work. Starting from v1.6.5, WEG can revert the optimizations done by the compiler in backlight related functions, provide an alternative to BLR and make BLS work properly on macOS 13.4 or later.
+If you have a KBL/CFL-based laptop and rely on the Backlight Registers Fix (BLR) to fix the 3-minute black screen issue, you may notice that BLR (`-igfxblr`) no longer work on macOS 13.4 or later. This is because Apple has simplified the implementation of the functions, `ReadRegister32` and `WriteRegister32`, in Kaby/Coffee Lake's framebuffer drivers shipped by macOS 13.4, so the compiler chose to inline invocations of those functions as many as possible. As a result, the `WriteRegister32` hooks registered by the Backlight Registers Fix (BLR) and the Backlight Smoother (BLS) submodules no longer work. Starting from v1.6.5, WEG can revert the optimizations done by the compiler in backlight related functions, provide an alternative to BLR and make BLS work properly on macOS 13.4 or later. Starting from v1.6.6, WEG supports Kaby Lake platforms.
 
-Note that this alternative fix is only available for users who have laptops using Coffee Lake's graphics driver and running macOS 13.4 or later. You can add the property `enable-backlight-registers-alternative-fix` to `IGPU` or use the boot argument `-igfxblt` to enable this new fix and remove the boot argument `-igfxblr` and/or the device property `enable-backlight-registers-fix`. If you wish to use the Backlight Smoother on macOS 13.4 or later, you need to add both `-igfxblt` and `-igfxbls` to the boot arguments.
+Note that this alternative fix is only available for users who have laptops using Kaby Lake's or Coffee Lake's graphics driver and running macOS 13.4 or later. You can add the property `enable-backlight-registers-alternative-fix` to `IGPU` or use the boot argument `-igfxblt` to enable this new fix and remove the boot argument `-igfxblr` and/or the device property `enable-backlight-registers-fix`. If you wish to use the Backlight Smoother on macOS 13.4 or later, you need to add both `-igfxblt` and `-igfxbls` to the boot arguments.
 
-Note that Ice Lake platforms are not affected because `WriteRegister32` is not inlined in backlight related functions, while Kaby Lake platforms may be affected but are not supported by this new fix at this moment, because it is hard to fix the write operation on the register `0xC8250` due to the space limit.
+Note that Ice Lake platforms are not affected because `WriteRegister32` is not inlined in backlight related functions.
 
 ## Fix the issue that the builtin display remains garbled after the system boots on ICL platforms
 
