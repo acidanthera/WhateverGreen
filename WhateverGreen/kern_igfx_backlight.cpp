@@ -125,7 +125,15 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller,
 	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency ? self->targetBacklightFrequency : 0);
 
 	// Finish by writing the duty cycle.
-	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
+	if (callbackIGFX->modBacklightSmoother.enabled) {
+		// Need to pass the scaled value to the smoother
+		DBGLOG("igfx", "BLS: [KBL ] Will pass the rescaled value 0x%08x to the smoother version.", rescaledValue);
+		IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
+	} else {
+		// Otherwise invoke the original function
+		DBGLOG("igfx", "BLR: [KBL ] Will pass the rescaled value 0x%08x to the original version.", rescaledValue);
+		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
+	}
 }
 
 void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value) {
