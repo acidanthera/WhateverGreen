@@ -2,6 +2,7 @@ WhateverGreen Changelog
 =======================
 #### v1.6.6
 - Extended the Backlight Registers Alternative Fix (BLT) submodule to support both KBL and CFL platforms. (by @0xFireWolf)
+- Revised the Backlight Registers Fix (BLR) submodule to make it compatible with the Backlight Smoother (BLS) on KBL platforms. (by @0xFireWolf)
 
 #### v1.6.5
 - Added constants for macOS 14 support
