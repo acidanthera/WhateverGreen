@@ -15,6 +15,7 @@
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
+#include <Headers/kern_disasm.hpp>
 #include <IOKit/IOService.h>
 #include <IOKit/IOLocks.h>
 
@@ -1601,18 +1602,47 @@ private:
 	} modBacklightRegistersFix;
 	
 	/**
-	 *  A submodule to revert invocations of backlight-related functions and patch backlight register values on macOS 13.4.
+	 *  A submodule to revert invocations of backlight-related functions and patch backlight register values on macOS 13.4 and later.
 	 *
-	 *  @note Supported Platforms: CFL.
+	 *  @note This submodule supports both KBL and CFL platforms.
+	 *  @note This class defines the interface for concrete BLT submodules, each of which fixes a particular platform.
 	 */
 	class BacklightRegistersAltFix: public PatchSubmodule {
+	protected:
 		/**
 		 *  Fallback PWM frequency if the system was initialized with a frequency of 0
 		 */
 		static constexpr uint32_t kFallbackBacklightFrequency = 120000;
 		
 		/**
-		 *  Record the location of the inlined invocation of `hwSetBacklight()` and the register that stores the controller instance
+		 *  The maximum number of instructions to be analyzed when probing the offset of each member field and position of each inlined invocation
+		 */
+		static constexpr size_t kMaxNumInstructions = 512;
+		
+		/**
+		 *  Record the offset of each required member field in the framebuffer controller
+		 */
+		struct ProbeContext {
+			/**
+			 *  Record the offset of the member field in the framebuffer controller that stores the PWM frequency divider
+			 */
+			size_t offsetFrequencyDivider {0};
+
+			/**
+			 *  Record the offset of the member field in the framebuffer controller that stores the current brightness level
+			 */
+			size_t offsetBrightnessLevel {0};
+
+			/**
+			 *  Validate this invocation context
+			 */
+			bool isValid() const {
+				return this->offsetFrequencyDivider != 0 && this->offsetBrightnessLevel != 0;
+			}
+		};
+		
+		/**
+		 *  Record the location of an inlined invocation of `hwSetBacklight()` and the register that stores the controller instance
 		 *  so that this patch submodule can revert the inlined invocation in the function of interest
 		 */
 		struct InvocationContext {
@@ -1649,63 +1679,295 @@ private:
 		};
 		
 		/**
+		 *  Describe a function that contains an inlined invocation of `hwSetBacklight()` and thus will be analyzed and patched
+		 */
+		struct FunctionDescriptor {
+			/**
+			 *  Type of prober that finds the location of an inlined invocation of `hwSetBacklight()` in this function
+			 *
+			 *  @param descriptor A descriptor that describes the function to be analyzed
+			 *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+			 *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+			 *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+			 *          and the register that stores the implicit framebuffer controller instance.
+			 */
+			using InlinedInvocationProber = InvocationContext (*)(const FunctionDescriptor&, const ProbeContext&);
+
+			/**
+			 *  Type of reverter that reverts the inlined invocation of `hwSetBacklight()` in this function
+			 *
+			 *  @param descriptor A descriptor that describes the function to be patched
+			 *  @param probeContext A probe context specifying the offset of each required member field in the framebuffer controller
+			 *  @param invocationContext An invocation context indicating where to patch this function and which register stores the controller instance
+			 *  @param patcher The kernel patcher
+			 *  @param orgHwSetBacklight The address of the original `hwSetBacklight()` function
+			 *  @return `true` if the function at the given address has been patched to invoke `hwSetBacklight()` explicitly, `false` otherwise.
+			 */
+			using InlinedInvocationReverter = bool (*)(const FunctionDescriptor&, const ProbeContext&, const InvocationContext&, KernelPatcher&, mach_vm_address_t);
+
+			/**
+			 *  User-friendly name of this function
+			 */
+			const char *name {nullptr};
+
+			/**
+			 *  Symbol of this function
+			 */
+			const char *symbol {nullptr};
+
+			/**
+			 *  Address of this function
+			 */
+			mach_vm_address_t address {0};
+
+			/**
+			 *  A prober that finds the location of an inlined invocations of `hwSetBacklight()` in this function
+			 */
+			InlinedInvocationProber prober {nullptr};
+
+			/**
+			 *  A reverter that reverts the inlined invocation of `hwSetBacklight()` in this function
+			 */
+			InlinedInvocationReverter reverter {nullptr};
+			
+			/**
+			 *  Set `true` if this function, after patched, will invoke `hwSetBacklight()` with the brightness level stored in the framebuffer controller instead of 0
+			 */
+			bool useCurrentBrightnessLevel {true};
+			
+			/**
+			 *  [Convenient] Find the location of an inlined invocations of `hwSetBacklight()` in this function
+			 *
+			 *  @param context A context object that stores the offset of each required member field in the framebuffer controller
+			 *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+			 *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+			 *          and the register that stores the implicit framebuffer controller instance.
+			 */
+			InvocationContext probe(const ProbeContext &context) const {
+				return this->prober(*this, context);
+			}
+			
+			/**
+			 *  [Convenient] Revert the inlined invocation of `hwSetBacklight()` in this function
+			 *
+			 *  @param probeContext A probe context specifying the offset of each required member field in the framebuffer controller
+			 *  @param invocationContext An invocation context indicating where to patch this function and which register stores the controller instance
+			 *  @param patcher The kernel patcher
+			 *  @param orgHwSetBacklight The address of the original `hwSetBacklight()` function
+			 *  @return `true` if the function at the given address has been patched to invoke `hwSetBacklight()` explicitly, `false` otherwise.
+			 */
+			bool revert(const ProbeContext &probeContext, const InvocationContext &invocationContext, KernelPatcher &patcher, mach_vm_address_t orgHwSetBacklight) const {
+				return this->reverter(*this, probeContext, invocationContext, patcher, orgHwSetBacklight);
+			}
+		};
+		
+		/**
+		 *  A namespace in which common assembly patterns are defined
+		 */
+		struct Patterns {
+			// Pattern: movq %rdi, %r??
+			// Checks: MOV, 64-bit, Direct Mode, Source Register is %rdi
+			static bool movqArg0(const Disassembler::hde_t &handle) {
+				return handle.opcode == 0x89 && handle.rex_w == 1 && handle.modrm_mod == 3 && (handle.rex_r << 3 | handle.modrm_reg) == 7;
+			}
+			
+			// Pattern: movl %esi, %r??
+			// Checks: MOV, 32-bit, Direct Mode, Source Register is %esi
+			static bool movlArg1(const Disassembler::hde_t &handle) {
+				return handle.opcode == 0x89 && handle.rex_w == 0 && handle.modrm_mod == 3 && (handle.rex_r << 3 | handle.modrm_reg) == 6;
+			}
+			
+			// Pattern: movl <offset?>(%r<source>), %r??
+			// Checks: MOV, 32-bit, Memory Mode, Source register is identical to the given one
+			static bool movlFromMemory(const Disassembler::hde_t &handle, uint32_t source) {
+				return handle.opcode == 0x8B && handle.rex_w == 0 && handle.modrm_mod == 2 && (handle.rex_b << 3 | handle.modrm_rm) == source;
+			}
+
+			// Pattern: movl <offset>(%r??), %r??
+			// Checks: MOV, 32-bit, Memory Mode, The offset is identical to the given one
+			static bool movlFromMemoryWithOffset(const Disassembler::hde_t &handle, size_t offset) {
+				return handle.opcode == 0x8B && handle.rex_w == 0 && handle.modrm_mod == 2 && handle.disp.disp32 == offset;
+			}
+			
+			// Pattern: movl %r<source>, <offset?>(%r<destination>)
+			// Checks: MOV, 32-bit, Memory Mode,
+			//         Source register is identical to the given `source`,
+			//         Destination register is identical to the given `destination`
+			static bool movlToMemory(const Disassembler::hde_t &handle, uint32_t source, uint32_t destination) {
+				return handle.opcode == 0x89 && handle.rex_w == 0 && handle.modrm_mod == 2 &&
+				       (handle.rex_r << 3 | handle.modrm_reg) == source &&
+				       (handle.rex_b << 3 | handle.modrm_rm) == destination;
+			}
+
+			// Pattern: movl $??????????, <offset>(%r??)
+			// Checks: MOV, 32-bit, Memory Mode, The offset is identical to the given one
+			static bool movlImm32ToMemoryWithOffset(const Disassembler::hde_t &handle, size_t offset) {
+				return handle.opcode == 0xC7 && handle.rex_w == 0 && handle.modrm_mod == 2 && handle.disp.disp32 == offset;
+			}
+
+			// Pattern: leal <offset>(%r??), %r??
+			// Checks: LEA, 32-bit, Memory Mode, The offset is identical to the given one
+			static bool lealWithOffset(const Disassembler::hde_t &handle, size_t offset) {
+				return handle.opcode == 0x8D && handle.rex_w == 0 && handle.modrm_mod == 2 && handle.disp.disp32 == offset;
+			}
+
+			// Pattern: addl $<imm32>, %r??
+			// Checks: ADD, 32-bit, Direct Mode, The immediate operand is identical to the given one
+			static bool addlWithImm32(const Disassembler::hde_t &handle, uint32_t imm32) {
+				return (handle.opcode == 0x05 || handle.opcode == 0x81) && handle.rex_w == 0 && handle.imm.imm32 == imm32;
+			}
+
+			// Pattern: imull %r??, %r??
+			// Checks: IMUL, 32-bit, Direct Mode
+			static bool imull(const Disassembler::hde_t &handle) {
+				return handle.opcode == 0x0F && handle.opcode2 == 0xAF && handle.rex_w == 0 && handle.modrm_mod == 3;
+			}
+
+			// Pattern: divl <offset?>(%r<source>)
+			// Checks: DIV, 32-bit, Memory Mode, The source register is identical to the given one
+			static bool divlByMemory(const Disassembler::hde_t &handle, uint32_t source) {
+				return handle.opcode == 0xF7 && handle.rex_w == 0 && handle.modrm_mod == 2 && (handle.rex_b << 3 | handle.modrm_rm) == source;
+			}
+
+			// Pattern: divl <offset>(%r??)
+			// Checks: DIV, 32-bit, Memory Mode, The offset is identical to the given one
+			static bool divlByMemoryWithOffset(const Disassembler::hde_t &handle, size_t offset) {
+				return handle.opcode == 0xF7 && handle.rex_w == 0 && handle.modrm_mod == 2 && handle.disp.disp32 == offset;
+			}
+		};
+		
+		/**
 		 *  Record the PWM frequency initialized by the system firmware
+		 *
+		 *  @note This is needed on both KBL and CFL platforms.
 		 */
 		uint32_t firmwareBacklightFrequency {0};
 		
 		/**
-		 *  Record the offset of the member field in the framebuffer controller that stores the PWM frequency divider
+		 *  Record the offset of each required member field in the framebuffer controller
 		 */
-		size_t offsetFrequencyDivider {0};
+		ProbeContext probeContext {};
 		
 		/**
-		 *  Record the offset of the member field in the framebuffer controller that stores the current brightness level
+		 *  Fetch and preserve the PWM frequency set by the system firmware
+		 *
+		 *  @param controller The framebuffer controller instance
 		 */
-		size_t offsetBrightnessLevel {0};
+		void fetchFirmwareBacklightFrequencyIfNecessary(void *controller) {
+			if (this->firmwareBacklightFrequency == 0) {
+				// Guard: The system should be initialized with a non-zero PWM frequency
+				if (auto bootValue = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1); bootValue != 0) {
+					DBGLOG("igfx", "BLT: [COMM] System initialized with a PWM frequency of 0x%x.", bootValue);
+					this->firmwareBacklightFrequency = bootValue;
+				} else {
+					SYSLOG("igfx", "BLT: [COMM] System initialized with a PWM frequency of 0. Will use the fallback frequency.");
+					this->firmwareBacklightFrequency = kFallbackBacklightFrequency;
+				}
+			}
+		}
 		
 		/**
-		 *  Find the offset of the member fields that store the PWM frequency divider and the current brightness level
+		 *  Get the PWM frequency divider from the given framebuffer controller instance
+		 *
+		 *  @param controller The framebuffer controller instance
+		 *  @return The PWM frequency divider used by Apple.
+		 */
+		uint32_t getFrequencyDivider(void *controller) const {
+			return getMember<uint32_t>(controller, this->probeContext.offsetFrequencyDivider);
+		}
+		
+		/**
+		 *  Save the given new brightness level to the given framebuffer controller instance
+		 *
+		 *  @param controller The framebuffer controller instance
+		 *  @param brightness The new brightness level
+		 */
+		void setBrightnessLevel(void *controller, uint32_t brightness) const {
+			getMember<uint32_t>(controller, this->probeContext.offsetBrightnessLevel) = brightness;
+		}
+		
+		/**
+		 *  Calculate the duty cycle for the given brightness level
+		 *
+		 *  @param controller The framebuffer controller instance
+		 *  @param brightness The new brightness level
+		 *  @return The duty cycle that will be written to the register `BXT_BLC_PWM_DUTY1`
+		 */
+		uint32_t calcDutyCycle(void *controller, uint32_t brightness) const {
+			uint64_t frequency = this->firmwareBacklightFrequency;
+			uint64_t divider = this->getFrequencyDivider(controller);
+			return static_cast<uint32_t>(frequency * brightness / divider);
+		}
+		
+		/**
+		 *  Write the given frequency value to the register `BXT_BLC_PWM_FREQ1`
+		 *
+		 *  @param controller The framebuffer controller instance
+		 *  @param frequency The new frequency value
+		 */
+		void writeFrequency(void *controller, uint32_t frequency) const {
+			callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency);
+		}
+		
+		/**
+		 *  Write the given duty cycle to the register `BXT_BLC_PWM_DUTY1`
+		 *
+		 *  @param controller The framebuffer controller instance
+		 *  @param dutyCycle The new duty cycle value
+		 *  @note This function will pass the given value to the smoother if the user has enabled the BLS submodule.
+		 */
+		void writeDutyCycle(void *controller, uint32_t dutyCycle) const {
+			if (callbackIGFX->modBacklightSmoother.enabled) {
+				// Need to pass the scaled value to the smoother
+				DBGLOG("igfx", "BLS: [COMM] Will pass the new duty cycle value 0x%08x to the smoother version.", dutyCycle);
+				IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(controller, BXT_BLC_PWM_DUTY1, dutyCycle);
+			} else {
+				// Otherwise invoke the original function
+				DBGLOG("igfx", "BLT: [COMM] Will pass the new duty cycle value 0x%08x to the original version.", dutyCycle);
+				callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, dutyCycle);
+			}
+		}
+		
+		/**
+		 *  Analyze `hwSetBacklight()` to find the offset of each required member field in the framebuffer controller
 		 *
 		 *  @param address The address of `hwSetBacklight()` to be analyzed
 		 *  @param instructions The maximum number of instructions to be analyzed
-		 *  @return The offset of the member field that stores the PWM frequency divider and
-		 *          the offset of the member field that stores the current brightness level.
+		 *  @return A context object that stores the offset of each required member field in the framebuffer controller
 		 */
-		ppair<size_t, size_t> probeMemberOffsets(mach_vm_address_t address, size_t instructions) const;
+		virtual ProbeContext probeMemberOffsets(mach_vm_address_t address, size_t instructions) const {
+			return {};
+		}
 		
 		/**
-		 *  Find the location of the inlined invocation of `hwSetBacklight()` in the function that starts at the given address
+		 *  Get all functions that contain an inlined invocation of `hwSetBacklight()` and thus will be analyzed and patched
 		 *
-		 *  @param address The address of the function to be analyzed
-		 *  @param instructions The maximum number of instructions to be analyzed
-		 *  @return A pair of `<Start, End>` offsets, relative to the given address, indicating the location of inlined invocation of `hwSetBacklight()`,
-		 *          and the register that stores the implicit framebuffer controller instance.
+		 *  @return A null-terminated array of descriptor, each of which describes a function to be analyzed and patched.
 		 */
-		InvocationContext probeInlinedInvocation(mach_vm_address_t address, size_t instructions) const;
+		virtual FunctionDescriptor* getFunctionDescriptors() const {
+			return nullptr;
+		}
 		
 		/**
-		 *  Revert the inlined invocation of `hwSetBacklight()` in the function that starts at the given address
+		 *  Get the address of the wrapper function that sets the backlight compatible with the current machine
 		 *
+		 *  @return The address of the wrapper function.
+		 */
+		virtual mach_vm_address_t getHwSetBacklightWrapper() const {
+			return 0;
+		}
+		
+		/**
+		 *  Revert the inlined invocation of `hwSetBacklight()` in the given function
+		 *
+		 *  @param descriptor A descriptor that describes the function to be patched
+		 *  @param probeContext A probe context specifying the offset of each required member field in the framebuffer controller
+		 *  @param invocationContext An invocation context indicating where to patch this function and which register stores the controller instance
 		 *  @param patcher The kernel patcher
-		 *  @param address The address of the function to be patched
-		 *  @param orgHwSetBacklight The address of the original `hwSetBacklight()`
-		 *  @param context The invocation context indicating where to patch the function and which register stores the controller instance
+		 *  @param orgHwSetBacklight The address of the original `hwSetBacklight()` function
 		 *  @return `true` if the function at the given address has been patched to invoke `hwSetBacklight()` explicitly, `false` otherwise.
 		 */
-		bool revertInlinedInvocation(KernelPatcher &patcher, mach_vm_address_t address, mach_vm_address_t orgHwSetBacklight, const InvocationContext &context) const;
-		
-		/**
-		 *  Wrapper to set the backlight compatible with the current machine
-		 *
-		 *  @param controller The implicit framebuffer controller
-		 *  @param brightness The new brightness level
-		 *  @return `kIOReturnSuccess`.
-		 *  @note When this function returns, the given brightness level should be stored into the given framebuffer controller.
-		 *  @note Unlike the original fix implemented in BLR, BLR-ALT computes the value of the frequency register and the duty register
-		 *        compatible with the current machine and commit those values using the original version of `WriteRegister32()`.
-		 *        Apple's implementation will not be used by this submodule.
-		 */
-		static IOReturn wrapHwSetBacklight(void *controller, uint32_t brightness);
+		static bool revertInlinedInvocation(const FunctionDescriptor &descriptor, const ProbeContext &probeContext, const InvocationContext &invocationContext, KernelPatcher &patcher, mach_vm_address_t orgHwSetBacklight);
 		
 		/**
 		 *  Get the name of the register at the given index
@@ -1723,10 +1985,170 @@ private:
 		
 	public:
 		// MARK: Patch Submodule IMP
-		void init() override;
-		void processKernel(KernelPatcher &patcher, DeviceInfo *info) override;
-		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) override;
+		void init() final;
+		void processKernel(KernelPatcher &patcher, DeviceInfo *info) final;
+		void processFramebufferKext(KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) final;
 	} modBacklightRegistersAltFix;
+	
+	/**
+	 *  A concrete submodule to revert invocations of backlight-related functions and patch backlight register values on KBL platforms running macOS 13.4 and later.
+	 */
+	class BacklightRegistersAltFixKBL: public BacklightRegistersAltFix {
+		/**
+		 *  Record the PWM control value initialized by the system firmware
+		 *
+		 *  @note This is needed on KBL platform only.
+		 */
+		uint32_t firmwareBacklightControl {0};
+		
+		/**
+		 *  Fetch and preserve the PWM control value set by the system firmware
+		 *
+		 *  @param controller The framebuffer controller instance
+		 */
+		void fetchFirmwareBacklightControlIfNecessary(void *controller) {
+			if (this->firmwareBacklightControl == 0) {
+				this->firmwareBacklightControl = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_CTL1);
+				DBGLOG("igfx", "BLT: [KBL ] System initialized with a PWM control value of 0x%x.", this->firmwareBacklightControl);
+			}
+		}
+		
+		/**
+		 *  Write the given PWM control value to the register `BXT_BLC_PWM_CTL1`
+		 *
+		 *  @param controller The framebuffer controller instance
+		 *  @param value The new control value
+		 */
+		void writePWMControl(void *controller, uint32_t value) const {
+			callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_CTL1, value);
+		}
+		
+		/**
+		 *  Analyze `hwSetBacklight()` to find the offset of each required member field in the framebuffer controller
+		 *
+		 *  @param address The address of `hwSetBacklight()` to be analyzed
+		 *  @param instructions The maximum number of instructions to be analyzed
+		 *  @return A context object that stores the offset of each required member field in the framebuffer controller
+		 */
+		ProbeContext probeMemberOffsets(mach_vm_address_t address, size_t instructions) const override;
+		
+		/**
+		 *  Get all functions that contain an inlined invocation of `hwSetBacklight()` and thus will be analyzed and patched
+		 *
+		 *  @return A null-terminated array of descriptor, each of describes a function to be analyzed and patched.
+		 */
+		FunctionDescriptor* getFunctionDescriptors() const override;
+		
+		/**
+		 *  Get the address of the wrapper function that sets the backlight compatible with the current machine
+		 *
+		 *  @return The address of the wrapper function.
+		 */
+		mach_vm_address_t getHwSetBacklightWrapper() const override;
+		
+		/**
+		 *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+		 *
+		 *  @param descriptor A descriptor that describes the function to be analyzed
+		 *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+		 *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+		 *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+		 *          and the register that stores the implicit framebuffer controller instance.
+		 *  @note This function is specialized for `LightUpEDP()`.
+		 */
+		static InvocationContext probeInlinedInvocation_LightUpEDP(const FunctionDescriptor &descriptor, const ProbeContext &probeContext);
+
+		/**
+		 *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+		 *
+		 *  @param descriptor A descriptor that describes the function to be analyzed
+		 *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+		 *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+		 *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+		 *          and the register that stores the implicit framebuffer controller instance.
+		 *  @note This function is specialized for `DisableDisplay()`.
+		 */
+		static InvocationContext probeInlinedInvocation_DisableDisplay(const FunctionDescriptor &descriptor, const ProbeContext &probeContext);
+		
+		/**
+		 *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+		 *
+		 *  @param descriptor A descriptor that describes the function to be analyzed
+		 *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+		 *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+		 *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+		 *          and the register that stores the implicit framebuffer controller instance.
+		 *  @note This function is specialized for `hwSetPanelPower()`.
+		 */
+		static InvocationContext probeInlinedInvocation_HwSetPanelPower(const FunctionDescriptor &descriptor, const ProbeContext &probeContext);
+
+		/**
+		 *  Wrapper to set the backlight compatible with the current machine
+		 *
+		 *  @param controller The implicit framebuffer controller
+		 *  @param brightness The new brightness level
+		 *  @return `kIOReturnSuccess`.
+		 *  @note When this function returns, the given brightness level should be stored into the given framebuffer controller.
+		 *  @note Unlike the original fix implemented in BLR, BLT computes the value of the frequency register and the duty register
+		 *        compatible with the current machine and commit those values using the original version of `WriteRegister32()`.
+		 *        Additionally, this function updates the PWM control register at 0xC8250.
+		 *        Apple's implementation will not be used by this submodule.
+		 */
+		static IOReturn wrapHwSetBacklight(void *controller, uint32_t brightness);
+	} modBacklightRegistersAltFixKBL;
+	
+	/**
+	 *  A concrete submodule to revert invocations of backlight-related functions and patch backlight register values on CFL platforms running macOS 13.4 and later.
+	 */
+	class BacklightRegistersAltFixCFL: public BacklightRegistersAltFix {
+		/**
+		 *  Analyze `hwSetBacklight()` to find the offset of each required member field in the framebuffer controller
+		 *
+		 *  @param address The address of `hwSetBacklight()` to be analyzed
+		 *  @param instructions The maximum number of instructions to be analyzed
+		 *  @return A context object that stores the offset of each required member field in the framebuffer controller
+		 */
+		ProbeContext probeMemberOffsets(mach_vm_address_t address, size_t instructions) const override;
+		
+		/**
+		 *  Get all functions that contain an inlined invocation of `hwSetBacklight()` and thus will be analyzed and patched
+		 *
+		 *  @return A null-terminated array of descriptor, each of describes a function to be analyzed and patched.
+		 */
+		FunctionDescriptor* getFunctionDescriptors() const override;
+		
+		/**
+		 *  Get the address of the wrapper function that sets the backlight compatible with the current machine
+		 *
+		 *  @return The address of the wrapper function.
+		 */
+		mach_vm_address_t getHwSetBacklightWrapper() const override;
+		
+		/**
+		 *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+		 *
+		 *  @param descriptor A descriptor that describes the function to be analyzed
+		 *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+		 *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+		 *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+		 *          and the register that stores the implicit framebuffer controller instance.
+		 *  @note This function is specialized for `LightUpEDP()` and `hwSetPanelPower()`.
+		 */
+		static InvocationContext probeInlinedInvocation(const FunctionDescriptor &descriptor, const ProbeContext &probeContext);
+
+		/**
+		 *  Wrapper to set the backlight compatible with the current machine
+		 *
+		 *  @param controller The implicit framebuffer controller
+		 *  @param brightness The new brightness level
+		 *  @return `kIOReturnSuccess`.
+		 *  @note When this function returns, the given brightness level should be stored into the given framebuffer controller.
+		 *  @note Unlike the original fix implemented in BLR, BLT computes the value of the frequency register and the duty register
+		 *        compatible with the current machine and commit those values using the original version of `WriteRegister32()`.
+		 *        Apple's implementation will not be used by this submodule.
+		 */
+		static IOReturn wrapHwSetBacklight(void *controller, uint32_t brightness);
+	} modBacklightRegistersAltFixCFL;
 	
 	/**
 	 *  Brightness request event source needs access to the original WriteRegister32 function

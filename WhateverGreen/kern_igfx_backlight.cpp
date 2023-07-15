@@ -125,7 +125,15 @@ void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMFreq1(void *controller,
 	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, frequency ? self->targetBacklightFrequency : 0);
 
 	// Finish by writing the duty cycle.
-	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
+	if (callbackIGFX->modBacklightSmoother.enabled) {
+		// Need to pass the scaled value to the smoother
+		DBGLOG("igfx", "BLS: [KBL ] Will pass the rescaled value 0x%08x to the smoother version.", rescaledValue);
+		IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
+	} else {
+		// Otherwise invoke the original function
+		DBGLOG("igfx", "BLR: [KBL ] Will pass the rescaled value 0x%08x to the original version.", rescaledValue);
+		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, rescaledValue);
+	}
 }
 
 void IGFX::BacklightRegistersFix::wrapKBLWriteRegisterPWMCtrl1(void *controller, uint32_t reg, uint32_t value) {
@@ -255,214 +263,87 @@ void IGFX::BacklightRegistersAltFix::processFramebufferKext(KernelPatcher &patch
 	// - 2023.06
 	//
 	static constexpr const char* kHwSetBacklightSymbol = "__ZN31AppleIntelFramebufferController14hwSetBacklightEj";
-	static constexpr const char* kLightUpEDPSymbol = "__ZN31AppleIntelFramebufferController10LightUpEDPEP21AppleIntelFramebufferP21AppleIntelDisplayPathPK29IODetailedTimingInformationV2";
-	static constexpr const char* kHwSetPanelPowerSymbol = "__ZN31AppleIntelFramebufferController15hwSetPanelPowerEj";
-	
-	// Guard: Only CFL is supported at this moment (ICL driver does not have this issue, KBL driver is hard to fix)
-	if (auto framebuffer = callbackIGFX->getRealFramebuffer(index); framebuffer != &kextIntelCFLFb) {
-		SYSLOG("igfx", "BLT: Aborted: Only CFL is supported at this moment.");
-		return;
-	}
 	
 	// Guard: Verify the kernel major version
 	if (getKernelVersion() < KernelVersion::Ventura) {
-		SYSLOG("igfx", "BLT: Aborted: This patch submodule is only available as of macOS 13.4.");
+		SYSLOG("igfx", "BLT: [COMM] Aborted: This patch submodule is only available as of macOS 13.4.");
 		return;
 	} else if (getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() < 5) {
-		SYSLOG("igfx", "BLT: Aborted: This patch submodule is only available as of macOS 13.4.");
+		SYSLOG("igfx", "BLT: [COMM] Aborted: This patch submodule is only available as of macOS 13.4.");
 		return;
 	} else {
-		DBGLOG("igfx", "BLT: Running on Darwin %d.%d. Assuming that BLT is compatible with the current macOS release.",
+		DBGLOG("igfx", "BLT: [COMM] Running on Darwin %d.%d. Assuming that BLT is compatible with the current macOS release.",
 			   getKernelVersion(), getKernelMinorVersion());
 	}
 	
-	// Guard: Find the address of each function to be analyzed
-	mach_vm_address_t orgHwSetBacklight, orgLightUpEDP, orgHwSetPanelPower;
-	KernelPatcher::SolveRequest requests[] = {
-		{kHwSetBacklightSymbol, orgHwSetBacklight},
-		{kLightUpEDPSymbol, orgLightUpEDP},
-		{kHwSetPanelPowerSymbol, orgHwSetPanelPower},
-	};
-	if (!patcher.solveMultiple(index, requests, address, size)) {
-		SYSLOG("igfx", "BLT: Error: Unable to find the address of the function to be analyzed.");
-		return;
-	}
-	
-	// Guard: Analyze `hwSetBacklight()` to probe the offset of each member field needed by this submodule
-	if (auto&& [divider, brightness] = this->probeMemberOffsets(orgHwSetBacklight, 64); divider != 0 && brightness != 0) {
-		this->offsetFrequencyDivider = divider;
-		this->offsetBrightnessLevel = brightness;
+	// Guard: Verify the current framebuffer driver to select the concrete submodule
+	auto framebuffer = callbackIGFX->getRealFramebuffer(index);
+	IGFX::BacklightRegistersAltFix *self = nullptr;
+	if (framebuffer == &kextIntelKBLFb) {
+		DBGLOG("igfx", "BLT: [COMM] Will set up the fix for the KBL platform.");
+		self = &callbackIGFX->modBacklightRegistersAltFixKBL;
+	} else if (framebuffer == &kextIntelCFLFb) {
+		DBGLOG("igfx", "BLT: [COMM] Will set up the fix for the CFL platform.");
+		self = &callbackIGFX->modBacklightRegistersAltFixCFL;
 	} else {
-		SYSLOG("igfx", "BLT: Error: Unable to find the offset of one of the required member fields.");
+		SYSLOG("igfx", "BLT: [COMM] Aborted: Only KBL and CFL platforms are supported.");
+		return;
+	}
+
+	// Guard: Resolve the address of `hwSetBacklight()`
+	auto orgHwSetBacklight = patcher.solveSymbol(index, kHwSetBacklightSymbol, address, size);
+	if (orgHwSetBacklight == 0) {
+		SYSLOG("igfx", "BLT: [COMM] Error: Unable to find the address of hwSetBacklight().");
+		patcher.clearError();
 		return;
 	}
 	
-	// Analyze each function to find the position of the inlined invocation of `hwSetBacklight()`
-	ppair<const char*, mach_vm_address_t> addresses[] = {{"LightUpEDP", orgLightUpEDP}, {"hwSetPanelPower", orgHwSetPanelPower}};
-	for (auto&& [name, address] : addresses) {
-		// Guard: Identify the offsets and the register that stores the controller instance
-		auto context = this->probeInlinedInvocation(address, 512);
-		if (!context.isValid()) {
-			SYSLOG("igfx", "BLT: Error: Unable to find the position of the inlined invocation of hwSetBacklight() in %s().", name);
+	// Guard: Analyze `hwSetBacklight()` to find the offset of each required member field in the framebuffer controller
+	auto probeContext = self->probeMemberOffsets(orgHwSetBacklight, kMaxNumInstructions);
+	if (!probeContext.isValid()) {
+		SYSLOG("igfx", "BLT: [COMM] Error: Failed to find the offset of one of the required member field.");
+		return;
+	}
+	
+	// Analyze and patch each function that contains an inlined invocation of `hwSetBacklight()`
+	for (auto descriptor = self->getFunctionDescriptors(); descriptor->name != nullptr; descriptor += 1) {
+		// Guard: Resolve the symbol of the current function
+		descriptor->address = patcher.solveSymbol(index, descriptor->symbol, address, size);
+		if (descriptor->address == 0) {
+			SYSLOG("igfx", "BLT: [COMM] Error: Failed to find the address of %s().", descriptor->name);
+			patcher.clearError();
+			return;
+		}
+		
+		// Guard: Identify the location of the inlined invocation and the register that stores the controller instance
+		auto invocationContext = descriptor->probe(probeContext);
+		if (!invocationContext.isValid()) {
+			SYSLOG("igfx", "BLT: [COMM] Error: Unable to find the position of the inlined invocation of hwSetBacklight() in %s().", descriptor->name);
 			return;
 		}
 		
 		// Guard: Patch the function to invoke `hwSetBacklight()` explicitly
-		if (!this->revertInlinedInvocation(patcher, address, orgHwSetBacklight, context)) {
-			SYSLOG("igfx", "BLT: Error: Failed to patch the function %s().", name);
+		if (!descriptor->revert(probeContext, invocationContext, patcher, orgHwSetBacklight)) {
+			SYSLOG("igfx", "BLT: [COMM] Error: Failed to patch the function %s().", descriptor->name);
 			return;
 		} else {
-			DBGLOG("igfx", "BLT: Reverted the inlined invocation of hwSetBacklight() in %s() sucessfully.", name);
+			DBGLOG("igfx", "BLT: [COMM] Reverted the inlined invocation of hwSetBacklight() in %s() sucessfully.", descriptor->name);
 		}
 	}
-	
+
 	// Guard: Replace the implementation of `hwSetBacklight()`
-	KernelPatcher::RouteRequest request(kHwSetBacklightSymbol, wrapHwSetBacklight);
-	SYSLOG_COND(!patcher.routeMultiple(index, &request, 1, address, size), "igfx", "BLT: Error: Failed to route hwSetBacklight().");
+	KernelPatcher::RouteRequest request(kHwSetBacklightSymbol, self->getHwSetBacklightWrapper());
+	SYSLOG_COND(!patcher.routeMultiple(index, &request, 1, address, size), "igfx", "BLT: [COMM] Error: Failed to route hwSetBacklight().");
+	
+	// Save the probe context which is needed by the hwSetBacklight wrapper
+	self->probeContext = probeContext;
 }
 
-ppair<size_t, size_t> IGFX::BacklightRegistersAltFix::probeMemberOffsets(mach_vm_address_t address, size_t instructions) const {
-	DBGLOG("igfx", "BLT: Analyzing the function at 0x%016llx to probe the offset of each required member field.", address);
-	hde64s handle;
-	
-	// Record which register stores the implicit controller instance
-	// By default, %rdi stores the implicit controller instance (i.e., the 1st argument)
-	uint32_t registerController = 7;
-	
-	// Record which register stores the given brightness level
-	// By default, %esi stores the given brightness level (i.e., the 2nd argument)
-	uint32_t registerBrightnessLevel = 6;
-	
-	// Record the offset of the member field that stores the frequency divider
-	size_t offsetFrequencyDivider = 0;
-	
-	// Record the offset of the member field that will store the given brightness level
-	size_t offsetBrightnessLevel = 0;
-	
-	// Analyze at most the given number instructions to find the offsets
-	for (size_t index = 0; index < instructions; index += 1) {
-		// Guard: Should be able to disassemble the current instruction
-		address += Disassembler::hdeDisasm(address, &handle);
-		if (handle.flags & F_ERROR) {
-			SYSLOG("igfx", "BLT: Error: Cannot disassemble the instruction.");
-			break;
-		}
-		
-		// Guard: Step 1: Identify which register stores the controller instance
-		// Pattern: movq %rdi, %r??
-		// Checks: MOV, 64-bit, Direct Mode, Source Register is %rdi
-		if (handle.opcode == 0x89 && handle.rex_w == 1 && handle.modrm_mod == 3 && (handle.rex_r << 3 | handle.modrm_reg) == 7) {
-			registerController = handle.rex_b << 3 | handle.modrm_rm;
-			DBGLOG("igfx", "BLT: Found the instruction movq: Register %s now stores the controller instance.", registerName(registerController));
-			continue;
-		}
-		
-		// Guard: Step 2: Identify which register stores the given brightness level
-		// Pattern: movl %esi, %r??
-		// Checks: MOV, 32-bit, Direct Mode, Source Register is %esi
-		if (handle.opcode == 0x89 && handle.rex_w == 0 && handle.modrm_mod == 3 && (handle.rex_r << 3 | handle.modrm_reg) == 6) {
-			registerBrightnessLevel = handle.rex_b << 3 | handle.modrm_rm;
-			DBGLOG("igfx", "BLT: Found the instruction movl: Register %s now stores the new brightness level.", registerName(registerBrightnessLevel));
-			continue;
-		}
-		
-		// Guard: Step 3: Verify that the given brightness level is stored in the same register
-		// Pattern: imull %r??, %r?? where the source register stores the given brightness level and the destination register stores the PWM frequency
-		// Checks: IMUL, 32-bit, Direct Mode
-		if (handle.opcode == 0x0F && handle.opcode2 == 0xAF && handle.rex_w == 0 && handle.modrm_mod == 3) {
-			if (uint32_t source = handle.rex_b << 3 | handle.modrm_rm; source != registerBrightnessLevel) {
-				DBGLOG("igfx", "BLT: Found the instruction imull: Register %s instead of %s now stores the new brightness level.",
-					   registerName(source), registerName(registerBrightnessLevel));
-				registerBrightnessLevel = source;
-			}
-			continue;
-		}
-		
-		// Guard: Step 4: Identify the offset of the member field in the controller that stores the frequency divider
-		// Pattern: divl <offset?>(%r??)
-		// Note that even though Apple initializes this field with a hard coded value of `0xFFFF` in `AppleIntelFramebufferController::getOSInformation()`,
-		// we cannot assume that it is always set to `0xFFFF` in future macOS releases, so we will fetch the divider from the controller.
-		// Checks: DIV, 32-bit, Memory Mode, Register is identical to the one found in previous steps
-		if (handle.opcode == 0xF7 && handle.rex_w == 0 && handle.modrm_mod == 2 && (handle.rex_b << 3 | handle.modrm_rm) == registerController) {
-			offsetFrequencyDivider = handle.disp.disp32;
-			DBGLOG("igfx", "BLT: Found the instruction divl: The frequency divider is stored at offset 0x%zx.", offsetFrequencyDivider);
-			continue;
-		}
-		
-		// Guard: Step 5: Identify the offset of the member field in the controller that will store the given brightness level
-		// Pattern: movl %r??, <offset?>(%r??)
-		// Checks: MOV, 32-bit, Memory Mode,
-		//         Source register is identical to the one that stores the brightness level,
-		//         Destination register is identical to the one that stores the controller
-		if (handle.opcode == 0x89 && handle.rex_w == 0 && handle.modrm_mod == 2 &&
-			(handle.rex_r << 3 | handle.modrm_reg) == registerBrightnessLevel &&
-			(handle.rex_b << 3 | handle.modrm_rm) == registerController) {
-			offsetBrightnessLevel = handle.disp.disp32;
-			DBGLOG("igfx", "BLT: Found the instruction movl: The brightness level is stored at offset 0x%zx.", offsetBrightnessLevel);
-			break;
-		}
-	}
-	
-	// All done
-	return {offsetFrequencyDivider, offsetBrightnessLevel};
-}
-
-IGFX::BacklightRegistersAltFix::InvocationContext IGFX::BacklightRegistersAltFix::probeInlinedInvocation(mach_vm_address_t address, size_t instructions) const {
-	DBGLOG("igfx", "BLT: Analyzing the function at 0x%016llx to identify the position of the inlined invocation of hwSetBacklight().", address);
-	hde64s handle;
-	
-	// The address of the current instruction
-	auto current = address;
-	
-	// The context of the inlined invocation
-	InvocationContext context;
-	
-	// Analyze at most the given number instructions to find the location of inlined invocation of `hwSetBacklight()`
-	for (size_t index = 0; index < instructions; index += 1) {
-		// Guard: Should be able to disassemble the current instruction
-		size_t size = Disassembler::hdeDisasm(current, &handle);
-		if (handle.flags & F_ERROR) {
-			SYSLOG("igfx", "BLT: Error: Cannot disassemble the instruction.");
-			break;
-		}
-		
-		// Guard: Step 1: Find the start address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
-		// Pattern: leal 0xfff37da7(%r??), %r?? where the source register stores the base address of the MMIO region
-		// Note that the start address found in `LightUpEDP()` is after the invocation of `CamelliaBase::SetDPCDBacklight()`
-		// and the retrieval of the base address of the MMIO region
-		if (handle.opcode == 0x8D && handle.rex_w == 0 && handle.modrm_mod == 2 && handle.disp.disp32 == 0xFFF37DA7) {
-			context.start = current - address;
-			DBGLOG("igfx", "BLT: Found the instruction leal: The relative start address of the inlined invocation is 0x%zx.", context.start);
-			current += size;
-			continue;
-		}
-		
-		// Guard: Step 2: Identify which register stores the controller instance
-		// Pattern: divl <offset?>(%r??)
-		// where the offset is identical to the one found in `hwSetBacklight()`
-		if (handle.opcode == 0xF7 && handle.rex_w == 0 && handle.modrm_mod == 2 && handle.disp.disp32 == this->offsetFrequencyDivider) {
-			context.registerController = handle.rex_b << 3 | handle.modrm_rm;
-			DBGLOG("igfx", "BLT: Found the instruction divl: Register %s stores the controller instance.", registerName(context.registerController));
-			current += size;
-			continue;
-		}
-		
-		// Guard: Step 3: Find the end address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
-		// Pattern 2: addl $0xfff37dab, %r??
-		if ((handle.opcode == 0x05 || handle.opcode == 0x81) && handle.rex_w == 0 && handle.imm.imm32 == 0xFFF37DAB) {
-			context.end = current - address;
-			DBGLOG("igfx", "BLT: Found the instruction addl: The relative end address of the inlined invocation is 0x%zx.", context.end);
-			break;
-		}
-		
-		current += size;
-	}
-	
-	// All done
-	return context;
-}
-
-bool IGFX::BacklightRegistersAltFix::revertInlinedInvocation(KernelPatcher &patcher, mach_vm_address_t address, mach_vm_address_t orgHwSetBacklight, const InvocationContext &context) const {
+bool IGFX::BacklightRegistersAltFix::revertInlinedInvocation(const FunctionDescriptor &descriptor,
+															   const ProbeContext &probeContext,
+															   const InvocationContext &invocationContext,
+															   KernelPatcher &patcher,
+															   mach_vm_address_t orgHwSetBacklight) {
 	//
 	// Sample Patch 1: Revert inlined hwSetBacklight() invocation
 	//
@@ -537,6 +418,12 @@ bool IGFX::BacklightRegistersAltFix::revertInlinedInvocation(KernelPatcher &patc
 		//
 		0x41, 0x8B, 0xB4, 0x24, 0x00, 0x00, 0x00, 0x00
 	};
+	static constexpr uint8_t kSetArg1_Zero[] = {
+		//
+		// Template: xorl %esi, %esi
+		//
+		0x31, 0xF6
+	};
 	
 	// Step 3: [Template] Set the controller instance which will be the 1st argument
 	static constexpr uint8_t kSetArg0[] = {
@@ -590,46 +477,54 @@ bool IGFX::BacklightRegistersAltFix::revertInlinedInvocation(KernelPatcher &patc
 	static constexpr size_t kMaxPatchSize = sizeof(kPreserve) + sizeof(kSetArg1_r12) + sizeof(kSetArg0) + sizeof(kCall) + sizeof(kRestore) + sizeof(kJump);
 	
 	// Guard: Ensure that there is enough space to revert the inlined invocation
-	if (auto freeSpace = context.freeSpace(); freeSpace < kMaxPatchSize) {
-		SYSLOG("igfx", "BLT: Error: The function does not have enough space to revert the inlined invocation. Required = %zu; Free = %zu.", kMaxPatchSize, freeSpace);
+	if (auto freeSpace = invocationContext.freeSpace(); freeSpace < kMaxPatchSize) {
+		SYSLOG("igfx", "BLT: [COMM] Error: %s() does not have enough space to revert the inlined invocation. Required = %zu; Free = %zu.",
+			   descriptor.name, kMaxPatchSize, freeSpace);
 		return false;
 	}
 	
 	// Build the patch step by step
 	uint8_t patch[kMaxPatchSize] = {};
 	uint8_t* current = patch;
-	DBGLOG("igfx", "BLT: Building the assembly patch for the function at 0x%016llx to revert the inlined invocation of hwSetBacklight().", address);
-	DBGLOG("igfx", "BLT: Invocation context: Start Offset = 0x%zu, End Offset = 0x%zu, Free Space = %zu Bytes, Framebuffer controller stored in register %s.",
-		   context.start, context.end, context.freeSpace(), registerName(context.registerController));
+	DBGLOG("igfx", "BLT: [COMM] Building the assembly patch for %s() at 0x%016llx to revert the inlined invocation of hwSetBacklight().", descriptor.name, descriptor.address);
+	DBGLOG("igfx", "BLT: [COMM] Invocation context: Start Offset = %zu, End Offset = %zu, Free Space = %zu Bytes, Framebuffer controller stored in register %s.",
+		   invocationContext.start, invocationContext.end, invocationContext.freeSpace(), registerName(invocationContext.registerController));
 	
 	// Step 1: Preserve all caller-saved registers to avoid analyzing register liveness
 	lilu_os_memcpy(current, kPreserve, sizeof(kPreserve));
 	current += sizeof(kPreserve);
 	
 	// Step 2: Fetch the new brightness level which will be the 2nd argument
-	// Step 2.1: Select the instruction based upon the register that stores the controller instance
-	if (context.registerController < 8) {
-		// %rax, %rcx, %rdx, %rbx, /* %rsp, %rbp */, %rsi, %rdi
-		lilu_os_memcpy(current, kSetArg1 + 1, sizeof(kSetArg1) - 1);
-		current[1] += context.registerController % 8;
-		current += sizeof(kSetArg1) - 1;
-	} else if (context.registerController != 12) {
-		// %r8, %r9, %r10, %r11, %r13, %r14, %r15
-		lilu_os_memcpy(current, kSetArg1, sizeof(kSetArg1));
-		current[2] += context.registerController % 8;
-		current += sizeof(kSetArg1);
+	if (descriptor.useCurrentBrightnessLevel) {
+		// Step 2.1: Select the instruction based upon the register that stores the controller instance
+		if (invocationContext.registerController < 8) {
+			// %rax, %rcx, %rdx, %rbx, /* %rsp, %rbp */, %rsi, %rdi
+			lilu_os_memcpy(current, kSetArg1 + 1, sizeof(kSetArg1) - 1);
+			current[1] += invocationContext.registerController % 8;
+			current += sizeof(kSetArg1) - 1;
+		} else if (invocationContext.registerController != 12) {
+			// %r8, %r9, %r10, %r11, %r13, %r14, %r15
+			lilu_os_memcpy(current, kSetArg1, sizeof(kSetArg1));
+			current[2] += invocationContext.registerController % 8;
+			current += sizeof(kSetArg1);
+		} else {
+			// %r12
+			lilu_os_memcpy(current, kSetArg1_r12, sizeof(kSetArg1_r12));
+			current += sizeof(kSetArg1_r12);
+		}
+		// Step 2.2: Set the offset of the member field that stores the new brightness level
+		*reinterpret_cast<uint32_t*>(current - sizeof(uint32_t)) = static_cast<uint32_t>(probeContext.offsetBrightnessLevel);
+		DBGLOG("igfx", "BLT: [COMM] Patched %s() to invoke hwSetBacklight() with the current brightness level.", descriptor.name);
 	} else {
-		// %r12
-		lilu_os_memcpy(current, kSetArg1_r12, sizeof(kSetArg1_r12));
-		current += sizeof(kSetArg1_r12);
+		lilu_os_memcpy(current, kSetArg1_Zero, sizeof(kSetArg1_Zero));
+		current += sizeof(kSetArg1_Zero);
+		DBGLOG("igfx", "BLT: [COMM] Patched %s() to invoke hwSetBacklight() with a brightness level of zero.", descriptor.name);
 	}
-	// Step 2.2: Set the offset of the member field that stores the new brightness level
-	*reinterpret_cast<uint32_t*>(current - sizeof(uint32_t)) = static_cast<uint32_t>(this->offsetBrightnessLevel);
 	
 	// Step 3: Set the controller instance which will be the 1st argument
 	lilu_os_memcpy(current, kSetArg0, sizeof(kSetArg0));
-	current[2] += (context.registerController % 8) * 8;
-	if (context.registerController >= 8) {
+	current[2] += (invocationContext.registerController % 8) * 8;
+	if (invocationContext.registerController >= 8) {
 		// %r8, %r9, %r10, %r11, %r12, %r13, %r14, %r15
 		current[0] += 4;
 	}
@@ -640,7 +535,7 @@ bool IGFX::BacklightRegistersAltFix::revertInlinedInvocation(KernelPatcher &patc
 	lilu_os_memcpy(current, kCall, sizeof(kCall));
 	current += sizeof(kCall);
 	// Step 4.2: Calculate the address of the next instruction (after `call` returns)
-	mach_vm_address_t next = address + context.start + (current - patch);
+	mach_vm_address_t next = descriptor.address + invocationContext.start + (current - patch);
 	// Step 4.3: Calculate and set the offset for the call instruction
 	*reinterpret_cast<uint32_t*>(current - sizeof(uint32_t)) = static_cast<uint32_t>(orgHwSetBacklight - next);
 	
@@ -653,30 +548,637 @@ bool IGFX::BacklightRegistersAltFix::revertInlinedInvocation(KernelPatcher &patc
 	lilu_os_memcpy(current, kJump, sizeof(kJump));
 	current += sizeof(kJump);
 	// Step 6.2: Calculate and set the offset for the jump instruction
-	size_t offset = context.end - (context.start + current - patch);
-	PANIC_COND(offset > UINT8_MAX, "igfx", "BLR: The offset for the jump instruction exceeds 255, which should not happen.");
+	size_t offset = invocationContext.end - (invocationContext.start + current - patch);
+	PANIC_COND(offset > UINT8_MAX, "igfx", "BLT: [COMM] The offset for the jump instruction exceeds 255, which should not happen.");
 	*(current - sizeof(uint8_t)) = static_cast<uint8_t>(offset);
 	
 	// The patch has been built for the given function
 	size_t patchSize = current - patch;
-	DBGLOG("igfx", "BLT: Built the assembly patch (%zu bytes) for the function at 0x%016llx: ", patchSize, address);
+	DBGLOG("igfx", "BLT: [COMM] Built the assembly patch (%zu bytes) for %s() at 0x%016llx: ", patchSize, descriptor.name, descriptor.address);
 	for (size_t index = 0; index < patchSize; index += 1) {
-		DBGLOG("igfx", "BLT: [%04lu] 0x%02x", index, patch[index]);
+		DBGLOG("igfx", "BLT: [COMM] [%04lu] 0x%02x", index, patch[index]);
 	}
 	
 	// Guard: Apply the assembly patch
-	if (patcher.routeBlock(address + context.start, patch, patchSize) != 0) {
-		SYSLOG("igfx", "BLT: Failed to apply the assembly patch to the function at 0x%016llx.", address);
+	if (patcher.routeBlock(descriptor.address + invocationContext.start, patch, patchSize) != 0) {
+		SYSLOG("igfx", "BLT: [COMM] Failed to apply the assembly patch to %s() at 0x%016llx.", descriptor.name, descriptor.address);
 		patcher.clearError();
 		return false;
 	}
 	
 	// All done
-	DBGLOG("igfx", "BLT: Patched the function at 0x%016llx successfully.", address);
+	DBGLOG("igfx", "BLT: [COMM] Patched %s() at 0x%016llx successfully.", descriptor.name, descriptor.address);
 	return true;
 }
 
-IOReturn IGFX::BacklightRegistersAltFix::wrapHwSetBacklight(void *controller, uint32_t brightness) {
+/**
+ *  Analyze `hwSetBacklight()` to find the offset of each required member field in the framebuffer controller
+ *
+ *  @param address The address of `hwSetBacklight()` to be analyzed
+ *  @param instructions The maximum number of instructions to be analyzed
+ *  @return A context object that stores the offset of each required member field in the framebuffer controller
+ */
+IGFX::BacklightRegistersAltFixKBL::ProbeContext IGFX::BacklightRegistersAltFixKBL::probeMemberOffsets(mach_vm_address_t address, size_t instructions) const {
+	DBGLOG("igfx", "BLT: [KBL ] Analyzing the function at 0x%016llx to probe the offset of each required member field.", address);
+	hde64s handle;
+	
+	// Record which register stores the implicit controller instance
+	// By default, %rdi stores the implicit controller instance (i.e., the 1st argument)
+	uint32_t registerController = 7;
+	
+	// Record which register stores the given brightness level
+	// By default, %esi stores the given brightness level (i.e., the 2nd argument)
+	uint32_t registerBrightnessLevel = 6;
+	
+	// Record the offset of the member field that stores the frequency divider
+	size_t offsetFrequencyDivider = 0;
+	
+	// Record the offset of the member field that will store the given brightness level
+	size_t offsetBrightnessLevel = 0;
+	
+	// Analyze at most the given number instructions to find the offsets
+	for (size_t index = 0; index < instructions; index += 1) {
+		// Guard: Should be able to disassemble the current instruction
+		address += Disassembler::hdeDisasm(address, &handle);
+		if (handle.flags & F_ERROR) {
+			SYSLOG("igfx", "BLT: [KBL ] Error: Cannot disassemble the instruction.");
+			break;
+		}
+		
+		// Guard: Step 1: Identify which register stores the controller instance
+		// Pattern: movq %rdi, %r??
+		// Checks: MOV, 64-bit, Direct Mode, Source Register is %rdi
+		if (Patterns::movqArg0(handle)) {
+			registerController = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movq: Register %s now stores the controller instance.", registerName(registerController));
+			continue;
+		}
+		
+		// Guard: Step 2: Identify which register stores the given brightness level
+		// Pattern: movl %esi, %r??
+		// Checks: MOV, 32-bit, Direct Mode, Source Register is %esi
+		if (Patterns::movlArg1(handle)) {
+			registerBrightnessLevel = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: Register %s now stores the new brightness level.", registerName(registerBrightnessLevel));
+			continue;
+		}
+		
+		// Guard: Step 3: Identify the offset of the member field in the controller that stores the frequency divider
+		// Pattern: movl <offset?>(%r??), %r??
+		// Checks: MOV, 32-bit, Memory Mode, Source register is identical to the one that stores the controller
+		if (Patterns::movlFromMemory(handle, registerController)) {
+			offsetFrequencyDivider = handle.disp.disp32;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: The frequency divider is stored at offset 0x%zx.", offsetFrequencyDivider);
+			continue;
+		}
+		
+		// Guard: Step 4: Identify the offset of the member field in the controller that will store the given brightness level
+		// Pattern: movl %r??, <offset?>(%r??)
+		// Checks: MOV, 32-bit, Memory Mode,
+		//         Source register is identical to the one that stores the brightness level,
+		//         Destination register is identical to the one that stores the controller
+		if (Patterns::movlToMemory(handle, registerBrightnessLevel, registerController)) {
+			offsetBrightnessLevel = handle.disp.disp32;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: The brightness level is stored at offset 0x%zx.", offsetBrightnessLevel);
+			break;
+		}
+	}
+	
+	// All done
+	return {offsetFrequencyDivider, offsetBrightnessLevel};
+}
+
+/**
+ *  Get all functions that contain an inlined invocation of `hwSetBacklight()` and thus will be analyzed and patched
+ *
+ *  @return A null-terminated array of descriptor, each of describes a function to be analyzed and patched.
+ */
+IGFX::BacklightRegistersAltFixKBL::FunctionDescriptor* IGFX::BacklightRegistersAltFixKBL::getFunctionDescriptors() const {
+	static constexpr const char* kLightUpEDPSymbol = "__ZN31AppleIntelFramebufferController10LightUpEDPEP21AppleIntelFramebufferP21AppleIntelDisplayPathPK29IODetailedTimingInformationV2";
+	static constexpr const char* kDisableDisplaySymbol = "__ZN31AppleIntelFramebufferController14DisableDisplayEP21AppleIntelFramebufferP21AppleIntelDisplayPathbh";
+	static constexpr const char* kHwSetPanelPowerSymbol = "__ZN31AppleIntelFramebufferController15hwSetPanelPowerEj";
+	
+	static FunctionDescriptor kFunctionDescriptors[] = {
+		{
+			"AppleIntelFramebufferController::LightUpEDP",
+			kLightUpEDPSymbol,
+			0,
+			IGFX::BacklightRegistersAltFixKBL::probeInlinedInvocation_LightUpEDP,
+			IGFX::BacklightRegistersAltFixKBL::revertInlinedInvocation,
+			true,
+		},
+		{
+			"AppleIntelFramebufferController::DisableDisplay",
+			kDisableDisplaySymbol,
+			0,
+			IGFX::BacklightRegistersAltFixKBL::probeInlinedInvocation_DisableDisplay,
+			IGFX::BacklightRegistersAltFixKBL::revertInlinedInvocation,
+			false,
+		},
+		{
+			"AppleIntelFramebufferController::hwSetPanelPower",
+			kHwSetPanelPowerSymbol,
+			0,
+			IGFX::BacklightRegistersAltFixKBL::probeInlinedInvocation_HwSetPanelPower,
+			IGFX::BacklightRegistersAltFixKBL::revertInlinedInvocation,
+			true,
+		},
+		{
+			nullptr,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			false,
+		}
+	};
+	
+	return kFunctionDescriptors;
+}
+
+/**
+ *  Get the address of the wrapper function that sets the backlight compatible with the current machine
+ *
+ *  @return The address of the wrapper function.
+ */
+mach_vm_address_t IGFX::BacklightRegistersAltFixKBL::getHwSetBacklightWrapper() const {
+	return reinterpret_cast<mach_vm_address_t>(&IGFX::BacklightRegistersAltFixKBL::wrapHwSetBacklight);
+}
+
+/**
+ *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+ *
+ *  @param descriptor A descriptor that describes the function to be analyzed
+ *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+ *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+ *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+ *          and the register that stores the implicit framebuffer controller instance.
+ *  @note This function is specialized for `LightUpEDP()`.
+ */
+IGFX::BacklightRegistersAltFixKBL::InvocationContext IGFX::BacklightRegistersAltFixKBL::probeInlinedInvocation_LightUpEDP(const FunctionDescriptor &descriptor, const ProbeContext &probeContext) {
+	DBGLOG("igfx", "BLT: [KBL ] Analyzing %s() at 0x%016llx to identify the position of the inlined invocation of hwSetBacklight().", descriptor.name, descriptor.address);
+	hde64s handle;
+	
+	// The address of the current instruction
+	auto current = descriptor.address;
+	
+	// The context of the inlined invocation
+	InvocationContext context;
+	
+	// Analyze at most the given number instructions to find the location of inlined invocation of `hwSetBacklight()`
+	for (size_t index = 0; index < kMaxNumInstructions; index += 1) {
+		// Guard: Should be able to disassemble the current instruction
+		size_t size = Disassembler::hdeDisasm(current, &handle);
+		if (handle.flags & F_ERROR) {
+			SYSLOG("igfx", "BLT: [KBL ] Error: Cannot disassemble the instruction at 0x%016llx.", current);
+			break;
+		}
+		
+		// Guard: Step 1: Find the start address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: leal 0xfff37da7(%r??), %r?? where the source register stores the base address of the MMIO region
+		// Note that the start address found in `LightUpEDP()` is after the invocation of `CamelliaBase::SetDPCDBacklight()`
+		// and the retrieval of the base address of the MMIO region
+		if (Patterns::lealWithOffset(handle, 0xFFF37DA7)) {
+			context.start = current - descriptor.address;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction leal: The relative start address of the inlined invocation is 0x%zx.", context.start);
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 2: Identify which register stores the controller instance
+		// Pattern: movl <offset>(%r??), %r??
+		// where the offset is identical to the one found in `hwSetBacklight()`
+		if (Patterns::movlFromMemoryWithOffset(handle, probeContext.offsetFrequencyDivider)) {
+			context.registerController = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: Register %s stores the controller instance.", registerName(context.registerController));
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 3: Find the end address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: movl $??????????, 0xc8250(%r??)
+		if (Patterns::movlImm32ToMemoryWithOffset(handle, 0xC8250)) {
+			context.end = current + size - descriptor.address;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: The relative end address of the inlined invocation is 0x%zx.", context.end);
+			break;
+		}
+		
+		current += size;
+	}
+	
+	// All done
+	return context;
+}
+
+/**
+ *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+ *
+ *  @param descriptor A descriptor that describes the function to be analyzed
+ *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+ *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+ *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+ *          and the register that stores the implicit framebuffer controller instance.
+ *  @note This function is specialized for `DisableDisplay()`.
+ */
+IGFX::BacklightRegistersAltFixKBL::InvocationContext IGFX::BacklightRegistersAltFixKBL::probeInlinedInvocation_DisableDisplay(const FunctionDescriptor &descriptor, const ProbeContext &probeContext) {
+	DBGLOG("igfx", "BLT: [KBL ] Analyzing %s() at 0x%016llx to identify the position of the inlined invocation of hwSetBacklight().", descriptor.name, descriptor.address);
+	hde64s handle;
+	
+	// The address of the current instruction
+	auto current = descriptor.address;
+	
+	// The context of the inlined invocation
+	InvocationContext context;
+	
+	// Analyze at most the given number instructions to find the location of inlined invocation of `hwSetBacklight()`
+	for (size_t index = 0; index < kMaxNumInstructions; index += 1) {
+		// Guard: Should be able to disassemble the current instruction
+		size_t size = Disassembler::hdeDisasm(current, &handle);
+		if (handle.flags & F_ERROR) {
+			SYSLOG("igfx", "BLT: [KBL ] Error: Cannot disassemble the instruction at 0x%016llx.", current);
+			break;
+		}
+		
+		// Guard: Step 1: Identify which register stores the controller instance
+		// Pattern: movq %rdi, %r??
+		if (Patterns::movqArg0(handle)) {
+			context.registerController = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movq: Register %s stores the controller instance.", registerName(context.registerController));
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 2: Find the start address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: leal 0xfff37da7(%r??), %r?? where the source register stores the base address of the MMIO region
+		// Note that the start address found in `LightUpEDP()` is after the invocation of `CamelliaBase::SetDPCDBacklight()`
+		// and the retrieval of the base address of the MMIO region
+		if (Patterns::lealWithOffset(handle, 0xFFF37DA7)) {
+			context.start = current - descriptor.address;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction leal: The relative start address of the inlined invocation is 0x%zx.", context.start);
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 3: Find the end address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: movl $??????????, 0xc8250(%r??)
+		if (Patterns::movlImm32ToMemoryWithOffset(handle, 0xC8250)) {
+			context.end = current + size - descriptor.address;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: The relative end address of the inlined invocation is 0x%zx.", context.end);
+			break;
+		}
+		
+		current += size;
+	}
+	
+	// All done
+	return context;
+}
+
+/**
+ *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+ *
+ *  @param descriptor A descriptor that describes the function to be analyzed
+ *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+ *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+ *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+ *          and the register that stores the implicit framebuffer controller instance.
+ *  @note This function is specialized for `hwSetPanelPower()`.
+ */
+IGFX::BacklightRegistersAltFixKBL::InvocationContext IGFX::BacklightRegistersAltFixKBL::probeInlinedInvocation_HwSetPanelPower(const FunctionDescriptor &descriptor, const ProbeContext &probeContext) {
+	DBGLOG("igfx", "BLT: [KBL ] Analyzing %s() at 0x%016llx to identify the position of the inlined invocation of hwSetBacklight().", descriptor.name, descriptor.address);
+	hde64s handle;
+	
+	// The address of the current instruction
+	auto current = descriptor.address;
+	
+	// The context of the inlined invocation
+	InvocationContext context;
+	
+	// Analyze at most the given number instructions to find the location of inlined invocation of `hwSetBacklight()`
+	for (size_t index = 0; index < kMaxNumInstructions; index += 1) {
+		// Guard: Should be able to disassemble the current instruction
+		size_t size = Disassembler::hdeDisasm(current, &handle);
+		if (handle.flags & F_ERROR) {
+			SYSLOG("igfx", "BLT: [KBL ] Error: Cannot disassemble the instruction at 0x%016llx.", current);
+			break;
+		}
+		
+		// Guard: Step 1: Identify which register stores the controller instance
+		// Pattern: movq %rdi, %r??
+		if (Patterns::movqArg0(handle)) {
+			context.registerController = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movq: Register %s now stores the controller instance.", registerName(context.registerController));
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 2: Find the start address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Unlike the Coffee Lake driver, the Kaby Lake driver writes to the register 0xC8250 without calling hwSetBacklight().
+		// However, we will use our custom implementation of hwSetBacklight() which updates both the backlight and the register 0xC8250.
+		// Pattern: addl $0xfff37dab, %r??
+		if (Patterns::addlWithImm32(handle, 0xFFF37DAB)) {
+			context.start = current - descriptor.address;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction addl: The relative start address of the inlined invocation is 0x%zx.", context.start);
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 3: Find the end address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: movl $??????????, 0xc8250(%r??)
+		if (Patterns::movlImm32ToMemoryWithOffset(handle, 0xC8250)) {
+			context.end = current + size - descriptor.address;
+			DBGLOG("igfx", "BLT: [KBL ] Found the instruction movl: The relative end address of the inlined invocation is 0x%zx.", context.end);
+			break;
+		}
+		
+		current += size;
+	}
+	
+	// All done
+	return context;
+}
+
+/**
+ *  Wrapper to set the backlight compatible with the current machine
+ *
+ *  @param controller The implicit framebuffer controller
+ *  @param brightness The new brightness level
+ *  @return `kIOReturnSuccess`.
+ *  @note When this function returns, the given brightness level should be stored into the given framebuffer controller.
+ *  @note Unlike the original fix implemented in BLR, BLT computes the value of the frequency register and the duty register
+ *        compatible with the current machine and commit those values using the original version of `WriteRegister32()`.
+ *        Additionally, this function updates the PWM control register at 0xC8250.
+ *        Apple's implementation will not be used by this submodule.
+ */
+IOReturn IGFX::BacklightRegistersAltFixKBL::wrapHwSetBacklight(void *controller, uint32_t brightness) {
+	//
+	// Differences between this function and the original one:
+	//
+	// - The wrapper no longer checks whether the current ig-platform-id has the bit `HasBacklight` set.
+	// - The wrapper no longer checks whether Camellia is enabled and invokes `CamelliaBase::SetDPCDBacklight()`.
+	// - The wrapper writes the PWM frequency set by the system firmware to `BXT_BLC_PWM_FREQ1` if the given brightness is non-zero.
+	// - The wrapper uses the PWM frequency set by the system firmware, the given new brightness value and
+	//   Apple's frequency divider (specified by the current ig-platform-id) to calculate the value of `BXT_BLC_PWM_DUTY1`.
+	// - The wrapper uses the PWM control value set by the system firmware to `BXT_BLC_PWM_CTL1` if the given brightness is non-zero.
+	//
+	// When this submodule is enabled, the following functions will invoke `AppleIntelFramebufferController::hwSetBacklight()`:
+	//
+	// - AppleIntelFramebufferController::LightUpEDP() invokes it with the brightness level stored in the framebuffer controller.
+	//   Note that Apple's original implementation invokes it with the brightness level bitwise ORed with the frequency divider.
+	// - AppleIntelFramebufferController::DisableDisplay() invokes it with a brightness level of 0 to disable the display.
+	//   Note that Apple's original implementation writes 0 to both `BXT_BLC_PWM_FREQ1` and `BXT_BLC_PWM_CTL1`.
+	// - AppleIntelFramebufferController::hwSetPanelPower() invokes it with the brightness level stored in the framebuffer controller.
+	//   Note that Apple's original implementation does not update `BXT_BLC_PWM_FREQ1` but writes 0xC0000000 to `BXT_BLC_PWM_CTL1`.
+	//
+	auto self = &callbackIGFX->modBacklightRegistersAltFixKBL;
+	DBGLOG("igfx", "BLT: [KBL ] Called with the controller at 0x%016llx and the brightness level 0x%x.", reinterpret_cast<uint64_t>(controller), brightness);
+	
+	// Step 1: Fetch and preserve the PWM control value set by the system firmware
+	self->fetchFirmwareBacklightControlIfNecessary(controller);
+	
+	// Step 2: Fetch and preserve the PWM frequency set by the system firmware
+	//         Note that we need to restore the frequency after the system wakes up
+	self->fetchFirmwareBacklightFrequencyIfNecessary(controller);
+	
+	// Step 3: Calculate the new duty cycle for the given brightness level
+	uint32_t dutyCycle = self->calcDutyCycle(controller, brightness);
+	DBGLOG("igfx", "BLT: [KBL ] Frequency = 0x%x, Divider = 0x%x, Duty Cycle = 0x%x.",
+		   self->firmwareBacklightFrequency, self->getFrequencyDivider(controller), dutyCycle);
+	
+	// Step 4: Write the PWM frequency set by the system firmware to BXT_BLC_PWM_FREQ1
+	self->writeFrequency(controller, brightness == 0 ? 0 : self->firmwareBacklightFrequency);
+	
+	// Step 5: Write the new duty cycle to BXT_BLC_PWM_DUTY1
+	self->writeDutyCycle(controller, dutyCycle);
+	
+	// Step 6: Store the new brightness level in the controller
+	if (brightness != 0)
+		self->setBrightnessLevel(controller, brightness);
+
+	// Step 7: Update the PWM control register
+	self->writePWMControl(controller, brightness == 0 ? 0 : self->firmwareBacklightControl);
+	
+	// All done
+	DBGLOG("igfx", "BLT: [KBL ] The new brightness level 0x%x is now effective.", brightness);
+	return kIOReturnSuccess;
+}
+
+/**
+ *  Analyze `hwSetBacklight()` to find the offset of each required member field in the framebuffer controller
+ *
+ *  @param address The address of `hwSetBacklight()` to be analyzed
+ *  @param instructions The maximum number of instructions to be analyzed
+ *  @return A context object that stores the offset of each required member field in the framebuffer controller
+ */
+IGFX::BacklightRegistersAltFixCFL::ProbeContext IGFX::BacklightRegistersAltFixCFL::probeMemberOffsets(mach_vm_address_t address, size_t instructions) const {
+	DBGLOG("igfx", "BLT: [CFL ] Analyzing the function at 0x%016llx to probe the offset of each required member field.", address);
+	hde64s handle;
+	
+	// Record which register stores the implicit controller instance
+	// By default, %rdi stores the implicit controller instance (i.e., the 1st argument)
+	uint32_t registerController = 7;
+	
+	// Record which register stores the given brightness level
+	// By default, %esi stores the given brightness level (i.e., the 2nd argument)
+	uint32_t registerBrightnessLevel = 6;
+	
+	// Record the offset of the member field that stores the frequency divider
+	size_t offsetFrequencyDivider = 0;
+	
+	// Record the offset of the member field that will store the given brightness level
+	size_t offsetBrightnessLevel = 0;
+	
+	// Analyze at most the given number instructions to find the offsets
+	for (size_t index = 0; index < instructions; index += 1) {
+		// Guard: Should be able to disassemble the current instruction
+		address += Disassembler::hdeDisasm(address, &handle);
+		if (handle.flags & F_ERROR) {
+			SYSLOG("igfx", "BLT: [CFL ] Error: Cannot disassemble the instruction.");
+			break;
+		}
+		
+		// Guard: Step 1: Identify which register stores the controller instance
+		// Pattern: movq %rdi, %r??
+		// Checks: MOV, 64-bit, Direct Mode, Source Register is %rdi
+		if (Patterns::movqArg0(handle)) {
+			registerController = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction movq: Register %s now stores the controller instance.", registerName(registerController));
+			continue;
+		}
+		
+		// Guard: Step 2: Identify which register stores the given brightness level
+		// Pattern: movl %esi, %r??
+		// Checks: MOV, 32-bit, Direct Mode, Source Register is %esi
+		if (Patterns::movlArg1(handle)) {
+			registerBrightnessLevel = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction movl: Register %s now stores the new brightness level.", registerName(registerBrightnessLevel));
+			continue;
+		}
+		
+		// Guard: Step 3: Verify that the given brightness level is stored in the same register
+		// Pattern: imull %r??, %r?? where the source register stores the given brightness level and the destination register stores the PWM frequency
+		// Checks: IMUL, 32-bit, Direct Mode
+		if (Patterns::imull(handle)) {
+			if (uint32_t source = handle.rex_b << 3 | handle.modrm_rm; source != registerBrightnessLevel) {
+				DBGLOG("igfx", "BLT: [CFL ] Found the instruction imull: Register %s instead of %s now stores the new brightness level.",
+					   registerName(source), registerName(registerBrightnessLevel));
+				registerBrightnessLevel = source;
+			}
+			continue;
+		}
+		
+		// Guard: Step 4: Identify the offset of the member field in the controller that stores the frequency divider
+		// Pattern: divl <offset?>(%r??)
+		// Note that even though Apple initializes this field with a hard coded value of `0xFFFF` in `AppleIntelFramebufferController::getOSInformation()`,
+		// we cannot assume that it is always set to `0xFFFF` in future macOS releases, so we will fetch the divider from the controller.
+		// Checks: DIV, 32-bit, Memory Mode, Register is identical to the one found in previous steps
+		if (Patterns::divlByMemory(handle, registerController)) {
+			offsetFrequencyDivider = handle.disp.disp32;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction divl: The frequency divider is stored at offset 0x%zx.", offsetFrequencyDivider);
+			continue;
+		}
+		
+		// Guard: Step 5: Identify the offset of the member field in the controller that will store the given brightness level
+		// Pattern: movl %r??, <offset?>(%r??)
+		// Checks: MOV, 32-bit, Memory Mode,
+		//         Source register is identical to the one that stores the brightness level,
+		//         Destination register is identical to the one that stores the controller
+		if (Patterns::movlToMemory(handle, registerBrightnessLevel, registerController)) {
+			offsetBrightnessLevel = handle.disp.disp32;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction movl: The brightness level is stored at offset 0x%zx.", offsetBrightnessLevel);
+			break;
+		}
+	}
+	
+	// All done
+	return {offsetFrequencyDivider, offsetBrightnessLevel};
+}
+
+/**
+ *  Get all functions that contain an inlined invocation of `hwSetBacklight()` and thus will be analyzed and patched
+ *
+ *  @return A null-terminated array of descriptor, each of describes a function to be analyzed and patched.
+ */
+IGFX::BacklightRegistersAltFixCFL::FunctionDescriptor* IGFX::BacklightRegistersAltFixCFL::getFunctionDescriptors() const {
+	static constexpr const char* kLightUpEDPSymbol = "__ZN31AppleIntelFramebufferController10LightUpEDPEP21AppleIntelFramebufferP21AppleIntelDisplayPathPK29IODetailedTimingInformationV2";
+	static constexpr const char* kHwSetPanelPowerSymbol = "__ZN31AppleIntelFramebufferController15hwSetPanelPowerEj";
+	
+	static FunctionDescriptor kFunctionDescriptors[] = {
+		{
+			"AppleIntelFramebufferController::LightUpEDP",
+			kLightUpEDPSymbol,
+			0,
+			IGFX::BacklightRegistersAltFixCFL::probeInlinedInvocation,
+			IGFX::BacklightRegistersAltFixCFL::revertInlinedInvocation,
+			true,
+		},
+		{
+			"AppleIntelFramebufferController::hwSetPanelPower",
+			kHwSetPanelPowerSymbol,
+			0,
+			IGFX::BacklightRegistersAltFixCFL::probeInlinedInvocation,
+			IGFX::BacklightRegistersAltFixCFL::revertInlinedInvocation,
+			true,
+		},
+		{
+			nullptr,
+			nullptr,
+			0,
+			nullptr,
+			nullptr,
+			false,
+		}
+	};
+	
+	return kFunctionDescriptors;
+}
+
+/**
+ *  Get the address of the wrapper function that sets the backlight compatible with the current machine
+ *
+ *  @return The address of the wrapper function.
+ */
+mach_vm_address_t IGFX::BacklightRegistersAltFixCFL::getHwSetBacklightWrapper() const {
+	return reinterpret_cast<mach_vm_address_t>(&IGFX::BacklightRegistersAltFixCFL::wrapHwSetBacklight);
+}
+
+/**
+ *  Find the location of an inlined invocation of `hwSetBacklight()` in the given function
+ *
+ *  @param descriptor A descriptor that describes the function to be analyzed
+ *  @param probeContext A context object that stores the offset of each required member field in the framebuffer controller
+ *  @return A context object that stores a pair of `<Start, End>` offsets, relative to the given address,
+ *          which indicates the location of an inlined invocation of `hwSetBacklight()` in this function,
+ *          and the register that stores the implicit framebuffer controller instance.
+ *  @note This function is specialized for `LightUpEDP()` and `hwSetPanelPower()`.
+ */
+IGFX::BacklightRegistersAltFixCFL::InvocationContext IGFX::BacklightRegistersAltFixCFL::probeInlinedInvocation(const FunctionDescriptor &descriptor, const ProbeContext &probeContext) {
+	DBGLOG("igfx", "BLT: [CFL ] Analyzing %s() at 0x%016llx to identify the position of the inlined invocation of hwSetBacklight().", descriptor.name, descriptor.address);
+	hde64s handle;
+	
+	// The address of the current instruction
+	auto current = descriptor.address;
+	
+	// The context of the inlined invocation
+	InvocationContext context;
+	
+	// Analyze at most the given number instructions to find the location of inlined invocation of `hwSetBacklight()`
+	for (size_t index = 0; index < kMaxNumInstructions; index += 1) {
+		// Guard: Should be able to disassemble the current instruction
+		size_t size = Disassembler::hdeDisasm(current, &handle);
+		if (handle.flags & F_ERROR) {
+			SYSLOG("igfx", "BLT: [CFL ] Error: Cannot disassemble the instruction.");
+			break;
+		}
+		
+		// Guard: Step 1: Find the start address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: leal 0xfff37da7(%r??), %r?? where the source register stores the base address of the MMIO region
+		// Note that the start address found in `LightUpEDP()` is after the invocation of `CamelliaBase::SetDPCDBacklight()`
+		// and the retrieval of the base address of the MMIO region
+		if (Patterns::lealWithOffset(handle, 0xFFF37DA7)) {
+			context.start = current - descriptor.address;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction leal: The relative start address of the inlined invocation is 0x%zx.", context.start);
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 2: Identify which register stores the controller instance
+		// Pattern: divl <offset?>(%r??)
+		// where the offset is identical to the one found in `hwSetBacklight()`
+		if (Patterns::divlByMemoryWithOffset(handle, probeContext.offsetFrequencyDivider)) {
+			context.registerController = handle.rex_b << 3 | handle.modrm_rm;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction divl: Register %s stores the controller instance.", registerName(context.registerController));
+			current += size;
+			continue;
+		}
+		
+		// Guard: Step 3: Find the end address, relative to the given address, of the inlined invocation of `hwSetBacklight()`
+		// Pattern: addl $0xfff37dab, %r??
+		if (Patterns::addlWithImm32(handle, 0xFFF37DAB)) {
+			context.end = current - descriptor.address;
+			DBGLOG("igfx", "BLT: [CFL ] Found the instruction addl: The relative end address of the inlined invocation is 0x%zx.", context.end);
+			break;
+		}
+		
+		current += size;
+	}
+	
+	// All done
+	return context;
+}
+
+/**
+ *  Wrapper to set the backlight compatible with the current machine
+ *
+ *  @param controller The implicit framebuffer controller
+ *  @param brightness The new brightness level
+ *  @return `kIOReturnSuccess`.
+ *  @note When this function returns, the given brightness level should be stored into the given framebuffer controller.
+ *  @note Unlike the original fix implemented in BLR, BLT computes the value of the frequency register and the duty register
+ *        compatible with the current machine and commit those values using the original version of `WriteRegister32()`.
+ *        Apple's implementation will not be used by this submodule.
+ */
+IOReturn IGFX::BacklightRegistersAltFixCFL::wrapHwSetBacklight(void *controller, uint32_t brightness) {
 	//
 	// Differences between this function and the original one:
 	//
@@ -686,50 +1188,29 @@ IOReturn IGFX::BacklightRegistersAltFix::wrapHwSetBacklight(void *controller, ui
 	// - The wrapper uses the PWM frequency set by the system firmware, the given new brightness value and
 	//   Apple's frequency divider (set to 0xFFFF in getOSInformation()) to calculate the value of `BXT_BLC_PWM_DUTY1`.
 	//
-	auto self = &callbackIGFX->modBacklightRegistersAltFix;
-	DBGLOG("igfx", "BLT: [CFL+] Called with the controller at 0x%016llx and the brightness level 0x%x.", reinterpret_cast<uint64_t>(controller), brightness);
+	auto self = &callbackIGFX->modBacklightRegistersAltFixCFL;
+	DBGLOG("igfx", "BLT: [CFL ] Called with the controller at 0x%016llx and the brightness level 0x%x.", reinterpret_cast<uint64_t>(controller), brightness);
 	
 	// Step 1: Fetch and preserve the PWM frequency set by the system firmware
 	//         Note that we need to restore the frequency after the system wakes up
-	if (self->firmwareBacklightFrequency == 0) {
-		// Guard: The system should be initialized with a non-zero PWM frequency
-		if (auto bootValue = callbackIGFX->readRegister32(controller, BXT_BLC_PWM_FREQ1); bootValue != 0) {
-			DBGLOG("igfx", "BLT: [CFL+] System initialized with a PWM frequency of 0x%x.", bootValue);
-			self->firmwareBacklightFrequency = bootValue;
-		} else {
-			SYSLOG("igfx", "BLT: [CFL+] System initialized with a PWM frequency of 0. Will use the fallback frequency.");
-			self->firmwareBacklightFrequency = kFallbackBacklightFrequency;
-		}
-	}
+	self->fetchFirmwareBacklightFrequencyIfNecessary(controller);
 	
-	uint64_t frequency = self->firmwareBacklightFrequency;
+	// Step 2: Calculate the new duty cycle for the given brightness level
+	uint32_t dutyCycle = self->calcDutyCycle(controller, brightness);
+	DBGLOG("igfx", "BLT: [CFL ] Frequency = 0x%x, Divider = 0x%x, Duty Cycle = 0x%x.",
+		   self->firmwareBacklightFrequency, self->getFrequencyDivider(controller), dutyCycle);
 	
-	// Step 2: Fetch the value of Apple's frequency divider
-	uint64_t divider = getMember<uint32_t>(controller, self->offsetFrequencyDivider);
+	// Step 3: Write the PWM frequency set by the system firmware to BXT_BLC_PWM_FREQ1
+	self->writeFrequency(controller, self->firmwareBacklightFrequency);
 	
-	// Step 3: Calculate the new value of BXT_BLC_PWM_DUTY1
-	uint32_t duty = static_cast<uint32_t>(frequency * brightness / divider);
+	// Step 4: Write the new duty cycle to BXT_BLC_PWM_DUTY1
+	self->writeDutyCycle(controller, dutyCycle);
 	
-	DBGLOG("igfx", "BLT: [CFL+] Frequency = 0x%llx, Divider = 0x%llx, Duty = 0x%x.", frequency, divider, duty);
-	
-	// Step 4: Write the frequency to BXT_BLC_PWM_FREQ1
-	callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_FREQ1, static_cast<uint32_t>(frequency));
-	
-	// Step 5: Write the new value to BXT_BLC_PWM_DUTY1
-	if (callbackIGFX->modBacklightSmoother.enabled) {
-		// Need to pass the scaled value to the smoother
-		DBGLOG("igfx", "BLS: [CFL+] Will pass the rescaled value 0x%08x to the smoother version.", duty);
-		IGFX::BacklightSmoother::smoothCFLWriteRegisterPWMDuty1(controller, BXT_BLC_PWM_DUTY1, duty);
-	} else {
-		// Otherwise invoke the original function
-		DBGLOG("igfx", "BLT: [CFL+] Will pass the rescaled value 0x%08x to the original version.", duty);
-		callbackIGFX->writeRegister32(controller, BXT_BLC_PWM_DUTY1, duty);
-	}
-	
-	// Step 6: Store the new brightness level to the controller
-	getMember<uint32_t>(controller, self->offsetBrightnessLevel) = brightness;
+	// Step 5: Store the new brightness level in the controller
+	self->setBrightnessLevel(controller, brightness);
 	
 	// All done
+	DBGLOG("igfx", "BLT: [CFL ] The new brightness level 0x%x is now effective.", brightness);
 	return kIOReturnSuccess;
 }
 

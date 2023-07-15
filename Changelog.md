@@ -1,5 +1,9 @@
 WhateverGreen Changelog
 =======================
+#### v1.6.6
+- Extended the Backlight Registers Alternative Fix (BLT) submodule to support both KBL and CFL platforms. (by @0xFireWolf)
+- Revised the Backlight Registers Fix (BLR) submodule to make it compatible with the Backlight Smoother (BLS) on KBL platforms. (by @0xFireWolf)
+
 #### v1.6.5
 - Added constants for macOS 14 support
 - Added a new boot argument `-igfxblt` to revert the optimizations done by the compiler in backlight related functions, fixing the 3-minute dark screen issue and making Backlight Smoother (BLS) work on mobile Coffee Lake platforms running macOS 13.4 or later. (by @0xFireWolf)
