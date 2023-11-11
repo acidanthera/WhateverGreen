@@ -1050,7 +1050,7 @@ Mobile: 0, PipeCount: 2, PortCount: 2, FBMemoryCount: 2
 
 Make sure that WhateverGreen v1.6.0 or above is used. Then, it is necessary to fake `device-id` and choose an `ig-platform-id` from Kaby Lake that is closest to the Skylake model (e.g. HD 530 to HD 630). In case of incompatibility, try a different `device-id` and the corresponding `ig-platform-id`. Experiments are the best practice to figure out which ID will best fit.
 
-In addition to using the latest version of WhateverGreen, `AAPL,GfxYTile` with value `01 00 00 00` may be injected together with `ig-platform-id` to avoid glitches. For more details, please refer to [acidanthera/bugtracker#483](https://github.com/acidanthera/bugtracker/issues/2088#issuecomment-1381357651).
+In addition to using the latest version of WhateverGreen, `AAPL,GfxYTile` with value `01000000` may be injected together with `ig-platform-id` to avoid glitches. For more details, please refer to [acidanthera/bugtracker#483](https://github.com/acidanthera/bugtracker/issues/2088#issuecomment-1381357651).
 
 ***SKL framebuffer list:***
 
@@ -2719,7 +2719,7 @@ Starting from v1.5.5, the default delay is changed to 1 second, so in most cases
 - "8 apples" and the disappearance of the background image with File Vault 2 during the transition from UEFI GOP drivers to macOS drivers (due to incompatible EDID). Partially solved in *WEG*.  
 - PAVP freezes (freezes during video playback, broken QuickLook, etc.) are solved with *WEG* at the cost of disabling HDCP.  
 - Haswell glitches for some framebuffers are resolved with a semantic `framebuffer-cursormem` patch.  
-- In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. For a temporary solution try to fake IGPU to use SKL drivers.  
+- In macOS 10.14 оn some laptops with KBL graphics one may face visual artifacts on the gradients. In certain cases can help `AAPL,GfxYTile` with value `01000000` or for a temporary solution try to fake IGPU to use SKL drivers.  
 - The several minutes black screen upon OS boot with mobile CFL is fixed by *WEG*.  
 - The absence in BIOS of an option to change the amount of memory for the frame buffer is resolved with either semantic `framebuffer-stolenmem` and `framebuffer-fbmem` patches, by modifying the BIOS or by manually inputting the values in UEFI Shell. **Otherwise you get a panic.** [Explanation](https://www.applelife.ru/posts/750369)  
 - Some systems with IGPUs (e.g. KBL and CFL) may cause system instability in lower power states. Sometimes it can be noticed by NVMe kernel panics. The generally available workaround is passing `forceRenderStandby=0` to kernel boot arguments to disable RC6 Render Standby. See [this issue](https://github.com/acidanthera/bugtracker/issues/1193) for more details.
