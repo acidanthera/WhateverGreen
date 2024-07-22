@@ -1355,9 +1355,10 @@ void IGFX::BacklightSmoother::processKernel(KernelPatcher &patcher, DeviceInfo *
 		DBGLOG("igfx", "BLS: User requested threshold = %u.", threshold);
 	if (WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-queue-size", queueSize))
 		DBGLOG("igfx", "BLS: User requested queue size = %u.", queueSize);
-	if (WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-lowerbound", brightnessRange.first) ||
-		WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-upperbound", brightnessRange.second))
-		DBGLOG("igfx", "BLS: User requested brightness range = [%u, %u].", brightnessRange.first, brightnessRange.second);
+	if (WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-lowerbound", brightnessRange.first))
+		DBGLOG("igfx", "BLS: User requested brightness lower bound = %u.", brightnessRange.first);
+	if (WIOKit::getOSDataValue(info->videoBuiltin, "backlight-smoother-upperbound", brightnessRange.second))
+		DBGLOG("igfx", "BLS: User requested brightness upper bound = %u.", brightnessRange.second);
 	
 	// Sanitize user configurations
 	if (steps == 0) {
