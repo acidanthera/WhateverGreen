@@ -1,5 +1,8 @@
  WhateverGreen Changelog
 =======================
+#### v1.6.8
+- Fixed loading on macOS 10.10 and older due to a MacKernelSDK regression
+
 #### v1.6.7
 - Added constants for macOS 15 support
 - Fixed short-circuit evaluation from brightness bound overrides, thanks @damiponce and Gwy
