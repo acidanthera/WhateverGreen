@@ -1,7 +1,7 @@
  WhateverGreen Changelog
 =======================
 #### v1.6.9
-- Added Arrow Lake CPU detection
+- Added Alder Lake/Raptor Lake/Arrow Lake CPU detection
 
 #### v1.6.8
 - Fixed loading on macOS 10.10 and older due to a MacKernelSDK regression
