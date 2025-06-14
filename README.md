@@ -49,7 +49,7 @@ Read [FAQs](./Manual/) and avoid asking any questions. No support is provided fo
 | Boot argument 	| DeviceProperties 	| Description 	|
 |---	|---	|---	|
 | `-cdfon` 			  | `enable-hdmi20`  | Enable HDMI 2.0 patches on iGPU and dGPU (Not implemented for macOS 11+)  |
-| `-wegbeta` 		  | N/A 	| Enable WhateverGreen on unsupported OS versions (15 and below are enabled by default) 	|
+| `-wegbeta` 		  | N/A 	| Enable WhateverGreen on unsupported macOS versions (26 and below are enabled by default) 	|
 | `-wegdbg` 		  | N/A 	| Enable debug printing (available in DEBUG binaries) 	|
 | `-wegoff` 		  | N/A 	| Disable WhateverGreen 	|
 

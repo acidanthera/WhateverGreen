@@ -1,5 +1,8 @@
  WhateverGreen Changelog
 =======================
+#### v1.7.0
+- Added constants for macOS 26 support
+
 #### v1.6.9
 - Added Alder Lake/Raptor Lake/Arrow Lake CPU detection
 

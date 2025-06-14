@@ -35,7 +35,7 @@ PluginConfiguration ADDPR(config) {
 	bootargBeta,
 	arrsize(bootargBeta),
 	KernelVersion::SnowLeopard,
-	KernelVersion::Sequoia,
+	KernelVersion::Tahoe,
 	[]() {
 		weg.init();
 	}
