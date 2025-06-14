@@ -122,6 +122,13 @@ void IGFX::init() {
 			currentFramebufferOpt = &kextIntelICLHPFb;
 			modDVMTCalcFix.available = true;
 			break;
+		case CPUInfo::CpuGeneration::TigerLake:
+			supportsGuCFirmware = true;
+			currentGraphics = &kextIntelICL;
+			currentFramebuffer = &kextIntelICLLPFb;
+			currentFramebufferOpt = &kextIntelICLHPFb;
+			modDVMTCalcFix.available = true;
+			break;
 		case CPUInfo::CpuGeneration::CometLake:
 			supportsGuCFirmware = true;
 			currentGraphics = &kextIntelKBL;
