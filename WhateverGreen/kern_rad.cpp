@@ -174,7 +174,7 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
 			KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
 		};
-		patcher.routeMultiple(KernelPatcher::KernelID, requests);
+		patcher.routeMultipleLong(requests, 2); // hoping this works, away from home atm
 
 		if (useCustomAgdpDecision && info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
 			useCustomAgdpDecision = false;
