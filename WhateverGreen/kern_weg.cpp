@@ -11,6 +11,7 @@
 #include <Headers/kern_cpu.hpp>
 #include "kern_weg.hpp"
 
+#include <IOKit/acpi/IOACPIPlatformDevice.h>
 #include <IOKit/graphics/IOFramebuffer.h>
 
 // This is a hack to let us access protected properties.
@@ -393,6 +394,47 @@ void WEG::processKext(KernelPatcher &patcher, size_t index, mach_vm_address_t ad
 		return;
 }
 
+uint32_t processUID(uint32_t deviceid) {
+	uint32_t uid = 0;
+	// list from SSDT-PNLF, use CpuGeneration instead?
+	switch (deviceid) {
+		// Sandy HD3000
+		case 0x010b: case 0x0102:
+		case 0x0106: case 0x1106: case 0x1601: case 0x0116: case 0x0126:
+		case 0x0112: case 0x0122:
+		// Ivy
+		case 0x0152: case 0x0156: case 0x0162: case 0x0166:
+		case 0x016a:
+		// Arrandale
+		case 0x0046: case 0x0042:
+			uid = 14;
+			break;
+
+		// CoffeeLake and Whiskey Lake and CometLake and IceLake
+		case 0x3e9b: case 0x3ea5: case 0x3e92: case 0x3e91: case 0x3ea0: case 0x3ea6: case 0x3e98:
+		case 0x9bc8: case 0x9bc5: case 0x9bc4: case 0xff05: case 0x8a70: case 0x8a71: case 0x8a51:
+		case 0x8a5c: case 0x8a5d: case 0x8a52: case 0x8a53: case 0x8a56: case 0x8a5a: case 0x8a5b:
+		case 0x9b41: case 0x9b21: case 0x9bca: case 0x9ba4:
+			uid = 19;
+			break;
+
+		// Haswell
+		case 0x0d26: case 0x0a26: case 0x0d22: case 0x0412: case 0x0416: case 0x0a16: case 0x0a1e: case 0x0a2e: case 0x041e: case 0x041a:
+		// Broadwell
+		case 0x0bd1: case 0x0bd2: case 0x0bd3: case 0x1606: case 0x160e: case 0x1616: case 0x161e: case 0x1626: case 0x1622: case 0x1612: case 0x162b:
+			uid = 15;
+			break;
+
+		// assume Skylake/KabyLake/KabyLake-R
+		// 0x1916, 0x191E, 0x1926, 0x1927, 0x1912, 0x1932, 0x1902, 0x1917, 0x191b,
+		// 0x5916, 0x5912, 0x591b, others...
+		default:
+			uid = 16;
+			break;
+	}
+	return uid;
+}
+
 void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 	auto name = device->getName();
 
@@ -440,6 +482,34 @@ void WEG::processBuiltinProperties(IORegistryEntry *device, DeviceInfo *info) {
 				KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead16, wrapConfigRead16, &orgConfigRead16);
 				KernelPatcher::routeVirtual(obj, WIOKit::PCIConfigOffset::ConfigRead32, wrapConfigRead32, &orgConfigRead32);
 				DBGLOG("weg", "hooked configRead read methods!");
+			}
+		}
+
+		// Set PNLF _UID by device-id
+		if (auto adev = OSDynamicCast(IOACPIPlatformDevice, obj->getProperty("acpi-device"))) {
+			if (adev->validateObject("SUID") == kIOReturnSuccess) {
+				uint32_t target = processUID(fakeDevice ?: realDevice);
+				OSObject *params[] = { OSNumber::withNumber(target, 32) };
+				OSObject *result;
+				if (adev->evaluateObject("SUID", &result, params, 1) == kIOReturnSuccess) {
+					DBGLOG("weg", "set PNLF _UID to 0x%x", target);
+				} else {
+					SYSLOG("weg", "set PNLF _UID failed");
+				}
+				params[0]->release();
+				// Override _UID property in ioreg with new value
+				OSString *path = OSDynamicCast(OSString, result);
+				auto child = adev->childFromPath(path ? path->getCStringNoCopy() : "PNLF", gIOACPIPlane);
+				if (auto pnlf = OSDynamicCast(IOACPIPlatformDevice, child)) {
+					OSObject *uid = nullptr;
+					if (pnlf->evaluateObject("_UID", &uid) == kIOReturnSuccess)
+						pnlf->setProperty("_UID", uid);
+					OSSafeReleaseNULL(uid);
+				}
+				OSSafeReleaseNULL(result);
+				OSSafeReleaseNULL(child);
+			} else {
+				DBGLOG("weg", "PNLF does not support _UID set");
 			}
 		}
 	} else {
