@@ -53,6 +53,8 @@ static KernelPatcher::KextInfo kextPolarisController
 { "com.apple.kext.AMD9500Controller", patchPolarisController, 1, {}, {}, KernelPatcher::KextInfo::Unloaded };
 static KernelPatcher::KextInfo kextRadeonX6000Framebuffer
 { "com.apple.kext.AMDRadeonX6000Framebuffer", pathRedeonX6000Framebuffer, arrsize(pathRedeonX6000Framebuffer), {}, {}, KernelPatcher::KextInfo::Unloaded };
+static KernelPatcher::KextInfo kextIOGraphicsFamily
+{ "com.apple.iokit.IOGraphicsFamily", nullptr, 0, {}, {}, KernelPatcher::KextInfo::Unloaded };
 
 static KernelPatcher::KextInfo kextRadeonHardware[RAD::MaxRadeonHardware] {
 	[RAD::IndexRadeonHardwareX3000] = { idRadeonX3000New, pathRadeonX3000, arrsize(pathRadeonX3000), {}, {}, KernelPatcher::KextInfo::Unloaded },
@@ -79,6 +81,16 @@ static const char *powerGatingFlags[] {
 	"CAIL_DisableAcpPowerGating",
 	"CAIL_DisableSAMUPowerGating"
 };
+
+/**
+ *  Load WhateverGreen patches for AMDSupport
+ */
+static void loadPatchesOfAMDSupport(void *user, KernelPatcher &patcher, size_t index, mach_vm_address_t address, size_t size) {
+	if (RAD *rad = static_cast<RAD *>(user)) {
+		lilu.onKextLoadForce(&kextRadeonSupport);
+		lilu.onKextLoadForce(&kextPolarisController);
+	}
+}
 
 RAD *RAD::callbackRAD;
 
@@ -118,13 +130,17 @@ void RAD::init(bool enableNavi10Bkl) {
 	// Fix codec PID to be spoofed PID if requested
 	forceCodecInfo = checkKernelArgument("-radcodec");
 
-	// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
-	lilu.onKextLoadForce(&kextRadeonSupport);
-	// Mojave dropped legacy GPU support (5xxx and 6xxx).
-	if (getKernelVersion() < KernelVersion::Mojave)
-		lilu.onKextLoadForce(&kextRadeonLegacySupport);
+	// Wait IOGraphicsFamily before patching AMDSupport on Tahoe to avoid sticking at KernelCache validating.
+	if (getKernelVersion() >= KernelVersion::Tahoe)
+		lilu.onKextLoad(&kextIOGraphicsFamily, 1, loadPatchesOfAMDSupport, this);
 	else
-		lilu.onKextLoadForce(&kextPolarisController);
+		// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
+		lilu.onKextLoadForce(&kextRadeonSupport);
+	    // Mojave dropped legacy GPU support (5xxx and 6xxx).
+	    if (getKernelVersion() < KernelVersion::Mojave)
+	    	lilu.onKextLoadForce(&kextRadeonLegacySupport);
+	    else
+	    	lilu.onKextLoadForce(&kextPolarisController);
 
 	initHardwareKextMods();
 
