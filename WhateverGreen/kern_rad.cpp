@@ -171,10 +171,15 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 			enableGvaSupport = gva != 0;
 
 		KernelPatcher::RouteRequest requests[] {
-		    KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
-		    KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
+			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
+			KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
 		};
-		patcher.routeMultipleLong(KernelPatcher::KernelID, requests, arrsize(requests));
+		
+		if (getKernelVersion() >= KernelVersion::Catalina) {
+			patcher.routeMultipleLong(KernelPatcher::KernelID, requests, arrsize(requests));
+		} else {
+			patcher.routeMultiple(KernelPatcher::KernelID, requests);
+		}
 
 		if (useCustomAgdpDecision && info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
 			useCustomAgdpDecision = false;
