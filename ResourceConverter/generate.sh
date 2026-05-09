@@ -9,6 +9,9 @@ ret=0
 
 rm -f "${PROJECT_DIR}/WhateverGreen/kern_resources.cpp"
 
+# xcode only signs the binaries after all build phases so we can't use the binary we built on this phase on Apple Silicon 
+/usr/bin/codesign --force --sign - --timestamp\=none "${TARGET_BUILD_DIR}/ResourceConverter"
+
 "${TARGET_BUILD_DIR}/ResourceConverter" \
 	"${PROJECT_DIR}/Resources" \
 	"${PROJECT_DIR}/WhateverGreen/kern_resources.cpp" \
