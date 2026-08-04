@@ -66,6 +66,45 @@ private:
 	static RAD *callbackRAD;
 
 	/**
+	 *  Route a kernel function picking a jump type whose prologue relocation is safe
+	 *
+	 *  Lilu copies the prologue bytes it overwrites into a trampoline verbatim, so any
+	 *  instruction with a relative operand inside that range silently breaks. How many
+	 *  bytes get relocated depends on the jump type Lilu ends up choosing, so pick the
+	 *  request's jump type from what the target's prologue actually tolerates.
+	 *
+	 *  @param patcher  KernelPatcher instance
+	 *  @param request  route request, solved and routed in place
+	 *
+	 *  @return true if the function was routed
+	 */
+	static bool routeKernelFunctionSafely(KernelPatcher &patcher, KernelPatcher::RouteRequest &request);
+
+	/**
+	 *  Check that the first `min` bytes of a function can be moved to another address
+	 *
+	 *  @param addr  function address
+	 *  @param min   minimum number of bytes that will be relocated
+	 *
+	 *  @return true if no instruction in the relocated range has a relative operand
+	 */
+	static bool isPrologueRelocatable(mach_vm_address_t addr, size_t min);
+
+	/**
+	 *  Check whether a GPU carries properties the getProperty wrapper could merge
+	 *
+	 *  @param device  PCI device to inspect
+	 *
+	 *  @return true if any CFG/PP/CAIL prefixed property is present
+	 */
+	static bool hasPropertyMergeOverrides(IORegistryEntry *device);
+
+	/**
+	 *  Disable the kernel-wide IORegistry property routes entirely (-radnoprop)
+	 */
+	bool disablePropertyRoutes {false};
+
+	/**
 	 *  Original set property function
 	 */
 	mach_vm_address_t orgSetProperty {};

@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_api.hpp>
+#include <Headers/kern_disasm.hpp>
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <IOKit/IOService.h>
@@ -118,6 +119,11 @@ void RAD::init(bool enableNavi10Bkl) {
 	// Fix codec PID to be spoofed PID if requested
 	forceCodecInfo = checkKernelArgument("-radcodec");
 
+	// Escape hatch for the kernel-wide IORegistry property routes, which are the most invasive
+	// thing this submodule does and the first thing worth ruling out when the kernel dies while
+	// enumerating devices.
+	disablePropertyRoutes = checkKernelArgument("-radnoprop");
+
 	// To support overriding connectors and -radvesa mode we need to patch AMDSupport.
 	lilu.onKextLoadForce(&kextRadeonSupport);
 	// Mojave dropped legacy GPU support (5xxx and 6xxx).
@@ -145,13 +151,48 @@ void RAD::deinit() {
 
 }
 
+bool RAD::hasPropertyMergeOverrides(IORegistryEntry *device) {
+	// Mirrors the prefixes mergeProperties looks for. Anything else cannot reach the merge.
+	static const char *prefixes[] { "CFG,", "PP,", "CAIL," };
+
+	auto dict = device->getPropertyTable();
+	if (!dict)
+		return false;
+
+	auto iterator = OSCollectionIterator::withCollection(dict);
+	if (!iterator)
+		return false;
+
+	bool found = false;
+	OSSymbol *propname;
+	while (!found && (propname = OSDynamicCast(OSSymbol, iterator->getNextObject())) != nullptr) {
+		auto name = propname->getCStringNoCopy();
+		if (!name) continue;
+		for (size_t i = 0; i < arrsize(prefixes); i++) {
+			auto len = strlen(prefixes[i]);
+			if (propname->getLength() > len && !strncmp(name, prefixes[i], len)) {
+				DBGLOG("rad", "found property merge override %s", name);
+				found = true;
+				break;
+			}
+		}
+	}
+
+	iterator->release();
+	return found;
+}
+
 void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 	bool hasAMD = false;
+	bool needsPropertyMerge = false;
 	for (size_t i = 0; i < info->videoExternal.size(); i++) {
 		if (info->videoExternal[i].vendor == WIOKit::VendorID::ATIAMD) {
 			if (!hasAMD) {
 				hasAMD = true;
 			}
+
+			if (!needsPropertyMerge && hasPropertyMergeOverrides(info->videoExternal[i].video))
+				needsPropertyMerge = true;
 
 			if (info->videoExternal[i].video->getProperty("enable-gva-support"))
 				enableGvaSupport = true;
@@ -170,15 +211,26 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		if (PE_parse_boot_argn("radgva", &gva, sizeof(gva)))
 			enableGvaSupport = gva != 0;
 
-		KernelPatcher::RouteRequest requests[] {
-			KernelPatcher::RouteRequest("__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty),
-			KernelPatcher::RouteRequest("__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty),
-		};
-		
+		// getProperty is the hottest function in IOKit: the kernel calls it for every property of
+		// every device it enumerates, and the wrapper reaches back into the registry through
+		// getParentEntry while that same walk is in progress. It can only ever do useful work when
+		// CFG/PP/CAIL overrides were actually injected, so leave it alone when nothing needs merging.
+		bool routeGetProperty = needsPropertyMerge && !disablePropertyRoutes;
+		if (hasAMD && !routeGetProperty)
+			DBGLOG("rad", "skipping getProperty route, no property merge overrides present");
+
+		KernelPatcher::RouteRequest setPropertyRequest {"__ZN15IORegistryEntry11setPropertyEPKcPvj", wrapSetProperty, orgSetProperty};
+		KernelPatcher::RouteRequest getPropertyRequest {"__ZNK15IORegistryEntry11getPropertyEPKc", wrapGetProperty, orgGetProperty};
+
 		if (getKernelVersion() >= KernelVersion::Catalina) {
-			patcher.routeMultipleLong(KernelPatcher::KernelID, requests, arrsize(requests));
-		} else {
-			patcher.routeMultiple(KernelPatcher::KernelID, requests);
+			// Kernel-wide routes: let each one pick a jump type whose prologue relocation is safe.
+			if (!disablePropertyRoutes)
+				routeKernelFunctionSafely(patcher, setPropertyRequest);
+			if (routeGetProperty)
+				routeKernelFunctionSafely(patcher, getPropertyRequest);
+		} else if (!disablePropertyRoutes) {
+			KernelPatcher::RouteRequest requests[] { setPropertyRequest, getPropertyRequest };
+			patcher.routeMultiple(KernelPatcher::KernelID, requests, routeGetProperty ? 2 : 1);
 		}
 
 		if (useCustomAgdpDecision && info->firmwareVendor == DeviceInfo::FirmwareVendor::Apple)
@@ -192,6 +244,73 @@ void RAD::processKernel(KernelPatcher &patcher, DeviceInfo *info) {
 		for (size_t i = 0; i < maxHardwareKexts; i++)
 			kextRadeonHardware[i].switchOff();
 	}
+}
+
+bool RAD::isPrologueRelocatable(mach_vm_address_t addr, size_t min) {
+	size_t total = 0;
+
+	while (total < min) {
+		Disassembler::hde_t hs {};
+		auto len = Disassembler::hdeDisasm(addr + total, &hs);
+
+		if (len == 0 || (hs.flags & F_ERROR)) {
+			DBGLOG("rad", "prologue decoding failed at offset %lu", total);
+			return false;
+		}
+
+		// Relative branches and RIP-relative operands are encoded against the address of the
+		// instruction itself. Lilu copies the prologue into the trampoline byte for byte, so
+		// once moved they resolve against the trampoline and point at unrelated memory.
+		if (hs.flags & F_RELATIVE) {
+			DBGLOG("rad", "prologue has a relative operand at offset %lu", total);
+			return false;
+		}
+
+		total += len;
+	}
+
+	return true;
+}
+
+bool RAD::routeKernelFunctionSafely(KernelPatcher &patcher, KernelPatcher::RouteRequest &request) {
+	// Mirrors the jump sizes in KernelPatcher, which are private to Lilu. The number of
+	// prologue bytes Lilu relocates is the size of the jump it writes, rounded up to an
+	// instruction boundary.
+	static constexpr size_t SmallJump {1 + sizeof(int32_t)};
+	static constexpr size_t LongJump {6 + sizeof(uintptr_t)};
+
+	auto from = patcher.solveSymbol(KernelPatcher::KernelID, request.symbol);
+	if (!from) {
+		SYSLOG("rad", "failed to solve %s, err %d", request.symbol, patcher.getError());
+		patcher.clearError();
+		return false;
+	}
+
+	// An absolute jump is what Lilu needs whenever the callback is out of relative reach, and
+	// it is also the variant that relocates the most prologue. Take it when the prologue can
+	// survive being moved, since it is the only variant that works for a distant callback.
+	if (isPrologueRelocatable(from, LongJump)) {
+		if (patcher.routeMultipleLong(KernelPatcher::KernelID, &request, 1))
+			return true;
+
+		SYSLOG("rad", "failed to long route %s, err %d", request.symbol, patcher.getError());
+		patcher.clearError();
+		return false;
+	}
+
+	// Otherwise only a relative jump is safe, because it relocates far less. routeMultipleShort
+	// refuses to patch at all when the callback is out of reach instead of quietly widening the
+	// jump, which is what makes it usable as a fallback here.
+	if (isPrologueRelocatable(from, SmallJump) &&
+		patcher.routeMultipleShort(KernelPatcher::KernelID, &request, 1))
+		return true;
+
+	// Losing the property merge costs injected CFG/PP/CAIL overrides on this GPU. Routing anyway
+	// would hand the AMD drivers a broken trampoline on a path the kernel takes for every device
+	// it enumerates, which panics long before anything can report why.
+	SYSLOG("rad", "skipping %s, its prologue cannot be relocated safely", request.symbol);
+	patcher.clearError();
+	return false;
 }
 
 void RAD::updatePwmMaxBrightnessFromInternalDisplay() {
@@ -713,7 +832,12 @@ void RAD::updateConnectorsInfo(void *atomutils, t_getAtomObjectTableForType gett
 			DBGLOG("rad", "getConnectorsInfo conoverrides have invalid type");
 		}
 	} else {
-		if (atomutils) {
+		// gettable is resolved separately from the route that leads here and is absent on some
+		// releases, macOS 26 among them, so it cannot be assumed to be present.
+		if (atomutils && !gettable)
+			DBGLOG("rad", "getConnectorsInfo cannot autofix connectors without getAtomObjectTableForType");
+
+		if (atomutils && gettable) {
 			DBGLOG("rad", "getConnectorsInfo attempting to autofix connectors");
 			uint8_t sHeader = 0, displayPathNum = 0, connectorObjectNum = 0;
 			auto baseAddr = static_cast<uint8_t *>(gettable(atomutils, AtomObjectTableType::Common, &sHeader)) - sizeof(uint32_t);
@@ -1028,7 +1152,12 @@ bool RAD::wrapSetProperty(IORegistryEntry *that, const char *aKey, void *bytes, 
 	if (length > 10 && aKey && reinterpret_cast<const uint32_t *>(aKey)[0] == 'edom' && reinterpret_cast<const uint16_t *>(aKey)[2] == 'l') {
 		DBGLOG("rad", "SetProperty caught model %u (%.*s)", length, length, static_cast<char *>(bytes));
 		if (*static_cast<uint32_t *>(bytes) == ' DMA' || *static_cast<uint32_t *>(bytes) == ' ITA' || *static_cast<uint32_t *>(bytes) == 'edaR') {
-			if (FunctionCast(wrapGetProperty, callbackRAD->orgGetProperty)(that, aKey)) {
+			// getProperty is only routed when there is something to merge, so orgGetProperty is
+			// null in the common case. Call the real thing instead of through a dead trampoline.
+			auto existing = callbackRAD->orgGetProperty ?
+				FunctionCast(wrapGetProperty, callbackRAD->orgGetProperty)(that, aKey) :
+				that->getProperty(aKey);
+			if (existing) {
 				DBGLOG("rad", "SetProperty ignored setting %s to %s", aKey, static_cast<char *>(bytes));
 				return true;
 			}

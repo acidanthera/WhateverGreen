@@ -1,5 +1,11 @@
  WhateverGreen Changelog
 =======================
+#### v1.7.2
+- Fixed a boot panic during PCI/USB device enumeration on macOS 26 (Tahoe) caused by an unrelocatable IOReg getProperty prologue
+- Stopped routing IOReg getProperty unless CFG/PP/CAIL property overrides are actually present, added `-radnoprop` to disable the IOReg property routes outright
+- Fixed calls through unresolved trampolines in the setProperty wrapper and in connector autofix, which panicked on macOS 26 where getAtomObjectTableForType no longer exists
+- Bounded the framebuffer back-copy and zero-fill by the mapped VRAM length instead of the console geometry
+
 #### v1.7.1
 - Added support for routing IOReg getProperty in other kexts
 
