@@ -721,18 +721,29 @@ void WEG::wrapFramebufferInit(IOFramebuffer *fb) {
 	if (!backCopy) *callbackWEG->gIOFBVerboseBootPtr = verboseBoot;
 
 	// Finish the framebuffer initialisation by filling with black or copying the image back.
-	if (FramebufferViewer::getVramMap(fb)) {
+	if (auto vramMap = FramebufferViewer::getVramMap(fb)) {
 		auto src = reinterpret_cast<uint8_t *>(callbackWEG->consoleBuffer);
-		auto dst = reinterpret_cast<uint8_t *>(FramebufferViewer::getVramMap(fb)->getVirtualAddress());
+		auto dst = reinterpret_cast<uint8_t *>(vramMap->getVirtualAddress());
+
+		// The size comes from the console vinfo while the mapping belongs to the framebuffer. The
+		// display mode check above only compares against the mode's pixel information, which is not
+		// the same thing as the mapping, so bound the write by what is actually mapped.
+		size_t size = static_cast<size_t>(info.v_rowbytes) * info.v_height;
+		size_t mapped = vramMap->getLength();
+		if (size > mapped) {
+			DBGLOG("weg", "console image is %lu bytes but only %lu are mapped, clamping", size, mapped);
+			size = mapped;
+		}
+
 		if (backCopy) {
 			DBGLOG("weg", "attempting to copy...");
 			// Here you can actually draw at your will, but looks like only on Intel.
 			// On AMD you technically can draw too, but it happens for a very short while, and is not worth it.
-			lilu_os_memcpy(dst, src, info.v_rowbytes * info.v_height);
+			lilu_os_memcpy(dst, src, size);
 		} else if (zeroFill) {
 			// On AMD we do a zero-fill to ensure no visual glitches.
 			DBGLOG("weg", "doing zero-fill...");
-			memset(dst, 0, info.v_rowbytes * info.v_height);
+			memset(dst, 0, size);
 		}
 	}
 }
